@@ -34,6 +34,7 @@ export interface AnalysisResult {
   rootWinRate: number;
   rootScoreLead: number;
   moves: CandidateMove[];
+  territory: number[][]; // 19x19 grid, values -1 (white) to 1 (black)
 }
 
 export interface GameNode {
@@ -51,4 +52,5 @@ export interface GameSettings {
   showCoordinates: boolean;
   boardTheme: 'bamboo' | 'flat' | 'dark';
   showLastNMistakes: number; // 0 to disable
+  showTerritory: boolean;
 }

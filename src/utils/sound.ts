@@ -1,6 +1,7 @@
 let audioCtx: AudioContext | null = null;
 
 const getAudioContext = () => {
+    if (typeof window === 'undefined') return null; // Handle SSR/Test environment
     if (audioCtx) return audioCtx;
 
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -92,4 +93,28 @@ export const playPassSound = () => {
 
     osc.start();
     osc.stop(ctx.currentTime + 0.5);
+};
+
+export const playNewGameSound = () => {
+    const ctx = resumeContext();
+    if (!ctx) return;
+
+    // Upward chime
+    const now = ctx.currentTime;
+    [440, 554, 659].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const startTime = now + i * 0.1;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0.2, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+    });
 };
