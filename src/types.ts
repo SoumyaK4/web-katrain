@@ -5,10 +5,16 @@ export type Player = 'black' | 'white';
 export type Intersection = Player | null;
 export type BoardState = Intersection[][];
 
+export interface Move {
+    x: number;
+    y: number;
+    player: Player;
+}
+
 export interface GameState {
   board: BoardState;
   currentPlayer: Player;
-  moveHistory: { x: number; y: number; player: Player }[];
+  moveHistory: Move[]; // Path from root to this state
   capturedBlack: number;
   capturedWhite: number;
   komi: number;
@@ -27,4 +33,14 @@ export interface AnalysisResult {
   rootWinRate: number;
   rootScoreLead: number;
   moves: CandidateMove[];
+}
+
+export interface GameNode {
+  id: string;
+  parent: GameNode | null;
+  children: GameNode[];
+  move: Move | null;
+  gameState: GameState;
+  analysis?: AnalysisResult | null;
+  properties?: Record<string, string[]>;
 }
