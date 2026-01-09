@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { BOARD_SIZE, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move } from '../types';
 import { checkCaptures, getLiberties } from '../utils/gameLogic';
-import { playStoneSound } from '../utils/sound';
+import { playStoneSound, playCaptureSound, playPassSound } from '../utils/sound';
 import type { ParsedSgf } from '../utils/sgf';
 import { generateMockAnalysis } from '../utils/mockAnalysis';
 
@@ -188,6 +188,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (!isLoad) {
       playStoneSound();
+      if (captured.length > 0) {
+          setTimeout(() => playCaptureSound(captured.length), 100);
+      }
     }
 
     const newCapturedBlack = state.capturedBlack + (state.currentPlayer === 'white' ? captured.length : 0);
@@ -335,6 +338,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   passTurn: () => {
       const state = get();
+      playPassSound();
       const move: Move = { x: -1, y: -1, player: state.currentPlayer };
 
       // Check for existing pass child
