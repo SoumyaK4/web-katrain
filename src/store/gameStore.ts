@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { BOARD_SIZE, type GameState, type BoardState, type Player } from '../types';
 import { checkCaptures, getLiberties } from '../utils/gameLogic';
+import { playStoneSound } from '../utils/sound';
 
 interface GameStore extends GameState {
   pastStates: GameState[]; // Store full state for undo/ko
@@ -60,6 +61,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return;
         }
     }
+
+    // Play sound
+    playStoneSound();
 
     // Update captured counts
     const newCapturedBlack = state.capturedBlack + (state.currentPlayer === 'white' ? captured.length : 0);

@@ -1,10 +1,24 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { GoBoard } from './GoBoard';
-import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaUndo } from 'react-icons/fa';
+import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaUndo, FaSave } from 'react-icons/fa';
+import { downloadSgf } from '../utils/sgf';
+import type { GameState } from '../types';
 
 export const Layout: React.FC = () => {
-  const { resetGame, passTurn, capturedBlack, capturedWhite, toggleAi, isAiPlaying, undoMove } = useGameStore();
+  const { resetGame, passTurn, capturedBlack, capturedWhite, toggleAi, isAiPlaying, undoMove, ...storeRest } = useGameStore();
+
+  const handleSave = () => {
+      // Reconstruct simple GameState
+      const gameState: GameState = {
+          board: storeRest.board,
+          currentPlayer: storeRest.currentPlayer,
+          moveHistory: storeRest.moveHistory,
+          capturedBlack: capturedBlack,
+          capturedWhite: capturedWhite,
+      };
+      downloadSgf(gameState);
+  };
 
   return (
     <div className="flex h-screen bg-gray-900 text-gray-200 font-sans overflow-hidden">
@@ -20,6 +34,9 @@ export const Layout: React.FC = () => {
           onClick={() => toggleAi('white')}
         >
           <FaRobot />
+        </button>
+        <button className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Save SGF" onClick={handleSave}>
+          <FaSave />
         </button>
         <button className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Settings">
           <FaCog />
@@ -89,6 +106,11 @@ export const Layout: React.FC = () => {
            <div className="flex-grow bg-gray-900 rounded p-2 text-sm font-mono overflow-y-auto">
               {/* Move list or comments */}
               <div>Game started.</div>
+              {storeRest.moveHistory.map((move, i) => (
+                  <div key={i}>
+                      {i + 1}. {move.player} ({move.x === -1 ? 'Pass' : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${19 - move.y}`})
+                  </div>
+              ))}
            </div>
         </div>
       </div>
