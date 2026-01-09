@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { GoBoard } from './GoBoard';
 import { WinRateGraph } from './WinRateGraph';
 import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaArrowLeft, FaArrowRight, FaSave, FaFolderOpen, FaMicrochip } from 'react-icons/fa';
 import { downloadSgf, parseSgf } from '../utils/sgf';
-import type { GameState } from '../types';
+import type { GameState, CandidateMove } from '../types';
 
 export const Layout: React.FC = () => {
   const {
@@ -20,9 +20,24 @@ export const Layout: React.FC = () => {
     toggleAnalysisMode,
     isAnalysisMode,
     analysisData,
+    playMove,
     ...storeRest
   } = useGameStore();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'ArrowLeft') {
+            navigateBack();
+        } else if (e.key === 'ArrowRight') {
+            navigateForward();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigateBack, navigateForward]);
 
   const handleSave = () => {
       // Reconstruct simple GameState
@@ -56,6 +71,10 @@ export const Layout: React.FC = () => {
 
       // Reset input
       e.target.value = '';
+  };
+
+  const handleAnalysisClick = (move: CandidateMove) => {
+      playMove(move.x, move.y);
   };
 
   return (
@@ -107,7 +126,10 @@ export const Layout: React.FC = () => {
         {/* Top Bar (Optional status) */}
 
         <div className="flex-grow flex items-center justify-center bg-gray-900 overflow-auto p-4">
-           <GoBoard />
+           <GoBoard
+               hoveredMove={hoveredMove}
+               onHoverMove={setHoveredMove}
+           />
         </div>
 
         {/* Bottom Control Bar */}
@@ -174,7 +196,13 @@ export const Layout: React.FC = () => {
                    <div className="overflow-y-auto flex-grow p-0">
                        {analysisData ? (
                            analysisData.moves.map((move, i) => (
-                               <div key={i} className={`flex px-4 py-2 text-sm border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${move.order === 0 ? 'bg-gray-750' : ''}`}>
+                               <div
+                                   key={i}
+                                   className={`flex px-4 py-2 text-sm border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${move.order === 0 ? 'bg-gray-750' : ''}`}
+                                   onMouseEnter={() => setHoveredMove(move)}
+                                   onMouseLeave={() => setHoveredMove(null)}
+                                   onClick={() => handleAnalysisClick(move)}
+                               >
                                    <span className={`w-10 font-bold ${move.order===0 ? 'text-blue-400' : (move.pointsLost < 0.5 ? 'text-green-400' : (move.pointsLost < 2 ? 'text-yellow-400' : 'text-red-400'))}`}>
                                        {String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}{19 - move.y}
                                    </span>

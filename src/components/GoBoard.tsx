@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { BOARD_SIZE, type CandidateMove } from '../types';
 
-export const GoBoard: React.FC = () => {
-  const { board, playMove, moveHistory, analysisData, isAnalysisMode } = useGameStore();
-  const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
+interface GoBoardProps {
+    hoveredMove: CandidateMove | null;
+    onHoverMove: (move: CandidateMove | null) => void;
+}
+
+export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) => {
+  const { board, playMove, moveHistory, analysisData, isAnalysisMode, currentPlayer } = useGameStore();
 
   const cellSize = 30; // pixels
   const padding = 30;
@@ -181,6 +185,24 @@ export const GoBoard: React.FC = () => {
         })
       )}
 
+      {/* Ghost Stone (Hover) */}
+      {isAnalysisMode && hoveredMove && (
+          <div
+              className={`absolute rounded-full shadow-sm flex items-center justify-center pointer-events-none opacity-50 ${
+                currentPlayer === 'black'
+                  ? 'bg-black'
+                  : 'bg-white'
+              }`}
+              style={{
+                  width: cellSize - 2,
+                  height: cellSize - 2,
+                  left: padding + hoveredMove.x * cellSize - (cellSize / 2) + 1,
+                  top: padding + hoveredMove.y * cellSize - (cellSize / 2) + 1,
+                  zIndex: 5
+              }}
+          />
+      )}
+
       {/* Analysis Overlay */}
       {isAnalysisMode && analysisData && analysisData.moves.map((move) => {
           const isBest = move.order === 0;
@@ -214,8 +236,8 @@ export const GoBoard: React.FC = () => {
                       opacity: opacity,
                   }}
                   onClick={(e) => handleAnalysisClick(e, move)}
-                  onMouseEnter={() => setHoveredMove(move)}
-                  onMouseLeave={() => setHoveredMove(null)}
+                  onMouseEnter={() => onHoverMove(move)}
+                  onMouseLeave={() => onHoverMove(null)}
               >
                   <span className="text-[9px] pointer-events-none">
                     {isBest
