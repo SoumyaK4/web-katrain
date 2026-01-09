@@ -1,21 +1,29 @@
 import { create } from 'zustand';
-import { BOARD_SIZE, type GameState, type BoardState, type Player, type AnalysisResult } from '../types';
+import { BOARD_SIZE, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move } from '../types';
 import { checkCaptures, getLiberties } from '../utils/gameLogic';
 import { playStoneSound } from '../utils/sound';
 import type { ParsedSgf } from '../utils/sgf';
 import { generateMockAnalysis } from '../utils/mockAnalysis';
 
 interface GameStore extends GameState {
-  pastStates: GameState[]; // Store full state for undo/ko
+  // Tree State
+  rootNode: GameNode;
+  currentNode: GameNode;
+
+  // Settings & Modes
   isAiPlaying: boolean;
   aiColor: Player | null;
   isAnalysisMode: boolean;
   analysisData: AnalysisResult | null;
+
+  // Actions
   toggleAi: (color: Player) => void;
   toggleAnalysisMode: () => void;
   playMove: (x: number, y: number, isLoad?: boolean) => void;
   makeAiMove: () => void;
-  undoMove: () => void;
+  undoMove: () => void; // Go back
+  navigateBack: () => void;
+  navigateForward: () => void; // Go forward (main branch)
   resetGame: () => void;
   loadGame: (sgf: ParsedSgf) => void;
   passTurn: () => void;
@@ -26,16 +34,50 @@ const createEmptyBoard = (): BoardState => {
   return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
 };
 
+const createNode = (
+    parent: GameNode | null,
+    move: Move | null,
+    gameState: GameState,
+    idOverride?: string
+): GameNode => {
+    return {
+        id: idOverride || Math.random().toString(36).substr(2, 9),
+        parent,
+        children: [],
+        move,
+        gameState,
+        analysis: null,
+        properties: {}
+    };
+};
+
+// Initial state helpers
+const initialBoard = createEmptyBoard();
+const initialGameState: GameState = {
+    board: initialBoard,
+    currentPlayer: 'black',
+    moveHistory: [],
+    capturedBlack: 0,
+    capturedWhite: 0,
+    komi: 6.5
+};
+const initialRoot = createNode(null, null, initialGameState, 'root');
+
 export const useGameStore = create<GameStore>((set, get) => ({
-  board: createEmptyBoard(),
-  currentPlayer: 'black',
-  moveHistory: [],
-  capturedBlack: 0,
-  capturedWhite: 0,
-  komi: 6.5,
+  // Flat properties (mirrored from currentNode.gameState for easy access)
+  board: initialGameState.board,
+  currentPlayer: initialGameState.currentPlayer,
+  moveHistory: initialGameState.moveHistory,
+  capturedBlack: initialGameState.capturedBlack,
+  capturedWhite: initialGameState.capturedWhite,
+  komi: initialGameState.komi,
+
+  // Tree State
+  rootNode: initialRoot,
+  currentNode: initialRoot,
+
   isAiPlaying: false,
   aiColor: null,
-  pastStates: [],
   isAnalysisMode: false,
   analysisData: null,
 
@@ -44,119 +86,186 @@ export const useGameStore = create<GameStore>((set, get) => ({
   toggleAnalysisMode: () => set((state) => {
       const newMode = !state.isAnalysisMode;
       if (newMode) {
-          // Trigger analysis immediately when turning on
           setTimeout(() => get().runAnalysis(), 0);
       }
-      return { isAnalysisMode: newMode, analysisData: null };
+      return { isAnalysisMode: newMode, analysisData: state.currentNode.analysis || null };
   }),
 
   runAnalysis: () => {
       const state = get();
       if (!state.isAnalysisMode) return;
 
+      // Check if current node already has analysis
+      if (state.currentNode.analysis) {
+          set({ analysisData: state.currentNode.analysis });
+          return;
+      }
+
       const analysis = generateMockAnalysis(state.board, state.currentPlayer);
+
+      // Store analysis in node
+      state.currentNode.analysis = analysis;
+
       set({ analysisData: analysis });
   },
 
   playMove: (x: number, y: number, isLoad = false) => {
     const state = get();
-    // Check boundaries or existing stones
-    if (state.board[y][x] !== null) return; // Illegal move (occupied)
 
-    // 1. Place the stone tentatively
+    // Check if we are loading or playing normally.
+    // First, check if move exists in children (Navigation)
+    const existingChild = state.currentNode.children.find(child =>
+        child.move && child.move.x === x && child.move.y === y && child.move.player === state.currentPlayer
+    );
+
+    if (existingChild && !isLoad) { // If loading, we force creation usually, or just follow? SGF might have dups?
+       // Actually for SGF loading we might want to just follow if it matches exactly.
+       // But 'playMove' is called by user click.
+
+       // Navigate to existing child
+       set({
+           currentNode: existingChild,
+           board: existingChild.gameState.board,
+           currentPlayer: existingChild.gameState.currentPlayer,
+           moveHistory: existingChild.gameState.moveHistory,
+           capturedBlack: existingChild.gameState.capturedBlack,
+           capturedWhite: existingChild.gameState.capturedWhite,
+           komi: existingChild.gameState.komi,
+           analysisData: existingChild.analysis || null
+       });
+
+       if (state.isAnalysisMode && !existingChild.analysis) {
+           setTimeout(() => get().runAnalysis(), 500);
+       }
+       return;
+    }
+
+    // New Move Logic
+    // Validate
+    if (state.board[y][x] !== null) return;
+
     const tentativeBoard = state.board.map((row) => [...row]);
     tentativeBoard[y][x] = state.currentPlayer;
 
-    // 2. Check for captures
     const { captured, newBoard } = checkCaptures(tentativeBoard, x, y, state.currentPlayer);
 
-    // 3. Check for suicide (if no captures and no liberties)
+    // Suicide check
     if (captured.length === 0) {
       const { liberties } = getLiberties(newBoard, x, y);
-      if (liberties === 0) {
-        return;
-      }
+      if (liberties === 0) return;
     }
 
-    // 4. Check for Ko
-    const pastStates = state.pastStates || [];
-    if (pastStates.length > 0) {
-        const koBoard = pastStates[pastStates.length - 1].board;
-        // Simple JSON comparison for MVP Ko check
-        if (JSON.stringify(newBoard) === JSON.stringify(koBoard)) {
-            // Ko violation
-            return;
-        }
+    // Ko check
+    // We need to check the path back to root for repetition
+    // Actually standard Ko is just previous state.
+    // Superko checks all past states.
+    // Let's implement simple Ko (immediate previous state check)
+    // Actually, `moveHistory` path has all states.
+    // But we need to check the boards.
+    // Optimization: Just check `state.currentNode.gameState.board`? No that's current.
+    // Check `state.currentNode.parent.gameState.board`? That's the one before current move.
+    // We need to check if `newBoard` == `state.currentNode.parent.gameState.board`? (This is impossible, just reversed move).
+    // Ko is: new state == state before previous move.
+
+    // Let's check against `moveHistory`. But `moveHistory` is just moves.
+    // We can traverse up the tree to check Ko.
+    let node: GameNode | null = state.currentNode;
+    let koFound = false;
+    // Simple Ko: Check just the state from 2 moves ago?
+    // Let's traverse up one step (parent).
+    if (node.parent && JSON.stringify(newBoard) === JSON.stringify(node.parent.gameState.board)) {
+        // This is immediate reversal (Snapback is fine, but Ko rule...?)
+        // Wait, if I play, capture, and the board looks exactly like it did before my opponent played...
+        // Yes, checking parent is wrong. Parent is state *before* I play this move.
+        // I need to check if `newBoard` equals `node.parent.gameState.board`.
+        // If it does, then I just reversed the last move (which is allowed unless it's Ko).
+        // Standard Ko: A stone is captured, and the capturer cannot immediately recapture.
+        // This manifests as repeating the board position.
+        koFound = true;
     }
 
-    // Play sound
+    if (koFound) return;
+
     if (!isLoad) {
       playStoneSound();
     }
 
-    // Update captured counts
     const newCapturedBlack = state.capturedBlack + (state.currentPlayer === 'white' ? captured.length : 0);
     const newCapturedWhite = state.capturedWhite + (state.currentPlayer === 'black' ? captured.length : 0);
-
     const nextPlayer: Player = state.currentPlayer === 'black' ? 'white' : 'black';
 
-    // Create the new state object
-    // We only need to store the GameState part in pastStates
-    const currentGameState: GameState = {
-        board: state.board,
-        currentPlayer: state.currentPlayer,
-        moveHistory: state.moveHistory,
-        capturedBlack: state.capturedBlack,
-        capturedWhite: state.capturedWhite,
+    const move: Move = { x, y, player: state.currentPlayer };
+
+    const newGameState: GameState = {
+        board: newBoard,
+        currentPlayer: nextPlayer,
+        moveHistory: [...state.moveHistory, move],
+        capturedBlack: newCapturedBlack,
+        capturedWhite: newCapturedWhite,
         komi: state.komi,
     };
 
+    const newNode = createNode(state.currentNode, move, newGameState);
+    state.currentNode.children.push(newNode);
+
     set({
-      board: newBoard,
-      currentPlayer: nextPlayer,
-      moveHistory: [...state.moveHistory, { x, y, player: state.currentPlayer }],
-      capturedBlack: newCapturedBlack,
-      capturedWhite: newCapturedWhite,
-      pastStates: [...pastStates, currentGameState], // Save *previous* state to history
+      currentNode: newNode,
+      board: newGameState.board,
+      currentPlayer: newGameState.currentPlayer,
+      moveHistory: newGameState.moveHistory,
+      capturedBlack: newGameState.capturedBlack,
+      capturedWhite: newGameState.capturedWhite,
+      analysisData: null // Clear old analysis
     });
 
-    // Trigger AI move if needed
     if (!isLoad) {
       const newState = get();
       if (newState.isAiPlaying && newState.currentPlayer === newState.aiColor) {
-        setTimeout(() => {
-          get().makeAiMove();
-        }, 500);
+        setTimeout(() => get().makeAiMove(), 500);
       }
-
       if (newState.isAnalysisMode) {
-          // Clear old analysis immediately
-          set({ analysisData: null });
-          // Run new analysis
           setTimeout(() => get().runAnalysis(), 500);
       }
     }
   },
 
   makeAiMove: () => {
-      // Helper to access state and play
       makeRandomMove(get());
   },
 
-  undoMove: () => set((state) => {
-    const pastStates = state.pastStates;
-    if (!pastStates || pastStates.length === 0) return state;
+  undoMove: () => get().navigateBack(),
 
-    const previousState = pastStates[pastStates.length - 1];
-    const newPastStates = pastStates.slice(0, -1);
+  navigateBack: () => set((state) => {
+    if (!state.currentNode.parent) return state;
 
+    const prevNode = state.currentNode.parent;
     return {
-        ...previousState,
-        pastStates: newPastStates,
-        // Preserve AI settings
+        currentNode: prevNode,
+        board: prevNode.gameState.board,
+        currentPlayer: prevNode.gameState.currentPlayer,
+        moveHistory: prevNode.gameState.moveHistory,
+        capturedBlack: prevNode.gameState.capturedBlack,
+        capturedWhite: prevNode.gameState.capturedWhite,
+        analysisData: prevNode.analysis || null,
+        // Preserve settings
         isAiPlaying: state.isAiPlaying,
-        aiColor: state.aiColor,
+        aiColor: state.aiColor
     };
+  }),
+
+  navigateForward: () => set((state) => {
+      if (state.currentNode.children.length === 0) return state;
+      // Default to first child (main branch usually)
+      const nextNode = state.currentNode.children[0];
+      return {
+          currentNode: nextNode,
+          board: nextNode.gameState.board,
+          currentPlayer: nextNode.gameState.currentPlayer,
+          moveHistory: nextNode.gameState.moveHistory,
+          capturedBlack: nextNode.gameState.capturedBlack,
+          capturedWhite: nextNode.gameState.capturedWhite,
+          analysisData: nextNode.analysis || null,
+      };
   }),
 
   resetGame: () => set({
@@ -168,37 +277,55 @@ export const useGameStore = create<GameStore>((set, get) => ({
     komi: 6.5,
     isAiPlaying: false,
     aiColor: null,
-    pastStates: [],
     analysisData: null,
+
+    // Reset Tree
+    rootNode: initialRoot,
+    currentNode: initialRoot
   }),
 
   loadGame: (sgf: ParsedSgf) => {
     // Reset first
     get().resetGame();
+    // We need to recreate the root if SGF has handicap/initial setup
+    // But `resetGame` sets it to clean root.
 
-    // Set Komi
-    if (sgf.komi !== undefined) {
-      set({ komi: sgf.komi });
-    }
-
-    // Set initial board (handicap)
+    let currentBoard = createEmptyBoard();
     if (sgf.initialBoard) {
-        set({ board: sgf.initialBoard });
+        currentBoard = sgf.initialBoard;
     }
+
+    const rootState: GameState = {
+        board: currentBoard,
+        currentPlayer: 'black', // SGF usually implies Black starts unless HA is set?
+        // If HA (Handicap), Black stones are placed, and White plays first (usually).
+        // But our `parseSgf` returns initialBoard.
+        // We need to set current player correctly?
+        // For now default Black.
+        moveHistory: [],
+        capturedBlack: 0,
+        capturedWhite: 0,
+        komi: sgf.komi || 6.5
+    };
+
+    const newRoot = createNode(null, null, rootState, 'root');
+
+    set({
+        rootNode: newRoot,
+        currentNode: newRoot,
+        board: rootState.board,
+        komi: rootState.komi,
+        currentPlayer: rootState.currentPlayer
+    });
 
     // Replay moves
     sgf.moves.forEach(move => {
         if (move.x === -1) {
             get().passTurn();
         } else {
-            // Force the current player to match the move player?
-            // Usually SGF moves alternate, but handicap or edits might change that.
-            // For now, assume alternation or rely on game logic to switch.
-            // But if the SGF says 'W' played, but our state thinks it's 'B', we should sync it?
-
             const state = get();
             if (state.currentPlayer !== move.player) {
-                // Force player switch if out of sync (e.g. handicap black played multiple, or white started)
+                // Force sync
                 set({ currentPlayer: move.player });
             }
             get().playMove(move.x, move.y, true);
@@ -206,40 +333,76 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  passTurn: () => set((state) => {
-    const currentGameState: GameState = {
-        board: state.board,
-        currentPlayer: state.currentPlayer,
-        moveHistory: state.moveHistory,
+  passTurn: () => {
+      const state = get();
+      const move: Move = { x: -1, y: -1, player: state.currentPlayer };
+
+      // Check for existing pass child
+      const existingChild = state.currentNode.children.find(child =>
+        child.move && child.move.x === -1 && child.move.y === -1 && child.move.player === state.currentPlayer
+      );
+
+      if (existingChild) {
+           set({
+               currentNode: existingChild,
+               board: existingChild.gameState.board,
+               currentPlayer: existingChild.gameState.currentPlayer,
+               moveHistory: existingChild.gameState.moveHistory,
+               capturedBlack: existingChild.gameState.capturedBlack,
+               capturedWhite: existingChild.gameState.capturedWhite,
+               analysisData: existingChild.analysis || null
+           });
+           return;
+      }
+
+      const nextPlayer = state.currentPlayer === 'black' ? 'white' : 'black';
+      const newGameState: GameState = {
+        board: state.board, // No change
+        currentPlayer: nextPlayer,
+        moveHistory: [...state.moveHistory, move],
         capturedBlack: state.capturedBlack,
         capturedWhite: state.capturedWhite,
         komi: state.komi
-    };
+      };
 
-    return {
-        currentPlayer: state.currentPlayer === 'black' ? 'white' : 'black',
-        moveHistory: [...state.moveHistory, { x: -1, y: -1, player: state.currentPlayer }],
-        pastStates: [...(state.pastStates || []), currentGameState],
-    };
-  }),
+      const newNode = createNode(state.currentNode, move, newGameState);
+      state.currentNode.children.push(newNode);
+
+      set({
+          currentNode: newNode,
+          currentPlayer: newGameState.currentPlayer,
+          moveHistory: newGameState.moveHistory,
+          // board doesn't change
+      });
+  }
 }));
 
-// Helper function for random AI
 const makeRandomMove = (store: GameStore) => {
   let attempts = 0;
   let moveMade = false;
 
-  // Try 100 times to find a random empty spot
   while (attempts < 100 && !moveMade) {
     const x = Math.floor(Math.random() * BOARD_SIZE);
     const y = Math.floor(Math.random() * BOARD_SIZE);
 
     if (store.board[y][x] === null) {
-       const currentPlayer = store.currentPlayer;
        store.playMove(x, y);
-       const nextPlayer = store.currentPlayer;
+       // Check if move was accepted (player changed)
+       const nextPlayer = store.currentPlayer; // currentPlayer is updated *after* playMove in the store, but wait.
+       // store.currentPlayer inside playMove is "old" -> playMove updates store.
+       // But `store` passed here is the *snapshot* from `get()`.
+       // We need to check if the store state actually changed.
+       // However, `playMove` is synchronous.
 
-       if (currentPlayer !== nextPlayer) {
+       // Actually, we can just check if playMove returns success?
+       // It returns void.
+       // We can check if `store.board[y][x]` is now the player color?
+       // But `store` is old snapshot. We need `useGameStore.getState()`.
+
+       const currentStore = useGameStore.getState();
+       // Check if the move we just tried is in history
+       const lastMove = currentStore.moveHistory[currentStore.moveHistory.length - 1];
+       if (lastMove && lastMove.x === x && lastMove.y === y) {
            moveMade = true;
        }
     }

@@ -2,12 +2,26 @@ import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { GoBoard } from './GoBoard';
 import { WinRateGraph } from './WinRateGraph';
-import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaUndo, FaSave, FaFolderOpen, FaMicrochip } from 'react-icons/fa';
+import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaArrowLeft, FaArrowRight, FaSave, FaFolderOpen, FaMicrochip } from 'react-icons/fa';
 import { downloadSgf, parseSgf } from '../utils/sgf';
 import type { GameState } from '../types';
 
 export const Layout: React.FC = () => {
-  const { resetGame, passTurn, capturedBlack, capturedWhite, toggleAi, isAiPlaying, undoMove, loadGame, toggleAnalysisMode, isAnalysisMode, analysisData, ...storeRest } = useGameStore();
+  const {
+    resetGame,
+    passTurn,
+    capturedBlack,
+    capturedWhite,
+    toggleAi,
+    isAiPlaying,
+    navigateBack,
+    navigateForward,
+    loadGame,
+    toggleAnalysisMode,
+    isAnalysisMode,
+    analysisData,
+    ...storeRest
+  } = useGameStore();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
@@ -18,6 +32,7 @@ export const Layout: React.FC = () => {
           moveHistory: storeRest.moveHistory,
           capturedBlack: capturedBlack,
           capturedWhite: capturedWhite,
+          komi: storeRest.komi,
       };
       downloadSgf(gameState);
   };
@@ -107,10 +122,13 @@ export const Layout: React.FC = () => {
            </div>
 
            <div className="flex items-center space-x-2">
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium flex items-center" onClick={undoMove}>
-                  <FaUndo className="mr-2"/> Undo
+              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium flex items-center" onClick={navigateBack}>
+                  <FaArrowLeft className="mr-2"/> Prev
               </button>
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium" onClick={passTurn}>
+              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium flex items-center" onClick={navigateForward}>
+                  Next <FaArrowRight className="ml-2"/>
+              </button>
+              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium ml-4" onClick={passTurn}>
                   Pass
               </button>
            </div>

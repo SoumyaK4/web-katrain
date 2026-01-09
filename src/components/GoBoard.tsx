@@ -34,6 +34,7 @@ export const GoBoard: React.FC = () => {
     }
   };
 
+  // Derived from moveHistory or currentNode from store
   const lastMove = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1] : null;
 
   return (
