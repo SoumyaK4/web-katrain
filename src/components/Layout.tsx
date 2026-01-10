@@ -17,6 +17,7 @@ export const Layout: React.FC = () => {
     capturedWhite,
     toggleAi,
     isAiPlaying,
+    aiColor,
     navigateBack,
     navigateForward,
     navigateStart,
@@ -391,9 +392,16 @@ export const Layout: React.FC = () => {
           <FaFolderOpen />
         </button>
         <button
-          className={`p-2 hover:bg-gray-700 rounded ${isAiPlaying ? 'text-green-500' : 'text-gray-400'} hover:text-white`}
+          className={`p-2 hover:bg-gray-700 rounded ${isAiPlaying && aiColor === 'white' ? 'text-green-500' : 'text-gray-400'} hover:text-white`}
           title="Play vs AI (White)"
           onClick={() => toggleAi('white')}
+        >
+          <FaRobot />
+        </button>
+        <button
+          className={`p-2 hover:bg-gray-700 rounded ${isAiPlaying && aiColor === 'black' ? 'text-green-500' : 'text-gray-400'} hover:text-white`}
+          title="Play vs AI (Black)"
+          onClick={() => toggleAi('black')}
         >
           <FaRobot />
         </button>
@@ -485,7 +493,7 @@ export const Layout: React.FC = () => {
         <div className="h-16 bg-gray-800 border-t border-gray-700 flex items-center px-6 justify-between">
            {/* Left side empty or status text */}
            <div className="text-sm text-gray-500">
-               {isAiPlaying ? "AI is active" : "Manual Mode"}
+               {isAiPlaying ? `AI is active (${aiColor ?? 'unknown'})` : "Manual Mode"}
            </div>
 
            <div className="flex items-center space-x-2">

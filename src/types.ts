@@ -56,6 +56,7 @@ export interface GameNode {
   analysis?: AnalysisResult | null;
   autoUndo?: boolean | null; // Teach-mode auto-undo (KaTrain-like). null = not decided yet.
   undoThreshold?: number; // Random [0,1) used for fractional auto-undos.
+  aiThoughts?: string;
   properties?: Record<string, string[]>;
 }
 
@@ -80,4 +81,11 @@ export interface GameSettings {
   katagoReuseTree: boolean;
   katagoOwnershipMode: 'root' | 'tree';
   teachNumUndoPrompts: number[]; // KaTrain trainer/num_undo_prompts
+
+  aiStrategy: 'default' | 'scoreloss' | 'policy' | 'weighted';
+  aiScoreLossStrength: number; // KaTrain ai:scoreloss/strength
+  aiPolicyOpeningMoves: number; // KaTrain ai:policy/opening_moves
+  aiWeightedPickOverride: number; // KaTrain ai:p:weighted/pick_override
+  aiWeightedWeakenFac: number; // KaTrain ai:p:weighted/weaken_fac
+  aiWeightedLowerBound: number; // KaTrain ai:p:weighted/lower_bound
 }

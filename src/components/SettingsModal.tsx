@@ -190,6 +190,100 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                     </div>
 
                     <div className="pt-2 border-t border-gray-700">
+                        <h3 className="text-sm font-semibold text-gray-200 mb-3">AI</h3>
+
+                        <div className="space-y-2">
+                            <label className="text-gray-300 block">Strategy</label>
+                            <select
+                                value={settings.aiStrategy}
+                                onChange={(e) => updateSettings({ aiStrategy: e.target.value as GameSettings['aiStrategy'] })}
+                                className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm"
+                            >
+                                <option value="default">Default (engine top move)</option>
+                                <option value="scoreloss">ScoreLoss (weaker)</option>
+                                <option value="policy">Policy</option>
+                                <option value="weighted">Policy Weighted</option>
+                            </select>
+                        </div>
+
+                        {settings.aiStrategy === 'scoreloss' && (
+                            <div className="mt-3 space-y-1">
+                                <label className="text-gray-300 block text-sm">Strength (c)</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step={0.05}
+                                    value={settings.aiScoreLossStrength}
+                                    onChange={(e) => updateSettings({ aiScoreLossStrength: Math.max(0, parseFloat(e.target.value || '0')) })}
+                                    className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                />
+                                <p className="text-xs text-gray-500">
+                                    Higher = plays closer to best move; lower = more random among worse moves.
+                                </p>
+                            </div>
+                        )}
+
+                        {settings.aiStrategy === 'policy' && (
+                            <div className="mt-3 space-y-1">
+                                <label className="text-gray-300 block text-sm">Opening Moves</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    value={settings.aiPolicyOpeningMoves}
+                                    onChange={(e) => updateSettings({ aiPolicyOpeningMoves: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                    className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                />
+                                <p className="text-xs text-gray-500">
+                                    For the first N moves, uses weighted policy sampling (KaTrain-like).
+                                </p>
+                            </div>
+                        )}
+
+                        {settings.aiStrategy === 'weighted' && (
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Override</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={settings.aiWeightedPickOverride}
+                                        onChange={(e) => updateSettings({ aiWeightedPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Weaken</label>
+                                    <input
+                                        type="number"
+                                        min={0.01}
+                                        step={0.05}
+                                        value={settings.aiWeightedWeakenFac}
+                                        onChange={(e) => updateSettings({ aiWeightedWeakenFac: Math.max(0.01, parseFloat(e.target.value || '0')) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Lower</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={0.001}
+                                        value={settings.aiWeightedLowerBound}
+                                        onChange={(e) => updateSettings({ aiWeightedLowerBound: Math.max(0, parseFloat(e.target.value || '0')) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="col-span-3 text-xs text-gray-500">
+                                    Samples moves with probability proportional to <span className="font-mono">policy^(1/weaken)</span> above <span className="font-mono">lower</span>, unless the top policy move exceeds <span className="font-mono">override</span>.
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-700">
                         <h3 className="text-sm font-semibold text-gray-200 mb-3">KataGo</h3>
 
                         <div className="space-y-2">

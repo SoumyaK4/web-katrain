@@ -87,6 +87,7 @@ const createNode = (
         analysis: null,
         autoUndo: null,
         undoThreshold: Math.random(),
+        aiThoughts: '',
         properties: {}
     };
 };
@@ -124,6 +125,13 @@ const defaultSettings: GameSettings = {
   katagoReuseTree: true,
   katagoOwnershipMode: 'root',
   teachNumUndoPrompts: [1, 1, 1, 0.5, 0, 0],
+
+  aiStrategy: 'default',
+  aiScoreLossStrength: 0.2,
+  aiPolicyOpeningMoves: 22,
+  aiWeightedPickOverride: 1.0,
+  aiWeightedWeakenFac: 1.25,
+  aiWeightedLowerBound: 0.001,
 };
 
 let continuousToken = 0;
@@ -154,7 +162,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   engineStatus: 'idle',
   engineError: null,
 
-  toggleAi: (color) => set({ isAiPlaying: true, aiColor: color }),
+  toggleAi: (color) => {
+    const s = get();
+    const nextOn = !(s.isAiPlaying && s.aiColor === color);
+    set({ isAiPlaying: nextOn, aiColor: nextOn ? color : null });
+    const after = get();
+    if (after.isAiPlaying && after.aiColor === after.currentPlayer) {
+      setTimeout(() => after.makeAiMove(), 0);
+    }
+  },
 
   toggleAnalysisMode: () => set((state) => {
       const newMode = !state.isAnalysisMode;
@@ -465,12 +481,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
 	  makeAiMove: () => {
 	      const state = get();
-	      const parentBoard = state.currentNode.parent?.gameState.board;
-	      const grandparentBoard = state.currentNode.parent?.parent?.gameState.board;
+	      if (!state.isAiPlaying || !state.aiColor) return;
+	      if (state.currentPlayer !== state.aiColor) return;
+
+	      const node = state.currentNode;
+	      const nodeId = node.id;
+	      const playerAtStart = state.currentPlayer;
+
+	      const parentBoard = node.parent?.gameState.board;
+	      const grandparentBoard = node.parent?.parent?.gameState.board;
 	      const modelUrl = state.settings.katagoModelUrl;
 
       void getKataGoEngineClient()
 	        .analyze({
+	          positionId: nodeId,
 	          modelUrl,
 	          board: state.board,
 	          previousBoard: parentBoard,
@@ -478,20 +502,202 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	          currentPlayer: state.currentPlayer,
 	          moveHistory: state.moveHistory,
 	          komi: state.komi,
-	          topK: state.settings.katagoTopK,
+	          topK:
+	            state.settings.aiStrategy === 'default'
+	              ? state.settings.katagoTopK
+	              : Math.max(state.settings.katagoTopK, 30),
           visits: state.settings.katagoVisits,
           maxTimeMs: state.settings.katagoMaxTimeMs,
           batchSize: state.settings.katagoBatchSize,
           maxChildren: state.settings.katagoMaxChildren,
+          reuseTree: state.settings.katagoReuseTree,
+          ownershipMode: state.settings.katagoOwnershipMode,
         })
         .then((analysis) => {
-          const best = analysis.moves[0];
-          if (!best) {
+          const latest = get();
+          if (latest.currentNode.id !== nodeId) return;
+          if (latest.currentPlayer !== playerAtStart) return;
+          if (!latest.isAiPlaying || latest.aiColor !== playerAtStart) return;
+          const settings = latest.settings;
+
+          const analysisWithTerritory: AnalysisResult = {
+            rootWinRate: analysis.rootWinRate,
+            rootScoreLead: analysis.rootScoreLead,
+            rootScoreSelfplay: analysis.rootScoreSelfplay,
+            rootScoreStdev: analysis.rootScoreStdev,
+            moves: analysis.moves,
+            territory: ownershipToTerritoryGrid(analysis.ownership),
+            policy: analysis.policy,
+            ownershipStdev: analysis.ownershipStdev,
+          };
+
+          // Cache analysis on the node we analyzed.
+          node.analysis = analysisWithTerritory;
+
+          type PolicyMove = { prob: number; x: number; y: number; isPass: boolean };
+          const policyRanking = (policy: number[]): PolicyMove[] => {
+            const out: PolicyMove[] = [];
+            for (let y = 0; y < BOARD_SIZE; y++) {
+              for (let x = 0; x < BOARD_SIZE; x++) {
+                const p = policy[y * BOARD_SIZE + x] ?? -1;
+                if (p > 0) out.push({ prob: p, x, y, isPass: false });
+              }
+            }
+            const pass = policy[BOARD_SIZE * BOARD_SIZE] ?? -1;
+            if (pass > 0) out.push({ prob: pass, x: -1, y: -1, isPass: true });
+            out.sort((a, b) => b.prob - a.prob);
+            return out;
+          };
+
+          const pickOneWeighted = <T,>(items: Array<{ weight: number; value: T }>): T | null => {
+            let total = 0;
+            for (const it of items) {
+              if (it.weight > 0 && Number.isFinite(it.weight)) total += it.weight;
+            }
+            if (!(total > 0)) return null;
+            let r = Math.random() * total;
+            for (const it of items) {
+              const w = it.weight;
+              if (!(w > 0) || !Number.isFinite(w)) continue;
+              if (r < w) return it.value;
+              r -= w;
+            }
+            return items.length > 0 ? items[items.length - 1]!.value : null;
+          };
+
+          const chooseByStrategy = (): { x: number; y: number; thoughts: string } | null => {
+            const strategy = settings.aiStrategy;
+            const candidates = analysisWithTerritory.moves ?? [];
+
+            const best =
+              candidates.find((m) => m.order === 0) ?? candidates[0] ?? null;
+            const bestLabel =
+              !best
+                ? 'pass'
+                : best.x < 0 || best.y < 0
+                  ? 'pass'
+                  : `${String.fromCharCode(65 + (best.x >= 8 ? best.x + 1 : best.x))}${19 - best.y}`;
+
+            if (strategy === 'default') {
+              if (!best) return null;
+              return {
+                x: best.x,
+                y: best.y,
+                thoughts: `Default strategy chose top move ${bestLabel}.`,
+              };
+            }
+
+            if (strategy === 'scoreloss') {
+              if (candidates.length === 0) return null;
+              const c = Math.max(0, settings.aiScoreLossStrength);
+              const weighted = candidates.map((m) => ({
+                weight: Math.exp(Math.min(200, -c * Math.max(0, m.pointsLost))),
+                value: m,
+              }));
+              const picked = pickOneWeighted(weighted);
+              if (!picked) return null;
+              const label =
+                picked.x < 0 || picked.y < 0
+                  ? 'pass'
+                  : `${String.fromCharCode(65 + (picked.x >= 8 ? picked.x + 1 : picked.x))}${19 - picked.y}`;
+              return {
+                x: picked.x,
+                y: picked.y,
+                thoughts: `ScoreLoss picked ${label} (pointsLost ${picked.pointsLost.toFixed(1)}, strength ${c}).`,
+              };
+            }
+
+            const policy = analysisWithTerritory.policy;
+            const policyMoves = policy ? policyRanking(policy) : [];
+            if (policyMoves.length === 0) {
+              if (!best) return null;
+              return {
+                x: best.x,
+                y: best.y,
+                thoughts: `No policy available; fell back to top move ${bestLabel}.`,
+              };
+            }
+
+            const top5Pass = policyMoves.slice(0, 5).some((m) => m.isPass);
+
+            const shouldPlayTopMove = (override: number, overridetwo = 1.0): { move: PolicyMove; thoughts: string } | null => {
+              const top = policyMoves[0]!;
+              if (top5Pass) return { move: top, thoughts: 'Playing top policy move because pass is in top 5.' };
+              if (top.prob > override) return { move: top, thoughts: `Top policy move prob > ${override}.` };
+              const second = policyMoves[1];
+              if (second && top.prob + second.prob > overridetwo) {
+                return { move: top, thoughts: `Top 2 policy moves prob sum > ${overridetwo}.` };
+              }
+              return null;
+            };
+
+            if (strategy === 'policy') {
+              const openingMoves = Math.max(0, settings.aiPolicyOpeningMoves);
+              const depth = latest.moveHistory.length;
+              if (depth <= openingMoves) {
+                const weakenFac = 1.0;
+                const lowerBound = 0.02;
+                const override = 0.9;
+                const forced = shouldPlayTopMove(override);
+                if (forced) {
+                  return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+                }
+                const weighted = policyMoves
+                  .filter((m) => !m.isPass && m.prob > lowerBound)
+                  .map((m) => ({ weight: Math.pow(m.prob, 1 / weakenFac), value: m }));
+                const picked = pickOneWeighted(weighted) ?? policyMoves[0]!;
+                return {
+                  x: picked.x,
+                  y: picked.y,
+                  thoughts: `Policy opening: picked weighted policy move (depth ${depth} ≤ ${openingMoves}).`,
+                };
+              }
+              const top = policyMoves[0]!;
+              return {
+                x: top.x,
+                y: top.y,
+                thoughts: top5Pass ? 'Playing top policy move because pass is in top 5.' : 'Playing top policy move.',
+              };
+            }
+
+            if (strategy === 'weighted') {
+              const weakenFac = Math.max(0.01, settings.aiWeightedWeakenFac);
+              const lowerBound = Math.max(0, settings.aiWeightedLowerBound);
+              const override = Math.max(0, settings.aiWeightedPickOverride);
+
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const weighted = policyMoves
+                .filter((m) => !m.isPass && m.prob > lowerBound)
+                .map((m) => ({ weight: Math.pow(m.prob, 1 / weakenFac), value: m }));
+              const picked = pickOneWeighted(weighted);
+              const move = picked ?? policyMoves[0]!;
+              return {
+                x: move.x,
+                y: move.y,
+                thoughts:
+                  picked
+                    ? `Weighted picked random policy move (lower_bound ${lowerBound}, weaken_fac ${weakenFac}).`
+                    : 'Weighted fallback to top policy move.',
+              };
+            }
+
+            if (!best) return null;
+            return { x: best.x, y: best.y, thoughts: `Fallback to top move ${bestLabel}.` };
+          };
+
+          const chosen = chooseByStrategy();
+          if (!chosen) {
             makeHeuristicMove(get());
             return;
           }
-          if (best.x === -1 || best.y === -1) get().passTurn();
-          else get().playMove(best.x, best.y);
+          if (chosen.x === -1 || chosen.y === -1) get().passTurn();
+          else get().playMove(chosen.x, chosen.y);
+
+          const after = get();
+          after.currentNode.aiThoughts = chosen.thoughts;
+          set((s) => ({ treeVersion: s.treeVersion + 1 }));
         })
         .catch(() => {
           makeHeuristicMove(get());
