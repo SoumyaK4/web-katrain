@@ -41,6 +41,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         />
                     </div>
 
+                    {/* Territory */}
+                    <div className="flex items-center justify-between">
+                        <label className="text-gray-300">Show Territory (Analysis)</label>
+                        <input
+                            type="checkbox"
+                            checked={settings.showTerritory}
+                            onChange={(e) => updateSettings({ showTerritory: e.target.checked })}
+                            className="toggle"
+                        />
+                    </div>
+
                     {/* Board Theme */}
                     <div className="space-y-2">
                         <label className="text-gray-300 block">Board Theme</label>

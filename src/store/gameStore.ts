@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { BOARD_SIZE, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings } from '../types';
 import { checkCaptures, getLiberties } from '../utils/gameLogic';
-import { playStoneSound, playCaptureSound, playPassSound } from '../utils/sound';
+import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import type { ParsedSgf } from '../utils/sgf';
 import { generateMockAnalysis } from '../utils/mockAnalysis';
 
@@ -25,6 +25,8 @@ interface GameStore extends GameState {
   undoMove: () => void; // Go back
   navigateBack: () => void;
   navigateForward: () => void; // Go forward (main branch)
+  navigateStart: () => void;
+  navigateEnd: () => void;
   jumpToNode: (node: GameNode) => void; // Navigate to arbitrary node
   resetGame: () => void;
   loadGame: (sgf: ParsedSgf) => void;
@@ -71,6 +73,7 @@ const defaultSettings: GameSettings = {
   showCoordinates: true,
   boardTheme: 'bamboo',
   showLastNMistakes: 3,
+  showTerritory: false,
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -250,6 +253,38 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
   }),
 
+  navigateStart: () => set((state) => {
+      let node = state.currentNode;
+      while (node.parent) {
+          node = node.parent;
+      }
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+      };
+  }),
+
+  navigateEnd: () => set((state) => {
+      let node = state.currentNode;
+      while (node.children.length > 0) {
+          node = node.children[0]; // Follow main branch
+      }
+      return {
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: node.analysis || null,
+      };
+  }),
+
   jumpToNode: (node: GameNode) => set(() => {
       // Just set current node and sync state
       return {
@@ -263,21 +298,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
   }),
 
-  resetGame: () => set({
-    board: createEmptyBoard(),
-    currentPlayer: 'black',
-    moveHistory: [],
-    capturedBlack: 0,
-    capturedWhite: 0,
-    komi: 6.5,
-    isAiPlaying: false,
-    aiColor: null,
-    analysisData: null,
+  resetGame: () => {
+    const state = get();
+    if (state.settings.soundEnabled) {
+        playNewGameSound();
+    }
+    set({
+      board: createEmptyBoard(),
+      currentPlayer: 'black',
+      moveHistory: [],
+      capturedBlack: 0,
+      capturedWhite: 0,
+      komi: 6.5,
+      isAiPlaying: false,
+      aiColor: null,
+      analysisData: null,
 
-    // Reset Tree
-    rootNode: initialRoot,
-    currentNode: initialRoot
-  }),
+      // Reset Tree
+      rootNode: initialRoot,
+      currentNode: initialRoot
+    });
+  },
 
   loadGame: (sgf: ParsedSgf) => {
     // Reset first

@@ -34,6 +34,14 @@ export const Layout: React.FC = () => {
             navigateBack();
         } else if (e.key === 'ArrowRight') {
             navigateForward();
+        } else if (e.key === 'ArrowUp' || e.key === 'Home') {
+            navigateStart();
+        } else if (e.key === 'ArrowDown' || e.key === 'End') {
+            navigateEnd();
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+             // If input focused, don't trigger
+             if (document.activeElement?.tagName === 'INPUT') return;
+             navigateBack();
         }
     };
 
@@ -194,35 +202,48 @@ export const Layout: React.FC = () => {
                 </div>
 
                 {/* Top Moves List */}
-                <div className="flex-grow flex flex-col overflow-hidden">
-                   <div className="px-4 py-2 bg-gray-850 border-b border-gray-700 text-xs font-semibold text-gray-400 flex">
-                       <span className="w-10">Move</span>
-                       <span className="w-12 text-right">Win%</span>
-                       <span className="w-12 text-right">Score</span>
-                       <span className="w-12 text-right">Loss</span>
+                <div className="flex-grow flex flex-col overflow-hidden bg-gray-850">
+                   <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 text-xs font-semibold text-gray-400 flex sticky top-0 z-10">
+                       <span className="w-12">Move</span>
+                       <span className="w-20 text-center">Win%</span>
+                       <span className="w-14 text-right">Score</span>
+                       <span className="w-14 text-right">Loss</span>
                        <span className="flex-grow text-right">Visits</span>
                    </div>
-                   <div className="overflow-y-auto flex-grow p-0">
+                   <div className="overflow-y-auto flex-grow p-0 scrollbar-thin scrollbar-thumb-gray-700">
                        {analysisData ? (
                            analysisData.moves.map((move, i) => (
                                <div
                                    key={i}
-                                   className={`flex px-4 py-2 text-sm border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${move.order === 0 ? 'bg-gray-750' : ''}`}
+                                   className={`group flex items-center px-4 py-2 text-sm border-b border-gray-700/50 hover:bg-gray-700 cursor-pointer transition-colors ${move.order === 0 ? 'bg-gray-800' : ''}`}
                                    onMouseEnter={() => setHoveredMove(move)}
                                    onMouseLeave={() => setHoveredMove(null)}
                                    onClick={() => handleAnalysisClick(move)}
                                >
-                                   <span className={`w-10 font-bold ${move.order===0 ? 'text-blue-400' : (move.pointsLost < 0.5 ? 'text-green-400' : (move.pointsLost < 2 ? 'text-yellow-400' : 'text-red-400'))}`}>
+                                   <span className={`w-12 font-bold font-mono ${move.order===0 ? 'text-blue-400' : (move.pointsLost < 0.5 ? 'text-green-400' : (move.pointsLost < 2 ? 'text-yellow-400' : 'text-red-400'))}`}>
                                        {String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}{19 - move.y}
                                    </span>
-                                   <span className="w-12 text-right text-gray-300">{(move.winRate * 100).toFixed(1)}</span>
-                                   <span className="w-12 text-right text-gray-300">{move.scoreLead > 0 ? '+' : ''}{move.scoreLead.toFixed(1)}</span>
-                                   <span className="w-12 text-right text-red-300">{move.order === 0 ? '-' : move.pointsLost.toFixed(1)}</span>
-                                   <span className="flex-grow text-right text-gray-500">{move.visits}</span>
+
+                                   {/* Win Rate Bar */}
+                                   <div className="w-20 px-2 flex flex-col justify-center">
+                                       <div className="text-right text-xs text-gray-300 font-mono mb-0.5">
+                                           {(move.winRate * 100).toFixed(1)}%
+                                       </div>
+                                       <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
+                                           <div
+                                               className={`h-full ${move.winRate > 0.5 ? 'bg-green-500' : 'bg-red-500'}`}
+                                               style={{ width: `${move.winRate * 100}%` }}
+                                           />
+                                       </div>
+                                   </div>
+
+                                   <span className="w-14 text-right text-gray-300 font-mono">{move.scoreLead > 0 ? '+' : ''}{move.scoreLead.toFixed(1)}</span>
+                                   <span className="w-14 text-right text-red-300 font-mono">{move.order === 0 ? '-' : move.pointsLost.toFixed(1)}</span>
+                                   <span className="flex-grow text-right text-gray-500 font-mono text-xs">{move.visits.toLocaleString()}</span>
                                </div>
                            ))
                        ) : (
-                           <div className="p-4 text-center text-gray-500 text-sm">Processing...</div>
+                           <div className="p-4 text-center text-gray-500 text-sm animate-pulse">Processing...</div>
                        )}
                    </div>
                 </div>

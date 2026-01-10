@@ -1,4 +1,5 @@
 import { type BoardState, type Player, type AnalysisResult, BOARD_SIZE } from '../types';
+import { calculateTerritory } from './territory';
 
 export const generateMockAnalysis = (
     board: BoardState,
@@ -113,6 +114,7 @@ export const generateMockAnalysis = (
     return {
         rootWinRate: candidates[0].winRate,
         rootScoreLead: candidates[0].scoreLead,
-        moves: candidates
+        moves: candidates,
+        territory: calculateTerritory(board)
     };
 };

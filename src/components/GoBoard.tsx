@@ -206,6 +206,33 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
         />
       ))}
 
+      {/* Territory Overlay */}
+      {isAnalysisMode && settings.showTerritory && analysisData && analysisData.territory.map((row, y) =>
+         row.map((val, x) => {
+             if (Math.abs(val) < 0.1) return null; // Ignore small values
+
+             const isBlack = val > 0;
+             const opacity = Math.min(0.8, Math.abs(val) * 0.8); // Scale opacity
+             const color = isBlack ? 'black' : 'white';
+
+             return (
+                 <div
+                     key={`territory-${x}-${y}`}
+                     className="absolute pointer-events-none"
+                     style={{
+                         width: cellSize / 2, // Small square
+                         height: cellSize / 2,
+                         left: padding + x * cellSize - (cellSize / 4),
+                         top: padding + y * cellSize - (cellSize / 4),
+                         backgroundColor: color,
+                         opacity: opacity,
+                         borderRadius: '20%' // Slight rounding
+                     }}
+                 />
+             );
+         })
+      )}
+
       {/* Stones */}
       {board.map((row, y) =>
         row.map((cell, x) => {
