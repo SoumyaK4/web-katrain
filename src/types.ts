@@ -73,4 +73,6 @@ export interface GameSettings {
   katagoBatchSize: number;
   katagoMaxChildren: number;
   katagoTopK: number;
+  katagoReuseTree: boolean;
+  katagoOwnershipMode: 'root' | 'tree';
 }

@@ -118,6 +118,8 @@ const defaultSettings: GameSettings = {
   katagoBatchSize: 16,
   katagoMaxChildren: 361,
   katagoTopK: 10,
+  katagoReuseTree: true,
+  katagoOwnershipMode: 'root',
 };
 
 let continuousToken = 0;
@@ -237,6 +239,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       return getKataGoEngineClient()
 	        .analyze({
+	          positionId: node.id,
 	          modelUrl,
 	          board: state.board,
 	          previousBoard: parentBoard,
@@ -249,6 +252,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           maxTimeMs: opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs,
           batchSize: state.settings.katagoBatchSize,
           maxChildren: state.settings.katagoMaxChildren,
+          reuseTree: state.settings.katagoReuseTree,
+          ownershipMode: state.settings.katagoOwnershipMode,
         })
         .then((analysis) => {
           const analysisWithTerritory: AnalysisResult = {
@@ -293,6 +298,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         'katagoBatchSize',
         'katagoMaxChildren',
         'katagoTopK',
+        'katagoOwnershipMode',
       ];
 
       const engineChanged = engineKeys.some((k) => newSettings[k] !== undefined && newSettings[k] !== state.settings[k]);

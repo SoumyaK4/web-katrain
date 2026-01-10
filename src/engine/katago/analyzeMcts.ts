@@ -26,6 +26,8 @@ import {
 } from './fastBoard';
 import { extractInputsV7Fast, type RecentMove } from './featuresV7Fast';
 
+export type OwnershipMode = 'root' | 'tree';
+
 type Edge = {
   move: number; // 0..360 or PASS_MOVE
   prior: number;
@@ -616,6 +618,469 @@ async function evaluateBatch(args: {
   }
 
   return results;
+}
+
+export class MctsSearch {
+  readonly model: KataGoModelV8Tf;
+  readonly ownershipMode: OwnershipMode;
+  readonly maxChildren: number;
+  readonly currentPlayer: Player;
+  readonly komi: number;
+
+  private readonly rootStones: Uint8Array;
+  private readonly rootKoPoint: number;
+  private readonly rootPrevStones: Uint8Array;
+  private readonly rootPrevKoPoint: number;
+  private readonly rootMoves: RecentMove[];
+
+  private readonly rootNode: Node;
+  private readonly rootPolicy: Float32Array; // len 362
+  private readonly rootOwnership: Float32Array; // len 361
+  private readonly recentScoreCenter: number;
+
+  private constructor(args: {
+    model: KataGoModelV8Tf;
+    ownershipMode: OwnershipMode;
+    maxChildren: number;
+    currentPlayer: Player;
+    komi: number;
+    rootStones: Uint8Array;
+    rootKoPoint: number;
+    rootPrevStones: Uint8Array;
+    rootPrevKoPoint: number;
+    rootMoves: RecentMove[];
+    rootNode: Node;
+    rootPolicy: Float32Array;
+    rootOwnership: Float32Array;
+    recentScoreCenter: number;
+  }) {
+    this.model = args.model;
+    this.ownershipMode = args.ownershipMode;
+    this.maxChildren = args.maxChildren;
+    this.currentPlayer = args.currentPlayer;
+    this.komi = args.komi;
+
+    this.rootStones = args.rootStones;
+    this.rootKoPoint = args.rootKoPoint;
+    this.rootPrevStones = args.rootPrevStones;
+    this.rootPrevKoPoint = args.rootPrevKoPoint;
+    this.rootMoves = args.rootMoves;
+
+    this.rootNode = args.rootNode;
+    this.rootPolicy = args.rootPolicy;
+    this.rootOwnership = args.rootOwnership;
+    this.recentScoreCenter = args.recentScoreCenter;
+  }
+
+  static async create(args: {
+    model: KataGoModelV8Tf;
+    board: BoardState;
+    previousBoard?: BoardState;
+    previousPreviousBoard?: BoardState;
+    currentPlayer: Player;
+    moveHistory: Move[];
+    komi: number;
+    maxChildren: number;
+    ownershipMode: OwnershipMode;
+  }): Promise<MctsSearch> {
+    const rootStones = boardStateToStones(args.board);
+    const rootKoPoint = computeKoPointFromPrevious({ board: args.board, previousBoard: args.previousBoard, moveHistory: args.moveHistory });
+
+    const rootPrevStones = args.previousBoard ? boardStateToStones(args.previousBoard) : rootStones;
+    const rootPrevKoPoint = computeKoPointAfterMove(
+      args.previousPreviousBoard,
+      args.moveHistory.length >= 2 ? args.moveHistory[args.moveHistory.length - 2]! : null
+    );
+    const rootPrevPrevStones = args.previousPreviousBoard ? boardStateToStones(args.previousPreviousBoard) : rootPrevStones;
+    const rootPrevPrevKoPoint = -1;
+
+    const rootMoves: RecentMove[] = args.moveHistory.map((m) => ({
+      move: m.x < 0 || m.y < 0 ? PASS_MOVE : m.y * BOARD_SIZE + m.x,
+      player: m.player,
+    }));
+
+    const rootPos: SimPosition = { stones: rootStones.slice(), koPoint: rootKoPoint };
+    const rootNode = new Node(playerToColor(args.currentPlayer));
+
+    const rootEval = (
+      await evaluateBatch({
+        model: args.model,
+        includeOwnership: true,
+        states: [
+          {
+            stones: rootPos.stones,
+            koPoint: rootPos.koPoint,
+            prevStones: rootPrevStones,
+            prevKoPoint: rootPrevKoPoint,
+            prevPrevStones: rootPrevPrevStones,
+            prevPrevKoPoint: rootPrevPrevKoPoint,
+            currentPlayer: args.currentPlayer,
+            recentMoves: takeRecentMoves(rootMoves, [], 5),
+            komi: args.komi,
+          },
+        ],
+      })
+    )[0]!;
+    if (!rootEval.ownership) throw new Error('Missing ownership output');
+
+    const rootOwnershipSign = args.currentPlayer === 'black' ? 1 : -1;
+    const rootOwnership = new Float32Array(BOARD_AREA);
+    for (let i = 0; i < BOARD_AREA; i++) {
+      rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[i]!);
+    }
+
+    const rootPolicy = new Float32Array(BOARD_AREA + 1);
+    expandNode({
+      node: rootNode,
+      stones: rootPos.stones,
+      koPoint: rootPos.koPoint,
+      policyLogits: rootEval.policy,
+      passLogit: rootEval.passLogit,
+      maxChildren: args.maxChildren,
+      libertyMap: rootEval.libertyMap,
+      policyOut: rootPolicy,
+    });
+    rootNode.ownership = rootOwnership;
+
+    const recentScoreCenter = computeRecentScoreCenter(-rootEval.blackScoreMean);
+
+    const rootValue = 2 * rootEval.blackWinProb - 1;
+    const rootUtility = computeBlackUtilityFromEval({
+      blackWinProb: rootEval.blackWinProb,
+      blackNoResultProb: rootEval.blackNoResultProb,
+      blackScoreMean: rootEval.blackScoreMean,
+      blackScoreStdev: rootEval.blackScoreStdev,
+      recentScoreCenter,
+    });
+    rootNode.visits = 1;
+    rootNode.valueSum = rootValue;
+    rootNode.scoreLeadSum = rootEval.blackScoreLead;
+    rootNode.scoreMeanSum = rootEval.blackScoreMean;
+    rootNode.scoreMeanSqSum = rootEval.blackScoreStdev * rootEval.blackScoreStdev + rootEval.blackScoreMean * rootEval.blackScoreMean;
+    rootNode.utilitySum = rootUtility;
+    rootNode.utilitySqSum = rootUtility * rootUtility;
+    rootNode.nnUtility = rootUtility;
+
+    return new MctsSearch({
+      model: args.model,
+      ownershipMode: args.ownershipMode,
+      maxChildren: args.maxChildren,
+      currentPlayer: args.currentPlayer,
+      komi: args.komi,
+      rootStones,
+      rootKoPoint,
+      rootPrevStones,
+      rootPrevKoPoint,
+      rootMoves,
+      rootNode,
+      rootPolicy,
+      rootOwnership,
+      recentScoreCenter,
+    });
+  }
+
+  async run(args: { visits: number; maxTimeMs: number; batchSize: number }): Promise<void> {
+    const maxVisits = Math.max(16, Math.min(args.visits, 5000));
+    const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs, 60_000));
+    const batchSize = Math.max(1, Math.min(args.batchSize, 64));
+
+    if (this.rootNode.visits >= maxVisits) return;
+
+    const sim: SimPosition = { stones: this.rootStones.slice(), koPoint: this.rootKoPoint };
+    const captureStack: number[] = [];
+    const undoMoves: number[] = [];
+    const undoPlayers: StoneColor[] = [];
+    const undoSnapshots: UndoSnapshot[] = [];
+    const pathMoves: RecentMove[] = [];
+
+    const start = performance.now();
+
+    while (this.rootNode.visits < maxVisits && performance.now() - start < maxTimeMs) {
+      const jobs: Array<{
+        leaf: Node;
+        path: Node[];
+        stones: Uint8Array;
+        koPoint: number;
+        prevStones: Uint8Array;
+        prevKoPoint: number;
+        prevPrevStones: Uint8Array;
+        prevPrevKoPoint: number;
+        currentPlayer: Player;
+        recentMoves: RecentMove[];
+      }> = [];
+
+      let attempts = 0;
+      while (jobs.length < batchSize && this.rootNode.visits + jobs.length < maxVisits && performance.now() - start < maxTimeMs) {
+        attempts++;
+        if (attempts > batchSize * 8) break;
+
+        undoMoves.length = 0;
+        undoPlayers.length = 0;
+        undoSnapshots.length = 0;
+        pathMoves.length = 0;
+        sim.stones.set(this.rootStones);
+        sim.koPoint = this.rootKoPoint;
+
+        const path: Node[] = [this.rootNode];
+        let node = this.rootNode;
+        let player = this.rootNode.playerToMove;
+
+        while (node.edges && node.edges.length > 0) {
+          const e = selectEdge(node, node === this.rootNode);
+          const move = e.move;
+
+          const snapshot = playMove(sim, move, player, captureStack);
+          undoMoves.push(move);
+          undoPlayers.push(player);
+          undoSnapshots.push(snapshot);
+          pathMoves.push({ move, player: colorToPlayer(player) });
+
+          if (!e.child) e.child = new Node(opponentOf(player));
+          node = e.child;
+          player = node.playerToMove;
+          path.push(node);
+
+          if (!node.edges) break;
+        }
+
+        if (node.pendingEval) {
+          for (let i = undoMoves.length - 1; i >= 0; i--) {
+            undoMove(sim, undoMoves[i]!, undoPlayers[i]!, undoSnapshots[i]!, captureStack);
+          }
+          continue;
+        }
+
+        node.pendingEval = true;
+        for (const n of path) n.inFlight++;
+
+        const leafStones = sim.stones.slice();
+        const leafKoPoint = sim.koPoint;
+        let prevStones = leafStones;
+        let prevKoPoint = leafKoPoint;
+        let prevPrevStones = leafStones;
+        let prevPrevKoPoint = leafKoPoint;
+
+        if (undoMoves.length >= 1) {
+          const tmpPos: SimPosition = { stones: leafStones.slice(), koPoint: leafKoPoint };
+          const tmpCaps = captureStack.slice();
+          const lastIdx = undoMoves.length - 1;
+          undoMove(tmpPos, undoMoves[lastIdx]!, undoPlayers[lastIdx]!, undoSnapshots[lastIdx]!, tmpCaps);
+          prevStones = tmpPos.stones.slice();
+          prevKoPoint = tmpPos.koPoint;
+
+          if (undoMoves.length >= 2) {
+            const secondIdx = undoMoves.length - 2;
+            undoMove(tmpPos, undoMoves[secondIdx]!, undoPlayers[secondIdx]!, undoSnapshots[secondIdx]!, tmpCaps);
+            prevPrevStones = tmpPos.stones.slice();
+            prevPrevKoPoint = tmpPos.koPoint;
+          } else {
+            prevPrevStones = new Uint8Array(this.rootPrevStones);
+            prevPrevKoPoint = this.rootPrevKoPoint;
+          }
+        }
+
+        jobs.push({
+          leaf: node,
+          path,
+          stones: leafStones,
+          koPoint: leafKoPoint,
+          prevStones,
+          prevKoPoint,
+          prevPrevStones,
+          prevPrevKoPoint,
+          currentPlayer: colorToPlayer(player),
+          recentMoves: takeRecentMoves(this.rootMoves, pathMoves, 5),
+        });
+
+        for (let i = undoMoves.length - 1; i >= 0; i--) {
+          undoMove(sim, undoMoves[i]!, undoPlayers[i]!, undoSnapshots[i]!, captureStack);
+        }
+      }
+
+      if (jobs.length === 0) break;
+
+      const includeOwnership = this.ownershipMode === 'tree';
+      const evals = await evaluateBatch({
+        model: this.model,
+        includeOwnership,
+        states: jobs.map((j) => ({
+          stones: j.stones,
+          koPoint: j.koPoint,
+          prevStones: j.prevStones,
+          prevKoPoint: j.prevKoPoint,
+          prevPrevStones: j.prevPrevStones,
+          prevPrevKoPoint: j.prevPrevKoPoint,
+          currentPlayer: j.currentPlayer,
+          recentMoves: j.recentMoves,
+          komi: this.komi,
+        })),
+      });
+
+      for (let i = 0; i < jobs.length; i++) {
+        const job = jobs[i]!;
+        const ev = evals[i]!;
+
+        if (includeOwnership) {
+          if (!ev.ownership) throw new Error('Missing ownership output');
+          const ownershipSign = job.currentPlayer === 'black' ? 1 : -1;
+          const own = new Float32Array(BOARD_AREA);
+          for (let p = 0; p < BOARD_AREA; p++) {
+            own[p] = ownershipSign * Math.tanh(ev.ownership[p]!);
+          }
+          job.leaf.ownership = own;
+        }
+
+        expandNode({
+          node: job.leaf,
+          stones: job.stones,
+          koPoint: job.koPoint,
+          policyLogits: ev.policy,
+          passLogit: ev.passLogit,
+          maxChildren: this.maxChildren,
+          libertyMap: ev.libertyMap,
+        });
+
+        const leafValue = 2 * ev.blackWinProb - 1;
+        const leafUtility = computeBlackUtilityFromEval({
+          blackWinProb: ev.blackWinProb,
+          blackNoResultProb: ev.blackNoResultProb,
+          blackScoreMean: ev.blackScoreMean,
+          blackScoreStdev: ev.blackScoreStdev,
+          recentScoreCenter: this.recentScoreCenter,
+        });
+        job.leaf.nnUtility = leafUtility;
+        for (const n of job.path) {
+          n.visits += 1;
+          n.valueSum += leafValue;
+          n.scoreLeadSum += ev.blackScoreLead;
+          n.scoreMeanSum += ev.blackScoreMean;
+          n.scoreMeanSqSum += ev.blackScoreStdev * ev.blackScoreStdev + ev.blackScoreMean * ev.blackScoreMean;
+          n.utilitySum += leafUtility;
+          n.utilitySqSum += leafUtility * leafUtility;
+          n.inFlight -= 1;
+        }
+        job.leaf.pendingEval = false;
+      }
+    }
+  }
+
+  getAnalysis(args: { topK: number }): {
+    rootWinRate: number;
+    rootScoreLead: number;
+    rootScoreSelfplay: number;
+    rootScoreStdev: number;
+    ownership: number[];
+    ownershipStdev: number[];
+    policy: number[];
+    moves: Array<{
+      x: number;
+      y: number;
+      winRate: number;
+      scoreLead: number;
+      scoreSelfplay: number;
+      scoreStdev: number;
+      visits: number;
+      pointsLost: number;
+      order: number;
+      prior: number;
+      pv: string[];
+    }>;
+  } {
+    const topK = Math.max(1, Math.min(args.topK, 50));
+
+    const rootQ = this.rootNode.visits > 0 ? this.rootNode.valueSum / this.rootNode.visits : 0;
+    const rootWinRate = (rootQ + 1) * 0.5;
+    const rootScoreLead = this.rootNode.visits > 0 ? this.rootNode.scoreLeadSum / this.rootNode.visits : 0;
+    const rootScoreSelfplay = this.rootNode.visits > 0 ? this.rootNode.scoreMeanSum / this.rootNode.visits : 0;
+    const rootScoreMeanSq = this.rootNode.visits > 0 ? this.rootNode.scoreMeanSqSum / this.rootNode.visits : 0;
+    const rootScoreStdev = Math.sqrt(Math.max(0, rootScoreMeanSq - rootScoreSelfplay * rootScoreSelfplay));
+
+    const edges = this.rootNode.edges ?? [];
+    const moveRows: Array<{
+      edge: Edge;
+      move: number;
+      visits: number;
+      winRate: number;
+      scoreLead: number;
+      scoreSelfplay: number;
+      scoreStdev: number;
+      prior: number;
+      pv: string[];
+    }> = [];
+
+    for (const e of edges) {
+      const child = e.child;
+      if (!child || child.visits <= 0) continue;
+      const q = child.valueSum / child.visits;
+      const winRate = (q + 1) * 0.5;
+      const scoreLead = child.scoreLeadSum / child.visits;
+      const scoreSelfplay = child.scoreMeanSum / child.visits;
+      const scoreMeanSq = child.scoreMeanSqSum / child.visits;
+      const scoreStdev = Math.sqrt(Math.max(0, scoreMeanSq - scoreSelfplay * scoreSelfplay));
+      moveRows.push({
+        edge: e,
+        move: e.move,
+        visits: child.visits,
+        winRate,
+        scoreLead,
+        scoreSelfplay,
+        scoreStdev,
+        prior: e.prior,
+        pv: buildPv(e, 12),
+      });
+    }
+
+    moveRows.sort((a, b) => b.visits - a.visits);
+
+    const topMoves = moveRows.slice(0, Math.min(topK, moveRows.length));
+    const best = topMoves[0] ?? null;
+    const bestScore = best ? best.scoreLead : rootScoreLead;
+
+    const moves = topMoves.map((m) => {
+      const pointsLost =
+        !best
+          ? 0
+          : this.currentPlayer === 'black'
+            ? Math.max(0, bestScore - m.scoreLead)
+            : Math.max(0, m.scoreLead - bestScore);
+
+      const x = m.move === PASS_MOVE ? -1 : m.move % BOARD_SIZE;
+      const y = m.move === PASS_MOVE ? -1 : (m.move / BOARD_SIZE) | 0;
+
+      return {
+        x,
+        y,
+        winRate: m.winRate,
+        scoreLead: m.scoreLead,
+        scoreSelfplay: m.scoreSelfplay,
+        scoreStdev: m.scoreStdev,
+        visits: m.visits,
+        pointsLost,
+        order: 0,
+        prior: m.prior,
+        pv: m.pv,
+      };
+    });
+
+    moves.sort((a, b) => b.visits - a.visits);
+    moves.forEach((m, i) => (m.order = i));
+
+    const { ownership, ownershipStdev } =
+      this.ownershipMode === 'tree'
+        ? averageTreeOwnership(this.rootNode)
+        : { ownership: this.rootOwnership, ownershipStdev: new Float32Array(BOARD_AREA) };
+
+    return {
+      rootWinRate,
+      rootScoreLead,
+      rootScoreSelfplay,
+      rootScoreStdev,
+      ownership: Array.from(ownership),
+      ownershipStdev: Array.from(ownershipStdev),
+      policy: Array.from(this.rootPolicy),
+      moves,
+    };
+  }
 }
 
 export async function analyzeMcts(args: {

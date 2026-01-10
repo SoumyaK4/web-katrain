@@ -253,6 +253,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
                             />
                         </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-gray-300 block text-sm">Ownership</label>
+                                <select
+                                    value={settings.katagoOwnershipMode}
+                                    onChange={(e) => updateSettings({ katagoOwnershipMode: e.target.value as 'root' | 'tree' })}
+                                    className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm"
+                                >
+                                    <option value="root">Root-only (faster)</option>
+                                    <option value="tree">Tree-averaged (slower)</option>
+                                </select>
+                                <p className="text-xs text-gray-500">
+                                    Root-only matches KaTrain and avoids expensive per-node ownership reads.
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-gray-300 block text-sm">Reuse Search Tree</label>
+                                <label className="flex items-center space-x-2 text-sm text-gray-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.katagoReuseTree}
+                                        onChange={(e) => updateSettings({ katagoReuseTree: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <span>Enable (faster)</span>
+                                </label>
+                                <p className="text-xs text-gray-500">
+                                    Speeds up continuous analysis by continuing from previous visits.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div className="p-4 bg-gray-900 flex justify-end">

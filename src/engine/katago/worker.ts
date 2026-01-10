@@ -9,13 +9,23 @@ import pako from 'pako';
 import type { KataGoWorkerRequest, KataGoWorkerResponse } from './types';
 import { parseKataGoModelV8 } from './loadModelV8';
 import { KataGoModelV8Tf } from './modelV8';
-import { analyzeMcts } from './analyzeMcts';
+import { MctsSearch, type OwnershipMode } from './analyzeMcts';
 
 let model: KataGoModelV8Tf | null = null;
 let loadedModelName: string | undefined;
 let loadedModelUrl: string | null = null;
 let backendPromise: Promise<void> | null = null;
 let queue: Promise<void> = Promise.resolve();
+
+let search: MctsSearch | null = null;
+let searchKey: {
+  positionId: string;
+  modelUrl: string;
+  maxChildren: number;
+  ownershipMode: OwnershipMode;
+  komi: number;
+  currentPlayer: 'black' | 'white';
+} | null = null;
 
 async function initBackend(): Promise<void> {
   try {
@@ -74,6 +84,8 @@ async function ensureModel(modelUrl: string): Promise<void> {
   model = new KataGoModelV8Tf(parsed);
   loadedModelName = parsed.modelName;
   loadedModelUrl = modelUrl;
+  search = null;
+  searchKey = null;
 
   // Warmup compilation.
   const spatial = tf.zeros([1, 19, 19, 22], 'float32') as tf.Tensor4D;
@@ -106,20 +118,53 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     await ensureModel(msg.modelUrl);
     if (!model) throw new Error('Model not loaded');
 
-    const analysis = await analyzeMcts({
-      model,
-      board: msg.board,
-      previousBoard: msg.previousBoard,
-      previousPreviousBoard: msg.previousPreviousBoard,
-      currentPlayer: msg.currentPlayer,
-      moveHistory: msg.moveHistory,
-      komi: msg.komi,
-      topK: msg.topK,
-      visits: msg.visits,
-      maxTimeMs: msg.maxTimeMs,
-      batchSize: msg.batchSize,
-      maxChildren: msg.maxChildren,
-    });
+    const maxVisits = Math.max(16, Math.min(msg.visits ?? 256, 5000));
+    const maxTimeMs = Math.max(25, Math.min(msg.maxTimeMs ?? 800, 60_000));
+    const batchSize = Math.max(1, Math.min(msg.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
+    const maxChildren = Math.max(4, Math.min(msg.maxChildren ?? 64, 361));
+    const topK = Math.max(1, Math.min(msg.topK ?? 10, 50));
+    const ownershipMode: OwnershipMode = msg.ownershipMode ?? 'root';
+
+    const canReuse =
+      msg.reuseTree === true &&
+      typeof msg.positionId === 'string' &&
+      !!search &&
+      !!searchKey &&
+      searchKey.positionId === msg.positionId &&
+      searchKey.modelUrl === msg.modelUrl &&
+      searchKey.maxChildren === maxChildren &&
+      searchKey.ownershipMode === ownershipMode &&
+      searchKey.komi === msg.komi &&
+      searchKey.currentPlayer === msg.currentPlayer;
+
+    if (!canReuse) {
+      search = await MctsSearch.create({
+        model,
+        board: msg.board,
+        previousBoard: msg.previousBoard,
+        previousPreviousBoard: msg.previousPreviousBoard,
+        currentPlayer: msg.currentPlayer,
+        moveHistory: msg.moveHistory,
+        komi: msg.komi,
+        maxChildren,
+        ownershipMode,
+      });
+      if (typeof msg.positionId === 'string') {
+        searchKey = {
+          positionId: msg.positionId,
+          modelUrl: msg.modelUrl,
+          maxChildren,
+          ownershipMode,
+          komi: msg.komi,
+          currentPlayer: msg.currentPlayer,
+        };
+      } else {
+        searchKey = null;
+      }
+    }
+
+    await search!.run({ visits: maxVisits, maxTimeMs, batchSize });
+    const analysis = search!.getAnalysis({ topK });
 
     post({
       type: 'katago:analyze_result',

@@ -16,6 +16,7 @@ export interface KataGoInitResponse {
 export interface KataGoAnalyzeRequest {
   type: 'katago:analyze';
   id: number;
+  positionId?: string;
   modelUrl: string;
   board: BoardState;
   previousBoard?: BoardState;
@@ -28,6 +29,8 @@ export interface KataGoAnalyzeRequest {
   maxTimeMs?: number;
   batchSize?: number;
   maxChildren?: number;
+  reuseTree?: boolean;
+  ownershipMode?: 'root' | 'tree';
 }
 
 export interface KataGoAnalyzeResponse {

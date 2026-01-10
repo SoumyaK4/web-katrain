@@ -41,6 +41,7 @@ class KataGoEngineClient {
   }
 
   async analyze(args: {
+    positionId?: string;
     modelUrl: string;
     board: BoardState;
     previousBoard?: BoardState;
@@ -53,11 +54,14 @@ class KataGoEngineClient {
     maxTimeMs?: number;
     batchSize?: number;
     maxChildren?: number;
+    reuseTree?: boolean;
+    ownershipMode?: 'root' | 'tree';
   }): Promise<Analysis> {
     const id = this.nextId++;
     const req: KataGoWorkerRequest = {
       type: 'katago:analyze',
       id,
+      positionId: args.positionId,
       modelUrl: args.modelUrl,
       board: args.board,
       previousBoard: args.previousBoard,
@@ -70,6 +74,8 @@ class KataGoEngineClient {
       maxTimeMs: args.maxTimeMs,
       batchSize: args.batchSize,
       maxChildren: args.maxChildren,
+      reuseTree: args.reuseTree,
+      ownershipMode: args.ownershipMode,
     };
     const promise = new Promise<Analysis>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
