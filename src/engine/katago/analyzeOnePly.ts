@@ -88,6 +88,7 @@ export async function analyzeOnePly(args: {
       nextPlayer: currentPlayer,
       valueLogits: valueLogitsArr,
       scoreValue: scoreValueArr,
+      postProcessParams: model.postProcessParams,
     });
     return {
       rootWinRate: rootEval.blackWinProb,
@@ -151,6 +152,7 @@ export async function analyzeOnePly(args: {
       nextPlayer: candidates[i].nextPlayer,
       valueLogits: childValue.subarray(valueOffset, valueOffset + 3),
       scoreValue: childScore.subarray(scoreOffset, scoreOffset + 4),
+      postProcessParams: model.postProcessParams,
     });
     evaled.push({ x: candidates[i].x, y: candidates[i].y, policyProb: candidates[i].policyProb, eval: e });
   }

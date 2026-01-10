@@ -1,6 +1,6 @@
 import {
   KataGoBinModelParser,
-  parseActivationNameV8,
+  parseActivationKind,
   parseBatchNormV8,
   parseConv2d,
   parseMatBias,
@@ -13,17 +13,38 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
 
   const modelName = p.readToken();
   const modelVersion = p.readInt();
-  if (modelVersion !== 8) {
-    throw new Error(`Unsupported modelVersion ${modelVersion}, expected 8`);
+  if (modelVersion < 8 || modelVersion > 14) {
+    throw new Error(`Unsupported modelVersion ${modelVersion}, supported 8..14`);
   }
   const numInputChannels = p.readInt();
   const numInputGlobalChannels = p.readInt();
 
+  const postProcessParams =
+    modelVersion >= 13
+      ? {
+          tdScoreMultiplier: p.readFloatAscii(),
+          scoreMeanMultiplier: p.readFloatAscii(),
+          scoreStdevMultiplier: p.readFloatAscii(),
+          leadMultiplier: p.readFloatAscii(),
+          varianceTimeMultiplier: p.readFloatAscii(),
+          shorttermValueErrorMultiplier: p.readFloatAscii(),
+          shorttermScoreErrorMultiplier: p.readFloatAscii(),
+          outputScaleMultiplier: 1.0,
+        }
+      : {
+          // Defaults for older models (ModelPostProcessParams).
+          tdScoreMultiplier: 20.0,
+          scoreMeanMultiplier: 20.0,
+          scoreStdevMultiplier: 20.0,
+          leadMultiplier: 20.0,
+          varianceTimeMultiplier: 40.0,
+          shorttermValueErrorMultiplier: 0.25,
+          shorttermScoreErrorMultiplier: 30.0,
+          outputScaleMultiplier: 1.0,
+        };
+
   // trunk header
-  const trunkName = p.readToken();
-  if (trunkName !== 'trunk') {
-    throw new Error(`Unexpected trunk name ${trunkName}`);
-  }
+  p.readToken(); // trunk name
   const numBlocks = p.readInt();
   const trunkNumChannels = p.readInt();
   const midNumChannels = p.readInt();
@@ -34,71 +55,80 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
   const conv1 = parseConv2d(p);
   const ginput = parseMatMul(p);
 
-  const blocks: ParsedKataGoModelV8['trunk']['blocks'] = [];
-  for (let i = 0; i < numBlocks; i++) {
+  function parseResidualBlock(): ParsedKataGoModelV8['trunk']['blocks'][number] {
     const kindTok = p.readToken();
+
     if (kindTok === 'ordinary_block') {
-      p.readToken();
+      p.readToken(); // block name
       const preBN = parseBatchNormV8(p);
-      void parseActivationNameV8(p);
+      const preActivation = parseActivationKind(p, modelVersion);
       const w1 = parseConv2d(p);
       const midBN = parseBatchNormV8(p);
-      void parseActivationNameV8(p);
+      const midActivation = parseActivationKind(p, modelVersion);
       const w2 = parseConv2d(p);
-
-      blocks.push({ kind: 'ordinary', preBN, w1, midBN, w2 });
-      continue;
+      return { kind: 'ordinary', preBN, preActivation, w1, midBN, midActivation, w2 };
     }
 
     if (kindTok === 'gpool_block') {
-      p.readToken();
+      p.readToken(); // block name
       const preBN = parseBatchNormV8(p);
-      void parseActivationNameV8(p);
+      const preActivation = parseActivationKind(p, modelVersion);
       const w1a = parseConv2d(p);
       const w1b = parseConv2d(p);
       const gpoolBN = parseBatchNormV8(p);
-      void parseActivationNameV8(p);
+      const gpoolActivation = parseActivationKind(p, modelVersion);
       const w1r = parseMatMul(p);
       const midBN = parseBatchNormV8(p);
-      void parseActivationNameV8(p);
+      const midActivation = parseActivationKind(p, modelVersion);
       const w2 = parseConv2d(p);
+      return { kind: 'gpool', preBN, preActivation, w1a, w1b, gpoolBN, gpoolActivation, w1r, midBN, midActivation, w2 };
+    }
 
-      blocks.push({ kind: 'gpool', preBN, w1a, w1b, gpoolBN, w1r, midBN, w2 });
-      continue;
+    if (kindTok === 'nested_bottleneck_block') {
+      p.readToken(); // block name
+      const numInnerBlocks = p.readInt();
+      const preBN = parseBatchNormV8(p);
+      const preActivation = parseActivationKind(p, modelVersion);
+      const preConv = parseConv2d(p);
+
+      const blocks: ParsedKataGoModelV8['trunk']['blocks'] = [];
+      for (let i = 0; i < numInnerBlocks; i++) blocks.push(parseResidualBlock());
+
+      const postBN = parseBatchNormV8(p);
+      const postActivation = parseActivationKind(p, modelVersion);
+      const postConv = parseConv2d(p);
+      return { kind: 'nested_bottleneck', numBlocks: numInnerBlocks, preBN, preActivation, preConv, blocks, postBN, postActivation, postConv };
     }
 
     throw new Error(`Unsupported trunk block kind ${kindTok}`);
   }
 
+  const blocks: ParsedKataGoModelV8['trunk']['blocks'] = [];
+  for (let i = 0; i < numBlocks; i++) blocks.push(parseResidualBlock());
+
   const tipBN = parseBatchNormV8(p);
-  void parseActivationNameV8(p);
+  const tipActivation = parseActivationKind(p, modelVersion);
 
   // policy head
-  const policyHeadName = p.readToken();
-  if (policyHeadName !== 'policyhead') {
-    throw new Error(`Unexpected policy head name ${policyHeadName}`);
-  }
+  p.readToken(); // policy head name
   const p1 = parseConv2d(p);
   const g1 = parseConv2d(p);
   const g1BN = parseBatchNormV8(p);
-  void parseActivationNameV8(p);
+  const g1Activation = parseActivationKind(p, modelVersion);
   const gpoolToBias = parseMatMul(p);
   const p1BN = parseBatchNormV8(p);
-  void parseActivationNameV8(p);
+  const p1Activation = parseActivationKind(p, modelVersion);
   const p2 = parseConv2d(p);
   const passMul = parseMatMul(p);
 
   // value head
-  const valueHeadName = p.readToken();
-  if (valueHeadName !== 'valuehead') {
-    throw new Error(`Unexpected value head name ${valueHeadName}`);
-  }
+  p.readToken(); // value head name
   const v1 = parseConv2d(p);
   const v1BN = parseBatchNormV8(p);
-  void parseActivationNameV8(p);
+  const v1Activation = parseActivationKind(p, modelVersion);
   const v2 = parseMatMul(p);
   const v2Bias = parseMatBias(p);
-  void parseActivationNameV8(p);
+  const v2Activation = parseActivationKind(p, modelVersion);
   const v3 = parseMatMul(p);
   const v3Bias = parseMatBias(p);
   const sv3 = parseMatMul(p);
@@ -110,6 +140,9 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
     modelVersion,
     numInputChannels,
     numInputGlobalChannels,
+    postProcessParams,
+    policyOutChannels: p2.outChannels,
+    scoreValueChannels: sv3.outChannels,
     trunk: {
       numBlocks,
       trunkNumChannels,
@@ -120,21 +153,26 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
       ginput,
       blocks,
       tipBN,
+      tipActivation,
     },
     policy: {
       p1,
       g1,
       g1BN,
+      g1Activation,
       gpoolToBias,
       p1BN,
+      p1Activation,
       p2,
       passMul,
     },
     value: {
       v1,
       v1BN,
+      v1Activation,
       v2,
       v2Bias,
+      v2Activation,
       v3,
       v3Bias,
       sv3,

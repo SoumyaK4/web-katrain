@@ -8,6 +8,13 @@ export type KataGoEval = {
   blackNoResultProb: number; // 0..1
 };
 
+export type KataGoPostProcessParams = {
+  scoreMeanMultiplier: number;
+  scoreStdevMultiplier: number;
+  leadMultiplier: number;
+  outputScaleMultiplier: number;
+};
+
 const softPlus = (x: number): number => {
   // Stable-ish softplus
   if (x > 20) return x;
@@ -19,12 +26,15 @@ export function postprocessKataGoV8(args: {
   nextPlayer: Player;
   valueLogits: ArrayLike<number>; // [win, loss, noResult] from player-to-move perspective
   scoreValue: ArrayLike<number>; // [scoreMean, scoreStdevPreSoftplus, lead, varTimeLeftPreSoftplus]
+  postProcessParams?: KataGoPostProcessParams;
 }): KataGoEval {
   const { nextPlayer, valueLogits, scoreValue } = args;
+  const postProcessParams = args.postProcessParams;
 
-  const winLogits = valueLogits[0];
-  const lossLogits = valueLogits[1];
-  const noResultLogits = valueLogits[2];
+  const outputScaleMultiplier = postProcessParams?.outputScaleMultiplier ?? 1.0;
+  const winLogits = valueLogits[0] * outputScaleMultiplier;
+  const lossLogits = valueLogits[1] * outputScaleMultiplier;
+  const noResultLogits = valueLogits[2] * outputScaleMultiplier;
 
   const maxLogits = Math.max(winLogits, lossLogits, noResultLogits);
   let winProb = Math.exp(winLogits - maxLogits);
@@ -36,13 +46,13 @@ export function postprocessKataGoV8(args: {
   noResultProb /= probSum;
 
   // Defaults for older models (ModelPostProcessParams).
-  const scoreMeanMultiplier = 20.0;
-  const scoreStdevMultiplier = 20.0;
-  const leadMultiplier = 20.0;
+  const scoreMeanMultiplier = postProcessParams?.scoreMeanMultiplier ?? 20.0;
+  const scoreStdevMultiplier = postProcessParams?.scoreStdevMultiplier ?? 20.0;
+  const leadMultiplier = postProcessParams?.leadMultiplier ?? 20.0;
 
-  const scoreMeanPreScaled = scoreValue[0];
-  const scoreStdevPreSoftplus = scoreValue[1];
-  const leadPreScaled = scoreValue[2];
+  const scoreMeanPreScaled = scoreValue[0] * outputScaleMultiplier;
+  const scoreStdevPreSoftplus = scoreValue[1] * outputScaleMultiplier;
+  const leadPreScaled = scoreValue[2] * outputScaleMultiplier;
 
   let scoreMean = scoreMeanPreScaled * scoreMeanMultiplier;
   const scoreStdev = softPlus(scoreStdevPreSoftplus) * scoreStdevMultiplier;

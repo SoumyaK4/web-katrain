@@ -104,6 +104,8 @@ export interface ParsedMatBias {
   readonly weights: Float32Array; // [channels]
 }
 
+export type ActivationKind = 'identity' | 'relu' | 'mish';
+
 export function parseBatchNormV8(p: KataGoBinModelParser): ParsedBatchNorm {
   p.readToken();
   const channels = p.readInt();
@@ -130,6 +132,18 @@ export function parseBatchNormV8(p: KataGoBinModelParser): ParsedBatchNorm {
 export function parseActivationNameV8(p: KataGoBinModelParser): string {
   // Model version < 11 only stores the activation layer name.
   return p.readToken();
+}
+
+export function parseActivationKind(p: KataGoBinModelParser, modelVersion: number): ActivationKind {
+  // ActivationLayerDesc: always stores a name token. For modelVersion >= 11, stores an additional "kind" token.
+  p.readToken(); // name
+  if (modelVersion < 11) return 'relu';
+
+  const kindTok = p.readToken();
+  if (kindTok === 'ACTIVATION_IDENTITY') return 'identity';
+  if (kindTok === 'ACTIVATION_RELU') return 'relu';
+  if (kindTok === 'ACTIVATION_MISH') return 'mish';
+  throw new Error(`Unsupported activation kind token: ${kindTok}`);
 }
 
 export function parseConv2d(p: KataGoBinModelParser): ParsedConv2d {

@@ -594,11 +594,12 @@ async function evaluateBatch(args: {
     const passLogit = passArr[i]!;
     const vOff = i * 3;
     const sOff = i * 4;
-	    const evaled = postprocessKataGoV8({
-	      nextPlayer: states[i]!.currentPlayer,
-	      valueLogits: valueArr.subarray(vOff, vOff + 3),
-	      scoreValue: scoreArr.subarray(sOff, sOff + 4),
-	    });
+    const evaled = postprocessKataGoV8({
+      nextPlayer: states[i]!.currentPlayer,
+      valueLogits: valueArr.subarray(vOff, vOff + 3),
+      scoreValue: scoreArr.subarray(sOff, sOff + 4),
+      postProcessParams: model.postProcessParams,
+    });
 
     results.push({
       policy,
