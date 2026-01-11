@@ -479,14 +479,16 @@ function selectEdge(node: Node, isRoot: boolean, wideRootNoise: number, rand: Ra
     let childUtility = child && child.visits > 0 ? child.utilitySum / child.visits : fpuValue;
     let prior = e.prior;
 
-    if (applyWideRootNoise) {
-      // Mirrors KataGo's wideRootNoise: smooth policy and add random utility bonuses (root only).
-      prior = Math.pow(prior, wideRootNoisePolicyExponent);
-	      if (rand.nextBool(0.5)) {
-	        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
-	        childUtility += pla === WHITE ? bonus : -bonus;
-	      }
-	    }
+	    if (applyWideRootNoise) {
+	      // Mirrors KataGo's wideRootNoise: smooth policy and add random utility bonuses (root only).
+	      prior = Math.pow(prior, wideRootNoisePolicyExponent);
+		      if (rand.nextBool(0.5)) {
+		        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
+		        // Utility is stored from black's perspective in this port; adjust so that
+		        // the player's-perspective selection value (explore + sign*utility) gets +bonus.
+		        childUtility += pla === BLACK ? bonus : -bonus;
+		      }
+		    }
 
     const explore = (scaling * prior) / (1.0 + childWeight);
     const score = explore + sign * childUtility;
