@@ -13,6 +13,7 @@ interface GameStore extends GameState {
   treeVersion: number;
 
   // Settings & Modes
+  boardRotation: 0 | 1 | 2 | 3; // 0,90,180,270 degrees clockwise (KaTrain rotate)
   isAiPlaying: boolean;
   aiColor: Player | null;
   isAnalysisMode: boolean;
@@ -54,6 +55,7 @@ interface GameStore extends GameState {
   runAnalysis: (opts?: { force?: boolean; visits?: number; maxTimeMs?: number }) => Promise<void>;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
   setCurrentNodeNote: (note: string) => void;
+  rotateBoard: () => void;
 }
 
 const createEmptyBoard = (): BoardState => {
@@ -250,6 +252,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentNode: initialRoot,
   treeVersion: 0,
 
+  boardRotation: 0,
   isAiPlaying: false,
   aiColor: null,
   isAnalysisMode: false,
@@ -1558,6 +1561,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       capturedBlack: rootState.capturedBlack,
       capturedWhite: rootState.capturedWhite,
       komi: rootState.komi,
+      boardRotation: 0,
       isAiPlaying: false,
       aiColor: null,
       analysisData: null,
@@ -1767,6 +1771,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       capturedBlack: current.gameState.capturedBlack,
       capturedWhite: current.gameState.capturedWhite,
       komi: rootState.komi,
+      boardRotation: 0,
       analysisData: current.analysis || null,
       treeVersion: state.treeVersion + 1,
       settings: { ...state.settings, gameRules: rules },
@@ -1809,7 +1814,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           moveHistory: newGameState.moveHistory,
           // board doesn't change
       });
-  }
+  },
+
+  rotateBoard: () =>
+    set((state) => ({
+      boardRotation: (((state.boardRotation ?? 0) + 1) % 4) as 0 | 1 | 2 | 3,
+    })),
 }));
 
 const makeHeuristicMove = (store: GameStore) => {

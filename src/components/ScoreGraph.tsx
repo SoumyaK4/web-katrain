@@ -1,0 +1,169 @@
+import React, { useMemo, useRef, useState } from 'react';
+import { useGameStore } from '../store/gameStore';
+import type { GameNode } from '../types';
+
+export const ScoreGraph: React.FC = () => {
+  const { currentNode, jumpToNode, settings } = useGameStore();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  const nodePath = useMemo(() => {
+    const path: GameNode[] = [];
+    let node: GameNode | null = currentNode;
+    while (node) {
+      path.push(node);
+      node = node.parent;
+    }
+    return path.reverse();
+  }, [currentNode]);
+
+  const dataPoints = useMemo(() => {
+    return nodePath.map((node) => {
+      const score = node.analysis ? node.analysis.rootScoreLead : 0;
+      let isMistake = false;
+
+      if (node.move && node.parent && node.parent.analysis) {
+        const move = node.move;
+        const candidate = node.parent.analysis.moves.find((m) => m.x === move.x && m.y === move.y);
+        if (candidate && candidate.pointsLost >= (settings.mistakeThreshold ?? 3.0)) isMistake = true;
+      }
+
+      return { score, node, isMistake };
+    });
+  }, [nodePath, settings.mistakeThreshold]);
+
+  const width = 300;
+  const height = 100;
+  const count = dataPoints.length;
+  const step = width / Math.max(1, count - 1);
+
+  const { minScore, maxScore } = useMemo(() => {
+    let min = 0;
+    let max = 0;
+    for (const p of dataPoints) {
+      if (!Number.isFinite(p.score)) continue;
+      if (p.score < min) min = p.score;
+      if (p.score > max) max = p.score;
+    }
+    // Add a bit of padding so lines don't stick to the top/bottom.
+    if (min === max) {
+      min -= 1;
+      max += 1;
+    } else {
+      const pad = (max - min) * 0.1;
+      min -= pad;
+      max += pad;
+    }
+    return { minScore: min, maxScore: max };
+  }, [dataPoints]);
+
+  const scoreToY = (score: number): number => {
+    const t = (score - minScore) / (maxScore - minScore);
+    const clamped = Math.max(0, Math.min(1, t));
+    return height - clamped * height;
+  };
+
+  const pointsStr = dataPoints
+    .map((pt, i) => {
+      const x = i * step;
+      const y = scoreToY(pt.score);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
+  const zeroY = scoreToY(0);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const index = Math.round((x / rect.width) * (count - 1));
+    if (index >= 0 && index < dataPoints.length) setHoverIndex(index);
+  };
+
+  const handleMouseLeave = () => setHoverIndex(null);
+
+  const handleClick = () => {
+    if (hoverIndex !== null && dataPoints[hoverIndex]) jumpToNode(dataPoints[hoverIndex].node);
+  };
+
+  const hoverX = hoverIndex !== null ? hoverIndex * step : 0;
+  const hoverScore = hoverIndex !== null ? dataPoints[hoverIndex]?.score ?? 0 : 0;
+  const hoverY = hoverIndex !== null ? scoreToY(hoverScore) : 0;
+
+  const currentIndex = count - 1;
+  const currentX = currentIndex * step;
+  const currentY = scoreToY(dataPoints[currentIndex]?.score ?? 0);
+
+  return (
+    <div
+      className="w-full h-full bg-gray-900 relative border border-gray-700 rounded overflow-hidden cursor-crosshair"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        {/* 0 line */}
+        <line x1="0" y1={zeroY} x2={width} y2={zeroY} stroke="#444" strokeDasharray="4" strokeWidth="1" />
+
+        <polyline points={pointsStr} fill="none" stroke="#60A5FA" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+
+        <polygon points={`0,${height} ${pointsStr} ${width},${height}`} fill="url(#scoreGradient)" opacity="0.18" />
+
+        <defs>
+          <linearGradient id="scoreGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#60A5FA" />
+            <stop offset="100%" stopColor="#60A5FA" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Mistake Indicators */}
+        {dataPoints.map((pt, i) => {
+          if (!pt.isMistake) return null;
+          const x = i * step;
+          const y = scoreToY(pt.score);
+          return <circle key={i} cx={x} cy={y} r="2" fill="#EF4444" stroke="none" />;
+        })}
+
+        {/* Current Move Indicator */}
+        <circle cx={currentX} cy={currentY} r="3" fill="white" stroke="none" />
+
+        {/* Hover Indicator */}
+        {hoverIndex !== null && (
+          <g>
+            <line
+              x1={hoverX}
+              y1="0"
+              x2={hoverX}
+              y2={height}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle cx={hoverX} cy={hoverY} r="4" fill="#3B82F6" stroke="white" strokeWidth="1" />
+          </g>
+        )}
+      </svg>
+
+      {/* Labels */}
+      <div className="absolute top-1 left-1 text-[9px] text-gray-500 pointer-events-none">{maxScore.toFixed(0)}</div>
+      <div className="absolute bottom-1 left-1 text-[9px] text-gray-500 pointer-events-none">{minScore.toFixed(0)}</div>
+
+      {/* Hover Tooltip */}
+      {hoverIndex !== null && (
+        <div
+          className="absolute bg-black bg-opacity-80 text-white text-[10px] p-1 rounded pointer-events-none"
+          style={{
+            left: `${Math.min(Math.max(0, hoverIndex * (100 / (count - 1 || 1))), 80)}%`,
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          {hoverScore > 0 ? '+' : ''}
+          {hoverScore.toFixed(1)}
+        </div>
+      )}
+    </div>
+  );
+};
+

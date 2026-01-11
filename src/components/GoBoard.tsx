@@ -55,7 +55,8 @@ interface GoBoardProps {
 }
 
 export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) => {
-  const { board, playMove, passTurn, moveHistory, analysisData, isAnalysisMode, currentPlayer, settings, currentNode } = useGameStore();
+  const { board, playMove, passTurn, moveHistory, analysisData, isAnalysisMode, currentPlayer, settings, currentNode, boardRotation } =
+    useGameStore();
 
   const cellSize = 30; // pixels
   const padding = 30;
@@ -69,9 +70,36 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
     [15, 3], [15, 9], [15, 15]
   ];
 
-  // Coordinates
-  const xLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
-  const yLabels = Array.from({ length: 19 }, (_, i) => 19 - i);
+  // KaTrain-style coordinates and rotation behavior.
+  const GTP_COORD = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'] as const;
+  const rotation = boardRotation ?? 0;
+  const getXCoordinateText = (i: number): string => {
+    if (rotation === 1) return String(i + 1);
+    if (rotation === 2) return GTP_COORD[BOARD_SIZE - i - 1] ?? '';
+    if (rotation === 3) return String(BOARD_SIZE - i);
+    return GTP_COORD[i] ?? '';
+  };
+  const getYCoordinateText = (displayRowTopToBottom: number): string => {
+    const i = BOARD_SIZE - 1 - displayRowTopToBottom; // KaTrain uses bottom-to-top indexing for y labels.
+    if (rotation === 1) return GTP_COORD[BOARD_SIZE - i - 1] ?? '';
+    if (rotation === 2) return String(BOARD_SIZE - i);
+    if (rotation === 3) return GTP_COORD[i] ?? '';
+    return String(i + 1);
+  };
+
+  const toDisplay = (x: number, y: number): { x: number; y: number } => {
+    if (rotation === 1) return { x: BOARD_SIZE - 1 - y, y: x };
+    if (rotation === 2) return { x: BOARD_SIZE - 1 - x, y: BOARD_SIZE - 1 - y };
+    if (rotation === 3) return { x: y, y: BOARD_SIZE - 1 - x };
+    return { x, y };
+  };
+
+  const toInternal = (x: number, y: number): { x: number; y: number } => {
+    if (rotation === 1) return { x: y, y: BOARD_SIZE - 1 - x };
+    if (rotation === 2) return { x: BOARD_SIZE - 1 - x, y: BOARD_SIZE - 1 - y };
+    if (rotation === 3) return { x: BOARD_SIZE - 1 - y, y: x };
+    return { x, y };
+  };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -79,10 +107,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
     const y = e.clientY - rect.top - padding;
 
     // Use Math.round to find the nearest intersection
-    const col = Math.round(x / cellSize);
-    const row = Math.round(y / cellSize);
+    const displayCol = Math.round(x / cellSize);
+    const displayRow = Math.round(y / cellSize);
 
-    if (col >= 0 && col < BOARD_SIZE && row >= 0 && row < BOARD_SIZE) {
+    if (displayCol >= 0 && displayCol < BOARD_SIZE && displayRow >= 0 && displayRow < BOARD_SIZE) {
+      const { x: col, y: row } = toInternal(displayCol, displayRow);
+      if (col < 0 || col >= BOARD_SIZE || row < 0 || row >= BOARD_SIZE) return;
       playMove(col, row);
     }
   };
@@ -146,14 +176,15 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           if (pointsLost !== null) {
               const cls = evaluationClass(pointsLost);
               const color = rgba(KATRAN_EVAL_COLORS[cls]!);
-              dots.push({ x: move.x, y: move.y, pointsLost, color });
+              const d = toDisplay(move.x, move.y);
+              dots.push({ x: d.x, y: d.y, pointsLost, color });
           }
 
           node = node.parent;
           count++;
       }
       return dots;
-  }, [board, currentNode, isAnalysisMode, settings.analysisShowEval, settings.showLastNMistakes]);
+  }, [board, currentNode, isAnalysisMode, settings.analysisShowEval, settings.showLastNMistakes, rotation]);
 
   const childMoveRings = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowChildren) return [];
@@ -182,6 +213,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
               const base = val > 0 ? OWNERSHIP_COLORS.black : OWNERSHIP_COLORS.white;
               const alpha = base[3] * a;
               if (alpha <= 0.001) continue;
+              const d = toDisplay(x, y);
 
               out.push(
                   <div
@@ -190,8 +222,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                       style={{
                           width: cellSize,
                           height: cellSize,
-                          left: padding + x * cellSize - cellSize / 2,
-                          top: padding + y * cellSize - cellSize / 2,
+                          left: padding + d.x * cellSize - cellSize / 2,
+                          top: padding + d.y * cellSize - cellSize / 2,
                           backgroundColor: rgba(base, alpha),
                           borderRadius: 2,
                           filter: 'blur(0.2px)',
@@ -201,7 +233,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           }
       }
       return out;
-  }, [analysisData, currentNode, isAnalysisMode, settings.analysisShowOwnership, cellSize, padding]);
+  }, [analysisData, currentNode, isAnalysisMode, settings.analysisShowOwnership, cellSize, padding, rotation]);
 
   const policyOverlay = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowPolicy) return [];
@@ -220,6 +252,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           for (let x = 0; x < BOARD_SIZE; x++) {
               const p = policy[y * BOARD_SIZE + x] ?? -1;
               if (p < 0) continue;
+              const d = toDisplay(x, y);
               const polOrder = Math.max(0, 5 + Math.trunc(Math.log10(Math.max(1e-9, p - 1e-9))));
               const col = KATRAN_EVAL_COLORS[Math.min(5, polOrder)]!;
               const showText = p > textLb;
@@ -234,8 +267,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                       style={{
                           width: size,
                           height: size,
-                          left: padding + x * cellSize - size / 2,
-                          top: padding + y * cellSize - size / 2,
+                          left: padding + d.x * cellSize - size / 2,
+                          top: padding + d.y * cellSize - size / 2,
                           borderRadius: '50%',
                           backgroundColor: rgba(col, 0.5),
                           boxShadow: isBest ? '0 0 0 2px rgba(10,200,250,0.55)' : undefined,
@@ -249,7 +282,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           }
       }
       return out;
-  }, [analysisData, isAnalysisMode, settings.analysisShowPolicy, cellSize, padding]);
+  }, [analysisData, isAnalysisMode, settings.analysisShowPolicy, cellSize, padding, rotation]);
 
   const pvOverlay = useMemo(() => {
       const pv = hoveredMove?.pv;
@@ -275,10 +308,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       for (let i = 0; i < pv.length; i++) {
           const xy = parseGtp(pv[i]!);
           if (!xy) continue;
-          moves.push({ x: xy.x, y: xy.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
+          const d = toDisplay(xy.x, xy.y);
+          moves.push({ x: d.x, y: d.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
       }
       return moves;
-  }, [hoveredMove, isAnalysisMode, currentPlayer]);
+  }, [hoveredMove, isAnalysisMode, currentPlayer, rotation]);
 
   return (
     <div
@@ -293,24 +327,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       {/* Coordinates */}
       {settings.showCoordinates && (
           <>
-            {/* Top Labels */}
-            {xLabels.map((label, i) => (
-                <div
-                key={`top-${i}`}
-                className="absolute text-xs font-bold"
-                style={{
-                    left: padding + i * cellSize - 4,
-                    top: 5,
-                    width: 10,
-                    textAlign: 'center',
-                    color: labelColor
-                }}
-                >
-                {label}
-                </div>
-            ))}
-            {/* Bottom Labels */}
-            {xLabels.map((label, i) => (
+            {/* Bottom Labels (KaTrain draws x coords at the bottom edge) */}
+            {Array.from({ length: BOARD_SIZE }).map((_, i) => (
                 <div
                     key={`bottom-${i}`}
                     className="absolute text-xs font-bold"
@@ -322,11 +340,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                     color: labelColor
                     }}
                 >
-                {label}
+                {getXCoordinateText(i)}
                 </div>
             ))}
-            {/* Left Labels */}
-            {yLabels.map((label, i) => (
+            {/* Left Labels (KaTrain draws y coords at the left edge) */}
+            {Array.from({ length: BOARD_SIZE }).map((_, i) => (
                 <div
                     key={`left-${i}`}
                     className="absolute text-xs font-bold"
@@ -338,23 +356,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                     color: labelColor
                     }}
                 >
-                {label}
-                </div>
-            ))}
-            {/* Right Labels */}
-            {yLabels.map((label, i) => (
-                <div
-                    key={`right-${i}`}
-                    className="absolute text-xs font-bold"
-                    style={{
-                    right: 5,
-                    top: padding + i * cellSize - 8,
-                    width: 15,
-                    textAlign: 'center',
-                    color: labelColor
-                    }}
-                >
-                {label}
+                {getYCoordinateText(i)}
                 </div>
             ))}
           </>
@@ -390,19 +392,22 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       ))}
 
       {/* Hoshi Points */}
-      {hoshiPoints.map(([hx, hy], idx) => (
-        <div
-          key={`hoshi-${idx}`}
-          className="absolute rounded-full"
-          style={{
-            width: 8,
-            height: 8,
-            left: padding + hx * cellSize - 4,
-            top: padding + hy * cellSize - 4,
-            backgroundColor: lineColor
-          }}
-        />
-      ))}
+      {hoshiPoints.map(([hx, hy], idx) => {
+        const d = toDisplay(hx, hy);
+        return (
+          <div
+            key={`hoshi-${idx}`}
+            className="absolute rounded-full"
+            style={{
+              width: 8,
+              height: 8,
+              left: padding + d.x * cellSize - 4,
+              top: padding + d.y * cellSize - 4,
+              backgroundColor: lineColor,
+            }}
+          />
+        );
+      })}
 
       {/* Ownership / Territory Overlay (KaTrain-style) */}
       {ownershipOverlay}
@@ -415,6 +420,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
         row.map((cell, x) => {
           if (!cell) return null;
           const isLastMove = lastMove && lastMove.x === x && lastMove.y === y;
+          const d = toDisplay(x, y);
           return (
             <div
               key={`${x}-${y}`}
@@ -426,8 +432,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
               style={{
                 width: cellSize - 2,
                 height: cellSize - 2,
-                left: padding + x * cellSize - (cellSize / 2) + 1,
-                top: padding + y * cellSize - (cellSize / 2) + 1,
+                left: padding + d.x * cellSize - (cellSize / 2) + 1,
+                top: padding + d.y * cellSize - (cellSize / 2) + 1,
                 border: isLastMove ? `2px solid ${cell === 'black' ? '#fff' : '#000'}` : undefined,
                 boxSizing: 'border-box',
               }}
@@ -462,6 +468,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
 
       {/* Ghost Stone (Hover) */}
       {isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0) && (
+          (() => {
+            const d = toDisplay(hoveredMove.x, hoveredMove.y);
+            return (
           <div
               className={`absolute rounded-full shadow-sm flex items-center justify-center pointer-events-none opacity-50 ${
                 currentPlayer === 'black'
@@ -471,11 +480,13 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
               style={{
                   width: cellSize - 2,
                   height: cellSize - 2,
-                  left: padding + hoveredMove.x * cellSize - (cellSize / 2) + 1,
-                  top: padding + hoveredMove.y * cellSize - (cellSize / 2) + 1,
+                  left: padding + d.x * cellSize - (cellSize / 2) + 1,
+                  top: padding + d.y * cellSize - (cellSize / 2) + 1,
                   zIndex: 5
               }}
           />
+            );
+          })()
       )}
 
       {/* PV Overlay (Hover) */}
@@ -504,6 +515,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
 
       {/* Children Overlay (Q) */}
       {isAnalysisMode && settings.analysisShowChildren && childMoveRings.map((m) => {
+          const d = toDisplay(m.x, m.y);
           const size = cellSize * 0.92;
           const isBlack = m.player === 'black';
           return (
@@ -513,8 +525,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                   style={{
                       width: size,
                       height: size,
-                      left: padding + m.x * cellSize - size / 2,
-                      top: padding + m.y * cellSize - size / 2,
+                      left: padding + d.x * cellSize - size / 2,
+                      top: padding + d.y * cellSize - size / 2,
                       borderRadius: '50%',
                       border: `2px dashed ${isBlack ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'}`,
                       boxShadow: isBlack ? '0 0 0 1px rgba(255,255,255,0.35)' : '0 0 0 1px rgba(0,0,0,0.35)',
@@ -527,6 +539,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       {/* Hints / Top Moves (E) */}
       {isAnalysisMode && analysisData && settings.analysisShowHints && !settings.analysisShowPolicy &&
         analysisData.moves.filter((m) => m.x >= 0 && m.y >= 0).map((move) => {
+          const d = toDisplay(move.x, move.y);
           const isBest = move.order === 0;
           const lowVisitsThreshold = 25;
           const uncertain = move.visits < lowVisitsThreshold && !isBest;
@@ -547,8 +560,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                   style={{
                       width: size,
                       height: size,
-                      left: padding + move.x * cellSize - size / 2,
-                      top: padding + move.y * cellSize - size / 2,
+                      left: padding + d.x * cellSize - size / 2,
+                      top: padding + d.y * cellSize - size / 2,
                       backgroundColor: bg,
                       border,
                       zIndex: 16,
@@ -575,11 +588,14 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
 
       {/* Tooltip */}
       {isAnalysisMode && hoveredMove && hoveredMove.x >= 0 && hoveredMove.y >= 0 && (
+         (() => {
+           const d = toDisplay(hoveredMove.x, hoveredMove.y);
+           return (
          <div
              className="absolute z-20 bg-gray-900 text-white text-xs p-2 rounded shadow-lg pointer-events-none border border-gray-700"
              style={{
-                 left: padding + hoveredMove.x * cellSize + 20,
-                 top: padding + hoveredMove.y * cellSize - 20,
+                 left: padding + d.x * cellSize + 20,
+                 top: padding + d.y * cellSize - 20,
                  minWidth: '120px',
                  maxWidth: '240px'
              }}
@@ -607,6 +623,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
                </div>
              )}
          </div>
+           );
+         })()
       )}
 
     </div>

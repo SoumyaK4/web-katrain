@@ -1,21 +1,242 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { GoBoard } from './GoBoard';
 import { WinRateGraph } from './WinRateGraph';
+import { ScoreGraph } from './ScoreGraph';
 import { SettingsModal } from './SettingsModal';
 import { MoveTree } from './MoveTree';
 import { NotesPanel } from './NotesPanel';
-import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaArrowLeft, FaArrowRight, FaSave, FaFolderOpen, FaMicrochip, FaGraduationCap, FaTimes } from 'react-icons/fa';
+import {
+  FaBars,
+  FaChevronDown,
+  FaChevronLeft,
+  FaChevronRight,
+  FaCog,
+  FaExclamationTriangle,
+  FaFastBackward,
+  FaFastForward,
+  FaFolderOpen,
+  FaPlay,
+  FaRobot,
+  FaSave,
+  FaSyncAlt,
+  FaStepBackward,
+  FaStepForward,
+  FaStop,
+  FaTimes,
+} from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf } from '../utils/sgf';
-import type { CandidateMove } from '../types';
+import type { CandidateMove, GameNode, Player } from '../types';
+
+type UiMode = 'play' | 'analyze';
+
+type AnalysisControlsState = {
+  analysisShowChildren: boolean;
+  analysisShowEval: boolean;
+  analysisShowHints: boolean;
+  analysisShowPolicy: boolean;
+  analysisShowOwnership: boolean;
+};
+
+type GraphOptions = { score: boolean; winrate: boolean };
+type StatsOptions = { score: boolean; winrate: boolean; points: boolean };
+
+type UiState = {
+  mode: UiMode;
+  analysisControls: Record<UiMode, AnalysisControlsState>;
+  panels: Record<
+    UiMode,
+    {
+      graphOpen: boolean;
+      graph: GraphOptions;
+      statsOpen: boolean;
+      stats: StatsOptions;
+      notesOpen: boolean;
+    }
+  >;
+};
+
+const UI_STATE_KEY = 'web-katrain:ui_state:v1';
+
+function defaultUiState(): UiState {
+  // Mirrors KaTrain `config.json` defaults for `ui_state`.
+  return {
+    mode: 'play',
+    analysisControls: {
+      play: {
+        analysisShowChildren: true,
+        analysisShowEval: false,
+        analysisShowHints: false,
+        analysisShowPolicy: false,
+        analysisShowOwnership: false,
+      },
+      analyze: {
+        analysisShowChildren: true,
+        analysisShowEval: true,
+        analysisShowHints: true,
+        analysisShowPolicy: false,
+        analysisShowOwnership: true,
+      },
+    },
+    panels: {
+      play: {
+        graphOpen: true,
+        graph: { score: true, winrate: false },
+        statsOpen: true,
+        stats: { score: true, winrate: true, points: true },
+        notesOpen: true,
+      },
+      analyze: {
+        graphOpen: true,
+        graph: { score: true, winrate: true },
+        statsOpen: true,
+        stats: { score: true, winrate: true, points: true },
+        notesOpen: true,
+      },
+    },
+  };
+}
+
+function loadUiState(): UiState {
+  if (typeof localStorage === 'undefined') return defaultUiState();
+  try {
+    const raw = localStorage.getItem(UI_STATE_KEY);
+    if (!raw) return defaultUiState();
+    const parsed = JSON.parse(raw) as Partial<UiState> | null;
+    if (!parsed || typeof parsed !== 'object') return defaultUiState();
+
+    const d = defaultUiState();
+    const mode: UiMode = parsed.mode === 'analyze' ? 'analyze' : 'play';
+    const analysisControls = {
+      play: { ...d.analysisControls.play, ...(parsed.analysisControls?.play ?? {}) },
+      analyze: { ...d.analysisControls.analyze, ...(parsed.analysisControls?.analyze ?? {}) },
+    };
+    const panels = {
+      play: { ...d.panels.play, ...(parsed.panels?.play ?? {}) },
+      analyze: { ...d.panels.analyze, ...(parsed.panels?.analyze ?? {}) },
+    };
+    return { mode, analysisControls, panels };
+  } catch {
+    return defaultUiState();
+  }
+}
+
+function saveUiState(state: UiState): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(UI_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore quota/permission errors.
+  }
+}
+
+function formatMoveLabel(x: number, y: number): string {
+  if (x < 0 || y < 0) return 'Pass';
+  const col = String.fromCharCode(65 + (x >= 8 ? x + 1 : x));
+  const row = 19 - y;
+  return `${col}${row}`;
+}
+
+function playerToShort(p: Player): string {
+  return p === 'black' ? 'B' : 'W';
+}
+
+function computePointsLost(args: { currentNode: GameNode }): number | null {
+  const node = args.currentNode;
+  const move = node.move;
+  const parent = node.parent;
+  if (!move || !parent) return null;
+
+  const parentScore = parent.analysis?.rootScoreLead;
+  const childScore = node.analysis?.rootScoreLead;
+  if (typeof parentScore === 'number' && typeof childScore === 'number') {
+    const sign = move.player === 'black' ? 1 : -1;
+    return sign * (parentScore - childScore);
+  }
+
+  const candidate = parent.analysis?.moves.find((m) => m.x === move.x && m.y === move.y);
+  return candidate?.pointsLost ?? null;
+}
+
+const IconButton: React.FC<{
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ title, onClick, disabled, className, children }) => {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        'h-10 w-10 flex items-center justify-center rounded',
+        disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-700 text-gray-300 hover:text-white',
+        className ?? '',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  );
+};
+
+const TogglePill: React.FC<{
+  label: string;
+  shortcut?: string;
+  active: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+}> = ({ label, shortcut, active, disabled, onToggle }) => {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onToggle}
+      className={[
+        'px-3 py-1 rounded border text-xs font-semibold flex items-center gap-2',
+        disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-700',
+        active ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-300',
+      ].join(' ')}
+      title={shortcut ? `${label} (${shortcut})` : label}
+    >
+      <span
+        className={[
+          'inline-block h-3 w-3 rounded-sm border',
+          active ? 'bg-green-500 border-green-400' : 'bg-transparent border-gray-500',
+        ].join(' ')}
+      />
+      <span>{shortcut ? `${shortcut} ${label}` : label}</span>
+    </button>
+  );
+};
+
+const PanelHeaderButton: React.FC<{
+  label: string;
+  colorClass: string;
+  active: boolean;
+  onClick: () => void;
+}> = ({ label, colorClass, active, onClick }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'px-2 py-1 rounded text-xs font-semibold border',
+        active ? `${colorClass} border-gray-500 text-white` : 'bg-gray-900 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700',
+      ].join(' ')}
+    >
+      {label}
+    </button>
+  );
+};
 
 export const Layout: React.FC = () => {
   const {
     resetGame,
     passTurn,
     makeAiMove,
-    capturedBlack,
-    capturedWhite,
     toggleAi,
     isAiPlaying,
     aiColor,
@@ -23,681 +244,966 @@ export const Layout: React.FC = () => {
     navigateForward,
     navigateStart,
     navigateEnd,
-    switchBranch,
-    undoToBranchPoint,
-    undoToMainBranch,
-    makeCurrentNodeMainBranch,
     findMistake,
-    deleteCurrentNode,
-    pruneCurrentBranch,
     loadGame,
+    stopAnalysis,
     toggleAnalysisMode,
     isAnalysisMode,
     isContinuousAnalysis,
     toggleContinuousAnalysis,
-    stopAnalysis,
     toggleTeachMode,
     isTeachMode,
     notification,
     clearNotification,
     analysisData,
-    playMove,
     currentNode,
     runAnalysis,
     settings,
     updateSettings,
     rootNode,
-    ...storeRest
+    currentPlayer,
+    moveHistory,
+    capturedBlack,
+    capturedWhite,
+    komi,
+    engineStatus,
+    engineError,
+    rotateBoard,
   } = useGameStore();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [rightTab, setRightTab] = useState<'analysis' | 'tree' | 'notes'>(isAnalysisMode ? 'analysis' : 'tree');
-  const [timer, setTimer] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
+  const [uiState, setUiState] = useState<UiState>(() => loadUiState());
 
+  const mode = uiState.mode;
+  const modeControls = uiState.analysisControls[mode];
+  const modePanels = uiState.panels[mode];
+
+  // Persist UI state.
   useEffect(() => {
-    const interval = setInterval(() => {
-        setTimer(t => t + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    saveUiState(uiState);
+  }, [uiState]);
 
-  const formatTime = (seconds: number) => {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-      return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  // Apply per-mode analysis controls to settings on mode changes (KaTrain-like).
+  useEffect(() => {
+    updateSettings(modeControls);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
+  // Keep mode controls in sync if settings are changed elsewhere (e.g. Settings modal).
+  useEffect(() => {
+    setUiState((prev) => ({
+      ...prev,
+      analysisControls: {
+        ...prev.analysisControls,
+        [prev.mode]: {
+          analysisShowChildren: settings.analysisShowChildren,
+          analysisShowEval: settings.analysisShowEval,
+          analysisShowHints: settings.analysisShowHints,
+          analysisShowPolicy: settings.analysisShowPolicy,
+          analysisShowOwnership: settings.analysisShowOwnership,
+        },
+      },
+    }));
+  }, [
+    settings.analysisShowChildren,
+    settings.analysisShowEval,
+    settings.analysisShowHints,
+    settings.analysisShowPolicy,
+    settings.analysisShowOwnership,
+  ]);
+
+  // Auto-run analysis when in analysis mode.
   useEffect(() => {
     if (!isAnalysisMode) return;
     void runAnalysis();
   }, [currentNode.id, isAnalysisMode, runAnalysis]);
 
+  // Close popovers on outside clicks.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[data-menu-popover]')) return;
+      setAnalysisMenuOpen(false);
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, []);
+
+  const toast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    useGameStore.setState({ notification: { message, type } });
+    window.setTimeout(() => useGameStore.setState({ notification: null }), 2500);
+  };
+
+  // Keyboard shortcuts (KaTrain-like).
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-        const active = document.activeElement as HTMLElement | null;
-        const isTyping =
-            !!active &&
-            (active.tagName === 'INPUT' ||
-                active.tagName === 'TEXTAREA' ||
-                active.tagName === 'SELECT' ||
-                active.isContentEditable);
-        if (isTyping) return;
+      const active = document.activeElement as HTMLElement | null;
+      const isTyping =
+        !!active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.tagName === 'SELECT' ||
+          active.isContentEditable);
+      if (isTyping) return;
 
-        const ctrl = e.ctrlKey || e.metaKey;
-        const shift = e.shiftKey;
-        const key = e.key;
-        const keyLower = key.toLowerCase();
+      const ctrl = e.ctrlKey || e.metaKey;
+      const shift = e.shiftKey;
+      const key = e.key;
+      const keyLower = key.toLowerCase();
 
-        const toast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-            useGameStore.setState({ notification: { message, type } });
-            window.setTimeout(() => useGameStore.setState({ notification: null }), 2500);
-        };
+      const jumpBack = (n: number) => {
+        for (let i = 0; i < n; i++) navigateBack();
+      };
+      const jumpForward = (n: number) => {
+        for (let i = 0; i < n; i++) navigateForward();
+      };
 
-        const jumpBack = (n: number) => {
-            for (let i = 0; i < n; i++) navigateBack();
-        };
-        const jumpForward = (n: number) => {
-            for (let i = 0; i < n; i++) navigateForward();
-        };
+      const copySgfToClipboard = async () => {
+        const sgf = generateSgfFromTree(rootNode);
+        try {
+          await navigator.clipboard.writeText(sgf);
+          toast('Copied SGF to clipboard.', 'success');
+        } catch {
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = sgf;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            toast('Copied SGF to clipboard.', 'success');
+          } catch {
+            toast('Copy failed (clipboard unavailable).', 'error');
+          }
+        }
+      };
 
-        const copySgfToClipboard = async () => {
-            const sgf = generateSgfFromTree(rootNode);
-            try {
-                await navigator.clipboard.writeText(sgf);
-                toast('Copied SGF to clipboard.', 'success');
-            } catch {
-                try {
-                    const ta = document.createElement('textarea');
-                    ta.value = sgf;
-                    ta.style.position = 'fixed';
-                    ta.style.left = '-9999px';
-                    document.body.appendChild(ta);
-                    ta.focus();
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                    toast('Copied SGF to clipboard.', 'success');
-                } catch {
-                    toast('Copy failed (clipboard unavailable).', 'error');
-                }
-            }
-        };
+      const pasteSgfFromClipboard = async () => {
+        let text: string | null = null;
+        try {
+          text = await navigator.clipboard.readText();
+        } catch {
+          text = window.prompt('Paste SGF here:') ?? null;
+        }
+        if (!text) return;
+        try {
+          const parsed = parseSgf(text);
+          loadGame(parsed);
+          navigateEnd(); // KaTrain behavior: clipboard import goes to the end.
+          toast('Loaded SGF from clipboard.', 'success');
+        } catch {
+          toast('Failed to parse SGF from clipboard.', 'error');
+        }
+      };
 
-        const pasteSgfFromClipboard = async () => {
-            let text: string | null = null;
-            try {
-                text = await navigator.clipboard.readText();
-            } catch {
-                // Fallback prompt for non-secure contexts.
-                text = window.prompt('Paste SGF here:') ?? null;
-            }
-            if (!text) return;
-            try {
-                const parsed = parseSgf(text);
-                loadGame(parsed);
-                // KaTrain behavior: clipboard import goes to the end of the main branch.
-                navigateEnd();
-                toast('Loaded SGF from clipboard.', 'success');
-            } catch {
-                toast('Failed to parse SGF from clipboard.', 'error');
-            }
-        };
+      if (ctrl && keyLower === 's') {
+        e.preventDefault();
+        downloadSgfFromTree(rootNode);
+        return;
+      }
+      if (ctrl && keyLower === 'l') {
+        e.preventDefault();
+        fileInputRef.current?.click();
+        return;
+      }
+      if (ctrl && keyLower === 'c') {
+        e.preventDefault();
+        void copySgfToClipboard();
+        return;
+      }
+      if (ctrl && keyLower === 'v') {
+        e.preventDefault();
+        void pasteSgfFromClipboard();
+        return;
+      }
+      if (ctrl && keyLower === 'n') {
+        e.preventDefault();
+        resetGame();
+        return;
+      }
 
-        // Global shortcuts (KaTrain-like)
-        if (ctrl && keyLower === 's') {
-            e.preventDefault();
-            downloadSgfFromTree(rootNode);
-            return;
-        }
-        if (ctrl && keyLower === 'l') {
-            e.preventDefault();
-            fileInputRef.current?.click();
-            return;
-        }
-        if (ctrl && keyLower === 'c') {
-            e.preventDefault();
-            void copySgfToClipboard();
-            return;
-        }
-        if (ctrl && keyLower === 'v') {
-            e.preventDefault();
-            void pasteSgfFromClipboard();
-            return;
-        }
-        if (ctrl && keyLower === 'n') {
-            e.preventDefault();
-            resetGame();
-            return;
-        }
+      if (key === 'Escape') {
+        e.preventDefault();
+        stopAnalysis();
+        setAnalysisMenuOpen(false);
+        setMenuOpen(false);
+        return;
+      }
 
-        if (key === 'Escape') {
-            e.preventDefault();
-            stopAnalysis();
-            return;
-        }
+      if (key === ' ' || key === 'Spacebar') {
+        e.preventDefault();
+        toggleContinuousAnalysis(shift);
+        return;
+      }
 
-        if (key === ' ' || key === 'Spacebar') {
-            e.preventDefault();
-            toggleContinuousAnalysis(shift);
-            return;
-        }
+      if (keyLower === 'p') {
+        e.preventDefault();
+        passTurn();
+        return;
+      }
 
-        if ((key === 'Backspace' || key === 'Delete') && ctrl) {
-            e.preventDefault();
-            deleteCurrentNode();
-            return;
-        }
+      if (keyLower === 'o') {
+        e.preventDefault();
+        rotateBoard();
+        return;
+      }
 
-        if (key === 'Delete' && shift && ctrl) {
-            e.preventDefault();
-            pruneCurrentBranch();
-            return;
-        }
+      if (keyLower === 'k') {
+        e.preventDefault();
+        updateSettings({ showCoordinates: !settings.showCoordinates });
+        return;
+      }
+      if (keyLower === 'm') {
+        e.preventDefault();
+        updateSettings({ showMoveNumbers: !settings.showMoveNumbers });
+        return;
+      }
 
-        if ((key === 'Backspace' || key === 'Delete') && !ctrl) {
-            e.preventDefault();
-            navigateBack();
-            return;
-        }
+      if (keyLower === 'q') {
+        e.preventDefault();
+        updateSettings({ analysisShowChildren: !settings.analysisShowChildren });
+        return;
+      }
+      if (keyLower === 'w') {
+        e.preventDefault();
+        updateSettings({ analysisShowEval: !settings.analysisShowEval });
+        return;
+      }
+      if (keyLower === 'e') {
+        e.preventDefault();
+        if (!settings.analysisShowPolicy) updateSettings({ analysisShowHints: !settings.analysisShowHints });
+        return;
+      }
+      if (keyLower === 'r') {
+        e.preventDefault();
+        updateSettings({ analysisShowPolicy: !settings.analysisShowPolicy });
+        return;
+      }
+      if (keyLower === 't') {
+        e.preventDefault();
+        updateSettings({ analysisShowOwnership: !settings.analysisShowOwnership });
+        return;
+      }
 
-        if (key === 'Tab') {
-            e.preventDefault();
-            toggleAnalysisMode();
-            return;
-        }
+      if (keyLower === 'n') {
+        e.preventDefault();
+        findMistake(shift ? 'undo' : 'redo');
+        return;
+      }
 
-        if (key === 'Home') {
-            e.preventDefault();
-            navigateStart();
-            return;
-        }
-        if (key === 'End') {
-            e.preventDefault();
-            navigateEnd();
-            return;
-        }
-        if (key === 'PageUp') {
-            e.preventDefault();
-            makeCurrentNodeMainBranch();
-            return;
-        }
+      if (key === 'Tab') {
+        e.preventDefault();
+        toggleAnalysisMode();
+        return;
+      }
 
-        if (key === 'ArrowUp') {
-            e.preventDefault();
-            switchBranch(-1);
-            return;
-        }
-        if (key === 'ArrowDown') {
-            e.preventDefault();
-            switchBranch(1);
-            return;
-        }
+      if (key === 'Home') {
+        e.preventDefault();
+        navigateStart();
+        return;
+      }
+      if (key === 'End') {
+        e.preventDefault();
+        navigateEnd();
+        return;
+      }
 
-        if (key === 'ArrowLeft' || keyLower === 'z') {
-            e.preventDefault();
-            if (ctrl) navigateStart();
-            else if (shift) jumpBack(10);
-            else navigateBack();
-            return;
-        }
-        if (key === 'ArrowRight' || keyLower === 'x') {
-            e.preventDefault();
-            if (ctrl) navigateEnd();
-            else if (shift) jumpForward(10);
-            else navigateForward();
-            return;
-        }
+      if (key === 'ArrowLeft' || keyLower === 'z') {
+        e.preventDefault();
+        if (ctrl) navigateStart();
+        else if (shift) jumpBack(10);
+        else navigateBack();
+        return;
+      }
+      if (key === 'ArrowRight' || keyLower === 'x') {
+        e.preventDefault();
+        if (ctrl) navigateEnd();
+        else if (shift) jumpForward(10);
+        else navigateForward();
+        return;
+      }
 
-        if (key === 'Enter') {
-            e.preventDefault();
-            makeAiMove();
-            return;
-        }
-        if (keyLower === 'p') {
-            e.preventDefault();
-            passTurn();
-            return;
-        }
-        if (keyLower === 'k') {
-            e.preventDefault();
-            updateSettings({ showCoordinates: !settings.showCoordinates });
-            return;
-        }
-        if (keyLower === 'm') {
-            e.preventDefault();
-            updateSettings({ showMoveNumbers: !settings.showMoveNumbers });
-            return;
-        }
-        if (keyLower === 'q') {
-            e.preventDefault();
-            updateSettings({ analysisShowChildren: !settings.analysisShowChildren });
-            return;
-        }
-        if (keyLower === 'w') {
-            e.preventDefault();
-            updateSettings({ analysisShowEval: !settings.analysisShowEval });
-            return;
-        }
-        if (keyLower === 'e') {
-            e.preventDefault();
-            updateSettings({ analysisShowHints: !settings.analysisShowHints });
-            return;
-        }
-        if (keyLower === 'r') {
-            e.preventDefault();
-            updateSettings({ analysisShowPolicy: !settings.analysisShowPolicy });
-            return;
-        }
-        if (keyLower === 't') {
-            e.preventDefault();
-            updateSettings({ analysisShowOwnership: !settings.analysisShowOwnership });
-            return;
-        }
-        if (keyLower === 'b') {
-            e.preventDefault();
-            if (shift) undoToMainBranch();
-            else undoToBranchPoint();
-            return;
-        }
-        if (keyLower === 'n') {
-            e.preventDefault();
-            findMistake(shift ? 'undo' : 'redo');
-            return;
-        }
+      if (key === 'Enter') {
+        e.preventDefault();
+        makeAiMove();
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-      navigateBack,
-      navigateForward,
-      navigateStart,
-      navigateEnd,
-      switchBranch,
-      undoToBranchPoint,
-      undoToMainBranch,
-      makeCurrentNodeMainBranch,
-      findMistake,
-	      toggleAnalysisMode,
-	      resetGame,
-	      passTurn,
-	      makeAiMove,
-	      rootNode,
-	      loadGame,
-	      settings.showCoordinates,
-	      settings.showMoveNumbers,
-      settings.analysisShowChildren,
-	      settings.analysisShowEval,
-	      settings.analysisShowHints,
-	      settings.analysisShowPolicy,
-	      settings.analysisShowOwnership,
-	      toggleContinuousAnalysis,
-	      stopAnalysis,
-	      updateSettings,
-	      deleteCurrentNode,
-	      pruneCurrentBranch,
-	  ]);
+    navigateBack,
+    navigateForward,
+    navigateStart,
+    navigateEnd,
+    toggleContinuousAnalysis,
+    stopAnalysis,
+    resetGame,
+    passTurn,
+    rotateBoard,
+    toggleAnalysisMode,
+    updateSettings,
+    settings.showCoordinates,
+    settings.showMoveNumbers,
+    settings.analysisShowChildren,
+    settings.analysisShowEval,
+    settings.analysisShowHints,
+    settings.analysisShowPolicy,
+    settings.analysisShowOwnership,
+    makeAiMove,
+    rootNode,
+    loadGame,
+    findMistake,
+  ]);
 
-  const handleSave = () => {
-      downloadSgfFromTree(rootNode);
+  const engineDot = useMemo(() => {
+    if (engineStatus === 'loading') return 'bg-yellow-400';
+    if (engineStatus === 'ready') return 'bg-green-400';
+    if (engineStatus === 'error') return 'bg-red-500';
+    return 'bg-gray-500';
+  }, [engineStatus]);
+
+  const statusText = engineError
+    ? `Engine error: ${engineError}`
+    : notification?.message
+      ? notification.message
+      : isContinuousAnalysis
+        ? 'Pondering… (Space)'
+        : isAnalysisMode
+          ? 'Analysis mode on (Tab toggles)'
+          : 'Ready';
+
+  const pointsLost = computePointsLost({ currentNode });
+  const winRate = analysisData?.rootWinRate ?? currentNode.analysis?.rootWinRate;
+  const scoreLead = analysisData?.rootScoreLead ?? currentNode.analysis?.rootScoreLead;
+
+  const renderPlayerInfo = (player: Player) => {
+    const isTurn = currentPlayer === player;
+    const isAi = isAiPlaying && aiColor === player;
+    const caps = player === 'black' ? capturedWhite : capturedBlack;
+
+    return (
+      <div
+        className={[
+          'flex-1 rounded border px-3 py-2 flex items-center gap-3',
+          isTurn ? 'bg-gray-700 border-gray-500' : 'bg-gray-900 border-gray-700',
+        ].join(' ')}
+      >
+        <div
+          className={[
+            'h-10 w-10 rounded-full flex items-center justify-center font-bold',
+            player === 'black' ? 'bg-black text-white border border-gray-600' : 'bg-white text-black border border-gray-400',
+          ].join(' ')}
+          title={player === 'black' ? 'Black' : 'White'}
+        >
+          {caps}
+        </div>
+        <div className="flex flex-col leading-tight">
+          <div className="text-xs text-gray-400">{player === 'black' ? 'Black' : 'White'}</div>
+          <div className="text-sm font-semibold text-gray-100">{isAi ? 'AI' : 'Human'}</div>
+        </div>
+        {isTurn && <div className="ml-auto text-xs font-mono text-gray-200">to play</div>}
+      </div>
+    );
   };
 
-  const handleLoadClick = () => {
-      fileInputRef.current?.click();
+  const setMode = (next: UiMode) => {
+    setUiState((prev) => ({ ...prev, mode: next }));
   };
+
+  const updateControls = (partial: Partial<AnalysisControlsState>) => {
+    updateSettings(partial);
+    setUiState((prev) => ({
+      ...prev,
+      analysisControls: {
+        ...prev.analysisControls,
+        [prev.mode]: { ...prev.analysisControls[prev.mode], ...partial },
+      },
+    }));
+  };
+
+  const updatePanels = (partial: Partial<UiState['panels'][UiMode]>) => {
+    setUiState((prev) => ({
+      ...prev,
+      panels: { ...prev.panels, [prev.mode]: { ...prev.panels[prev.mode], ...partial } },
+    }));
+  };
+
+  const openSettings = () => setIsSettingsOpen(true);
+
+  const handleLoadClick = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const text = await file.text();
-      try {
-          const parsed = parseSgf(text);
-          loadGame(parsed);
-      } catch (error) {
-          console.error("Failed to parse SGF", error);
-          alert("Failed to parse SGF file");
-      }
-
-      // Reset input
-      e.target.value = '';
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    try {
+      const parsed = parseSgf(text);
+      loadGame(parsed);
+    } catch {
+      toast('Failed to parse SGF file.', 'error');
+    }
+    e.target.value = '';
   };
 
-  const handleAnalysisClick = (move: CandidateMove) => {
-      if (move.x === -1 || move.y === -1) {
-          passTurn();
-      } else {
-          playMove(move.x, move.y);
-      }
+  const jumpBack = (n: number) => {
+    for (let i = 0; i < n; i++) navigateBack();
   };
+  const jumpForward = (n: number) => {
+    for (let i = 0; i < n; i++) navigateForward();
+  };
+
+  const isAiBlack = isAiPlaying && aiColor === 'black';
+  const isAiWhite = isAiPlaying && aiColor === 'white';
 
   return (
     <div className="flex h-screen bg-gray-900 text-gray-200 font-sans overflow-hidden">
-      {isSettingsOpen && (
-          <SettingsModal onClose={() => setIsSettingsOpen(false)} />
+      {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} />}
+
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".sgf" />
+
+      {/* Hamburger drawer (KaTrain-like) */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMenuOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-80 bg-gray-800 border-r border-gray-700 shadow-xl p-3 overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-lg font-semibold">Menu</div>
+              <button className="text-gray-400 hover:text-white" onClick={() => setMenuOpen(false)}>
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <button
+                className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700"
+                onClick={() => {
+                  resetGame();
+                  setMenuOpen(false);
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <FaPlay /> New Game
+                </span>
+                <span className="text-xs text-gray-400">Ctrl+N</span>
+              </button>
+              <button
+                className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700"
+                onClick={() => {
+                  downloadSgfFromTree(rootNode);
+                  setMenuOpen(false);
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <FaSave /> Save SGF
+                </span>
+                <span className="text-xs text-gray-400">Ctrl+S</span>
+              </button>
+              <button
+                className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700"
+                onClick={() => {
+                  handleLoadClick();
+                  setMenuOpen(false);
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <FaFolderOpen /> Load SGF
+                </span>
+                <span className="text-xs text-gray-400">Ctrl+L</span>
+              </button>
+              <button
+                className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700"
+                onClick={() => {
+                  openSettings();
+                  setMenuOpen(false);
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <FaCog /> Settings
+                </span>
+                <span className="text-xs text-gray-400">F8</span>
+              </button>
+            </div>
+
+            <div className="mt-4 border-t border-gray-700 pt-3 space-y-2">
+              <div className="text-xs text-gray-400">Play vs AI</div>
+              <div className="flex gap-2">
+                <button
+                  className={[
+                    'flex-1 px-3 py-2 rounded border text-sm font-semibold',
+                    isAiWhite ? 'bg-gray-700 border-gray-500 text-green-300' : 'bg-gray-900 border-gray-700 hover:bg-gray-700',
+                  ].join(' ')}
+                  onClick={() => toggleAi('white')}
+                >
+                  White AI
+                </button>
+                <button
+                  className={[
+                    'flex-1 px-3 py-2 rounded border text-sm font-semibold',
+                    isAiBlack ? 'bg-gray-700 border-gray-500 text-green-300' : 'bg-gray-900 border-gray-700 hover:bg-gray-700',
+                  ].join(' ')}
+                  onClick={() => toggleAi('black')}
+                >
+                  Black AI
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-        accept=".sgf"
-      />
-      {/* Sidebar - Settings and Controls */}
-      <div className="w-16 flex flex-col items-center py-4 bg-gray-800 border-r border-gray-700 space-y-6">
-        <div className="text-2xl font-bold text-green-500 mb-4">Ka</div>
-        <button className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="New Game" onClick={resetGame}>
-          <FaPlay />
-        </button>
-        <button className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Load SGF" onClick={handleLoadClick}>
-          <FaFolderOpen />
-        </button>
-        <button
-          className={`p-2 hover:bg-gray-700 rounded ${isAiPlaying && aiColor === 'white' ? 'text-green-500' : 'text-gray-400'} hover:text-white`}
-          title="Play vs AI (White)"
-          onClick={() => toggleAi('white')}
-        >
-          <FaRobot />
-        </button>
-        <button
-          className={`p-2 hover:bg-gray-700 rounded ${isAiPlaying && aiColor === 'black' ? 'text-green-500' : 'text-gray-400'} hover:text-white`}
-          title="Play vs AI (Black)"
-          onClick={() => toggleAi('black')}
-        >
-          <FaRobot />
-        </button>
-        <button
-          className={`p-2 hover:bg-gray-700 rounded ${isAnalysisMode ? 'text-blue-500' : 'text-gray-400'} hover:text-white`}
-          title="Toggle Analysis Mode"
-          onClick={toggleAnalysisMode}
-        >
-          <FaMicrochip />
-        </button>
-        <button
-          className={`p-2 hover:bg-gray-700 rounded ${isTeachMode ? 'text-purple-500' : 'text-gray-400'} hover:text-white`}
-          title="Teach Mode"
-          onClick={toggleTeachMode}
-        >
-          <FaGraduationCap />
-        </button>
-        <button className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Save SGF" onClick={handleSave}>
-          <FaSave />
-        </button>
-        <button
-            className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
-            title="Settings"
-            onClick={() => setIsSettingsOpen(true)}
-        >
-          <FaCog />
-        </button>
-        <div className="flex-grow" />
-        <button className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="More">
-          <FaEllipsisH />
-        </button>
-      </div>
 
-      {/* Main Content - Board */}
-      <div className="flex-grow flex flex-col relative">
-        {/* Top Bar (Status) */}
-        <div className="h-12 bg-gray-800 border-b border-gray-700 flex items-center px-4 justify-between select-none">
-             <div className="flex items-center space-x-6">
-                 {/* Player Indicator */}
-                 <div className="flex items-center space-x-2">
-                     <div className={`w-4 h-4 rounded-full border ${storeRest.currentPlayer === 'black' ? 'bg-black border-gray-600' : 'bg-white border-gray-400'}`}></div>
-                     <span className="font-semibold text-gray-300">{storeRest.currentPlayer === 'black' ? 'Black' : 'White'} to play</span>
-                 </div>
-                 {/* Move Count */}
-                 <div className="text-gray-400 text-sm">
-                     Move: <span className="text-white font-mono">{storeRest.moveHistory.length}</span>
-                 </div>
-                 {/* Captures */}
-                 <div className="flex items-center space-x-4 text-sm">
-                      <div className="flex items-center space-x-1" title="Prisoners taken by Black">
-                          <div className="w-3 h-3 rounded-full bg-white border border-gray-500"></div>
-                          <span className="text-gray-400">Captured:</span>
-                          <span className="text-white font-mono">{capturedWhite}</span>
-                      </div>
-                      <div className="flex items-center space-x-1" title="Prisoners taken by White">
-                          <div className="w-3 h-3 rounded-full bg-black border border-gray-600"></div>
-                          <span className="text-gray-400">Captured:</span>
-                          <span className="text-white font-mono">{capturedBlack}</span>
-                      </div>
-                 </div>
-             </div>
+      {/* Main board column */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Analysis controls bar (KaTrain-like) */}
+        <div className="h-14 bg-gray-800 border-b border-gray-700 flex items-center px-3 gap-3 select-none">
+          <IconButton title="Menu" onClick={() => setMenuOpen(true)}>
+            <FaBars />
+          </IconButton>
 
-             <div className="flex items-center space-x-6">
-                 {/* Komi */}
-                 <div className="text-gray-400 text-sm">
-                     Komi: <span className="text-white font-mono">{storeRest.komi}</span>
-                 </div>
-                 {/* Timer (Visual) */}
-                 <div className="font-mono text-xl text-gray-300 bg-gray-900 px-3 py-1 rounded border border-gray-700">
-                     {formatTime(timer)}
-                 </div>
-             </div>
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <TogglePill
+              label="Children"
+              shortcut="Q"
+              active={settings.analysisShowChildren}
+              onToggle={() => updateControls({ analysisShowChildren: !settings.analysisShowChildren })}
+            />
+            <TogglePill
+              label="Dots"
+              shortcut="W"
+              active={settings.analysisShowEval}
+              onToggle={() => updateControls({ analysisShowEval: !settings.analysisShowEval })}
+            />
+            <TogglePill
+              label="Top Moves"
+              shortcut="E"
+              active={settings.analysisShowHints}
+              disabled={settings.analysisShowPolicy}
+              onToggle={() => updateControls({ analysisShowHints: !settings.analysisShowHints })}
+            />
+            <TogglePill
+              label="Policy"
+              shortcut="R"
+              active={settings.analysisShowPolicy}
+              onToggle={() => updateControls({ analysisShowPolicy: !settings.analysisShowPolicy })}
+            />
+            <TogglePill
+              label="Territory"
+              shortcut="T"
+              active={settings.analysisShowOwnership}
+              onToggle={() => updateControls({ analysisShowOwnership: !settings.analysisShowOwnership })}
+            />
+          </div>
+
+          <div className="flex-grow" />
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className={[
+                'px-3 py-2 rounded border text-sm font-semibold flex items-center gap-2',
+                isAnalysisMode ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-300 hover:bg-gray-700',
+              ].join(' ')}
+              title="Toggle analysis mode (Tab)"
+              onClick={toggleAnalysisMode}
+            >
+              <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
+              Analyze
+            </button>
+
+            <div className="relative" data-menu-popover>
+              <button
+                type="button"
+                className="px-3 py-2 rounded border bg-gray-900 border-gray-700 text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                onClick={() => setAnalysisMenuOpen((v) => !v)}
+                title="Analysis actions"
+              >
+                Actions <FaChevronDown className="opacity-80" />
+              </button>
+              {analysisMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-gray-800 border border-gray-700 rounded shadow-xl overflow-hidden z-50">
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      toggleContinuousAnalysis();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaRobot /> Continuous analysis
+                    </span>
+                    <span className="text-xs text-gray-400">Space</span>
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      makeAiMove();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaPlay /> AI move
+                    </span>
+                    <span className="text-xs text-gray-400">Enter</span>
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      stopAnalysis();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaStop /> Stop analysis
+                    </span>
+                    <span className="text-xs text-gray-400">Esc</span>
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      rotateBoard();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaSyncAlt /> Rotate board
+                    </span>
+                    <span className="text-xs text-gray-400">O</span>
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      toggleTeachMode();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaRobot /> Teach mode
+                    </span>
+                    <span className="text-xs text-gray-400">{isTeachMode ? 'on' : 'off'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="flex-grow flex items-center justify-center bg-gray-900 overflow-auto p-4 relative">
-           {notification && (
-               <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded shadow-lg flex items-center space-x-4 animate-bounce-in ${notification.type === 'error' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
-                    <span>{notification.message}</span>
-                    <button onClick={clearNotification} className="hover:text-gray-200"><FaTimes /></button>
-               </div>
-           )}
-           <GoBoard
-               hoveredMove={hoveredMove}
-               onHoverMove={setHoveredMove}
-           />
+        {/* Board */}
+        <div className="flex-1 flex items-center justify-center bg-gray-900 overflow-auto p-4 relative">
+          {notification && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded shadow-lg flex items-center space-x-4 bg-gray-800 border border-gray-700">
+              <span>{notification.message}</span>
+              <button onClick={clearNotification} className="hover:text-gray-200">
+                <FaTimes />
+              </button>
+            </div>
+          )}
+          <GoBoard hoveredMove={hoveredMove} onHoverMove={setHoveredMove} />
         </div>
 
-        {/* Bottom Control Bar */}
-        <div className="h-16 bg-gray-800 border-t border-gray-700 flex items-center px-6 justify-between">
-           {/* Left side empty or status text */}
-           <div className="text-sm text-gray-500">
-               {isAiPlaying ? `AI is active (${aiColor ?? 'unknown'})` : "Manual Mode"}
-           </div>
-
-           <div className="flex items-center space-x-2">
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium flex items-center" onClick={navigateBack}>
-                  <FaArrowLeft className="mr-2"/> Prev
-              </button>
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium flex items-center" onClick={navigateForward}>
-                  Next <FaArrowRight className="ml-2"/>
-              </button>
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium ml-4" onClick={passTurn}>
-                  Pass
-              </button>
-           </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Analysis & Info */}
-      <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
-        <div className="border-b border-gray-700 flex">
+        {/* Board controls bar (KaTrain-like) */}
+        <div className="h-16 bg-gray-800 border-t border-gray-700 flex items-center px-3 justify-between select-none">
           <button
-            className={`flex-1 px-3 py-2 text-xs font-semibold ${rightTab === 'analysis' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
-            onClick={() => setRightTab('analysis')}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold"
+            onClick={passTurn}
+            title="Pass (P)"
+          >
+            Pass
+          </button>
+
+          <div className="flex items-center gap-1">
+            <IconButton title="Previous mistake (N)" onClick={() => findMistake('undo')} className="text-red-300">
+              <FaExclamationTriangle />
+            </IconButton>
+            <IconButton title="Start (Home)" onClick={navigateStart}>
+              <FaStepBackward />
+            </IconButton>
+            <IconButton title="Back 10 (Shift+←)" onClick={() => jumpBack(10)}>
+              <FaFastBackward />
+            </IconButton>
+            <IconButton title="Back (←)" onClick={navigateBack}>
+              <FaChevronLeft />
+            </IconButton>
+
+            <div className="px-3 text-sm text-gray-300 font-mono flex items-center gap-2">
+              <span className={currentPlayer === 'black' ? 'text-white' : 'text-gray-500'}>B</span>
+              <span className="text-gray-500">·</span>
+              <span className={currentPlayer === 'white' ? 'text-white' : 'text-gray-500'}>W</span>
+              <span className="text-gray-500 ml-2">Move</span>
+              <span className="text-white">{moveHistory.length}</span>
+            </div>
+
+            <IconButton title="Forward (→)" onClick={navigateForward}>
+              <FaChevronRight />
+            </IconButton>
+            <IconButton title="Forward 10 (Shift+→)" onClick={() => jumpForward(10)}>
+              <FaFastForward />
+            </IconButton>
+            <IconButton title="End (End)" onClick={navigateEnd}>
+              <FaStepForward />
+            </IconButton>
+            <IconButton title="Next mistake (Shift+N)" onClick={() => findMistake('redo')} className="text-red-300">
+              <FaExclamationTriangle />
+            </IconButton>
+            <IconButton title="Rotate (O)" onClick={rotateBoard}>
+              <FaSyncAlt />
+            </IconButton>
+          </div>
+
+          <button
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold"
+            onClick={() => makeAiMove()}
+            title="AI move (Enter)"
+          >
+            AI Move
+          </button>
+        </div>
+      </div>
+
+      {/* Right side panel (KaTrain-like) */}
+      <div className="w-96 bg-gray-800 border-l border-gray-700 flex flex-col">
+        {/* Play / Analyze tabs */}
+        <div className="h-14 border-b border-gray-700 flex items-center p-2 gap-2">
+          <button
+            className={[
+              'flex-1 h-10 rounded font-semibold border',
+              mode === 'play' ? 'bg-blue-600/30 border-blue-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white',
+            ].join(' ')}
+            onClick={() => setMode('play')}
+          >
+            Play
+          </button>
+          <button
+            className={[
+              'flex-1 h-10 rounded font-semibold border',
+              mode === 'analyze'
+                ? 'bg-blue-600/30 border-blue-500 text-white'
+                : 'bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white',
+            ].join(' ')}
+            onClick={() => setMode('analyze')}
           >
             Analysis
           </button>
-          <button
-            className={`flex-1 px-3 py-2 text-xs font-semibold ${rightTab === 'tree' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
-            onClick={() => setRightTab('tree')}
-          >
-            Tree
-          </button>
-          <button
-            className={`flex-1 px-3 py-2 text-xs font-semibold ${rightTab === 'notes' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
-            onClick={() => setRightTab('notes')}
-          >
-            Notes
-          </button>
         </div>
 
-        {rightTab === 'analysis' && (
-          <div className="flex-grow flex flex-col h-full">
-            <div className="border-b border-gray-700 p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center">
-                <FaChartBar className="mr-2" /> Analysis
-              </h2>
-              <div className="bg-gray-900 h-32 rounded flex items-center justify-center text-gray-500 overflow-hidden mb-4">
-                <WinRateGraph />
+        {/* Players */}
+        <div className="p-3 flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
+
+        {/* Timer / MoveTree area */}
+        <div className="px-3 pb-3">
+          {mode === 'play' ? (
+            <div className="bg-gray-900 border border-gray-700 rounded p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-400">Komi</div>
+                <div className="font-mono text-sm text-gray-200">{komi}</div>
               </div>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex items-center justify-between mt-1">
+                <div className="text-xs text-gray-400">Captured</div>
+                <div className="font-mono text-sm text-gray-200">
+                  B:{capturedWhite} · W:{capturedBlack}
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
                 <button
-                  className={`px-2 py-1 rounded text-xs font-semibold border ${isContinuousAnalysis ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-                  onClick={() => toggleContinuousAnalysis()}
-                  title="Toggle continuous analysis (Space)"
+                  className="flex-1 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm font-semibold"
+                  onClick={() => navigateBack()}
+                  title="Undo (←)"
                 >
-                  Space Ponder
+                  Undo
                 </button>
                 <button
-                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowChildren ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-                  onClick={() => updateSettings({ analysisShowChildren: !settings.analysisShowChildren })}
-                  title="Toggle show children (Q)"
+                  className="flex-1 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm font-semibold"
+                  onClick={() => toast('Resign not implemented yet.', 'info')}
                 >
-                  Q Children
-                </button>
-                <button
-                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowEval ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-                  onClick={() => updateSettings({ analysisShowEval: !settings.analysisShowEval })}
-                  title="Toggle evaluation dots (W)"
-                >
-                  W Dots
-                </button>
-                <button
-                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowHints ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'} ${settings.analysisShowPolicy ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={settings.analysisShowPolicy}
-                  onClick={() => updateSettings({ analysisShowHints: !settings.analysisShowHints })}
-                  title={settings.analysisShowPolicy ? 'Disabled while Policy is enabled' : 'Toggle top moves (E)'}
-                >
-                  E Top Moves
-                </button>
-                <button
-                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowPolicy ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-                  onClick={() => updateSettings({ analysisShowPolicy: !settings.analysisShowPolicy })}
-                  title="Toggle policy (R)"
-                >
-                  R Policy
-                </button>
-                <button
-                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowOwnership ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-                  onClick={() => updateSettings({ analysisShowOwnership: !settings.analysisShowOwnership })}
-                  title="Toggle ownership/territory (T)"
-                >
-                  T Ownership
+                  Resign
                 </button>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Win Rate (Black):</span>
-                  <span className={`font-mono ${analysisData && analysisData.rootWinRate > 0.5 ? 'text-green-400' : 'text-red-400'}`}>
-                    {analysisData ? `${(analysisData.rootWinRate * 100).toFixed(1)}%` : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Score Lead:</span>
-                  <span className={`font-mono ${analysisData && analysisData.rootScoreLead > 0 ? 'text-blue-400' : 'text-white'}`}>
-                    {analysisData ? `${analysisData.rootScoreLead > 0 ? '+' : ''}${analysisData.rootScoreLead.toFixed(1)}` : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Score Stdev:</span>
-                  <span className="font-mono text-gray-300">
-                    {analysisData && typeof analysisData.rootScoreStdev === 'number' ? analysisData.rootScoreStdev.toFixed(1) : '-'}
-                  </span>
-                </div>
-                {!isAnalysisMode && !analysisData && (
-                  <div className="text-xs text-gray-500">
-                    Analysis mode is off. Click the <span className="font-mono">chip</span> icon or press <span className="font-mono">Space</span> to start.
-                  </div>
-                )}
+
+              <div className="flex gap-2 mt-3">
+                <button
+                  className={[
+                    'flex-1 px-3 py-2 rounded border text-sm font-semibold',
+                    isAiWhite ? 'bg-gray-700 border-gray-500 text-green-300' : 'bg-gray-900 border-gray-700 hover:bg-gray-700',
+                  ].join(' ')}
+                  onClick={() => toggleAi('white')}
+                >
+                  White AI
+                </button>
+                <button
+                  className={[
+                    'flex-1 px-3 py-2 rounded border text-sm font-semibold',
+                    isAiBlack ? 'bg-gray-700 border-gray-500 text-green-300' : 'bg-gray-900 border-gray-700 hover:bg-gray-700',
+                  ].join(' ')}
+                  onClick={() => toggleAi('black')}
+                >
+                  Black AI
+                </button>
               </div>
             </div>
-
-            {/* Top Moves List */}
-            <div className="flex-grow flex flex-col overflow-hidden bg-gray-850">
-              <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 text-xs font-semibold text-gray-400 flex sticky top-0 z-10">
-                <span className="w-6 text-center">#</span>
-                <span className="w-12">Move</span>
-                <span className="w-20 text-center">Win%</span>
-                <span className="w-14 text-right">Score</span>
-                <span className="w-14 text-right">Loss</span>
-                <span className="flex-grow text-right">Visits</span>
-              </div>
-              <div className="overflow-y-auto flex-grow p-0 scrollbar-thin scrollbar-thumb-gray-700">
-                {analysisData ? (
-                  analysisData.moves.map((move, i) => {
-                    const isPass = move.x === -1 || move.y === -1;
-                    const moveLabel = isPass
-                      ? 'Pass'
-                      : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${19 - move.y}`;
-
-                    return (
-                      <div
-                        key={i}
-                        className={`group flex items-center px-4 py-2 text-sm border-b border-gray-700/50 hover:bg-gray-700 cursor-pointer transition-colors ${move.order === 0 ? 'bg-gray-800' : ''}`}
-                        onMouseEnter={() => setHoveredMove(isPass ? null : move)}
-                        onMouseLeave={() => setHoveredMove(null)}
-                        onClick={() => handleAnalysisClick(move)}
-                      >
-                        <span className="w-6 text-center font-mono text-gray-500 text-xs mr-2">
-                          {String.fromCharCode(65 + move.order)}
-                        </span>
-                        <span
-                          className={`w-12 font-bold font-mono ${move.order === 0 ? 'text-blue-400' : move.pointsLost < 0.5 ? 'text-green-400' : move.pointsLost < 2 ? 'text-yellow-400' : 'text-red-400'}`}
-                        >
-                          {moveLabel}
-                        </span>
-
-                        {/* Win Rate Bar */}
-                        <div className="w-20 px-2 flex flex-col justify-center">
-                          <div className="text-right text-xs text-gray-300 font-mono mb-0.5">
-                            {(move.winRate * 100).toFixed(1)}%
-                          </div>
-                          <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${move.winRate > 0.5 ? 'bg-green-500' : 'bg-red-500'}`}
-                              style={{ width: `${move.winRate * 100}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <span className="w-14 text-right text-gray-300 font-mono">
-                          {move.scoreLead > 0 ? '+' : ''}
-                          {move.scoreLead.toFixed(1)}
-                        </span>
-                        <span className="w-14 text-right text-red-300 font-mono">{move.order === 0 ? '-' : move.pointsLost.toFixed(1)}</span>
-                        <span className="flex-grow text-right text-gray-500 font-mono text-xs">{move.visits.toLocaleString()}</span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="p-4 text-center text-gray-500 text-sm animate-pulse">
-                    {isAnalysisMode ? 'Processing...' : 'Analysis mode is off.'}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {rightTab === 'tree' && (
-          <div className="h-full p-4 flex flex-col">
-            <h2 className="text-lg font-semibold mb-2">Move Tree</h2>
-            <div className="flex-grow bg-gray-900 rounded overflow-hidden border border-gray-700">
+          ) : (
+            <div className="bg-gray-900 border border-gray-700 rounded overflow-hidden h-44">
               <MoveTree />
             </div>
-            <div className="mt-2 text-[11px] text-gray-500">
-              z/← undo · x/→ redo · ↑/↓ switch branch · Ctrl+Delete delete · Ctrl+Shift+Delete prune
+          )}
+        </div>
+
+        {/* Graph panel */}
+        <div className="px-3">
+          <div className="flex items-center justify-between">
+            <button
+              className="text-sm font-semibold text-gray-200 hover:text-white"
+              onClick={() => updatePanels({ graphOpen: !modePanels.graphOpen })}
+            >
+              Score / Winrate Graph
+            </button>
+            <div className="flex gap-1">
+              <PanelHeaderButton
+                label="Score"
+                colorClass="bg-blue-600/30"
+                active={modePanels.graph.score}
+                onClick={() =>
+                  updatePanels({ graph: { ...modePanels.graph, score: !modePanels.graph.score } })
+                }
+              />
+              <PanelHeaderButton
+                label="Win%"
+                colorClass="bg-green-600/30"
+                active={modePanels.graph.winrate}
+                onClick={() =>
+                  updatePanels({ graph: { ...modePanels.graph, winrate: !modePanels.graph.winrate } })
+                }
+              />
             </div>
           </div>
-        )}
+          {modePanels.graphOpen && (
+            <div className="mt-2 bg-gray-900 border border-gray-700 rounded p-2">
+              <div className="flex flex-col gap-2">
+                {modePanels.graph.score && (
+                  <div style={{ height: modePanels.graph.winrate ? 70 : 140 }}>
+                    <ScoreGraph />
+                  </div>
+                )}
+                {modePanels.graph.winrate && (
+                  <div style={{ height: modePanels.graph.score ? 70 : 140 }}>
+                    <WinRateGraph />
+                  </div>
+                )}
+                {!modePanels.graph.score && !modePanels.graph.winrate && (
+                  <div className="h-20 flex items-center justify-center text-gray-500 text-sm">Graph hidden</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
-        {rightTab === 'notes' && <NotesPanel />}
+        {/* Stats panel */}
+        <div className="px-3 mt-3">
+          <div className="flex items-center justify-between">
+            <button
+              className="text-sm font-semibold text-gray-200 hover:text-white"
+              onClick={() => updatePanels({ statsOpen: !modePanels.statsOpen })}
+            >
+              Move Stats
+            </button>
+            <div className="flex gap-1">
+              <PanelHeaderButton
+                label="Score"
+                colorClass="bg-blue-600/30"
+                active={modePanels.stats.score}
+                onClick={() =>
+                  updatePanels({ stats: { ...modePanels.stats, score: !modePanels.stats.score } })
+                }
+              />
+              <PanelHeaderButton
+                label="Win%"
+                colorClass="bg-green-600/30"
+                active={modePanels.stats.winrate}
+                onClick={() =>
+                  updatePanels({ stats: { ...modePanels.stats, winrate: !modePanels.stats.winrate } })
+                }
+              />
+              <PanelHeaderButton
+                label="Pts"
+                colorClass="bg-red-600/30"
+                active={modePanels.stats.points}
+                onClick={() =>
+                  updatePanels({ stats: { ...modePanels.stats, points: !modePanels.stats.points } })
+                }
+              />
+            </div>
+          </div>
+          {modePanels.statsOpen && (
+            <div className="mt-2 bg-gray-900 border border-gray-700 rounded overflow-hidden">
+              {modePanels.stats.winrate && (
+                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+                  <div className="text-sm text-gray-300">Winrate</div>
+                  <div className="font-mono text-sm text-green-300">
+                    {typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : '-'}
+                  </div>
+                </div>
+              )}
+              {modePanels.stats.score && (
+                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+                  <div className="text-sm text-gray-300">Score</div>
+                  <div className="font-mono text-sm text-blue-300">
+                    {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+                  </div>
+                </div>
+              )}
+              {modePanels.stats.points && (
+                <div className="flex items-center justify-between px-3 py-2">
+                  <div className="text-sm text-gray-300">{pointsLost != null && pointsLost < 0 ? 'Points gained' : 'Points lost'}</div>
+                  <div className="font-mono text-sm text-red-300">{pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}</div>
+                </div>
+              )}
+              {!modePanels.stats.winrate && !modePanels.stats.score && !modePanels.stats.points && (
+                <div className="px-3 py-3 text-sm text-gray-500">Stats hidden</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Notes panel */}
+        <div className="px-3 mt-3 flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between">
+            <button
+              className="text-sm font-semibold text-gray-200 hover:text-white"
+              onClick={() => updatePanels({ notesOpen: !modePanels.notesOpen })}
+            >
+              Info & Notes
+            </button>
+            <div className="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+              <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
+              {engineStatus}
+            </div>
+          </div>
+          {modePanels.notesOpen && (
+            <div className="mt-2 bg-gray-900 border border-gray-700 rounded flex-1 min-h-0 overflow-hidden flex flex-col">
+              <div className="px-3 py-2 border-b border-gray-800 text-xs text-gray-300 flex items-center justify-between">
+                <div className="truncate">
+                  <span className="font-mono">{playerToShort(currentPlayer)}</span> ·{' '}
+                  <span className="font-mono">{moveHistory.length}</span> ·{' '}
+                  <span className="font-mono">{currentNode.move ? formatMoveLabel(currentNode.move.x, currentNode.move.y) : 'Root'}</span>
+                </div>
+                {engineError && <span className="text-red-300">error</span>}
+              </div>
+              <div className="px-3 py-2 border-b border-gray-800 text-xs text-gray-400">
+                {statusText}
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <NotesPanel />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
