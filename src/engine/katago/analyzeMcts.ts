@@ -531,10 +531,45 @@ function buildPv(edge: Edge, maxDepth: number): string[] {
   return pvMoves.map(moveToGtp);
 }
 
+const NUM_SYMMETRIES = 8;
+const SYM_POS_MAP: Int16Array = (() => {
+  const n = BOARD_SIZE;
+  const map = new Int16Array(NUM_SYMMETRIES * BOARD_AREA);
+  for (let sym = 0; sym < NUM_SYMMETRIES; sym++) {
+    const symOff = sym * BOARD_AREA;
+    const mirror = sym >= 4;
+    const rot = sym & 3;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        let sx = mirror ? n - 1 - x : x;
+        let sy = y;
+        let tx: number;
+        let ty: number;
+        if (rot === 0) {
+          tx = sx;
+          ty = sy;
+        } else if (rot === 1) {
+          tx = sy;
+          ty = n - 1 - sx;
+        } else if (rot === 2) {
+          tx = n - 1 - sx;
+          ty = n - 1 - sy;
+        } else {
+          tx = n - 1 - sy;
+          ty = sx;
+        }
+        map[symOff + y * n + x] = ty * n + tx;
+      }
+    }
+  }
+  return map;
+})();
+
 async function evaluateBatch(args: {
   model: KataGoModelV8Tf;
   includeOwnership?: boolean;
   rules: GameRules;
+  nnRandomize: boolean;
   states: Array<{
     stones: Uint8Array;
     koPoint: number;
@@ -563,6 +598,7 @@ async function evaluateBatch(args: {
   const { model, states } = args;
   const includeOwnership = args.includeOwnership === true;
   const rules = args.rules;
+  const nnRandomize = args.nnRandomize;
   const includeAreaFeature = rules === 'chinese';
   const batch = states.length;
   const spatialBatch = new Float32Array(batch * BOARD_AREA * 22);
@@ -570,6 +606,7 @@ async function evaluateBatch(args: {
   const libertyMaps: Uint8Array[] = new Array(batch);
   const areaMaps: Uint8Array[] = new Array(batch);
   const emptyAreaMap = new Uint8Array(BOARD_AREA);
+  const symmetries = new Uint8Array(batch);
 
   for (let i = 0; i < batch; i++) {
     const libertyMap = computeLibertyMap(states[i]!.stones);
@@ -600,7 +637,25 @@ async function evaluateBatch(args: {
       prevLadderedStones,
       prevPrevLadderedStones,
     });
-    spatialBatch.set(inp.spatial, i * BOARD_AREA * 22);
+
+    const sym = nnRandomize ? ((Math.random() * NUM_SYMMETRIES) | 0) : 0;
+    symmetries[i] = sym;
+    const spatialOffset = i * BOARD_AREA * 22;
+    if (sym === 0) {
+      spatialBatch.set(inp.spatial, spatialOffset);
+    } else {
+      const symOff = sym * BOARD_AREA;
+      const src = inp.spatial;
+      for (let pos = 0; pos < BOARD_AREA; pos++) {
+        const dstPos = SYM_POS_MAP[symOff + pos]!;
+        const srcBase = pos * 22;
+        const dstBase = spatialOffset + dstPos * 22;
+        for (let c = 0; c < 22; c++) {
+          spatialBatch[dstBase + c] = src[srcBase + c]!;
+        }
+      }
+    }
+
     globalBatch.set(inp.global, i * 19);
   }
 
@@ -638,7 +693,32 @@ async function evaluateBatch(args: {
   }> = [];
   for (let i = 0; i < batch; i++) {
     const pOff = i * BOARD_AREA;
-    const policy = (policyArr as Float32Array).subarray(pOff, pOff + BOARD_AREA);
+    const sym = symmetries[i]!;
+    const symOff = sym * BOARD_AREA;
+
+    const policySym = (policyArr as Float32Array).subarray(pOff, pOff + BOARD_AREA);
+    let policy: Float32Array;
+    if (sym === 0) {
+      policy = policySym;
+    } else {
+      policy = new Float32Array(BOARD_AREA);
+      for (let pos = 0; pos < BOARD_AREA; pos++) {
+        policy[pos] = policySym[SYM_POS_MAP[symOff + pos]!]!;
+      }
+    }
+
+    let ownership: Float32Array | undefined;
+    if (includeOwnership) {
+      const ownershipSym = (ownershipArr as Float32Array).subarray(pOff, pOff + BOARD_AREA);
+      if (sym === 0) {
+        ownership = ownershipSym;
+      } else {
+        ownership = new Float32Array(BOARD_AREA);
+        for (let pos = 0; pos < BOARD_AREA; pos++) {
+          ownership[pos] = ownershipSym[SYM_POS_MAP[symOff + pos]!]!;
+        }
+      }
+    }
 
     const passLogit = passArr[i]!;
     const vOff = i * 3;
@@ -660,7 +740,7 @@ async function evaluateBatch(args: {
       blackNoResultProb: evaled.blackNoResultProb,
       libertyMap: libertyMaps[i]!,
       areaMap: areaMaps[i]!,
-      ownership: includeOwnership ? (ownershipArr as Float32Array).subarray(pOff, pOff + BOARD_AREA) : undefined,
+      ownership,
     });
   }
 
@@ -674,6 +754,7 @@ export class MctsSearch {
   readonly currentPlayer: Player;
   readonly komi: number;
   readonly rules: GameRules;
+  readonly nnRandomize: boolean;
   readonly wideRootNoise: number;
 
   private readonly rootStones: Uint8Array;
@@ -695,6 +776,7 @@ export class MctsSearch {
     currentPlayer: Player;
     komi: number;
     rules: GameRules;
+    nnRandomize: boolean;
     wideRootNoise: number;
     rootStones: Uint8Array;
     rootKoPoint: number;
@@ -713,6 +795,7 @@ export class MctsSearch {
     this.currentPlayer = args.currentPlayer;
     this.komi = args.komi;
     this.rules = args.rules;
+    this.nnRandomize = args.nnRandomize;
     this.wideRootNoise = args.wideRootNoise;
 
     this.rootStones = args.rootStones;
@@ -737,6 +820,7 @@ export class MctsSearch {
     moveHistory: Move[];
     komi: number;
     rules: GameRules;
+    nnRandomize: boolean;
     maxChildren: number;
     ownershipMode: OwnershipMode;
     wideRootNoise: number;
@@ -765,6 +849,7 @@ export class MctsSearch {
         model: args.model,
         includeOwnership: true,
         rules: args.rules,
+        nnRandomize: args.nnRandomize,
         states: [
           {
             stones: rootPos.stones,
@@ -827,6 +912,7 @@ export class MctsSearch {
       currentPlayer: args.currentPlayer,
       komi: args.komi,
       rules: args.rules,
+      nnRandomize: args.nnRandomize,
       wideRootNoise: args.wideRootNoise,
       rootStones,
       rootKoPoint,
@@ -966,6 +1052,7 @@ export class MctsSearch {
         model: this.model,
         includeOwnership,
         rules: this.rules,
+        nnRandomize: this.nnRandomize,
         states: jobs.map((j) => ({
           stones: j.stones,
           koPoint: j.koPoint,
@@ -1166,6 +1253,7 @@ export async function analyzeMcts(args: {
   analysisPvLen?: number;
   wideRootNoise?: number;
   rules?: GameRules;
+  nnRandomize?: boolean;
   visits?: number;
   maxTimeMs?: number;
   batchSize?: number;
@@ -1202,6 +1290,7 @@ export async function analyzeMcts(args: {
   const analysisPvLen = Math.max(0, Math.min(args.analysisPvLen ?? 15, 60));
   const wideRootNoise = Math.max(0, Math.min(args.wideRootNoise ?? 0.04, 5));
   const rules: GameRules = args.rules ?? 'japanese';
+  const nnRandomize = args.nnRandomize !== false;
   const pvDepth = 1 + analysisPvLen;
   const rand = new Rand();
 
@@ -1229,6 +1318,7 @@ export async function analyzeMcts(args: {
       model: args.model,
       includeOwnership: true,
       rules,
+      nnRandomize,
       states: [
         {
           stones: rootPos.stones,
@@ -1401,6 +1491,7 @@ export async function analyzeMcts(args: {
       model: args.model,
       includeOwnership: true,
       rules,
+      nnRandomize,
       states: jobs.map((j) => ({
         stones: j.stones,
         koPoint: j.koPoint,

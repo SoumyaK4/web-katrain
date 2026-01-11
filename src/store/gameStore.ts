@@ -149,6 +149,7 @@ const defaultSettings: GameSettings = {
   katagoOwnershipMode: 'root',
   katagoWideRootNoise: 0.04,
   katagoAnalysisPvLen: 15,
+  katagoNnRandomize: true,
   teachNumUndoPrompts: [1, 1, 1, 0.5, 0, 0],
 
   aiStrategy: 'rank',
@@ -322,6 +323,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const rules = state.settings.gameRules;
           const analysisPvLen = state.settings.katagoAnalysisPvLen;
           const wideRootNoise = state.settings.katagoWideRootNoise;
+          const nnRandomize = state.settings.katagoNnRandomize;
 
       set({ engineStatus: 'loading', engineError: null });
 
@@ -339,6 +341,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	          topK: state.settings.katagoTopK,
             analysisPvLen,
             wideRootNoise,
+            nnRandomize,
           visits: opts?.visits ?? state.settings.katagoVisits,
           maxTimeMs: opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs,
           batchSize: state.settings.katagoBatchSize,
@@ -447,6 +450,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         'katagoOwnershipMode',
         'katagoWideRootNoise',
         'katagoAnalysisPvLen',
+        'katagoNnRandomize',
         'gameRules',
       ];
 
@@ -581,6 +585,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const rules = state.settings.gameRules;
         const analysisPvLen = state.settings.katagoAnalysisPvLen;
         const wideRootNoise = state.settings.katagoWideRootNoise;
+        const nnRandomize = state.settings.katagoNnRandomize;
         const aiNeedsMovesOwnership = state.settings.aiStrategy === 'simple' || state.settings.aiStrategy === 'settle';
         const aiOwnershipMode = aiNeedsMovesOwnership ? 'tree' : state.settings.katagoOwnershipMode;
 
@@ -602,6 +607,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             includeMovesOwnership: aiNeedsMovesOwnership,
             analysisPvLen,
             wideRootNoise,
+            nnRandomize,
           visits: state.settings.katagoVisits,
           maxTimeMs: state.settings.katagoMaxTimeMs,
           batchSize: state.settings.katagoBatchSize,

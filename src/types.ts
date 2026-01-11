@@ -87,6 +87,7 @@ export interface GameSettings {
   katagoOwnershipMode: 'root' | 'tree';
   katagoWideRootNoise: number; // KataGo/KaTrain wideRootNoise
   katagoAnalysisPvLen: number; // KataGo analysisPVLen (moves after the first)
+  katagoNnRandomize: boolean; // KataGo nnRandomize (random symmetries)
   teachNumUndoPrompts: number[]; // KaTrain trainer/num_undo_prompts
 
   aiStrategy:

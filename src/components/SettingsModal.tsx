@@ -844,6 +844,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 </p>
                             </div>
                         </div>
+
+                        <div className="mt-3 space-y-1">
+                            <label className="text-gray-300 block text-sm">Randomize Symmetry</label>
+                            <label className="flex items-center space-x-2 text-sm text-gray-300">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.katagoNnRandomize}
+                                    onChange={(e) => updateSettings({ katagoNnRandomize: e.target.checked })}
+                                    className="rounded"
+                                />
+                                <span>Enable (nnRandomize)</span>
+                            </label>
+                            <p className="text-xs text-gray-500">
+                                Matches KataGo defaults; disable for deterministic/stable analysis.
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <div className="p-4 bg-gray-900 flex justify-end">
