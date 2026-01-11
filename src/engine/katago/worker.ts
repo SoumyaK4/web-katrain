@@ -11,6 +11,8 @@ import type { GameRules } from '../../types';
 import { parseKataGoModelV8 } from './loadModelV8';
 import { KataGoModelV8Tf } from './modelV8';
 import { MctsSearch, type OwnershipMode } from './analyzeMcts';
+import { extractInputsV7 } from './featuresV7';
+import { postprocessKataGoV8 } from './evalV8';
 
 let model: KataGoModelV8Tf | null = null;
 let loadedModelName: string | undefined;
@@ -119,6 +121,52 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     return;
   }
 
+  if (msg.type === 'katago:eval') {
+    await ensureModel(msg.modelUrl);
+    if (!model) throw new Error('Model not loaded');
+
+    const conservativePass = msg.conservativePass !== false;
+    const rules: GameRules = msg.rules === 'chinese' ? 'chinese' : msg.rules === 'korean' ? 'korean' : 'japanese';
+
+    const inputs = extractInputsV7({
+      board: msg.board,
+      currentPlayer: msg.currentPlayer,
+      moveHistory: msg.moveHistory,
+      komi: msg.komi,
+      rules,
+      conservativePassAndIsRoot: conservativePass,
+    });
+
+    const spatial = tf.tensor4d(inputs.spatial, [1, 19, 19, 22]);
+    const global = tf.tensor2d(inputs.global, [1, 19]);
+    const out = model.forwardValueOnly(spatial, global);
+    const [valueLogitsArr, scoreValueArr] = await Promise.all([out.value.data(), out.scoreValue.data()]);
+    spatial.dispose();
+    global.dispose();
+    out.value.dispose();
+    out.scoreValue.dispose();
+
+    const evaled = postprocessKataGoV8({
+      nextPlayer: msg.currentPlayer,
+      valueLogits: valueLogitsArr,
+      scoreValue: scoreValueArr,
+      postProcessParams: model.postProcessParams,
+    });
+
+    post({
+      type: 'katago:eval_result',
+      id: msg.id,
+      ok: true,
+      eval: {
+        rootWinRate: evaled.blackWinProb,
+        rootScoreLead: evaled.blackScoreLead,
+        rootScoreSelfplay: evaled.blackScoreMean,
+        rootScoreStdev: evaled.blackScoreStdev,
+      },
+    });
+    return;
+  }
+
   if (msg.type === 'katago:analyze') {
     await ensureModel(msg.modelUrl);
     if (!model) throw new Error('Model not loaded');
@@ -206,6 +254,15 @@ self.onmessage = (ev: MessageEvent<KataGoWorkerRequest>) => {
       if (msg.type === 'katago:init') {
         post({
           type: 'katago:init_result',
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return;
+      }
+      if (msg.type === 'katago:eval') {
+        post({
+          type: 'katago:eval_result',
+          id: msg.id,
           ok: false,
           error: err instanceof Error ? err.message : String(err),
         });

@@ -2,12 +2,14 @@ import type { KataGoWorkerRequest, KataGoWorkerResponse } from './types';
 import type { BoardState, GameRules, Move, Player } from '../../types';
 
 type Analysis = NonNullable<Extract<KataGoWorkerResponse, { type: 'katago:analyze_result' }>['analysis']>;
+type EvalResult = NonNullable<Extract<KataGoWorkerResponse, { type: 'katago:eval_result' }>['eval']>;
 
 class KataGoEngineClient {
   private readonly worker: Worker;
   private nextId = 1;
   private pendingInit: { resolve: () => void; reject: (e: Error) => void } | null = null;
   private pending = new Map<number, { resolve: (a: Analysis) => void; reject: (e: Error) => void }>();
+  private pendingEval = new Map<number, { resolve: (e: EvalResult) => void; reject: (e: Error) => void }>();
 
   constructor() {
     this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
@@ -27,6 +29,14 @@ class KataGoEngineClient {
         this.pending.delete(msg.id);
         if (!msg.ok || !msg.analysis) pending.reject(new Error(msg.error ?? 'Analysis failed'));
         else pending.resolve(msg.analysis);
+        return;
+      }
+      if (msg.type === 'katago:eval_result') {
+        const pending = this.pendingEval.get(msg.id);
+        if (!pending) return;
+        this.pendingEval.delete(msg.id);
+        if (!msg.ok || !msg.eval) pending.reject(new Error(msg.error ?? 'Eval failed'));
+        else pending.resolve(msg.eval);
       }
     };
   }
@@ -91,6 +101,34 @@ class KataGoEngineClient {
     };
     const promise = new Promise<Analysis>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
+    });
+    this.worker.postMessage(req);
+    return promise;
+  }
+
+  async evaluate(args: {
+    modelUrl: string;
+    board: BoardState;
+    currentPlayer: Player;
+    moveHistory: Move[];
+    komi: number;
+    rules?: GameRules;
+    conservativePass?: boolean;
+  }): Promise<EvalResult> {
+    const id = this.nextId++;
+    const req: KataGoWorkerRequest = {
+      type: 'katago:eval',
+      id,
+      modelUrl: args.modelUrl,
+      board: args.board,
+      currentPlayer: args.currentPlayer,
+      moveHistory: args.moveHistory,
+      komi: args.komi,
+      rules: args.rules,
+      conservativePass: args.conservativePass,
+    };
+    const promise = new Promise<EvalResult>((resolve, reject) => {
+      this.pendingEval.set(id, { resolve, reject });
     });
     this.worker.postMessage(req);
     return promise;

@@ -21,6 +21,7 @@ interface GameStore extends GameState {
   insertAnchorNodeId: string | null; // Where insert mode started.
   isSelfplayToEnd: boolean;
   isGameAnalysisRunning: boolean;
+  gameAnalysisType: 'quick' | 'fast' | null;
   gameAnalysisDone: number;
   gameAnalysisTotal: number;
   isAiPlaying: boolean;
@@ -82,6 +83,7 @@ interface GameStore extends GameState {
   toggleInsertMode: () => void;
   selfplayToEnd: () => void;
   stopSelfplayToEnd: () => void;
+  startQuickGameAnalysis: () => void;
   startFastGameAnalysis: () => void;
   stopGameAnalysis: () => void;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
@@ -92,6 +94,8 @@ interface GameStore extends GameState {
 const createEmptyBoard = (): BoardState => {
   return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
 };
+
+const EMPTY_TERRITORY: number[][] = Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => 0));
 
 const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v1';
 const loadStoredSettings = (): Partial<GameSettings> | null => {
@@ -326,6 +330,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   insertAnchorNodeId: null,
   isSelfplayToEnd: false,
   isGameAnalysisRunning: false,
+  gameAnalysisType: null,
   gameAnalysisDone: 0,
   gameAnalysisTotal: 0,
   isAiPlaying: false,
@@ -717,6 +722,95 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ isSelfplayToEnd: false });
   },
 
+  startQuickGameAnalysis: () => {
+    const token = ++gameAnalysisToken;
+    const state = get();
+
+    const nodes: GameNode[] = [];
+    let cursor: GameNode | null = state.rootNode;
+    while (cursor) {
+      nodes.push(cursor);
+      cursor = cursor.children[0] ?? null;
+    }
+
+    const total = nodes.length;
+    if (total <= 1) {
+      set({ isGameAnalysisRunning: false, gameAnalysisType: null, gameAnalysisDone: 0, gameAnalysisTotal: total });
+      return;
+    }
+
+    set({ isGameAnalysisRunning: true, gameAnalysisType: 'quick', gameAnalysisDone: 0, gameAnalysisTotal: total });
+
+    void (async () => {
+      let done = 0;
+      let lastUiUpdate = performance.now();
+
+      for (const node of nodes) {
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'quick') return;
+
+        // If interactive analysis is running/queued, pause bulk analysis.
+        while (get().engineStatus === 'loading') {
+          if (token !== gameAnalysisToken) return;
+          if (!get().isGameAnalysisRunning) return;
+          if (get().gameAnalysisType !== 'quick') return;
+          await sleep(50);
+        }
+
+        const already = !!node.analysis;
+        if (!already) {
+          try {
+            const evaled = await getKataGoEngineClient().evaluate({
+              modelUrl: get().settings.katagoModelUrl,
+              board: node.gameState.board,
+              currentPlayer: node.gameState.currentPlayer,
+              moveHistory: node.gameState.moveHistory,
+              komi: node.gameState.komi,
+              rules: get().settings.gameRules,
+              conservativePass: get().settings.katagoConservativePass,
+            });
+
+            node.analysis = {
+              rootWinRate: evaled.rootWinRate,
+              rootScoreLead: evaled.rootScoreLead,
+              rootScoreSelfplay: evaled.rootScoreSelfplay,
+              rootScoreStdev: evaled.rootScoreStdev,
+              moves: [],
+              territory: EMPTY_TERRITORY,
+              policy: undefined,
+              ownershipStdev: undefined,
+            };
+            node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, 1);
+          } catch {
+            // Ignore failures for bulk analysis; individual node analysis can still run later.
+          }
+        }
+
+        done++;
+
+        const now = performance.now();
+        if (now - lastUiUpdate > 120 || done === total) {
+          set(() => ({
+            gameAnalysisDone: done,
+            gameAnalysisTotal: total,
+          }));
+          lastUiUpdate = now;
+        }
+
+        await sleep(0);
+      }
+
+      if (token !== gameAnalysisToken) return;
+      set(() => ({
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        gameAnalysisDone: done,
+        gameAnalysisTotal: total,
+      }));
+    })();
+  },
+
   startFastGameAnalysis: () => {
     const token = ++gameAnalysisToken;
     const state = get();
@@ -730,11 +824,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const total = nodes.length;
     if (total <= 1) {
-      set({ isGameAnalysisRunning: false, gameAnalysisDone: 0, gameAnalysisTotal: total });
+      set({ isGameAnalysisRunning: false, gameAnalysisType: null, gameAnalysisDone: 0, gameAnalysisTotal: total });
       return;
     }
 
-    set({ isGameAnalysisRunning: true, gameAnalysisDone: 0, gameAnalysisTotal: total });
+    set({ isGameAnalysisRunning: true, gameAnalysisType: 'fast', gameAnalysisDone: 0, gameAnalysisTotal: total });
 
     void (async () => {
       const fastVisits = Math.max(16, Math.min(get().settings.katagoFastVisits, 5000));
@@ -750,11 +844,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       for (const node of nodes) {
         if (token !== gameAnalysisToken) return;
         if (!get().isGameAnalysisRunning) return;
+        if (get().gameAnalysisType !== 'fast') return;
 
         // If interactive analysis is running/queued, pause bulk analysis.
         while (get().engineStatus === 'loading') {
           if (token !== gameAnalysisToken) return;
           if (!get().isGameAnalysisRunning) return;
+          if (get().gameAnalysisType !== 'fast') return;
           await sleep(50);
         }
 
@@ -807,10 +903,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         const now = performance.now();
         if (now - lastUiUpdate > 120 || done === total) {
-          set((s) => ({
+          set(() => ({
             gameAnalysisDone: done,
             gameAnalysisTotal: total,
-            treeVersion: s.treeVersion + 1,
           }));
           lastUiUpdate = now;
         }
@@ -819,18 +914,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
 
       if (token !== gameAnalysisToken) return;
-      set((s) => ({
+      set(() => ({
         isGameAnalysisRunning: false,
+        gameAnalysisType: null,
         gameAnalysisDone: done,
         gameAnalysisTotal: total,
-        treeVersion: s.treeVersion + 1,
       }));
     })();
   },
 
   stopGameAnalysis: () => {
     gameAnalysisToken++;
-    set({ isGameAnalysisRunning: false });
+    set({ isGameAnalysisRunning: false, gameAnalysisType: null });
   },
 
   runAnalysis: async (opts) => {
@@ -2343,7 +2438,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
 	    // KaTrain-like: start a quick background analysis of the whole mainline so graphs populate fast.
 	    if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
-	      setTimeout(() => get().startFastGameAnalysis(), 0);
+	      setTimeout(() => get().startQuickGameAnalysis(), 0);
 	    }
 	  },
 

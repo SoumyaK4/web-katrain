@@ -71,5 +71,30 @@ export interface KataGoAnalyzeResponse {
   error?: string;
 }
 
-export type KataGoWorkerRequest = KataGoInitRequest | KataGoAnalyzeRequest;
-export type KataGoWorkerResponse = KataGoInitResponse | KataGoAnalyzeResponse;
+export interface KataGoEvalRequest {
+  type: 'katago:eval';
+  id: number;
+  modelUrl: string;
+  board: BoardState;
+  currentPlayer: Player;
+  moveHistory: Move[];
+  komi: number;
+  rules?: GameRules;
+  conservativePass?: boolean;
+}
+
+export interface KataGoEvalResponse {
+  type: 'katago:eval_result';
+  id: number;
+  ok: boolean;
+  eval?: {
+    rootWinRate: number;
+    rootScoreLead: number;
+    rootScoreSelfplay: number;
+    rootScoreStdev: number;
+  };
+  error?: string;
+}
+
+export type KataGoWorkerRequest = KataGoInitRequest | KataGoAnalyzeRequest | KataGoEvalRequest;
+export type KataGoWorkerResponse = KataGoInitResponse | KataGoAnalyzeResponse | KataGoEvalResponse;

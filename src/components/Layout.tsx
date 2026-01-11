@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { GoBoard } from './GoBoard';
-import { WinRateGraph } from './WinRateGraph';
-import { ScoreGraph } from './ScoreGraph';
+import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { SettingsModal } from './SettingsModal';
 import { MoveTree } from './MoveTree';
 import { NotesPanel } from './NotesPanel';
@@ -285,8 +284,10 @@ export const Layout: React.FC = () => {
     engineStatus,
     engineError,
     isGameAnalysisRunning,
+    gameAnalysisType,
     gameAnalysisDone,
     gameAnalysisTotal,
+    startQuickGameAnalysis,
     startFastGameAnalysis,
     stopGameAnalysis,
     rotateBoard,
@@ -708,10 +709,10 @@ export const Layout: React.FC = () => {
         ? 'Select region of interest (drag on board, Esc cancels)'
         : notification?.message
           ? notification.message
-          : isInsertMode
-            ? 'Insert mode (I to finish)'
+            : isInsertMode
+              ? 'Insert mode (I to finish)'
             : isGameAnalysisRunning
-              ? `Analyzing game… ${gameAnalysisDone}/${gameAnalysisTotal}`
+              ? `Analyzing game (${gameAnalysisType ?? '…'})… ${gameAnalysisDone}/${gameAnalysisTotal}`
               : isContinuousAnalysis
                 ? 'Pondering… (Space)'
                 : isAnalysisMode
@@ -1103,16 +1104,31 @@ export const Layout: React.FC = () => {
                   <button
                     className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
                     onClick={() => {
-                      if (isGameAnalysisRunning) stopGameAnalysis();
+                      if (isGameAnalysisRunning && gameAnalysisType === 'quick') stopGameAnalysis();
+                      else startQuickGameAnalysis();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaRobot /> {isGameAnalysisRunning && gameAnalysisType === 'quick' ? 'Stop quick analysis' : 'Analyze game (quick graph)'}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {isGameAnalysisRunning && gameAnalysisType === 'quick' ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
+                    </span>
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      if (isGameAnalysisRunning && gameAnalysisType === 'fast') stopGameAnalysis();
                       else startFastGameAnalysis();
                       setAnalysisMenuOpen(false);
                     }}
                   >
                     <span className="flex items-center gap-2">
-                      <FaRobot /> {isGameAnalysisRunning ? 'Stop game analysis' : 'Analyze game (fast)'}
+                      <FaRobot /> {isGameAnalysisRunning && gameAnalysisType === 'fast' ? 'Stop fast analysis' : 'Analyze game (fast MCTS)'}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {isGameAnalysisRunning ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
+                      {isGameAnalysisRunning && gameAnalysisType === 'fast' ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
                     </span>
                   </button>
 
@@ -1383,21 +1399,13 @@ export const Layout: React.FC = () => {
           </div>
           {modePanels.graphOpen && (
             <div className="mt-2 bg-gray-900 border border-gray-700 rounded p-2">
-              <div className="flex flex-col gap-2">
-                {modePanels.graph.score && (
-                  <div style={{ height: modePanels.graph.winrate ? 70 : 140 }}>
-                    <ScoreGraph />
-                  </div>
-                )}
-                {modePanels.graph.winrate && (
-                  <div style={{ height: modePanels.graph.score ? 70 : 140 }}>
-                    <WinRateGraph />
-                  </div>
-                )}
-                {!modePanels.graph.score && !modePanels.graph.winrate && (
-                  <div className="h-20 flex items-center justify-center text-gray-500 text-sm">Graph hidden</div>
-                )}
-              </div>
+              {modePanels.graph.score || modePanels.graph.winrate ? (
+                <div style={{ height: 140 }}>
+                  <ScoreWinrateGraph showScore={modePanels.graph.score} showWinrate={modePanels.graph.winrate} />
+                </div>
+              ) : (
+                <div className="h-20 flex items-center justify-center text-gray-500 text-sm">Graph hidden</div>
+              )}
             </div>
           )}
         </div>
