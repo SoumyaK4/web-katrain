@@ -53,6 +53,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         />
                     </div>
 
+                    {/* SGF Load */}
+                    <div className="flex items-center justify-between">
+                        <label className="text-gray-300">Load SGF Rewind</label>
+                        <input
+                            type="checkbox"
+                            checked={settings.loadSgfRewind}
+                            onChange={(e) => updateSettings({ loadSgfRewind: e.target.checked })}
+                            className="toggle"
+                        />
+                    </div>
+
                     <div className="pt-2 border-t border-gray-700">
                         <h3 className="text-sm font-semibold text-gray-200 mb-3">Analysis Overlays</h3>
 
@@ -760,6 +771,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 onChange={(e) => updateSettings({ katagoTopK: Math.max(1, parseInt(e.target.value || '0', 10)) })}
                                 className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
                             />
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-gray-300 block text-sm">Wide Root Noise</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step={0.01}
+                                    value={settings.katagoWideRootNoise}
+                                    onChange={(e) => updateSettings({ katagoWideRootNoise: Math.max(0, parseFloat(e.target.value || '0')) })}
+                                    className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                />
+                                <p className="text-xs text-gray-500">KaTrain default is 0.04; set 0 for strongest/most stable.</p>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-gray-300 block text-sm">PV Len</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={60}
+                                    step={1}
+                                    value={settings.katagoAnalysisPvLen}
+                                    onChange={(e) => updateSettings({ katagoAnalysisPvLen: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                    className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                />
+                                <p className="text-xs text-gray-500">KataGo analysisPVLen (moves after the first).</p>
+                            </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-3">

@@ -69,6 +69,7 @@ export interface GameSettings {
   boardTheme: 'bamboo' | 'flat' | 'dark';
   showLastNMistakes: number; // KaTrain-like eval dots: 0 disables, else show last N moves
   mistakeThreshold: number; // Points lost to consider a mistake (WinRateGraph + mistake nav)
+  loadSgfRewind: boolean; // KaTrain general/load_sgf_rewind
   analysisShowChildren: boolean; // Q
   analysisShowEval: boolean; // W
   analysisShowHints: boolean; // E
@@ -82,6 +83,8 @@ export interface GameSettings {
   katagoTopK: number;
   katagoReuseTree: boolean;
   katagoOwnershipMode: 'root' | 'tree';
+  katagoWideRootNoise: number; // KataGo/KaTrain wideRootNoise
+  katagoAnalysisPvLen: number; // KataGo analysisPVLen (moves after the first)
   teachNumUndoPrompts: number[]; // KaTrain trainer/num_undo_prompts
 
   aiStrategy:

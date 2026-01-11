@@ -373,7 +373,35 @@ function exploreScaling(totalChildWeight: number, parentUtilityStdevFactor: numb
   );
 }
 
-function selectEdge(node: Node, isRoot: boolean): Edge {
+class Rand {
+  private spare: number | null = null;
+
+  nextBool(p: number): boolean {
+    return Math.random() < p;
+  }
+
+  nextGaussian(): number {
+    if (this.spare !== null) {
+      const v = this.spare;
+      this.spare = null;
+      return v;
+    }
+
+    let u = 0;
+    let v = 0;
+    let s = 0;
+    while (s === 0 || s >= 1) {
+      u = Math.random() * 2 - 1;
+      v = Math.random() * 2 - 1;
+      s = u * u + v * v;
+    }
+    const mul = Math.sqrt((-2 * Math.log(s)) / s);
+    this.spare = v * mul;
+    return u * mul;
+  }
+}
+
+function selectEdge(node: Node, isRoot: boolean, wideRootNoise: number, rand: Rand): Edge {
   const edges = node.edges;
   if (!edges || edges.length === 0) throw new Error('selectEdge called on unexpanded node');
 
@@ -441,11 +469,25 @@ function selectEdge(node: Node, isRoot: boolean): Edge {
   let bestEdge = edges[0]!;
   let bestScore = Number.NEGATIVE_INFINITY;
 
+  const applyWideRootNoise = isRoot && wideRootNoise > 0;
+  const wideRootNoisePolicyExponent = applyWideRootNoise ? 1.0 / (4.0 * wideRootNoise + 1.0) : 1.0;
+
   for (const e of edges) {
     const child = e.child;
     const childWeight = child ? child.visits + child.inFlight : 0;
-    const childUtility = child && child.visits > 0 ? child.utilitySum / child.visits : fpuValue;
-    const explore = (scaling * e.prior) / (1.0 + childWeight);
+    let childUtility = child && child.visits > 0 ? child.utilitySum / child.visits : fpuValue;
+    let prior = e.prior;
+
+    if (applyWideRootNoise) {
+      // Mirrors KataGo's wideRootNoise: smooth policy and add random utility bonuses (root only).
+      prior = Math.pow(prior, wideRootNoisePolicyExponent);
+      if (rand.nextBool(0.5)) {
+        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
+        childUtility += pla === BLACK ? bonus : -bonus;
+      }
+    }
+
+    const explore = (scaling * prior) / (1.0 + childWeight);
     const score = explore + sign * childUtility;
     if (score > bestScore) {
       bestScore = score;
@@ -626,6 +668,7 @@ export class MctsSearch {
   readonly maxChildren: number;
   readonly currentPlayer: Player;
   readonly komi: number;
+  readonly wideRootNoise: number;
 
   private readonly rootStones: Uint8Array;
   private readonly rootKoPoint: number;
@@ -637,6 +680,7 @@ export class MctsSearch {
   private readonly rootPolicy: Float32Array; // len 362
   private readonly rootOwnership: Float32Array; // len 361
   private readonly recentScoreCenter: number;
+  private readonly rand: Rand;
 
   private constructor(args: {
     model: KataGoModelV8Tf;
@@ -644,6 +688,7 @@ export class MctsSearch {
     maxChildren: number;
     currentPlayer: Player;
     komi: number;
+    wideRootNoise: number;
     rootStones: Uint8Array;
     rootKoPoint: number;
     rootPrevStones: Uint8Array;
@@ -653,12 +698,14 @@ export class MctsSearch {
     rootPolicy: Float32Array;
     rootOwnership: Float32Array;
     recentScoreCenter: number;
+    rand: Rand;
   }) {
     this.model = args.model;
     this.ownershipMode = args.ownershipMode;
     this.maxChildren = args.maxChildren;
     this.currentPlayer = args.currentPlayer;
     this.komi = args.komi;
+    this.wideRootNoise = args.wideRootNoise;
 
     this.rootStones = args.rootStones;
     this.rootKoPoint = args.rootKoPoint;
@@ -670,6 +717,7 @@ export class MctsSearch {
     this.rootPolicy = args.rootPolicy;
     this.rootOwnership = args.rootOwnership;
     this.recentScoreCenter = args.recentScoreCenter;
+    this.rand = args.rand;
   }
 
   static async create(args: {
@@ -682,6 +730,7 @@ export class MctsSearch {
     komi: number;
     maxChildren: number;
     ownershipMode: OwnershipMode;
+    wideRootNoise: number;
   }): Promise<MctsSearch> {
     const rootStones = boardStateToStones(args.board);
     const rootKoPoint = computeKoPointFromPrevious({ board: args.board, previousBoard: args.previousBoard, moveHistory: args.moveHistory });
@@ -767,6 +816,7 @@ export class MctsSearch {
       maxChildren: args.maxChildren,
       currentPlayer: args.currentPlayer,
       komi: args.komi,
+      wideRootNoise: args.wideRootNoise,
       rootStones,
       rootKoPoint,
       rootPrevStones,
@@ -776,6 +826,7 @@ export class MctsSearch {
       rootPolicy,
       rootOwnership,
       recentScoreCenter,
+      rand: new Rand(),
     });
   }
 
@@ -826,7 +877,7 @@ export class MctsSearch {
         let player = this.rootNode.playerToMove;
 
         while (node.edges && node.edges.length > 0) {
-          const e = selectEdge(node, node === this.rootNode);
+          const e = selectEdge(node, node === this.rootNode, this.wideRootNoise, this.rand);
           const move = e.move;
 
           const snapshot = playMove(sim, move, player, captureStack);
@@ -964,7 +1015,7 @@ export class MctsSearch {
     }
   }
 
-  getAnalysis(args: { topK: number; includeMovesOwnership?: boolean }): {
+  getAnalysis(args: { topK: number; analysisPvLen: number; includeMovesOwnership?: boolean }): {
     rootWinRate: number;
     rootScoreLead: number;
     rootScoreSelfplay: number;
@@ -991,6 +1042,8 @@ export class MctsSearch {
   } {
     const topK = Math.max(1, Math.min(args.topK, 50));
     const includeMovesOwnership = args.includeMovesOwnership === true;
+    const analysisPvLen = Math.max(0, Math.min(args.analysisPvLen, 60));
+    const pvDepth = 1 + analysisPvLen;
 
     const rootQ = this.rootNode.visits > 0 ? this.rootNode.valueSum / this.rootNode.visits : 0;
     const rootWinRate = (rootQ + 1) * 0.5;
@@ -1030,7 +1083,7 @@ export class MctsSearch {
         scoreSelfplay,
         scoreStdev,
         prior: e.prior,
-        pv: buildPv(e, 12),
+        pv: buildPv(e, pvDepth),
       });
     }
 
@@ -1098,6 +1151,8 @@ export async function analyzeMcts(args: {
   moveHistory: Move[];
   komi: number;
   topK?: number;
+  analysisPvLen?: number;
+  wideRootNoise?: number;
   visits?: number;
   maxTimeMs?: number;
   batchSize?: number;
@@ -1131,6 +1186,10 @@ export async function analyzeMcts(args: {
   const batchSize = Math.max(1, Math.min(args.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
   const maxChildren = Math.max(4, Math.min(args.maxChildren ?? 64, 361));
   const topK = Math.max(1, Math.min(args.topK ?? 10, 50));
+  const analysisPvLen = Math.max(0, Math.min(args.analysisPvLen ?? 15, 60));
+  const wideRootNoise = Math.max(0, Math.min(args.wideRootNoise ?? 0.04, 5));
+  const pvDepth = 1 + analysisPvLen;
+  const rand = new Rand();
 
   const rootStones = boardStateToStones(args.board);
   const rootKoPoint = computeKoPointFromPrevious({ board: args.board, previousBoard: args.previousBoard, moveHistory: args.moveHistory });
@@ -1250,7 +1309,7 @@ export async function analyzeMcts(args: {
       let player = rootNode.playerToMove;
 
 		      while (node.edges && node.edges.length > 0) {
-		        const e = selectEdge(node, node === rootNode);
+		        const e = selectEdge(node, node === rootNode, wideRootNoise, rand);
 		        const move = e.move;
 
         const snapshot = playMove(sim, move, player, captureStack);
@@ -1422,7 +1481,7 @@ export async function analyzeMcts(args: {
       scoreSelfplay,
       scoreStdev,
       prior: e.prior,
-      pv: buildPv(e, 12),
+      pv: buildPv(e, pvDepth),
     });
   }
 

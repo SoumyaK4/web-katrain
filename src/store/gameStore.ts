@@ -113,6 +113,7 @@ const defaultSettings: GameSettings = {
   boardTheme: 'bamboo',
   showLastNMistakes: 3,
   mistakeThreshold: 3.0,
+  loadSgfRewind: true,
   analysisShowChildren: true,
   analysisShowEval: false,
   analysisShowHints: true,
@@ -126,6 +127,8 @@ const defaultSettings: GameSettings = {
   katagoTopK: 10,
   katagoReuseTree: true,
   katagoOwnershipMode: 'root',
+  katagoWideRootNoise: 0.04,
+  katagoAnalysisPvLen: 15,
   teachNumUndoPrompts: [1, 1, 1, 0.5, 0, 0],
 
   aiStrategy: 'rank',
@@ -296,6 +299,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 		      const parentBoard = node.parent?.gameState.board;
 		      const grandparentBoard = node.parent?.parent?.gameState.board;
 		      const modelUrl = state.settings.katagoModelUrl;
+          const analysisPvLen = state.settings.katagoAnalysisPvLen;
+          const wideRootNoise = state.settings.katagoWideRootNoise;
 
       set({ engineStatus: 'loading', engineError: null });
 
@@ -310,6 +315,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	          moveHistory: state.moveHistory,
 	          komi: state.komi,
 	          topK: state.settings.katagoTopK,
+            analysisPvLen,
+            wideRootNoise,
           visits: opts?.visits ?? state.settings.katagoVisits,
           maxTimeMs: opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs,
           batchSize: state.settings.katagoBatchSize,
@@ -416,6 +423,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         'katagoMaxChildren',
         'katagoTopK',
         'katagoOwnershipMode',
+        'katagoWideRootNoise',
+        'katagoAnalysisPvLen',
       ];
 
       const engineChanged = engineKeys.some((k) => newSettings[k] !== undefined && newSettings[k] !== state.settings[k]);
@@ -539,6 +548,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	      const parentBoard = node.parent?.gameState.board;
 	      const grandparentBoard = node.parent?.parent?.gameState.board;
 	      const modelUrl = state.settings.katagoModelUrl;
+        const analysisPvLen = state.settings.katagoAnalysisPvLen;
+        const wideRootNoise = state.settings.katagoWideRootNoise;
         const aiNeedsMovesOwnership = state.settings.aiStrategy === 'simple' || state.settings.aiStrategy === 'settle';
         const aiOwnershipMode = aiNeedsMovesOwnership ? 'tree' : state.settings.katagoOwnershipMode;
 
@@ -557,6 +568,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	              ? state.settings.katagoTopK
 	              : Math.max(state.settings.katagoTopK, 30),
             includeMovesOwnership: aiNeedsMovesOwnership,
+            analysisPvLen,
+            wideRootNoise,
           visits: state.settings.katagoVisits,
           maxTimeMs: state.settings.katagoMaxTimeMs,
           batchSize: state.settings.katagoBatchSize,
@@ -1644,8 +1657,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    const rewind = get().settings.loadSgfRewind;
     let current = newRoot;
-    while (current.children.length > 0) current = current.children[0]!;
+    if (!rewind) {
+      while (current.children.length > 0) current = current.children[0]!;
+    }
 
     set((state) => ({
       rootNode: newRoot,

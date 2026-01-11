@@ -25,7 +25,9 @@ export interface KataGoAnalyzeRequest {
   moveHistory: Move[];
   komi: number;
   topK?: number;
+  analysisPvLen?: number;
   includeMovesOwnership?: boolean;
+  wideRootNoise?: number;
   visits?: number;
   maxTimeMs?: number;
   batchSize?: number;

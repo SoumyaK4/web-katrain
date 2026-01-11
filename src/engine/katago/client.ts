@@ -50,7 +50,9 @@ class KataGoEngineClient {
     moveHistory: Move[];
     komi: number;
     topK?: number;
+    analysisPvLen?: number;
     includeMovesOwnership?: boolean;
+    wideRootNoise?: number;
     visits?: number;
     maxTimeMs?: number;
     batchSize?: number;
@@ -71,7 +73,9 @@ class KataGoEngineClient {
       moveHistory: args.moveHistory,
       komi: args.komi,
       topK: args.topK,
+      analysisPvLen: args.analysisPvLen,
       includeMovesOwnership: args.includeMovesOwnership,
+      wideRootNoise: args.wideRootNoise,
       visits: args.visits,
       maxTimeMs: args.maxTimeMs,
       batchSize: args.batchSize,

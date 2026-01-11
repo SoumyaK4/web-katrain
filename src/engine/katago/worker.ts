@@ -25,6 +25,7 @@ let searchKey: {
   ownershipMode: OwnershipMode;
   komi: number;
   currentPlayer: 'black' | 'white';
+  wideRootNoise: number;
 } | null = null;
 
 async function initBackend(): Promise<void> {
@@ -125,6 +126,8 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     const topK = Math.max(1, Math.min(msg.topK ?? 10, 50));
     const ownershipMode: OwnershipMode = msg.ownershipMode ?? 'root';
     const includeMovesOwnership = msg.includeMovesOwnership === true;
+    const analysisPvLen = Math.max(0, Math.min(msg.analysisPvLen ?? 15, 60));
+    const wideRootNoise = Math.max(0, Math.min(msg.wideRootNoise ?? 0.04, 5));
 
     const canReuse =
       msg.reuseTree === true &&
@@ -136,7 +139,8 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       searchKey.maxChildren === maxChildren &&
       searchKey.ownershipMode === ownershipMode &&
       searchKey.komi === msg.komi &&
-      searchKey.currentPlayer === msg.currentPlayer;
+      searchKey.currentPlayer === msg.currentPlayer &&
+      searchKey.wideRootNoise === wideRootNoise;
 
     if (!canReuse) {
       search = await MctsSearch.create({
@@ -149,6 +153,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
         komi: msg.komi,
         maxChildren,
         ownershipMode,
+        wideRootNoise,
       });
       if (typeof msg.positionId === 'string') {
         searchKey = {
@@ -158,6 +163,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
           ownershipMode,
           komi: msg.komi,
           currentPlayer: msg.currentPlayer,
+          wideRootNoise,
         };
       } else {
         searchKey = null;
@@ -165,7 +171,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     }
 
     await search!.run({ visits: maxVisits, maxTimeMs, batchSize });
-    const analysis = search!.getAnalysis({ topK, includeMovesOwnership });
+    const analysis = search!.getAnalysis({ topK, includeMovesOwnership, analysisPvLen });
 
     post({
       type: 'katago:analyze_result',

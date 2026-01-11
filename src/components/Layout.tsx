@@ -138,6 +138,8 @@ export const Layout: React.FC = () => {
             try {
                 const parsed = parseSgf(text);
                 loadGame(parsed);
+                // KaTrain behavior: clipboard import goes to the end of the main branch.
+                navigateEnd();
                 toast('Loaded SGF from clipboard.', 'success');
             } catch {
                 toast('Failed to parse SGF from clipboard.', 'error');
