@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { BOARD_SIZE, type CandidateMove, type GameNode } from '../types';
+import { parseGtpMove } from '../lib/gtp';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const KATRAN_EVAL_COLORS = [
@@ -86,9 +87,10 @@ function formatDeltaWinrate(x: number): string {
 interface GoBoardProps {
     hoveredMove: CandidateMove | null;
     onHoverMove: (move: CandidateMove | null) => void;
+    pvUpToMove: number | null;
 }
 
-export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) => {
+export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUpToMove }) => {
   const {
     board,
     playMove,
@@ -190,6 +192,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
   const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
     null
   );
+  const [cursorPt, setCursorPt] = useState<{ x: number; y: number } | null>(null);
 
   const childMoveCoords = useMemo(() => {
     const set = new Set<string>();
@@ -239,9 +242,10 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const pt = eventToInternal(e);
+    setCursorPt(pt);
     if (!isSelectingRegionOfInterest) return;
     if (!roiDrag) return;
-    const pt = eventToInternal(e);
     if (!pt) return;
     setRoiDrag((prev) => (prev ? { ...prev, end: pt } : prev));
   };
@@ -263,6 +267,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
     const yMax = Math.max(roiDrag.start.y, pt.y);
     setRegionOfInterest({ xMin, xMax, yMin, yMax });
   };
+
+  const handlePointerLeave = () => setCursorPt(null);
 
   const handleAnalysisClick = (e: React.MouseEvent, move: CandidateMove) => {
       e.stopPropagation();
@@ -515,35 +521,22 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       return out;
   }, [analysisData, approxBoardColor, cellSize, isAnalysisMode, originX, originY, settings.analysisShowPolicy, toDisplay]);
 
-  const pvOverlay = useMemo(() => {
-      const pv = hoveredMove?.pv;
-      if (!isAnalysisMode || !pv || pv.length === 0) return [];
+	  const pvOverlay = useMemo(() => {
+	      const pv = hoveredMove?.pv;
+	      if (!isAnalysisMode || !pv || pv.length === 0) return [];
 
-      const parseGtp = (s: string): { x: number; y: number } | null => {
-          const t = s.trim().toUpperCase();
-          if (t === 'PASS') return null;
-          const m = /^([A-T])([1-9]|1[0-9])$/.exec(t);
-          if (!m) return null;
-          const colChar = m[1]!;
-          if (colChar === 'I') return null;
-          const raw = colChar.charCodeAt(0) - 65;
-          const x = raw >= 9 ? raw - 1 : raw;
-          const row = parseInt(m[2]!, 10);
-          const y = BOARD_SIZE - row;
-          if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return null;
-          return { x, y };
-      };
-
-      const opp: typeof currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
-      const moves: Array<{ x: number; y: number; player: typeof currentPlayer; idx: number }> = [];
-      for (let i = 0; i < pv.length; i++) {
-          const xy = parseGtp(pv[i]!);
-          if (!xy) continue;
-          const d = toDisplay(xy.x, xy.y);
-          moves.push({ x: d.x, y: d.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
-      }
-      return moves;
-  }, [hoveredMove, isAnalysisMode, currentPlayer, toDisplay]);
+	      const upToMove = typeof pvUpToMove === 'number' ? pvUpToMove : pv.length;
+	      const opp: typeof currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+	      const moves: Array<{ x: number; y: number; player: typeof currentPlayer; idx: number }> = [];
+	      for (let i = 0; i < pv.length; i++) {
+	          if (i > upToMove) break;
+	          const m = parseGtpMove(pv[i]!);
+	          if (!m || m.kind !== 'move') continue;
+	          const d = toDisplay(m.x, m.y);
+	          moves.push({ x: d.x, y: d.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
+	      }
+	      return moves;
+	  }, [hoveredMove, isAnalysisMode, pvUpToMove, currentPlayer, toDisplay]);
 
   const roiRect = useMemo(() => {
     const roi =
@@ -587,9 +580,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center">
-      <div
-        className="relative shadow-lg rounded-sm cursor-pointer select-none"
-        style={{
+	      <div
+	        className="relative shadow-lg rounded-sm cursor-pointer select-none"
+	        style={{
             width: boardWidth,
             height: boardHeight,
             backgroundColor: boardColor,
@@ -598,11 +591,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
             backgroundRepeat: settings.boardTheme === 'bamboo' ? 'no-repeat' : undefined,
             overflow: 'hidden',
         }}
-        onClick={handleClick}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
+	        onClick={handleClick}
+	        onPointerDown={handlePointerDown}
+	        onPointerMove={handlePointerMove}
+	        onPointerUp={handlePointerUp}
+	        onPointerLeave={handlePointerLeave}
+	      >
       {/* Region of interest (KaTrain-style) */}
       {roiRect && (
         <div
@@ -834,9 +828,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           />
       ))}
 
-      {/* Last Move Marker (KaTrain-style) */}
-      {lastMoveMark && (
-        <div
+	      {/* Last Move Marker (KaTrain-style) */}
+	      {lastMoveMark && (
+	        <div
           className="absolute pointer-events-none"
           style={{
             width: lastMoveMark.size,
@@ -855,12 +849,37 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
             zIndex: 13,
           }}
         />
-      )}
+	      )}
 
-      {/* Ghost Stone (Hover) */}
-      {isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0) && (
-          (() => {
-            const d = toDisplay(hoveredMove.x, hoveredMove.y);
+	      {/* Ghost Stone (Cursor) */}
+	      {cursorPt && !isSelectingRegionOfInterest && !board[cursorPt.y]?.[cursorPt.x] && (
+	        (() => {
+	          const d = toDisplay(cursorPt.x, cursorPt.y);
+	          const stoneDiameter = 2 * (cellSize * STONE_SIZE);
+	          return (
+	            <div
+	              className="absolute rounded-full shadow-sm flex items-center justify-center pointer-events-none"
+	              style={{
+	                width: stoneDiameter,
+	                height: stoneDiameter,
+	                left: originX + d.x * cellSize - stoneDiameter / 2,
+	                top: originY + d.y * cellSize - stoneDiameter / 2,
+	                backgroundImage: `url('/katrain/${currentPlayer === 'black' ? 'B_stone.png' : 'W_stone.png'}')`,
+	                backgroundSize: 'contain',
+	                backgroundPosition: 'center',
+	                backgroundRepeat: 'no-repeat',
+	                opacity: 0.6,
+	                zIndex: 5,
+	              }}
+	            />
+	          );
+	        })()
+	      )}
+
+	      {/* Ghost Stone (Hover) */}
+	      {isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0) && (
+	          (() => {
+	            const d = toDisplay(hoveredMove.x, hoveredMove.y);
             const stoneDiameter = 2 * (cellSize * STONE_SIZE);
             return (
           <div
@@ -882,29 +901,45 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           })()
       )}
 
-      {/* PV Overlay (Hover) */}
-      {pvOverlay.map((m) => {
-          const size = cellSize * 0.78;
-          const isBlack = m.player === 'black';
-          return (
-              <div
-                  key={`pv-${m.idx}-${m.x}-${m.y}`}
-                  className={`absolute rounded-full flex items-center justify-center z-20 pointer-events-none border ${isBlack ? 'border-white/50' : 'border-black/40'}`}
-                  style={{
-                      width: size,
-                      height: size,
-                      left: originX + m.x * cellSize - (size / 2),
-                      top: originY + m.y * cellSize - (size / 2),
-                      backgroundColor: isBlack ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.65)',
-                      color: isBlack ? 'white' : 'black',
-                      fontSize: 11,
-                      fontWeight: 700
-                  }}
-              >
-                  {m.idx}
-              </div>
-          );
-      })}
+	      {/* PV Overlay (Hover) */}
+	      {pvOverlay.map((m) => {
+	          const stoneRadius = cellSize * STONE_SIZE;
+	          const size = 2 * stoneRadius + 1;
+	          const textColor = m.player === 'black' ? 'white' : 'black';
+	          return (
+	              <div
+	                  key={`pv-${m.idx}-${m.x}-${m.y}`}
+	                  className="absolute flex items-center justify-center pointer-events-none"
+	                  style={{
+	                      width: size,
+	                      height: size,
+	                      left: originX + m.x * cellSize - stoneRadius - 1,
+	                      top: originY + m.y * cellSize - stoneRadius,
+	                      zIndex: 20,
+	                  }}
+	              >
+	                  <div
+	                    className="absolute inset-0"
+	                    style={{
+	                      backgroundImage: `url('/katrain/${m.player === 'black' ? 'B_stone.png' : 'W_stone.png'}')`,
+	                      backgroundSize: 'contain',
+	                      backgroundPosition: 'center',
+	                      backgroundRepeat: 'no-repeat',
+	                    }}
+	                  />
+	                  <div
+	                    className="font-bold"
+	                    style={{
+	                      color: textColor,
+	                      fontSize: cellSize / 1.45,
+	                      lineHeight: 1,
+	                    }}
+	                  >
+	                    {m.idx}
+	                  </div>
+	              </div>
+	          );
+	      })}
 
       {/* Children Overlay (Q) */}
       {isAnalysisMode && settings.analysisShowChildren && childMoveRings.map((m) => {

@@ -26,6 +26,7 @@ import {
 } from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf } from '../utils/sgf';
 import { BOARD_SIZE, type CandidateMove, type GameNode, type Player } from '../types';
+import { parseGtpMove } from '../lib/gtp';
 
 type UiMode = 'play' | 'analyze';
 
@@ -65,6 +66,8 @@ const KATRAN_EVAL_COLORS = [
   [0.117, 0.588, 0, 1],
 ] as const;
 const GHOST_ALPHA = 0.6;
+const PV_ANIM_TIME_S = 0.5;
+const STONE_SIZE = 0.505;
 
 function rgba(color: readonly [number, number, number, number], alphaOverride?: number): string {
   const a = typeof alphaOverride === 'number' ? alphaOverride : color[3];
@@ -311,11 +314,15 @@ export const Layout: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
+  const [pvAnim, setPvAnim] = useState<{ key: string; startMs: number } | null>(null);
+  const [pvAnimNowMs, setPvAnimNowMs] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
   const [uiState, setUiState] = useState<UiState>(() => loadUiState());
+  const passBtnRef = useRef<HTMLButtonElement>(null);
+  const [passBtnHeight, setPassBtnHeight] = useState(0);
 
   const mode = uiState.mode;
   const modeControls = uiState.analysisControls[mode];
@@ -360,6 +367,72 @@ export const Layout: React.FC = () => {
     if (!isAnalysisMode) return;
     void runAnalysis();
   }, [currentNode.id, isAnalysisMode, runAnalysis]);
+
+  const pvKey = useMemo(() => {
+    const pv = hoveredMove?.pv;
+    if (!isAnalysisMode || !pv || pv.length === 0) return null;
+    return `${currentNode.id}|${pv.join(' ')}`;
+  }, [currentNode.id, hoveredMove, isAnalysisMode]);
+
+  useEffect(() => {
+    if (!pvKey) {
+      setPvAnim(null);
+      return;
+    }
+    setPvAnim((prev) => (prev?.key === pvKey ? prev : { key: pvKey, startMs: performance.now() }));
+    setPvAnimNowMs(performance.now());
+  }, [pvKey]);
+
+  const pvLen = hoveredMove?.pv?.length ?? 0;
+  useEffect(() => {
+    if (!pvAnim) return;
+    if (!pvKey || pvKey !== pvAnim.key) return;
+    if (pvLen <= 0) return;
+
+    const delayMs = Math.max(PV_ANIM_TIME_S, 0.1) * 1000;
+    let raf = 0;
+    const tick = () => {
+      const now = performance.now();
+      setPvAnimNowMs(now);
+      const upToMove = Math.min(pvLen, (now - pvAnim.startMs) / delayMs);
+      if (upToMove < pvLen) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [pvAnim, pvKey, pvLen]);
+
+  const pvUpToMove = useMemo(() => {
+    const pv = hoveredMove?.pv;
+    if (!isAnalysisMode || !pv || pv.length === 0) return null;
+    if (!pvAnim || pvAnim.key !== pvKey) return pv.length;
+    const delayMs = Math.max(PV_ANIM_TIME_S, 0.1) * 1000;
+    return Math.min(pv.length, (pvAnimNowMs - pvAnim.startMs) / delayMs);
+  }, [hoveredMove, isAnalysisMode, pvAnim, pvAnimNowMs, pvKey]);
+
+  const passPv = useMemo(() => {
+    const pv = hoveredMove?.pv;
+    if (!isAnalysisMode || !pv || pv.length === 0) return null;
+    const upToMove = typeof pvUpToMove === 'number' ? pvUpToMove : pv.length;
+    const opp: Player = currentPlayer === 'black' ? 'white' : 'black';
+    let last: { idx: number; player: Player } | null = null;
+    for (let i = 0; i < pv.length; i++) {
+      if (i > upToMove) break;
+      const m = parseGtpMove(pv[i]!);
+      if (m?.kind === 'pass') last = { idx: i + 1, player: i % 2 === 0 ? currentPlayer : opp };
+    }
+    return last;
+  }, [currentPlayer, hoveredMove, isAnalysisMode, pvUpToMove]);
+
+  useEffect(() => {
+    const el = passBtnRef.current;
+    if (!el) return;
+    const update = () => setPassBtnHeight(el.getBoundingClientRect().height);
+    update();
+    if (typeof ResizeObserver === 'undefined') return;
+    const obs = new ResizeObserver(() => update());
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   // Close popovers on outside clicks.
   useEffect(() => {
@@ -1262,7 +1335,7 @@ export const Layout: React.FC = () => {
               </button>
             </div>
           )}
-          <GoBoard hoveredMove={hoveredMove} onHoverMove={setHoveredMove} />
+          <GoBoard hoveredMove={hoveredMove} onHoverMove={setHoveredMove} pvUpToMove={pvUpToMove} />
         </div>
 
         {/* Board controls bar (KaTrain-like) */}
@@ -1274,14 +1347,48 @@ export const Layout: React.FC = () => {
                 style={{ height: '100%', aspectRatio: '1 / 1', backgroundColor: passPolicyColor }}
               />
             )}
-            <button
-              className="relative px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold"
-              onClick={passTurn}
-              title="Pass (P)"
-            >
-              Pass
-            </button>
-          </div>
+	            <button
+	              ref={passBtnRef}
+	              className="relative px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-semibold"
+	              onClick={passTurn}
+	              title="Pass (P)"
+	            >
+	              Pass
+	            </button>
+	            {passPv && (
+	              <div
+	                className="absolute pointer-events-none flex items-center justify-center"
+	                style={{
+	                  left: '100%',
+	                  top: '50%',
+	                  width: passBtnHeight > 0 ? passBtnHeight : 32,
+	                  height: passBtnHeight > 0 ? passBtnHeight : 32,
+	                  transform: 'translate(0, -50%)',
+	                  zIndex: 20,
+	                }}
+	              >
+	                <div
+	                  className="absolute inset-0"
+	                  style={{
+	                    backgroundImage: `url('/katrain/${passPv.player === 'black' ? 'B_stone.png' : 'W_stone.png'}')`,
+	                    backgroundSize: 'contain',
+	                    backgroundPosition: 'center',
+	                    backgroundRepeat: 'no-repeat',
+	                  }}
+	                />
+	                <div
+	                  className="font-bold"
+	                  style={{
+	                    color: passPv.player === 'black' ? 'white' : 'black',
+	                    fontSize: passBtnHeight > 0 ? passBtnHeight / (2 * STONE_SIZE * 1.45) : 14,
+	                    lineHeight: 1,
+	                  }}
+	                >
+	                  {passPv.idx}
+	                </div>
+	              </div>
+	            )}
+	          </div>
 
           <div className="flex items-center gap-1">
             <IconButton
