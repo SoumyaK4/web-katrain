@@ -60,6 +60,29 @@ const createEmptyBoard = (): BoardState => {
   return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
 };
 
+const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v1';
+const loadStoredSettings = (): Partial<GameSettings> | null => {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed as Partial<GameSettings>;
+  } catch {
+    return null;
+  }
+};
+
+const saveStoredSettings = (settings: GameSettings): void => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Ignore quota/permission errors.
+  }
+};
+
 const rulesToSgfRu = (rules: GameRules): string => {
   switch (rules) {
     case 'japanese':
@@ -135,12 +158,13 @@ const defaultSettings: GameSettings = {
   loadSgfRewind: true,
   gameRules: 'japanese',
   analysisShowChildren: true,
-  analysisShowEval: false,
+  analysisShowEval: true,
   analysisShowHints: true,
   analysisShowPolicy: false,
-  analysisShowOwnership: false,
+  analysisShowOwnership: true,
   katagoModelUrl: '/models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz',
   katagoVisits: 500,
+  katagoFastVisits: 25,
   katagoMaxTimeMs: 8000,
   katagoBatchSize: 16,
   katagoMaxChildren: 361,
@@ -200,6 +224,11 @@ const defaultSettings: GameSettings = {
   aiOwnershipTenukiPenalty: 0.5,
 };
 
+const initialSettings: GameSettings = {
+  ...defaultSettings,
+  ...(loadStoredSettings() ?? {}),
+};
+
 let continuousToken = 0;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -224,7 +253,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isTeachMode: false,
   notification: null,
   analysisData: null,
-  settings: defaultSettings,
+  settings: initialSettings,
   engineStatus: 'idle',
   engineError: null,
 
@@ -270,9 +299,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
               if (!state.isAnalysisMode) return;
 
               const target = Math.max(16, state.settings.katagoVisits);
+              const rawFast = state.settings.katagoFastVisits;
+              const fast = Number.isFinite(rawFast) ? rawFast : 25;
+              const initialVisits = Math.max(16, Math.min(target, Math.floor(fast)));
               if (state.currentNode.id !== nodeId) {
                   nodeId = state.currentNode.id;
-                  visits = Math.min(64, target);
+                  visits = initialVisits;
               } else if (visits < target) {
                   visits = Math.min(target, Math.max(visits + 1, visits * 2));
               } else {
@@ -440,6 +472,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   updateSettings: (newSettings) =>
     set((state) => {
       const nextSettings: GameSettings = { ...state.settings, ...newSettings };
+      saveStoredSettings(nextSettings);
       const engineKeys: Array<keyof GameSettings> = [
         'katagoModelUrl',
         'katagoVisits',

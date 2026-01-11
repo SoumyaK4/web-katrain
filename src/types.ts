@@ -79,6 +79,7 @@ export interface GameSettings {
   analysisShowOwnership: boolean; // T
   katagoModelUrl: string;
   katagoVisits: number;
+  katagoFastVisits: number; // KaTrain fast_visits (used for initial/quick analysis)
   katagoMaxTimeMs: number;
   katagoBatchSize: number;
   katagoMaxChildren: number;

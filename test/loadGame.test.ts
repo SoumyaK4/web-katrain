@@ -24,22 +24,31 @@ describe('GameStore loadGame', () => {
 
         const state = useGameStore.getState();
 
-        // Check handicap
+        // KaTrain behavior: load rewinds to root by default, so only setup stones are on the board.
         expect(state.board[9][9]).toBe('black');
 
-        // Check moves
-        expect(state.board[3][3]).toBe('black');
-        expect(state.board[15][15]).toBe('white');
+        // No moves applied at root
+        expect(state.board[3][3]).toBe(null);
+        expect(state.board[15][15]).toBe(null);
 
-        // Check history
-        expect(state.moveHistory).toHaveLength(2);
-        expect(state.moveHistory[0]).toEqual({ x: 3, y: 3, player: 'black' });
+        // Tree has the main line
+        expect(state.rootNode.children[0]?.move).toEqual({ x: 3, y: 3, player: 'black' });
+        expect(state.rootNode.children[0]?.children[0]?.move).toEqual({ x: 15, y: 15, player: 'white' });
 
-        // Check current player
-        expect(state.currentPlayer).toBe('black'); // Next player after B, W is B
+        // Root state
+        expect(state.moveHistory).toHaveLength(0);
+        expect(state.currentPlayer).toBe('black');
 
         // Check Komi
         expect(state.komi).toBe(7.5);
+
+        // Navigating to end reaches the last move
+        store.navigateEnd();
+        const endState = useGameStore.getState();
+        expect(endState.board[3][3]).toBe('black');
+        expect(endState.board[15][15]).toBe('white');
+        expect(endState.moveHistory).toHaveLength(2);
+        expect(endState.currentPlayer).toBe('black'); // Next player after B, W is B
     });
 
     it('loads SGF variations into the move tree', () => {
@@ -57,7 +66,12 @@ describe('GameStore loadGame', () => {
         expect(bNode.move).toEqual({ x: 15, y: 3, player: 'black' });
         expect(bNode.children).toHaveLength(2);
 
-        // Current node follows the main branch (first child): W[dd]
-        expect(state.currentNode.move).toEqual({ x: 3, y: 3, player: 'white' });
+        // KaTrain behavior: load rewinds to root by default
+        expect(state.currentNode.move).toBe(null);
+
+        // Navigating to end follows the main branch (first child): W[dd]
+        store.navigateEnd();
+        const endState = useGameStore.getState();
+        expect(endState.currentNode.move).toEqual({ x: 3, y: 3, player: 'white' });
     });
 });

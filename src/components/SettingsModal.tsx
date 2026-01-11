@@ -739,6 +739,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 />
                             </div>
                             <div className="space-y-1">
+                                <label className="text-gray-300 block text-sm">Fast Visits</label>
+                                <input
+                                    type="number"
+                                    min={16}
+                                    max={5000}
+                                    value={settings.katagoFastVisits}
+                                    onChange={(e) => updateSettings({ katagoFastVisits: Math.max(16, parseInt(e.target.value || '0', 10)) })}
+                                    className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                />
+                                <p className="text-xs text-gray-500">KaTrain fast_visits: initial visits for Space-ponder.</p>
+                            </div>
+                            <div className="space-y-1">
                                 <label className="text-gray-300 block text-sm">Max Time (ms)</label>
                                 <input
                                     type="number"
