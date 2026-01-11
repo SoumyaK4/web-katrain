@@ -4,6 +4,7 @@ import { GoBoard } from './GoBoard';
 import { WinRateGraph } from './WinRateGraph';
 import { SettingsModal } from './SettingsModal';
 import { MoveTree } from './MoveTree';
+import { NotesPanel } from './NotesPanel';
 import { FaPlay, FaCog, FaChartBar, FaEllipsisH, FaRobot, FaArrowLeft, FaArrowRight, FaSave, FaFolderOpen, FaMicrochip, FaGraduationCap, FaTimes } from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf } from '../utils/sgf';
 import type { CandidateMove } from '../types';
@@ -51,6 +52,7 @@ export const Layout: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [rightTab, setRightTab] = useState<'analysis' | 'tree' | 'notes'>(isAnalysisMode ? 'analysis' : 'tree');
   const [timer, setTimer] = useState(0);
 
   useEffect(() => {
@@ -512,152 +514,188 @@ export const Layout: React.FC = () => {
 
       {/* Right Panel - Analysis & Info */}
       <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
-        {isAnalysisMode ? (
-            <div className="flex-grow flex flex-col h-full">
-                <div className="border-b border-gray-700 p-4">
-	                  <h2 className="text-lg font-semibold mb-4 flex items-center">
-	                    <FaChartBar className="mr-2" /> Analysis
-	                  </h2>
-	                  <div className="bg-gray-900 h-32 rounded flex items-center justify-center text-gray-500 overflow-hidden mb-4">
-	                     <WinRateGraph />
-		                  </div>
-		                  <div className="flex flex-wrap gap-2 mb-4">
-		                      <button
-		                          className={`px-2 py-1 rounded text-xs font-semibold border ${isContinuousAnalysis ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-		                          onClick={() => toggleContinuousAnalysis()}
-		                          title="Toggle continuous analysis (Space)"
-		                      >
-		                          Space Ponder
-		                      </button>
-		                      <button
-		                          className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowChildren ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-		                          onClick={() => updateSettings({ analysisShowChildren: !settings.analysisShowChildren })}
-		                          title="Toggle show children (Q)"
-	                      >
-	                          Q Children
-	                      </button>
-	                      <button
-	                          className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowEval ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-	                          onClick={() => updateSettings({ analysisShowEval: !settings.analysisShowEval })}
-	                          title="Toggle evaluation dots (W)"
-	                      >
-	                          W Dots
-	                      </button>
-	                      <button
-	                          className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowHints ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'} ${settings.analysisShowPolicy ? 'opacity-50 cursor-not-allowed' : ''}`}
-	                          disabled={settings.analysisShowPolicy}
-	                          onClick={() => updateSettings({ analysisShowHints: !settings.analysisShowHints })}
-	                          title={settings.analysisShowPolicy ? 'Disabled while Policy is enabled' : 'Toggle top moves (E)'}
-	                      >
-	                          E Top Moves
-	                      </button>
-	                      <button
-	                          className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowPolicy ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-	                          onClick={() => updateSettings({ analysisShowPolicy: !settings.analysisShowPolicy })}
-	                          title="Toggle policy (R)"
-	                      >
-	                          R Policy
-	                      </button>
-	                      <button
-	                          className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowOwnership ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
-	                          onClick={() => updateSettings({ analysisShowOwnership: !settings.analysisShowOwnership })}
-	                          title="Toggle ownership/territory (T)"
-	                      >
-	                          T Ownership
-	                      </button>
-	                  </div>
-	                  <div className="space-y-2">
-	                    <div className="flex justify-between text-sm">
-	                       <span>Win Rate (Black):</span>
-	                       <span className={`font-mono ${analysisData && analysisData.rootWinRate > 0.5 ? 'text-green-400' : 'text-red-400'}`}>
-	                           {analysisData ? `${(analysisData.rootWinRate * 100).toFixed(1)}%` : '-'}
-                       </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                       <span>Score Lead:</span>
-                       <span className={`font-mono ${analysisData && analysisData.rootScoreLead > 0 ? 'text-blue-400' : 'text-white'}`}>
-                           {analysisData ? `${analysisData.rootScoreLead > 0 ? '+' : ''}${analysisData.rootScoreLead.toFixed(1)}` : '-'}
-                       </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                       <span>Score Stdev:</span>
-                       <span className="font-mono text-gray-300">
-                           {analysisData && typeof analysisData.rootScoreStdev === 'number' ? analysisData.rootScoreStdev.toFixed(1) : '-'}
-                       </span>
-                    </div>
+        <div className="border-b border-gray-700 flex">
+          <button
+            className={`flex-1 px-3 py-2 text-xs font-semibold ${rightTab === 'analysis' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            onClick={() => setRightTab('analysis')}
+          >
+            Analysis
+          </button>
+          <button
+            className={`flex-1 px-3 py-2 text-xs font-semibold ${rightTab === 'tree' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            onClick={() => setRightTab('tree')}
+          >
+            Tree
+          </button>
+          <button
+            className={`flex-1 px-3 py-2 text-xs font-semibold ${rightTab === 'notes' ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            onClick={() => setRightTab('notes')}
+          >
+            Notes
+          </button>
+        </div>
+
+        {rightTab === 'analysis' && (
+          <div className="flex-grow flex flex-col h-full">
+            <div className="border-b border-gray-700 p-4">
+              <h2 className="text-lg font-semibold mb-4 flex items-center">
+                <FaChartBar className="mr-2" /> Analysis
+              </h2>
+              <div className="bg-gray-900 h-32 rounded flex items-center justify-center text-gray-500 overflow-hidden mb-4">
+                <WinRateGraph />
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  className={`px-2 py-1 rounded text-xs font-semibold border ${isContinuousAnalysis ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
+                  onClick={() => toggleContinuousAnalysis()}
+                  title="Toggle continuous analysis (Space)"
+                >
+                  Space Ponder
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowChildren ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
+                  onClick={() => updateSettings({ analysisShowChildren: !settings.analysisShowChildren })}
+                  title="Toggle show children (Q)"
+                >
+                  Q Children
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowEval ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
+                  onClick={() => updateSettings({ analysisShowEval: !settings.analysisShowEval })}
+                  title="Toggle evaluation dots (W)"
+                >
+                  W Dots
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowHints ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'} ${settings.analysisShowPolicy ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={settings.analysisShowPolicy}
+                  onClick={() => updateSettings({ analysisShowHints: !settings.analysisShowHints })}
+                  title={settings.analysisShowPolicy ? 'Disabled while Policy is enabled' : 'Toggle top moves (E)'}
+                >
+                  E Top Moves
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowPolicy ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
+                  onClick={() => updateSettings({ analysisShowPolicy: !settings.analysisShowPolicy })}
+                  title="Toggle policy (R)"
+                >
+                  R Policy
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs font-semibold border ${settings.analysisShowOwnership ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}
+                  onClick={() => updateSettings({ analysisShowOwnership: !settings.analysisShowOwnership })}
+                  title="Toggle ownership/territory (T)"
+                >
+                  T Ownership
+                </button>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Win Rate (Black):</span>
+                  <span className={`font-mono ${analysisData && analysisData.rootWinRate > 0.5 ? 'text-green-400' : 'text-red-400'}`}>
+                    {analysisData ? `${(analysisData.rootWinRate * 100).toFixed(1)}%` : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Score Lead:</span>
+                  <span className={`font-mono ${analysisData && analysisData.rootScoreLead > 0 ? 'text-blue-400' : 'text-white'}`}>
+                    {analysisData ? `${analysisData.rootScoreLead > 0 ? '+' : ''}${analysisData.rootScoreLead.toFixed(1)}` : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Score Stdev:</span>
+                  <span className="font-mono text-gray-300">
+                    {analysisData && typeof analysisData.rootScoreStdev === 'number' ? analysisData.rootScoreStdev.toFixed(1) : '-'}
+                  </span>
+                </div>
+                {!isAnalysisMode && !analysisData && (
+                  <div className="text-xs text-gray-500">
+                    Analysis mode is off. Click the <span className="font-mono">chip</span> icon or press <span className="font-mono">Space</span> to start.
                   </div>
-                </div>
-
-                {/* Top Moves List */}
-                <div className="flex-grow flex flex-col overflow-hidden bg-gray-850">
-                   <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 text-xs font-semibold text-gray-400 flex sticky top-0 z-10">
-                       <span className="w-6 text-center">#</span>
-                       <span className="w-12">Move</span>
-                       <span className="w-20 text-center">Win%</span>
-                       <span className="w-14 text-right">Score</span>
-                       <span className="w-14 text-right">Loss</span>
-                       <span className="flex-grow text-right">Visits</span>
-                   </div>
-                   <div className="overflow-y-auto flex-grow p-0 scrollbar-thin scrollbar-thumb-gray-700">
-                       {analysisData ? (
-                           analysisData.moves.map((move, i) => {
-                               const isPass = move.x === -1 || move.y === -1;
-                               const moveLabel = isPass
-                                   ? 'Pass'
-                                   : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${19 - move.y}`;
-
-                               return (
-                               <div
-                                   key={i}
-                                   className={`group flex items-center px-4 py-2 text-sm border-b border-gray-700/50 hover:bg-gray-700 cursor-pointer transition-colors ${move.order === 0 ? 'bg-gray-800' : ''}`}
-                                   onMouseEnter={() => setHoveredMove(isPass ? null : move)}
-                                   onMouseLeave={() => setHoveredMove(null)}
-                                   onClick={() => handleAnalysisClick(move)}
-                               >
-                                   <span className="w-6 text-center font-mono text-gray-500 text-xs mr-2">
-                                       {String.fromCharCode(65 + move.order)}
-                                   </span>
-                                   <span className={`w-12 font-bold font-mono ${move.order===0 ? 'text-blue-400' : (move.pointsLost < 0.5 ? 'text-green-400' : (move.pointsLost < 2 ? 'text-yellow-400' : 'text-red-400'))}`}>
-                                       {moveLabel}
-                                   </span>
-
-                                   {/* Win Rate Bar */}
-                                   <div className="w-20 px-2 flex flex-col justify-center">
-                                       <div className="text-right text-xs text-gray-300 font-mono mb-0.5">
-                                           {(move.winRate * 100).toFixed(1)}%
-                                       </div>
-                                       <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-                                           <div
-                                               className={`h-full ${move.winRate > 0.5 ? 'bg-green-500' : 'bg-red-500'}`}
-                                               style={{ width: `${move.winRate * 100}%` }}
-                                           />
-                                       </div>
-                                   </div>
-
-                                   <span className="w-14 text-right text-gray-300 font-mono">{move.scoreLead > 0 ? '+' : ''}{move.scoreLead.toFixed(1)}</span>
-                                   <span className="w-14 text-right text-red-300 font-mono">{move.order === 0 ? '-' : move.pointsLost.toFixed(1)}</span>
-                                   <span className="flex-grow text-right text-gray-500 font-mono text-xs">{move.visits.toLocaleString()}</span>
-                               </div>
-                               );
-                           })
-                       ) : (
-                           <div className="p-4 text-center text-gray-500 text-sm animate-pulse">Processing...</div>
-                       )}
-                   </div>
-                </div>
+                )}
+              </div>
             </div>
-        ) : (
-            /* Normal Game Info when not analyzing */
-            <div className="h-full p-4 flex flex-col">
-               <h2 className="text-lg font-semibold mb-2">Move Tree</h2>
-               <div className="flex-grow bg-gray-900 rounded overflow-hidden border border-gray-700">
-                  <MoveTree />
-               </div>
-               <div className="mt-2 text-[11px] text-gray-500">
-                  z/← undo · x/→ redo · ↑/↓ switch branch · Ctrl+Delete delete · Ctrl+Shift+Delete prune
-               </div>
+
+            {/* Top Moves List */}
+            <div className="flex-grow flex flex-col overflow-hidden bg-gray-850">
+              <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 text-xs font-semibold text-gray-400 flex sticky top-0 z-10">
+                <span className="w-6 text-center">#</span>
+                <span className="w-12">Move</span>
+                <span className="w-20 text-center">Win%</span>
+                <span className="w-14 text-right">Score</span>
+                <span className="w-14 text-right">Loss</span>
+                <span className="flex-grow text-right">Visits</span>
+              </div>
+              <div className="overflow-y-auto flex-grow p-0 scrollbar-thin scrollbar-thumb-gray-700">
+                {analysisData ? (
+                  analysisData.moves.map((move, i) => {
+                    const isPass = move.x === -1 || move.y === -1;
+                    const moveLabel = isPass
+                      ? 'Pass'
+                      : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${19 - move.y}`;
+
+                    return (
+                      <div
+                        key={i}
+                        className={`group flex items-center px-4 py-2 text-sm border-b border-gray-700/50 hover:bg-gray-700 cursor-pointer transition-colors ${move.order === 0 ? 'bg-gray-800' : ''}`}
+                        onMouseEnter={() => setHoveredMove(isPass ? null : move)}
+                        onMouseLeave={() => setHoveredMove(null)}
+                        onClick={() => handleAnalysisClick(move)}
+                      >
+                        <span className="w-6 text-center font-mono text-gray-500 text-xs mr-2">
+                          {String.fromCharCode(65 + move.order)}
+                        </span>
+                        <span
+                          className={`w-12 font-bold font-mono ${move.order === 0 ? 'text-blue-400' : move.pointsLost < 0.5 ? 'text-green-400' : move.pointsLost < 2 ? 'text-yellow-400' : 'text-red-400'}`}
+                        >
+                          {moveLabel}
+                        </span>
+
+                        {/* Win Rate Bar */}
+                        <div className="w-20 px-2 flex flex-col justify-center">
+                          <div className="text-right text-xs text-gray-300 font-mono mb-0.5">
+                            {(move.winRate * 100).toFixed(1)}%
+                          </div>
+                          <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${move.winRate > 0.5 ? 'bg-green-500' : 'bg-red-500'}`}
+                              style={{ width: `${move.winRate * 100}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <span className="w-14 text-right text-gray-300 font-mono">
+                          {move.scoreLead > 0 ? '+' : ''}
+                          {move.scoreLead.toFixed(1)}
+                        </span>
+                        <span className="w-14 text-right text-red-300 font-mono">{move.order === 0 ? '-' : move.pointsLost.toFixed(1)}</span>
+                        <span className="flex-grow text-right text-gray-500 font-mono text-xs">{move.visits.toLocaleString()}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-4 text-center text-gray-500 text-sm animate-pulse">
+                    {isAnalysisMode ? 'Processing...' : 'Analysis mode is off.'}
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
         )}
+
+        {rightTab === 'tree' && (
+          <div className="h-full p-4 flex flex-col">
+            <h2 className="text-lg font-semibold mb-2">Move Tree</h2>
+            <div className="flex-grow bg-gray-900 rounded overflow-hidden border border-gray-700">
+              <MoveTree />
+            </div>
+            <div className="mt-2 text-[11px] text-gray-500">
+              z/← undo · x/→ redo · ↑/↓ switch branch · Ctrl+Delete delete · Ctrl+Shift+Delete prune
+            </div>
+          </div>
+        )}
+
+        {rightTab === 'notes' && <NotesPanel />}
       </div>
     </div>
   );

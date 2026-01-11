@@ -57,6 +57,7 @@ export interface GameNode {
   autoUndo?: boolean | null; // Teach-mode auto-undo (KaTrain-like). null = not decided yet.
   undoThreshold?: number; // Random [0,1) used for fractional auto-undos.
   aiThoughts?: string;
+  note?: string; // User-editable note (SGF C), KaTrain-style.
   properties?: Record<string, string[]>;
 }
 
@@ -82,11 +83,41 @@ export interface GameSettings {
   katagoOwnershipMode: 'root' | 'tree';
   teachNumUndoPrompts: number[]; // KaTrain trainer/num_undo_prompts
 
-  aiStrategy: 'default' | 'scoreloss' | 'policy' | 'weighted' | 'rank';
+  aiStrategy: 'default' | 'scoreloss' | 'policy' | 'weighted' | 'rank' | 'pick' | 'local' | 'tenuki' | 'influence' | 'territory';
   aiRankKyu: number; // KaTrain ai:p:rank/kyu_rank
   aiScoreLossStrength: number; // KaTrain ai:scoreloss/strength
   aiPolicyOpeningMoves: number; // KaTrain ai:policy/opening_moves
   aiWeightedPickOverride: number; // KaTrain ai:p:weighted/pick_override
   aiWeightedWeakenFac: number; // KaTrain ai:p:weighted/weaken_fac
   aiWeightedLowerBound: number; // KaTrain ai:p:weighted/lower_bound
+
+  aiPickPickOverride: number; // KaTrain ai:p:pick/pick_override
+  aiPickPickN: number; // KaTrain ai:p:pick/pick_n
+  aiPickPickFrac: number; // KaTrain ai:p:pick/pick_frac
+
+  aiLocalPickOverride: number; // KaTrain ai:p:local/pick_override
+  aiLocalStddev: number; // KaTrain ai:p:local/stddev
+  aiLocalPickN: number; // KaTrain ai:p:local/pick_n
+  aiLocalPickFrac: number; // KaTrain ai:p:local/pick_frac
+  aiLocalEndgame: number; // KaTrain ai:p:local/endgame
+
+  aiTenukiPickOverride: number; // KaTrain ai:p:tenuki/pick_override
+  aiTenukiStddev: number; // KaTrain ai:p:tenuki/stddev
+  aiTenukiPickN: number; // KaTrain ai:p:tenuki/pick_n
+  aiTenukiPickFrac: number; // KaTrain ai:p:tenuki/pick_frac
+  aiTenukiEndgame: number; // KaTrain ai:p:tenuki/endgame
+
+  aiInfluencePickOverride: number; // KaTrain ai:p:influence/pick_override
+  aiInfluencePickN: number; // KaTrain ai:p:influence/pick_n
+  aiInfluencePickFrac: number; // KaTrain ai:p:influence/pick_frac
+  aiInfluenceThreshold: number; // KaTrain ai:p:influence/threshold
+  aiInfluenceLineWeight: number; // KaTrain ai:p:influence/line_weight
+  aiInfluenceEndgame: number; // KaTrain ai:p:influence/endgame
+
+  aiTerritoryPickOverride: number; // KaTrain ai:p:territory/pick_override
+  aiTerritoryPickN: number; // KaTrain ai:p:territory/pick_n
+  aiTerritoryPickFrac: number; // KaTrain ai:p:territory/pick_frac
+  aiTerritoryThreshold: number; // KaTrain ai:p:territory/threshold
+  aiTerritoryLineWeight: number; // KaTrain ai:p:territory/line_weight
+  aiTerritoryEndgame: number; // KaTrain ai:p:territory/endgame
 }

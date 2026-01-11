@@ -200,10 +200,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm"
                             >
                                 <option value="default">Default (engine top move)</option>
+                                <option value="rank">Rank (KaTrain)</option>
                                 <option value="scoreloss">ScoreLoss (weaker)</option>
                                 <option value="policy">Policy</option>
                                 <option value="weighted">Policy Weighted</option>
-                                <option value="rank">Rank (KaTrain)</option>
+                                <option value="pick">Pick (KaTrain)</option>
+                                <option value="local">Local (KaTrain)</option>
+                                <option value="tenuki">Tenuki (KaTrain)</option>
+                                <option value="territory">Territory (KaTrain)</option>
+                                <option value="influence">Influence (KaTrain)</option>
                             </select>
                         </div>
 
@@ -295,6 +300,276 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 </div>
                                 <div className="col-span-3 text-xs text-gray-500">
                                     Samples moves with probability proportional to <span className="font-mono">policy^(1/weaken)</span> above <span className="font-mono">lower</span>, unless the top policy move exceeds <span className="font-mono">override</span>.
+                                </div>
+                            </div>
+                        )}
+
+                        {settings.aiStrategy === 'pick' && (
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Override</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={settings.aiPickPickOverride}
+                                        onChange={(e) => updateSettings({ aiPickPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick N</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.aiPickPickN}
+                                        onChange={(e) => updateSettings({ aiPickPickN: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick Frac</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiPickPickFrac}
+                                        onChange={(e) => updateSettings({ aiPickPickFrac: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="col-span-3 text-xs text-gray-500">
+                                    KaTrain pick-based policy: sample <span className="font-mono">pick_frac*legal + pick_n</span> moves uniformly, then play the best policy among them.
+                                </div>
+                            </div>
+                        )}
+
+                        {settings.aiStrategy === 'local' && (
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Override</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={settings.aiLocalPickOverride}
+                                        onChange={(e) => updateSettings({ aiLocalPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Stddev</label>
+                                    <input
+                                        type="number"
+                                        min={0.1}
+                                        step={0.5}
+                                        value={settings.aiLocalStddev}
+                                        onChange={(e) => updateSettings({ aiLocalStddev: Math.max(0.1, parseFloat(e.target.value || '0')) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Endgame</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiLocalEndgame}
+                                        onChange={(e) => updateSettings({ aiLocalEndgame: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick N</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.aiLocalPickN}
+                                        onChange={(e) => updateSettings({ aiLocalPickN: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick Frac</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiLocalPickFrac}
+                                        onChange={(e) => updateSettings({ aiLocalPickFrac: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="col-span-3 text-xs text-gray-500">
+                                    KaTrain local: weights sampling by a Gaussian around the previous move (then picks the best policy among sampled moves).
+                                </div>
+                            </div>
+                        )}
+
+                        {settings.aiStrategy === 'tenuki' && (
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Override</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={settings.aiTenukiPickOverride}
+                                        onChange={(e) => updateSettings({ aiTenukiPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Stddev</label>
+                                    <input
+                                        type="number"
+                                        min={0.1}
+                                        step={0.5}
+                                        value={settings.aiTenukiStddev}
+                                        onChange={(e) => updateSettings({ aiTenukiStddev: Math.max(0.1, parseFloat(e.target.value || '0')) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Endgame</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiTenukiEndgame}
+                                        onChange={(e) => updateSettings({ aiTenukiEndgame: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick N</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.aiTenukiPickN}
+                                        onChange={(e) => updateSettings({ aiTenukiPickN: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick Frac</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiTenukiPickFrac}
+                                        onChange={(e) => updateSettings({ aiTenukiPickFrac: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="col-span-3 text-xs text-gray-500">
+                                    KaTrain tenuki: weights sampling by <span className="font-mono">1 - Gaussian</span> around the previous move (prefers far away).
+                                </div>
+                            </div>
+                        )}
+
+                        {(settings.aiStrategy === 'influence' || settings.aiStrategy === 'territory') && (
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Override</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={settings.aiStrategy === 'influence' ? settings.aiInfluencePickOverride : settings.aiTerritoryPickOverride}
+                                        onChange={(e) => {
+                                            const v = Math.max(0, Math.min(1, parseFloat(e.target.value || '0')));
+                                            updateSettings(settings.aiStrategy === 'influence' ? { aiInfluencePickOverride: v } : { aiTerritoryPickOverride: v });
+                                        }}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Threshold</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={0.5}
+                                        value={settings.aiStrategy === 'influence' ? settings.aiInfluenceThreshold : settings.aiTerritoryThreshold}
+                                        onChange={(e) => {
+                                            const v = Math.max(0, parseFloat(e.target.value || '0'));
+                                            updateSettings(settings.aiStrategy === 'influence' ? { aiInfluenceThreshold: v } : { aiTerritoryThreshold: v });
+                                        }}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Line Wt</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.aiStrategy === 'influence' ? settings.aiInfluenceLineWeight : settings.aiTerritoryLineWeight}
+                                        onChange={(e) => {
+                                            const v = Math.max(0, parseInt(e.target.value || '0', 10));
+                                            updateSettings(settings.aiStrategy === 'influence' ? { aiInfluenceLineWeight: v } : { aiTerritoryLineWeight: v });
+                                        }}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick N</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.aiStrategy === 'influence' ? settings.aiInfluencePickN : settings.aiTerritoryPickN}
+                                        onChange={(e) => {
+                                            const v = Math.max(0, parseInt(e.target.value || '0', 10));
+                                            updateSettings(settings.aiStrategy === 'influence' ? { aiInfluencePickN: v } : { aiTerritoryPickN: v });
+                                        }}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Pick Frac</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiStrategy === 'influence' ? settings.aiInfluencePickFrac : settings.aiTerritoryPickFrac}
+                                        onChange={(e) => {
+                                            const v = Math.max(0, Math.min(1, parseFloat(e.target.value || '0')));
+                                            updateSettings(settings.aiStrategy === 'influence' ? { aiInfluencePickFrac: v } : { aiTerritoryPickFrac: v });
+                                        }}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-gray-300 block text-sm">Endgame</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                        value={settings.aiStrategy === 'influence' ? settings.aiInfluenceEndgame : settings.aiTerritoryEndgame}
+                                        onChange={(e) => {
+                                            const v = Math.max(0, Math.min(1, parseFloat(e.target.value || '0')));
+                                            updateSettings(settings.aiStrategy === 'influence' ? { aiInfluenceEndgame: v } : { aiTerritoryEndgame: v });
+                                        }}
+                                        className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    />
+                                </div>
+                                <div className="col-span-3 text-xs text-gray-500">
+                                    KaTrain {settings.aiStrategy}: distance-from-edge weights with <span className="font-mono">threshold</span> and <span className="font-mono">line_weight</span>.
                                 </div>
                             </div>
                         )}

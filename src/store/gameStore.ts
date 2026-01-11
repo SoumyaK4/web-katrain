@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { BOARD_SIZE, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings } from '../types';
 import { checkCaptures, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
-import type { ParsedSgf } from '../utils/sgf';
+import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
 import { getKataGoEngineClient } from '../engine/katago/client';
 import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
 
@@ -53,6 +53,7 @@ interface GameStore extends GameState {
   passTurn: () => void;
   runAnalysis: (opts?: { force?: boolean; visits?: number; maxTimeMs?: number }) => Promise<void>;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
+  setCurrentNodeNote: (note: string) => void;
 }
 
 const createEmptyBoard = (): BoardState => {
@@ -88,6 +89,7 @@ const createNode = (
         autoUndo: null,
         undoThreshold: Math.random(),
         aiThoughts: '',
+        note: '',
         properties: {}
     };
 };
@@ -133,6 +135,36 @@ const defaultSettings: GameSettings = {
   aiWeightedPickOverride: 1.0,
   aiWeightedWeakenFac: 1.25,
   aiWeightedLowerBound: 0.001,
+
+  aiPickPickOverride: 0.95,
+  aiPickPickN: 5,
+  aiPickPickFrac: 0.35,
+
+  aiLocalPickOverride: 0.95,
+  aiLocalStddev: 1.5,
+  aiLocalPickN: 15,
+  aiLocalPickFrac: 0.0,
+  aiLocalEndgame: 0.5,
+
+  aiTenukiPickOverride: 0.85,
+  aiTenukiStddev: 7.5,
+  aiTenukiPickN: 5,
+  aiTenukiPickFrac: 0.4,
+  aiTenukiEndgame: 0.45,
+
+  aiInfluencePickOverride: 0.95,
+  aiInfluencePickN: 5,
+  aiInfluencePickFrac: 0.3,
+  aiInfluenceThreshold: 3.5,
+  aiInfluenceLineWeight: 10,
+  aiInfluenceEndgame: 0.4,
+
+  aiTerritoryPickOverride: 0.95,
+  aiTerritoryPickN: 5,
+  aiTerritoryPickFrac: 0.3,
+  aiTerritoryThreshold: 3.5,
+  aiTerritoryLineWeight: 2,
+  aiTerritoryEndgame: 0.4,
 };
 
 let continuousToken = 0;
@@ -394,6 +426,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
     }),
 
+  setCurrentNodeNote: (note) =>
+    set((state) => {
+      state.currentNode.note = note;
+      return { treeVersion: state.treeVersion + 1 };
+    }),
+
   playMove: (x: number, y: number, isLoad = false) => {
     const state = get();
 
@@ -647,6 +685,183 @@ export const useGameStore = create<GameStore>((set, get) => ({
               return null;
             };
 
+            const passProb = policy?.[BOARD_SIZE * BOARD_SIZE] ?? -1;
+            const legalPolicyMoves = policyMoves.filter((m) => !m.isPass && m.prob > 0);
+
+            type WeightedCoord = { score: number; weight: number; x: number; y: number };
+
+            const pickFromWeightedCoords = (
+              weightedCoords: WeightedCoord[],
+              nMoves: number,
+              strategyName: string
+            ): { x: number; y: number; thoughts: string } => {
+              const picked = weightedSampleWithoutReplacement(weightedCoords, nMoves, (c) => c.weight);
+
+              if (picked.length === 0) {
+                const top = policyMoves[0]!;
+                return { x: top.x, y: top.y, thoughts: `${strategyName}: no moves selected; playing top policy move.` };
+              }
+
+              picked.sort((a, b) => (b.score - a.score) || (b.weight - a.weight));
+              const topPicked = picked[0]!;
+
+              if (passProb > 0 && topPicked.score < passProb) {
+                const top = policyMoves[0]!;
+                return {
+                  x: top.x,
+                  y: top.y,
+                  thoughts: `${strategyName}: pass prob ${(passProb * 100).toFixed(2)}% > picked ${(topPicked.score * 100).toFixed(2)}%; playing top policy move.`,
+                };
+              }
+
+              return {
+                x: topPicked.x,
+                y: topPicked.y,
+                thoughts: `${strategyName}: picked from ${Math.min(nMoves, weightedCoords.length)} sampled moves.`,
+              };
+            };
+
+            const getPickNMoves = (pickFrac: number, pickN: number, legalCount: number): number =>
+              Math.max(1, Math.floor(Math.max(0, pickFrac) * legalCount + Math.max(0, pickN)));
+
+            const fallbackWeightedPolicy = (reason: string): { x: number; y: number; thoughts: string } => {
+              const weakenFac = 1.0;
+              const lowerBound = 0.02;
+              const override = 0.9;
+
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: `${reason}: ${forced.thoughts}` };
+
+              const weighted = policyMoves
+                .filter((m) => !m.isPass && m.prob > lowerBound)
+                .map((m) => ({ weight: Math.pow(m.prob, 1 / weakenFac), value: m }));
+              const picked = pickOneWeighted(weighted) ?? policyMoves[0]!;
+              return {
+                x: picked.x,
+                y: picked.y,
+                thoughts: `${reason}: fallback weighted policy (lower_bound ${lowerBound}, weaken_fac ${weakenFac}).`,
+              };
+            };
+
+            if (strategy === 'pick') {
+              const override = Math.max(0, settings.aiPickPickOverride);
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const nMoves = getPickNMoves(settings.aiPickPickFrac, settings.aiPickPickN, legalPolicyMoves.length);
+              const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => ({
+                score: m.prob,
+                weight: 1,
+                x: m.x,
+                y: m.y,
+              }));
+              return pickFromWeightedCoords(weightedCoords, nMoves, 'Pick');
+            }
+
+            if (strategy === 'local' || strategy === 'tenuki') {
+              const lastMove = latest.currentNode.move;
+              if (!lastMove || lastMove.x < 0 || lastMove.y < 0) {
+                return fallbackWeightedPolicy(strategy === 'local' ? 'Local: no previous move' : 'Tenuki: no previous move');
+              }
+
+              const override = Math.max(0, strategy === 'local' ? settings.aiLocalPickOverride : settings.aiTenukiPickOverride);
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const boardSquares = BOARD_SIZE * BOARD_SIZE;
+              const depth = latest.moveHistory.length;
+              const endgame = Math.max(0, strategy === 'local' ? settings.aiLocalEndgame : settings.aiTenukiEndgame);
+              const pickFrac = strategy === 'local' ? settings.aiLocalPickFrac : settings.aiTenukiPickFrac;
+              const pickN = strategy === 'local' ? settings.aiLocalPickN : settings.aiTenukiPickN;
+
+              if (depth > endgame * boardSquares) {
+                const baseN = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+                const nMoves = Math.floor(Math.max(baseN, Math.floor(legalPolicyMoves.length / 2)));
+                const endCoords: WeightedCoord[] = legalPolicyMoves.map((m) => ({
+                  score: m.prob,
+                  weight: 1,
+                  x: m.x,
+                  y: m.y,
+                }));
+                return pickFromWeightedCoords(endCoords, nMoves, strategy === 'local' ? 'Local endgame' : 'Tenuki endgame');
+              }
+
+              const stddev = Math.max(0, strategy === 'local' ? settings.aiLocalStddev : settings.aiTenukiStddev);
+              const var_ = stddev * stddev;
+              if (!(var_ > 0)) {
+                return fallbackWeightedPolicy(strategy === 'local' ? 'Local: stddev <= 0' : 'Tenuki: stddev <= 0');
+              }
+
+              const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => {
+                const dx = m.x - lastMove.x;
+                const dy = m.y - lastMove.y;
+                const gaussian = Math.exp(-0.5 * (dx * dx + dy * dy) / var_);
+                const w = strategy === 'tenuki' ? 1 - gaussian : gaussian;
+                return {
+                  score: m.prob,
+                  weight: Number.isFinite(w) ? Math.max(0, w) : 0,
+                  x: m.x,
+                  y: m.y,
+                };
+              });
+
+              const nMoves = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+              return pickFromWeightedCoords(weightedCoords, nMoves, strategy === 'local' ? 'Local' : 'Tenuki');
+            }
+
+            if (strategy === 'influence' || strategy === 'territory') {
+              const override = Math.max(0, strategy === 'influence' ? settings.aiInfluencePickOverride : settings.aiTerritoryPickOverride);
+              const forced = shouldPlayTopMove(override);
+              if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
+
+              const boardSquares = BOARD_SIZE * BOARD_SIZE;
+              const depth = latest.moveHistory.length;
+              const endgame = Math.max(0, strategy === 'influence' ? settings.aiInfluenceEndgame : settings.aiTerritoryEndgame);
+              const pickFrac = strategy === 'influence' ? settings.aiInfluencePickFrac : settings.aiTerritoryPickFrac;
+              const pickN = strategy === 'influence' ? settings.aiInfluencePickN : settings.aiTerritoryPickN;
+
+              if (depth > endgame * boardSquares) {
+                const baseN = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+                const nMoves = Math.floor(Math.max(baseN, Math.floor(legalPolicyMoves.length / 2)));
+                const endCoords: WeightedCoord[] = legalPolicyMoves.map((m) => ({
+                  score: m.prob,
+                  weight: 1,
+                  x: m.x,
+                  y: m.y,
+                }));
+                return pickFromWeightedCoords(endCoords, nMoves, strategy === 'influence' ? 'Influence endgame' : 'Territory endgame');
+              }
+
+              const threshold = Math.max(0, strategy === 'influence' ? settings.aiInfluenceThreshold : settings.aiTerritoryThreshold);
+              const lineWeightRaw = strategy === 'influence' ? settings.aiInfluenceLineWeight : settings.aiTerritoryLineWeight;
+              const lineWeight = Math.max(1, lineWeightRaw);
+              const thrLine = threshold - 1;
+
+              const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => {
+                const distX = Math.min(BOARD_SIZE - 1 - m.x, m.x);
+                const distY = Math.min(BOARD_SIZE - 1 - m.y, m.y);
+
+                let exponent = 0;
+                if (strategy === 'influence') {
+                  exponent = Math.max(0, thrLine - distX) + Math.max(0, thrLine - distY);
+                } else {
+                  const distMin = Math.min(distX, distY);
+                  exponent = Math.max(0, distMin - thrLine);
+                }
+
+                const w = Math.pow(1 / lineWeight, exponent);
+                return {
+                  score: m.prob * w,
+                  weight: Number.isFinite(w) ? Math.max(0, w) : 0,
+                  x: m.x,
+                  y: m.y,
+                };
+              });
+
+              const nMoves = getPickNMoves(pickFrac, pickN, legalPolicyMoves.length);
+              return pickFromWeightedCoords(weightedCoords, nMoves, strategy === 'influence' ? 'Influence' : 'Territory');
+            }
+
             if (strategy === 'rank') {
               const kyuRank = settings.aiRankKyu;
               const boardSquares = BOARD_SIZE * BOARD_SIZE;
@@ -684,7 +899,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 return { x: top.x, y: top.y, thoughts: 'Rank: no legal policy moves; playing top policy move.' };
               }
 
-              const passProb = policy?.[BOARD_SIZE * BOARD_SIZE] ?? -1;
               if (passProb > picked.prob) {
                 const top = policyMoves[0]!;
                 return {
@@ -1171,6 +1385,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const rootPropsCopy = cloneProps(sgf.tree.props);
       delete rootPropsCopy.B;
       delete rootPropsCopy.W;
+      const rootNote = extractKaTrainUserNoteFromSgfComment(rootPropsCopy['C']);
+      if (rootNote) newRoot.note = rootNote;
+      delete rootPropsCopy['C'];
       newRoot.properties = rootPropsCopy;
       const rootMove = extractMove(sgf.tree.props);
       if (!rootMove && sgf.tree.props['KT'] && !newRoot.analysis) {
@@ -1185,7 +1402,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const decoded = decodeKaTrainKt({ kt: node.props['KT'] });
             if (decoded) parent.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: parent.gameState.currentPlayer });
           }
-          mergeProps(parent.properties ?? (parent.properties = {}), node.props);
+          const note = extractKaTrainUserNoteFromSgfComment(node.props['C']);
+          if (note) parent.note = parent.note ? `${parent.note}\n${note}` : note;
+
+          const propsNoComments = cloneProps(node.props);
+          delete propsNoComments['C'];
+          mergeProps(parent.properties ?? (parent.properties = {}), propsNoComments);
           for (const child of node.children) buildFromSgfNode(parent, child);
           return;
         }
@@ -1193,6 +1415,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const childNode = applyMoveToNode(parent, move);
         if (!childNode) return;
         childNode.properties = cloneProps(node.props);
+        const nodeNote = extractKaTrainUserNoteFromSgfComment(childNode.properties['C']);
+        if (nodeNote) childNode.note = nodeNote;
+        delete childNode.properties['C'];
         if (node.props['KT'] && !childNode.analysis) {
           const decoded = decodeKaTrainKt({ kt: node.props['KT'] });
           if (decoded) childNode.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: childNode.gameState.currentPlayer });
@@ -1206,6 +1431,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const first = applyMoveToNode(newRoot, rootMove);
         if (first) {
           first.properties = cloneProps(sgf.tree.props);
+          const firstNote = extractKaTrainUserNoteFromSgfComment(first.properties['C']);
+          if (firstNote) first.note = firstNote;
+          delete first.properties['C'];
           if (sgf.tree.props['KT'] && !first.analysis) {
             const decoded = decodeKaTrainKt({ kt: sgf.tree.props['KT'] });
             if (decoded) first.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: first.gameState.currentPlayer });
