@@ -27,6 +27,13 @@ const STONE_SIZE = 0.505; // KaTrain Theme.STONE_SIZE
 const STONE_MIN_ALPHA = 0.85; // KaTrain Theme.STONE_MIN_ALPHA
 const MARK_SIZE = 0.42; // KaTrain Theme.MARK_SIZE
 const APPROX_BOARD_COLOR = [0.95, 0.75, 0.47, 1] as const;
+const REGION_BORDER_COLOR = [64 / 255, 85 / 255, 110 / 255, 1] as const; // KaTrain Theme.REGION_BORDER_COLOR
+const NEXT_MOVE_DASH_CONTRAST_COLORS = {
+  black: [0.85, 0.85, 0.85, 1],
+  white: [0.5, 0.5, 0.5, 1],
+} as const; // KaTrain Theme.NEXT_MOVE_DASH_CONTRAST_COLORS
+const PASS_CIRCLE_COLOR = [0.45, 0.05, 0.45, 0.7] as const; // KaTrain Theme.PASS_CIRCLE_COLOR
+const PASS_CIRCLE_TEXT_COLOR = [0.85, 0.85, 0.85, 1] as const; // KaTrain Theme.PASS_CIRCLE_TEXT_COLOR
 const HINTS_LO_ALPHA = 0.6;
 const HINTS_ALPHA = 0.8;
 const HINT_SCALE = 0.98;
@@ -556,12 +563,27 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
     const minY = Math.min(a.y, b.y);
     const maxY = Math.max(a.y, b.y);
     return {
-      left: originX + minX * cellSize - cellSize / 2,
-      top: originY + minY * cellSize - cellSize / 2,
-      width: (maxX - minX + 1) * cellSize,
-      height: (maxY - minY + 1) * cellSize,
+      left: originX + minX * cellSize - cellSize / 3,
+      top: originY + minY * cellSize - cellSize / 3,
+      width: (maxX - minX) * cellSize + (2 / 3) * cellSize,
+      height: (maxY - minY) * cellSize + (2 / 3) * cellSize,
     };
   }, [cellSize, originX, originY, regionOfInterest, roiDrag, toDisplay]);
+
+  const bestHintMoveCoords = useMemo(() => {
+    if (!isAnalysisMode || !settings.analysisShowHints || settings.analysisShowPolicy) return null;
+    const best = analysisData?.moves.find((m) => m.order === 0 && m.x >= 0 && m.y >= 0);
+    return best ? { x: best.x, y: best.y } : null;
+  }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
+
+  const passCircle = useMemo(() => {
+    const m = lastMove;
+    if (!m || m.x >= 0 || m.y >= 0) return null;
+    const cx = originX + ((BOARD_SIZE - 1) / 2) * cellSize;
+    const cy = originY + ((BOARD_SIZE - 1) / 2) * cellSize;
+    const size = Math.min(boardWidth, boardHeight) * 0.227;
+    return { cx, cy, size };
+  }, [boardHeight, boardWidth, cellSize, lastMove, originX, originY]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center">
@@ -590,9 +612,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
             top: roiRect.top,
             width: roiRect.width,
             height: roiRect.height,
-            border: roiDrag ? '2px dashed rgba(34,197,94,0.95)' : '2px solid rgba(34,197,94,0.95)',
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.35) inset',
-            background: roiDrag ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.04)',
+            border: `${roiDrag || isSelectingRegionOfInterest ? Math.max(1, cellSize * 0.07) : Math.max(1, cellSize * 0.045)}px solid ${rgba(REGION_BORDER_COLOR)}`,
+            boxShadow: 'none',
+            background: 'transparent',
           }}
         />
       )}
@@ -887,25 +909,79 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       {/* Children Overlay (Q) */}
       {isAnalysisMode && settings.analysisShowChildren && childMoveRings.map((m) => {
           const d = toDisplay(m.x, m.y);
-          const size = 2 * (cellSize * STONE_SIZE) * 0.95;
-          const isBlack = m.player === 'black';
+          const strokeWidth = Math.max(1, cellSize * 0.04);
+          const ringRadius = Math.max(0, cellSize * STONE_SIZE - strokeWidth);
+          const ringSize = 2 * (ringRadius + strokeWidth);
+          const isBest = !!bestHintMoveCoords && bestHintMoveCoords.x === m.x && bestHintMoveCoords.y === m.y;
+          const showContrast = !isBest;
+          const dashDeg = showContrast ? 18 : 10;
+          const circumference = 2 * Math.PI * ringRadius;
+          const dash = (circumference * dashDeg) / 360;
+          const gap = (circumference * (30 - dashDeg)) / 360;
+          const stoneCol = rgba(m.player === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
+          const contrastCol = rgba(NEXT_MOVE_DASH_CONTRAST_COLORS[m.player]);
           return (
-              <div
-                  key={`child-${m.x}-${m.y}-${m.player}`}
-                  className="absolute pointer-events-none"
-                  style={{
-                      width: size,
-                      height: size,
-                      left: originX + d.x * cellSize - size / 2,
-                      top: originY + d.y * cellSize - size / 2,
-                      borderRadius: '50%',
-                      border: `2px dashed ${isBlack ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)'}`,
-                      boxShadow: isBlack ? '0 0 0 1px rgba(255,255,255,0.35)' : '0 0 0 1px rgba(0,0,0,0.35)',
-                      zIndex: 14,
-                  }}
-              />
+              <svg
+                key={`child-${m.x}-${m.y}-${m.player}`}
+                className="absolute pointer-events-none"
+                width={ringSize}
+                height={ringSize}
+                viewBox={`0 0 ${ringSize} ${ringSize}`}
+                style={{
+                  left: originX + d.x * cellSize - ringSize / 2,
+                  top: originY + d.y * cellSize - ringSize / 2,
+                  zIndex: 14,
+                }}
+              >
+                {showContrast && (
+                  <circle
+                    cx={ringSize / 2}
+                    cy={ringSize / 2}
+                    r={ringRadius}
+                    fill="none"
+                    stroke={contrastCol}
+                    strokeWidth={strokeWidth}
+                  />
+                )}
+                <circle
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={ringRadius}
+                  fill="none"
+                  stroke={stoneCol}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={`${dash} ${gap}`}
+                  strokeLinecap="round"
+                />
+              </svg>
           );
       })}
+
+      {/* Pass Circle (KaTrain-style) */}
+      {passCircle && (
+        <div
+          className="absolute pointer-events-none rounded-full flex items-center justify-center"
+          style={{
+            left: passCircle.cx - passCircle.size / 2,
+            top: passCircle.cy - passCircle.size / 2,
+            width: passCircle.size,
+            height: passCircle.size,
+            backgroundColor: rgba(PASS_CIRCLE_COLOR),
+            zIndex: 18,
+          }}
+        >
+          <div
+            style={{
+              color: rgba(PASS_CIRCLE_TEXT_COLOR),
+              fontSize: passCircle.size * 0.25,
+              lineHeight: 1,
+              fontWeight: 700,
+            }}
+          >
+            Pass
+          </div>
+        </div>
+      )}
 
       {/* Hints / Top Moves (E) */}
       {isAnalysisMode && analysisData && settings.analysisShowHints && !settings.analysisShowPolicy &&
