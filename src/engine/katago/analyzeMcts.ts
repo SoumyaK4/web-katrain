@@ -114,8 +114,10 @@ function expandNode(args: {
   maxChildren: number;
   libertyMap?: Uint8Array;
   policyOut?: Float32Array; // len 362, illegal = -1, pass at index 361
+  policyOutputScaling?: number;
 }): void {
   const { node, stones, koPoint, policyLogits, passLogit, maxChildren } = args;
+  const policyScale = args.policyOutputScaling ?? 1.0;
   const pla = node.playerToMove;
   const opp = opponentOf(pla);
 
@@ -164,10 +166,10 @@ function expandNode(args: {
     }
 
     if (!hasEmptyNeighbor && !captures && !connectsToSafeGroup) continue;
-    legalMoves.push({ move: p, logit: policyLogits[p]! });
+    legalMoves.push({ move: p, logit: policyLogits[p]! * policyScale });
   }
 
-  legalMoves.push({ move: PASS_MOVE, logit: passLogit });
+  legalMoves.push({ move: PASS_MOVE, logit: passLogit * policyScale });
 
   let maxLogit = Number.NEGATIVE_INFINITY;
   for (const m of legalMoves) if (m.logit > maxLogit) maxLogit = m.logit;
@@ -762,6 +764,7 @@ export class MctsSearch {
   readonly nnRandomize: boolean;
   readonly conservativePass: boolean;
   readonly wideRootNoise: number;
+  private readonly outputScaleMultiplier: number;
 
   private readonly rootStones: Uint8Array;
   private readonly rootKoPoint: number;
@@ -795,6 +798,7 @@ export class MctsSearch {
     rootOwnership: Float32Array;
     recentScoreCenter: number;
     rand: Rand;
+    outputScaleMultiplier: number;
   }) {
     this.model = args.model;
     this.ownershipMode = args.ownershipMode;
@@ -817,6 +821,7 @@ export class MctsSearch {
     this.rootOwnership = args.rootOwnership;
     this.recentScoreCenter = args.recentScoreCenter;
     this.rand = args.rand;
+    this.outputScaleMultiplier = args.outputScaleMultiplier;
   }
 
   static async create(args: {
@@ -834,6 +839,7 @@ export class MctsSearch {
     ownershipMode: OwnershipMode;
     wideRootNoise: number;
   }): Promise<MctsSearch> {
+    const outputScaleMultiplier = args.model.postProcessParams?.outputScaleMultiplier ?? 1.0;
     const rootStones = boardStateToStones(args.board);
     const rootKoPoint = computeKoPointFromPrevious({ board: args.board, previousBoard: args.previousBoard, moveHistory: args.moveHistory });
 
@@ -880,7 +886,7 @@ export class MctsSearch {
     const rootOwnershipSign = args.currentPlayer === 'black' ? 1 : -1;
     const rootOwnership = new Float32Array(BOARD_AREA);
     for (let i = 0; i < BOARD_AREA; i++) {
-      rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[i]!);
+      rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[i]! * outputScaleMultiplier);
     }
 
     const rootPolicy = new Float32Array(BOARD_AREA + 1);
@@ -893,6 +899,7 @@ export class MctsSearch {
       maxChildren: args.maxChildren,
       libertyMap: rootEval.libertyMap,
       policyOut: rootPolicy,
+      policyOutputScaling: outputScaleMultiplier,
     });
     rootNode.ownership = rootOwnership;
 
@@ -935,6 +942,7 @@ export class MctsSearch {
       rootOwnership,
       recentScoreCenter,
       rand: new Rand(),
+      outputScaleMultiplier,
     });
   }
 
@@ -1086,7 +1094,7 @@ export class MctsSearch {
           const ownershipSign = job.currentPlayer === 'black' ? 1 : -1;
           const own = new Float32Array(BOARD_AREA);
           for (let p = 0; p < BOARD_AREA; p++) {
-            own[p] = ownershipSign * Math.tanh(ev.ownership[p]!);
+            own[p] = ownershipSign * Math.tanh(ev.ownership[p]! * this.outputScaleMultiplier);
           }
           job.leaf.ownership = own;
         }
@@ -1099,6 +1107,7 @@ export class MctsSearch {
           passLogit: ev.passLogit,
           maxChildren: this.maxChildren,
           libertyMap: ev.libertyMap,
+          policyOutputScaling: this.outputScaleMultiplier,
         });
 
         const leafValue = 2 * ev.blackWinProb - 1;
@@ -1293,6 +1302,7 @@ export async function analyzeMcts(args: {
     pv: string[];
   }>;
 }> {
+  const outputScaleMultiplier = args.model.postProcessParams?.outputScaleMultiplier ?? 1.0;
   const maxVisits = Math.max(16, Math.min(args.visits ?? 256, ENGINE_MAX_VISITS));
   const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs ?? 800, ENGINE_MAX_TIME_MS));
   const batchSize = Math.max(1, Math.min(args.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
@@ -1350,7 +1360,7 @@ export async function analyzeMcts(args: {
   const rootOwnershipSign = args.currentPlayer === 'black' ? 1 : -1;
   const rootOwnership = new Float32Array(BOARD_AREA);
   for (let i = 0; i < BOARD_AREA; i++) {
-    rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[i]!);
+    rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[i]! * outputScaleMultiplier);
   }
 
   const rootPolicy = new Float32Array(BOARD_AREA + 1);
@@ -1363,6 +1373,7 @@ export async function analyzeMcts(args: {
     maxChildren,
     libertyMap: rootEval.libertyMap,
     policyOut: rootPolicy,
+    policyOutputScaling: outputScaleMultiplier,
   });
   rootNode.ownership = rootOwnership;
 
@@ -1524,19 +1535,20 @@ export async function analyzeMcts(args: {
       const ownershipSign = job.currentPlayer === 'black' ? 1 : -1;
       const own = new Float32Array(BOARD_AREA);
       for (let p = 0; p < BOARD_AREA; p++) {
-        own[p] = ownershipSign * Math.tanh(ev.ownership[p]!);
+        own[p] = ownershipSign * Math.tanh(ev.ownership[p]! * outputScaleMultiplier);
       }
       job.leaf.ownership = own;
 
-	      expandNode({
-	        node: job.leaf,
-	        stones: job.stones,
-	        koPoint: job.koPoint,
-        policyLogits: ev.policy,
-        passLogit: ev.passLogit,
-        maxChildren,
-	        libertyMap: ev.libertyMap,
-	      });
+		    expandNode({
+		      node: job.leaf,
+		      stones: job.stones,
+		      koPoint: job.koPoint,
+      policyLogits: ev.policy,
+      passLogit: ev.passLogit,
+      maxChildren,
+		      libertyMap: ev.libertyMap,
+		      policyOutputScaling: outputScaleMultiplier,
+		    });
 
 	      const leafValue = 2 * ev.blackWinProb - 1;
 	      const leafUtility = computeBlackUtilityFromEval({
