@@ -284,6 +284,11 @@ export const Layout: React.FC = () => {
     komi,
     engineStatus,
     engineError,
+    isGameAnalysisRunning,
+    gameAnalysisDone,
+    gameAnalysisTotal,
+    startFastGameAnalysis,
+    stopGameAnalysis,
     rotateBoard,
   } = useGameStore();
 
@@ -705,11 +710,13 @@ export const Layout: React.FC = () => {
           ? notification.message
           : isInsertMode
             ? 'Insert mode (I to finish)'
-            : isContinuousAnalysis
-              ? 'Pondering… (Space)'
-              : isAnalysisMode
-                ? 'Analysis mode on (Tab toggles)'
-                : 'Ready';
+            : isGameAnalysisRunning
+              ? `Analyzing game… ${gameAnalysisDone}/${gameAnalysisTotal}`
+              : isContinuousAnalysis
+                ? 'Pondering… (Space)'
+                : isAnalysisMode
+                  ? 'Analysis mode on (Tab toggles)'
+                  : 'Ready';
 
   const pointsLost = computePointsLost({ currentNode });
   const winRate = analysisData?.rootWinRate ?? currentNode.analysis?.rootWinRate;
@@ -1092,6 +1099,21 @@ export const Layout: React.FC = () => {
                       <FaPlay /> Selfplay to end
                     </span>
                     <span className="text-xs text-gray-400">L</span>
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left hover:bg-gray-700 flex items-center justify-between"
+                    onClick={() => {
+                      if (isGameAnalysisRunning) stopGameAnalysis();
+                      else startFastGameAnalysis();
+                      setAnalysisMenuOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FaRobot /> {isGameAnalysisRunning ? 'Stop game analysis' : 'Analyze game (fast)'}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {isGameAnalysisRunning ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
+                    </span>
                   </button>
 
                   <div className="h-px bg-gray-700 my-1" />

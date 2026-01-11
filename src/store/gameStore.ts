@@ -20,6 +20,9 @@ interface GameStore extends GameState {
   insertAfterNodeId: string | null; // Main-branch continuation to copy after insert.
   insertAnchorNodeId: string | null; // Where insert mode started.
   isSelfplayToEnd: boolean;
+  isGameAnalysisRunning: boolean;
+  gameAnalysisDone: number;
+  gameAnalysisTotal: number;
   isAiPlaying: boolean;
   aiColor: Player | null;
   isAnalysisMode: boolean;
@@ -79,6 +82,8 @@ interface GameStore extends GameState {
   toggleInsertMode: () => void;
   selfplayToEnd: () => void;
   stopSelfplayToEnd: () => void;
+  startFastGameAnalysis: () => void;
+  stopGameAnalysis: () => void;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
   setCurrentNodeNote: (note: string) => void;
   rotateBoard: () => void;
@@ -296,6 +301,7 @@ const initialSettings: GameSettings = {
 
 let continuousToken = 0;
 let selfplayToken = 0;
+let gameAnalysisToken = 0;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -319,6 +325,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   insertAfterNodeId: null,
   insertAnchorNodeId: null,
   isSelfplayToEnd: false,
+  isGameAnalysisRunning: false,
+  gameAnalysisDone: 0,
+  gameAnalysisTotal: 0,
   isAiPlaying: false,
   aiColor: null,
   isAnalysisMode: false,
@@ -444,6 +453,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'stop') {
       s.stopAnalysis();
       s.stopSelfplayToEnd();
+      s.stopGameAnalysis();
       return;
     }
 
@@ -707,12 +717,133 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ isSelfplayToEnd: false });
   },
 
+  startFastGameAnalysis: () => {
+    const token = ++gameAnalysisToken;
+    const state = get();
+
+    const nodes: GameNode[] = [];
+    let cursor: GameNode | null = state.rootNode;
+    while (cursor) {
+      nodes.push(cursor);
+      cursor = cursor.children[0] ?? null;
+    }
+
+    const total = nodes.length;
+    if (total <= 1) {
+      set({ isGameAnalysisRunning: false, gameAnalysisDone: 0, gameAnalysisTotal: total });
+      return;
+    }
+
+    set({ isGameAnalysisRunning: true, gameAnalysisDone: 0, gameAnalysisTotal: total });
+
+    void (async () => {
+      const fastVisits = Math.max(16, Math.min(get().settings.katagoFastVisits, 5000));
+      const maxTimeMs = Math.max(50, Math.min(600, Math.floor(get().settings.katagoMaxTimeMs * 0.15)));
+      const batchSize = Math.max(1, Math.min(get().settings.katagoBatchSize, 64));
+      const maxChildren = Math.max(4, Math.min(get().settings.katagoMaxChildren, 361));
+      const topK = Math.max(1, Math.min(get().settings.katagoTopK, 10));
+      const analysisPvLen = Math.max(0, Math.min(get().settings.katagoAnalysisPvLen, 15));
+
+      let done = 0;
+      let lastUiUpdate = performance.now();
+
+      for (const node of nodes) {
+        if (token !== gameAnalysisToken) return;
+        if (!get().isGameAnalysisRunning) return;
+
+        // If interactive analysis is running/queued, pause bulk analysis.
+        while (get().engineStatus === 'loading') {
+          if (token !== gameAnalysisToken) return;
+          if (!get().isGameAnalysisRunning) return;
+          await sleep(50);
+        }
+
+        const already = node.analysis && (node.analysisVisitsRequested ?? 0) >= fastVisits;
+        if (!already) {
+          try {
+            const parentBoard = node.parent?.gameState.board;
+            const grandparentBoard = node.parent?.parent?.gameState.board;
+            const analysis = await getKataGoEngineClient().analyze({
+              positionId: node.id,
+              modelUrl: get().settings.katagoModelUrl,
+              board: node.gameState.board,
+              previousBoard: parentBoard,
+              previousPreviousBoard: grandparentBoard,
+              currentPlayer: node.gameState.currentPlayer,
+              moveHistory: node.gameState.moveHistory,
+              komi: node.gameState.komi,
+              rules: get().settings.gameRules,
+              topK,
+              analysisPvLen,
+              includeMovesOwnership: false,
+              wideRootNoise: get().settings.katagoWideRootNoise,
+              nnRandomize: get().settings.katagoNnRandomize,
+              conservativePass: get().settings.katagoConservativePass,
+              visits: fastVisits,
+              maxTimeMs,
+              batchSize,
+              maxChildren,
+              reuseTree: false,
+              ownershipMode: 'root',
+            });
+
+            node.analysis = {
+              rootWinRate: analysis.rootWinRate,
+              rootScoreLead: analysis.rootScoreLead,
+              rootScoreSelfplay: analysis.rootScoreSelfplay,
+              rootScoreStdev: analysis.rootScoreStdev,
+              moves: analysis.moves,
+              territory: ownershipToTerritoryGrid(analysis.ownership),
+              policy: analysis.policy,
+              ownershipStdev: analysis.ownershipStdev,
+            };
+            node.analysisVisitsRequested = fastVisits;
+          } catch {
+            // Ignore failures for bulk analysis; individual node analysis can still run later.
+          }
+        }
+
+        done++;
+
+        const now = performance.now();
+        if (now - lastUiUpdate > 120 || done === total) {
+          set((s) => ({
+            gameAnalysisDone: done,
+            gameAnalysisTotal: total,
+            treeVersion: s.treeVersion + 1,
+          }));
+          lastUiUpdate = now;
+        }
+
+        await sleep(0);
+      }
+
+      if (token !== gameAnalysisToken) return;
+      set((s) => ({
+        isGameAnalysisRunning: false,
+        gameAnalysisDone: done,
+        gameAnalysisTotal: total,
+        treeVersion: s.treeVersion + 1,
+      }));
+    })();
+  },
+
+  stopGameAnalysis: () => {
+    gameAnalysisToken++;
+    set({ isGameAnalysisRunning: false });
+  },
+
   runAnalysis: async (opts) => {
       const state = get();
       if (!state.isAnalysisMode) return;
 
       // Check if current node already has analysis
-      if (!opts?.force && state.currentNode.analysis) {
+      const desiredVisits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, 5000));
+      if (
+        !opts?.force &&
+        state.currentNode.analysis &&
+        (state.currentNode.analysisVisitsRequested ?? 0) >= desiredVisits
+      ) {
           set({ analysisData: state.currentNode.analysis });
           return;
       }
@@ -892,6 +1023,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       const clearAnalysis = (node: GameNode) => {
         node.analysis = null;
+        node.analysisVisitsRequested = 0;
         for (const child of node.children) clearAnalysis(child);
       };
       clearAnalysis(state.rootNode);
@@ -1958,6 +2090,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   resetGame: () => {
     const state = get();
     get().stopSelfplayToEnd();
+    get().stopGameAnalysis();
     if (state.settings.soundEnabled) {
         playNewGameSound();
     }
@@ -2021,6 +2154,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const newRoot = createNode(null, null, rootState, 'root');
     newRoot.properties = { RU: [rulesToSgfRu(rules)] };
+
+    const applyKtAnalysis = (node: GameNode, kt: string[]) => {
+      const decoded = decodeKaTrainKt({ kt });
+      if (!decoded) return;
+      const analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: node.gameState.currentPlayer });
+      if (!analysis) return;
+      node.analysis = analysis;
+      const rootInfo = decoded.root as { visits?: unknown } | null;
+      const visitsRaw = rootInfo?.visits;
+      const visits = typeof visitsRaw === 'number' && Number.isFinite(visitsRaw) ? Math.max(0, Math.floor(visitsRaw)) : 0;
+      if (visits > 0) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, Math.min(visits, 5000));
+    };
 
     const cloneProps = (props: Record<string, string[]> | undefined): Record<string, string[]> => {
       const out: Record<string, string[]> = {};
@@ -2115,16 +2260,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       newRoot.properties = rootPropsCopy;
       const rootMove = extractMove(sgf.tree.props);
       if (!rootMove && sgf.tree.props['KT'] && !newRoot.analysis) {
-        const decoded = decodeKaTrainKt({ kt: sgf.tree.props['KT'] });
-        if (decoded) newRoot.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: rootState.currentPlayer });
+        applyKtAnalysis(newRoot, sgf.tree.props['KT']);
       }
 
       const buildFromSgfNode = (parent: GameNode, node: NonNullable<ParsedSgf['tree']>) => {
         const move = extractMove(node.props);
         if (!move) {
           if (node.props['KT'] && !parent.analysis) {
-            const decoded = decodeKaTrainKt({ kt: node.props['KT'] });
-            if (decoded) parent.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: parent.gameState.currentPlayer });
+            applyKtAnalysis(parent, node.props['KT']);
           }
           const note = extractKaTrainUserNoteFromSgfComment(node.props['C']);
           if (note) parent.note = parent.note ? `${parent.note}\n${note}` : note;
@@ -2143,8 +2286,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (nodeNote) childNode.note = nodeNote;
         delete childNode.properties['C'];
         if (node.props['KT'] && !childNode.analysis) {
-          const decoded = decodeKaTrainKt({ kt: node.props['KT'] });
-          if (decoded) childNode.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: childNode.gameState.currentPlayer });
+          applyKtAnalysis(childNode, node.props['KT']);
         }
         parent.children.push(childNode);
 
@@ -2159,8 +2301,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (firstNote) first.note = firstNote;
           delete first.properties['C'];
           if (sgf.tree.props['KT'] && !first.analysis) {
-            const decoded = decodeKaTrainKt({ kt: sgf.tree.props['KT'] });
-            if (decoded) first.analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: first.gameState.currentPlayer });
+            applyKtAnalysis(first, sgf.tree.props['KT']);
           }
           newRoot.children.push(first);
           for (const child of sgf.tree.children) buildFromSgfNode(first, child);
@@ -2185,10 +2326,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       while (current.children.length > 0) current = current.children[0]!;
     }
 
-    set((state) => ({
-      rootNode: newRoot,
-      currentNode: current,
-      board: current.gameState.board,
+	    set((state) => ({
+	      rootNode: newRoot,
+	      currentNode: current,
+	      board: current.gameState.board,
       currentPlayer: current.gameState.currentPlayer,
       moveHistory: current.gameState.moveHistory,
       capturedBlack: current.gameState.capturedBlack,
@@ -2196,10 +2337,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       komi: rootState.komi,
       boardRotation: 0,
       analysisData: current.analysis || null,
-      treeVersion: state.treeVersion + 1,
-      settings: { ...state.settings, gameRules: rules },
-    }));
-  },
+	      treeVersion: state.treeVersion + 1,
+	      settings: { ...state.settings, gameRules: rules },
+	    }));
+
+	    // KaTrain-like: start a quick background analysis of the whole mainline so graphs populate fast.
+	    if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
+	      setTimeout(() => get().startFastGameAnalysis(), 0);
+	    }
+	  },
 
   passTurn: () => {
       const state = get();

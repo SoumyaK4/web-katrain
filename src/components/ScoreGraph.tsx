@@ -7,30 +7,49 @@ export const ScoreGraph: React.FC = () => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const nodePath = useMemo(() => {
+  // KaTrain-style graph: show the whole mainline for the current branch.
+  const { nodes, highlightedIndex } = useMemo(() => {
     const path: GameNode[] = [];
     let node: GameNode | null = currentNode;
     while (node) {
       path.push(node);
       node = node.parent;
     }
-    return path.reverse();
+    path.reverse(); // [Root..Current]
+
+    const out: GameNode[] = [...path];
+    let cursor: GameNode = currentNode;
+    while (cursor.children.length > 0) {
+      cursor = cursor.children[0]!;
+      out.push(cursor);
+    }
+
+    return { nodes: out, highlightedIndex: Math.max(0, path.length - 1) };
   }, [currentNode]);
 
   const dataPoints = useMemo(() => {
-    return nodePath.map((node) => {
-      const score = node.analysis ? node.analysis.rootScoreLead : 0;
-      let isMistake = false;
+    const threshold = settings.mistakeThreshold ?? 3.0;
+    return nodes.map((node) => {
+      const score = node.analysis?.rootScoreLead ?? 0;
+      let pointsLost: number | null = null;
 
-      if (node.move && node.parent && node.parent.analysis) {
-        const move = node.move;
-        const candidate = node.parent.analysis.moves.find((m) => m.x === move.x && m.y === move.y);
-        if (candidate && candidate.pointsLost >= (settings.mistakeThreshold ?? 3.0)) isMistake = true;
+      if (node.move && node.parent) {
+        const parentScore = node.parent.analysis?.rootScoreLead;
+        const childScore = node.analysis?.rootScoreLead;
+        if (typeof parentScore === 'number' && typeof childScore === 'number') {
+          const sign = node.move.player === 'black' ? 1 : -1;
+          pointsLost = sign * (parentScore - childScore);
+        } else {
+          const candidate = node.parent.analysis?.moves.find((m) => m.x === node.move!.x && m.y === node.move!.y);
+          pointsLost = typeof candidate?.pointsLost === 'number' ? candidate.pointsLost : null;
+        }
       }
+
+      const isMistake = pointsLost !== null && pointsLost >= threshold;
 
       return { score, node, isMistake };
     });
-  }, [nodePath, settings.mistakeThreshold]);
+  }, [nodes, settings.mistakeThreshold]);
 
   const width = 300;
   const height = 100;
@@ -91,7 +110,7 @@ export const ScoreGraph: React.FC = () => {
   const hoverScore = hoverIndex !== null ? dataPoints[hoverIndex]?.score ?? 0 : 0;
   const hoverY = hoverIndex !== null ? scoreToY(hoverScore) : 0;
 
-  const currentIndex = count - 1;
+  const currentIndex = Math.min(Math.max(0, highlightedIndex), Math.max(0, count - 1));
   const currentX = currentIndex * step;
   const currentY = scoreToY(dataPoints[currentIndex]?.score ?? 0);
 
@@ -159,11 +178,10 @@ export const ScoreGraph: React.FC = () => {
             transform: 'translate(-50%, -50%)',
           }}
         >
-          {hoverScore > 0 ? '+' : ''}
+          Move {hoverIndex}: {hoverScore > 0 ? '+' : ''}
           {hoverScore.toFixed(1)}
         </div>
       )}
     </div>
   );
 };
-

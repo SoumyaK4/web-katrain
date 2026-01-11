@@ -7,37 +7,50 @@ export const WinRateGraph: React.FC = () => {
     const svgRef = useRef<SVGSVGElement>(null);
     const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-    // 1. Traverse up from currentNode to root to get the full path
-    const nodePath = useMemo(() => {
+    // KaTrain-style graph: show the whole mainline for the current branch.
+    const { nodes, highlightedIndex } = useMemo(() => {
         const path: GameNode[] = [];
         let node: GameNode | null = currentNode;
         while (node) {
             path.push(node);
             node = node.parent;
         }
-        return path.reverse(); // Now it's [Root, Move1, Move2, ..., Current]
+        path.reverse(); // [Root..Current]
+
+        const out: GameNode[] = [...path];
+        let cursor: GameNode = currentNode;
+        while (cursor.children.length > 0) {
+            cursor = cursor.children[0]!;
+            out.push(cursor);
+        }
+
+        return { nodes: out, highlightedIndex: Math.max(0, path.length - 1) };
     }, [currentNode]);
 
     // 2. Extract analysis data
     const dataPoints = useMemo(() => {
-        return nodePath.map((node) => {
-            const winRate = node.analysis ? node.analysis.rootWinRate : 0.5;
-            let isMistake = false;
+        const threshold = settings.mistakeThreshold ?? 3.0;
+        return nodes.map((node) => {
+            const winRate = node.analysis?.rootWinRate ?? 0.5;
+            let pointsLost: number | null = null;
 
-            // Check if this move was a mistake
-            // We need to compare with parent analysis or check current move properties
-            // Ideally we check if the move played (to get here) lost points.
-            if (node.move && node.parent && node.parent.analysis) {
-                 const move = node.move;
-                 const candidate = node.parent.analysis.moves.find(m => m.x === move.x && m.y === move.y);
-                 if (candidate && candidate.pointsLost >= (settings.mistakeThreshold ?? 3.0)) {
-                     isMistake = true;
-                 }
+            if (node.move && node.parent) {
+                const parentScore = node.parent.analysis?.rootScoreLead;
+                const childScore = node.analysis?.rootScoreLead;
+                if (typeof parentScore === 'number' && typeof childScore === 'number') {
+                    const sign = node.move.player === 'black' ? 1 : -1;
+                    pointsLost = sign * (parentScore - childScore);
+                } else {
+                    const candidate = node.parent.analysis?.moves.find((m) => m.x === node.move!.x && m.y === node.move!.y);
+                    pointsLost = typeof candidate?.pointsLost === 'number' ? candidate.pointsLost : null;
+                }
             }
+
+            const isMistake = pointsLost !== null && pointsLost >= threshold;
 
             return { winRate, node, isMistake };
         });
-    }, [nodePath, settings.mistakeThreshold]);
+    }, [nodes, settings.mistakeThreshold]);
 
     const width = 300;
     const height = 100;
@@ -86,8 +99,8 @@ export const WinRateGraph: React.FC = () => {
         hoverY = height - (hoverWinRate * height);
     }
 
-    // Current move indicator (last point)
-    const currentIndex = count - 1;
+    // Current move indicator (highlighted node)
+    const currentIndex = Math.min(Math.max(0, highlightedIndex), Math.max(0, count - 1));
     const currentX = currentIndex * step;
     const currentY = height - (dataPoints[currentIndex].winRate * height);
 
@@ -165,7 +178,7 @@ export const WinRateGraph: React.FC = () => {
                         transform: 'translate(-50%, -50%)'
                     }}
                 >
-                    {(hoverWinRate * 100).toFixed(1)}%
+                    Move {hoverIndex}: {(hoverWinRate * 100).toFixed(1)}%
                 </div>
             )}
         </div>
