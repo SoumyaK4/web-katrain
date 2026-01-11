@@ -482,11 +482,11 @@ function selectEdge(node: Node, isRoot: boolean, wideRootNoise: number, rand: Ra
     if (applyWideRootNoise) {
       // Mirrors KataGo's wideRootNoise: smooth policy and add random utility bonuses (root only).
       prior = Math.pow(prior, wideRootNoisePolicyExponent);
-      if (rand.nextBool(0.5)) {
-        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
-        childUtility += pla === BLACK ? bonus : -bonus;
-      }
-    }
+	      if (rand.nextBool(0.5)) {
+	        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
+	        childUtility += pla === WHITE ? bonus : -bonus;
+	      }
+	    }
 
     const explore = (scaling * prior) / (1.0 + childWeight);
     const score = explore + sign * childUtility;
