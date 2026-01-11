@@ -39,6 +39,7 @@ export const NotesPanel: React.FC = () => {
 
   const move = currentNode.move;
   const parent = currentNode.parent;
+  const parentPolicy = parent?.analysis?.policy;
   const depth = currentNode.gameState.moveHistory.length;
   const label = moveToLabel(move);
   const scoreLead = currentNode.analysis?.rootScoreLead;
@@ -53,8 +54,8 @@ export const NotesPanel: React.FC = () => {
   }, [currentNode.analysis?.rootScoreLead, move, parent]);
 
   const policyStats = useMemo(() => {
-    if (!move || !parent?.analysis?.policy) return null;
-    const policy = parent.analysis.policy;
+    if (!move || !parentPolicy) return null;
+    const policy = parentPolicy;
     const rankList = policyRanking(policy);
     if (rankList.length === 0) return null;
 
@@ -68,7 +69,7 @@ export const NotesPanel: React.FC = () => {
       ) + 1;
     const best = rankList[0] ?? null;
     return { rank: rank > 0 ? rank : null, prob, best };
-  }, [move, parent?.analysis?.policy]);
+  }, [move, parentPolicy]);
 
   const topMove = useMemo(() => bestMoveFromCandidates(parent?.analysis?.moves), [parent?.analysis?.moves]);
   const topMoveLabel =

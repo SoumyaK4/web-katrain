@@ -283,6 +283,8 @@ export const Layout: React.FC = () => {
     komi,
     engineStatus,
     engineError,
+    engineBackend,
+    engineModelName,
     isGameAnalysisRunning,
     gameAnalysisType,
     gameAnalysisDone,
@@ -297,6 +299,7 @@ export const Layout: React.FC = () => {
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
   const [uiState, setUiState] = useState<UiState>(() => loadUiState());
 
@@ -701,6 +704,23 @@ export const Layout: React.FC = () => {
     return 'bg-gray-500';
   }, [engineStatus]);
 
+  const engineMeta = useMemo(() => {
+    const parts: string[] = [engineStatus];
+    if (engineBackend) parts.push(engineBackend);
+    if (engineModelName) {
+      parts.push(engineModelName.length > 28 ? `${engineModelName.slice(0, 28)}…` : engineModelName);
+    }
+    return parts.join(' · ');
+  }, [engineBackend, engineModelName, engineStatus]);
+
+  const engineMetaTitle = useMemo(() => {
+    const parts: string[] = [];
+    if (engineBackend) parts.push(engineBackend);
+    if (engineModelName) parts.push(engineModelName);
+    if (parts.length === 0) return undefined;
+    return `Engine: ${parts.join(' · ')}`;
+  }, [engineBackend, engineModelName]);
+
   const statusText = engineError
     ? `Engine error: ${engineError}`
     : isSelfplayToEnd
@@ -961,6 +981,13 @@ export const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <IconButton
+              title="Open side panel"
+              onClick={() => setRightPanelOpen(true)}
+              className="lg:hidden"
+            >
+              <FaChevronLeft />
+            </IconButton>
             <button
               type="button"
               className={[
@@ -1283,9 +1310,30 @@ export const Layout: React.FC = () => {
       </div>
 
       {/* Right side panel (KaTrain-like) */}
-      <div className="w-96 bg-gray-800 border-l border-gray-700 flex flex-col">
+      {rightPanelOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+          onClick={() => setRightPanelOpen(false)}
+        />
+      )}
+      <div
+        className={[
+          'bg-gray-800 border-l border-gray-700 flex flex-col',
+          'fixed inset-y-0 right-0 z-40 w-full max-w-md',
+          rightPanelOpen ? 'flex' : 'hidden',
+          'lg:static lg:flex lg:w-96 lg:max-w-none lg:z-auto',
+        ].join(' ')}
+      >
         {/* Play / Analyze tabs */}
         <div className="h-14 border-b border-gray-700 flex items-center p-2 gap-2">
+          <button
+            type="button"
+            className="lg:hidden h-10 w-10 flex items-center justify-center rounded hover:bg-gray-700 text-gray-300 hover:text-white"
+            onClick={() => setRightPanelOpen(false)}
+            title="Close side panel"
+          >
+            <FaTimes />
+          </button>
           <button
             className={[
               'flex-1 h-10 rounded font-semibold border',
@@ -1488,7 +1536,7 @@ export const Layout: React.FC = () => {
             </button>
             <div className="text-[11px] text-gray-400 font-mono flex items-center gap-2">
               <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
-              {engineStatus}
+              <span title={engineMetaTitle}>{engineMeta}</span>
             </div>
           </div>
           {modePanels.notesOpen && (

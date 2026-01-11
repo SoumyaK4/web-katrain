@@ -2,13 +2,14 @@ import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { FaTimes } from 'react-icons/fa';
 import type { GameSettings } from '../types';
+import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 
 interface SettingsModalProps {
     onClose: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
-    const { settings, updateSettings } = useGameStore();
+    const { settings, updateSettings, engineBackend, engineModelName } = useGameStore();
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -725,6 +726,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             <p className="text-xs text-gray-500">
                                 Use a local path under <span className="font-mono">/models/</span> or a full URL (must allow CORS).
                             </p>
+                            <p className="text-xs text-gray-500">
+                                Engine: <span className="font-mono">{engineBackend ?? 'not loaded'}</span>
+                                {engineModelName ? (
+                                    <>
+                                        {' '}
+                                        · <span className="font-mono" title={engineModelName}>{engineModelName}</span>
+                                    </>
+                                ) : null}
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mt-4">
@@ -733,7 +743,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <input
                                     type="number"
                                     min={16}
-                                    max={5000}
+                                    max={ENGINE_MAX_VISITS}
                                     value={settings.katagoVisits}
                                     onChange={(e) => updateSettings({ katagoVisits: Math.max(16, parseInt(e.target.value || '0', 10)) })}
                                     className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
@@ -744,7 +754,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <input
                                     type="number"
                                     min={16}
-                                    max={5000}
+                                    max={ENGINE_MAX_VISITS}
                                     value={settings.katagoFastVisits}
                                     onChange={(e) => updateSettings({ katagoFastVisits: Math.max(16, parseInt(e.target.value || '0', 10)) })}
                                     className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"
@@ -756,7 +766,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <input
                                     type="number"
                                     min={25}
-                                    max={60000}
+                                    max={ENGINE_MAX_TIME_MS}
                                     value={settings.katagoMaxTimeMs}
                                     onChange={(e) => updateSettings({ katagoMaxTimeMs: Math.max(25, parseInt(e.target.value || '0', 10)) })}
                                     className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-sm font-mono"

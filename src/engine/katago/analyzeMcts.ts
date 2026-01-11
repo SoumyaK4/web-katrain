@@ -3,6 +3,7 @@ import type { BoardState, GameRules, Move, Player } from '../../types';
 import { postprocessKataGoV8 } from './evalV8';
 import type { KataGoModelV8Tf } from './modelV8';
 import { expectedWhiteScoreValue, SQRT_BOARD_AREA } from './scoreValue';
+import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from './limits';
 import {
   BLACK,
   WHITE,
@@ -541,8 +542,8 @@ const SYM_POS_MAP: Int16Array = (() => {
     const rot = sym & 3;
     for (let y = 0; y < n; y++) {
       for (let x = 0; x < n; x++) {
-        let sx = mirror ? n - 1 - x : x;
-        let sy = y;
+        const sx = mirror ? n - 1 - x : x;
+        const sy = y;
         let tx: number;
         let ty: number;
         if (rot === 0) {
@@ -936,8 +937,8 @@ export class MctsSearch {
   }
 
   async run(args: { visits: number; maxTimeMs: number; batchSize: number }): Promise<void> {
-    const maxVisits = Math.max(16, Math.min(args.visits, 5000));
-    const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs, 60_000));
+    const maxVisits = Math.max(16, Math.min(args.visits, ENGINE_MAX_VISITS));
+    const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs, ENGINE_MAX_TIME_MS));
     const batchSize = Math.max(1, Math.min(args.batchSize, 64));
 
     if (this.rootNode.visits >= maxVisits) return;
@@ -1290,8 +1291,8 @@ export async function analyzeMcts(args: {
     pv: string[];
   }>;
 }> {
-  const maxVisits = Math.max(16, Math.min(args.visits ?? 256, 5000));
-  const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs ?? 800, 60_000));
+  const maxVisits = Math.max(16, Math.min(args.visits ?? 256, ENGINE_MAX_VISITS));
+  const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs ?? 800, ENGINE_MAX_TIME_MS));
   const batchSize = Math.max(1, Math.min(args.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
   const maxChildren = Math.max(4, Math.min(args.maxChildren ?? 64, 361));
   const topK = Math.max(1, Math.min(args.topK ?? 10, 50));

@@ -4,6 +4,7 @@ import { checkCaptures, getLiberties, getLegalMoves, isEye } from '../utils/game
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
 import { getKataGoEngineClient } from '../engine/katago/client';
+import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
 
 interface GameStore extends GameState {
@@ -34,6 +35,8 @@ interface GameStore extends GameState {
   settings: GameSettings;
   engineStatus: 'idle' | 'loading' | 'ready' | 'error';
   engineError: string | null;
+  engineBackend: string | null;
+  engineModelName: string | null;
 
   // Actions
   toggleAi: (color: Player) => void;
@@ -343,6 +346,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   settings: initialSettings,
   engineStatus: 'idle',
   engineError: null,
+  engineBackend: null,
+  engineModelName: null,
 
   toggleAi: (color) => {
     const s = get();
@@ -464,7 +469,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (!s.isAnalysisMode) set({ isAnalysisMode: true });
 
-    const longTimeMs = 60_000;
+    const longTimeMs = Math.min(ENGINE_MAX_TIME_MS, 60_000);
 
     const toast = (message: string) => {
       set({ notification: { message, type: 'info' } });
@@ -472,9 +477,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     if (mode === 'extra') {
-      const base = Math.max(16, Math.min(s.settings.katagoVisits, 5000));
-      const prev = Math.max(0, Math.min(s.currentNode.analysisVisitsRequested ?? base, 5000));
-      const visits = Math.max(16, Math.min(prev + base, 5000));
+      const base = Math.max(16, Math.min(s.settings.katagoVisits, ENGINE_MAX_VISITS));
+      const prev = Math.max(0, Math.min(s.currentNode.analysisVisitsRequested ?? base, ENGINE_MAX_VISITS));
+      const visits = Math.max(16, Math.min(prev + base, ENGINE_MAX_VISITS));
       toast(`Extra analysis: ${visits} visits`);
       void s.runAnalysis({ force: true, visits, maxTimeMs: longTimeMs });
       return;
@@ -488,14 +493,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       const maxMoveVisits = analysis.moves.reduce((acc, cur) => Math.max(acc, cur.visits), 1);
       const target = Math.max(maxMoveVisits * analysis.moves.length, s.currentNode.analysisVisitsRequested ?? s.settings.katagoVisits);
-      const visits = Math.max(16, Math.min(target, 5000));
+      const visits = Math.max(16, Math.min(target, ENGINE_MAX_VISITS));
       toast(`Equalize: ${visits} visits`);
       void s.runAnalysis({ force: true, visits, maxTimeMs: longTimeMs });
       return;
     }
 
     if (mode === 'sweep') {
-      const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, 5000));
+      const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS));
       toast(`Sweep: ${visits} visits, maxChildren 361`);
       void s.runAnalysis({
         force: true,
@@ -509,7 +514,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     if (mode === 'alternative') {
-      const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, 5000));
+      const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS));
       const wideRootNoise = Math.max(s.settings.katagoWideRootNoise, 0.12);
       toast(`Alternative: ${visits} visits, noise ${wideRootNoise.toFixed(2)}`);
       void s.runAnalysis({
@@ -696,8 +701,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             wideRootNoise: 0.0,
             nnRandomize: false,
             conservativePass: s.settings.katagoConservativePass,
-            visits: Math.max(16, Math.min(s.settings.katagoFastVisits, 5000)),
-            maxTimeMs: Math.max(250, Math.min(s.settings.katagoMaxTimeMs, 60_000)),
+            visits: Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS)),
+            maxTimeMs: Math.max(250, Math.min(s.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS)),
             batchSize: s.settings.katagoBatchSize,
             maxChildren: s.settings.katagoMaxChildren,
             reuseTree: false,
@@ -744,6 +749,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     void (async () => {
       let done = 0;
       let lastUiUpdate = performance.now();
+      let metaSynced = false;
 
       for (const node of nodes) {
         if (token !== gameAnalysisToken) return;
@@ -770,6 +776,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
               rules: get().settings.gameRules,
               conservativePass: get().settings.katagoConservativePass,
             });
+            if (!metaSynced) {
+              const engineInfo = getKataGoEngineClient().getEngineInfo();
+              set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+              metaSynced = true;
+            }
 
             node.analysis = {
               rootWinRate: evaled.rootWinRate,
@@ -831,7 +842,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ isGameAnalysisRunning: true, gameAnalysisType: 'fast', gameAnalysisDone: 0, gameAnalysisTotal: total });
 
     void (async () => {
-      const fastVisits = Math.max(16, Math.min(get().settings.katagoFastVisits, 5000));
+      const fastVisits = Math.max(16, Math.min(get().settings.katagoFastVisits, ENGINE_MAX_VISITS));
       const maxTimeMs = Math.max(50, Math.min(600, Math.floor(get().settings.katagoMaxTimeMs * 0.15)));
       const batchSize = Math.max(1, Math.min(get().settings.katagoBatchSize, 64));
       const maxChildren = Math.max(4, Math.min(get().settings.katagoMaxChildren, 361));
@@ -840,6 +851,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       let done = 0;
       let lastUiUpdate = performance.now();
+      let metaSynced = false;
 
       for (const node of nodes) {
         if (token !== gameAnalysisToken) return;
@@ -882,6 +894,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
               reuseTree: false,
               ownershipMode: 'root',
             });
+            if (!metaSynced) {
+              const engineInfo = getKataGoEngineClient().getEngineInfo();
+              set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+              metaSynced = true;
+            }
 
             node.analysis = {
               rootWinRate: analysis.rootWinRate,
@@ -933,7 +950,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!state.isAnalysisMode) return;
 
       // Check if current node already has analysis
-      const desiredVisits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, 5000));
+      const desiredVisits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, ENGINE_MAX_VISITS));
       if (
         !opts?.force &&
         state.currentNode.analysis &&
@@ -952,8 +969,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const wideRootNoise = opts?.wideRootNoise ?? state.settings.katagoWideRootNoise;
           const nnRandomize = opts?.nnRandomize ?? state.settings.katagoNnRandomize;
           const conservativePass = opts?.conservativePass ?? state.settings.katagoConservativePass;
-          const visits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, 5000));
-          const maxTimeMs = Math.max(25, Math.min(opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs, 60_000));
+          const visits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, ENGINE_MAX_VISITS));
+          const maxTimeMs = Math.max(25, Math.min(opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS));
           const batchSize = Math.max(1, Math.min(opts?.batchSize ?? state.settings.katagoBatchSize, 64));
           const maxChildren = Math.max(4, Math.min(opts?.maxChildren ?? state.settings.katagoMaxChildren, 361));
           const topK = Math.max(1, Math.min(opts?.topK ?? state.settings.katagoTopK, 50));
@@ -1075,10 +1092,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
           };
 
           const latest = get();
+          const engineInfo = getKataGoEngineClient().getEngineInfo();
           if (latest.currentNode.id === node.id) {
-            set({ analysisData: analysisWithTerritory, engineStatus: 'ready', engineError: null });
+            set({
+              analysisData: analysisWithTerritory,
+              engineStatus: 'ready',
+              engineError: null,
+              engineBackend: engineInfo.backend,
+              engineModelName: engineInfo.modelName,
+            });
           } else {
-            set({ engineStatus: 'ready', engineError: null });
+            set({
+              engineStatus: 'ready',
+              engineError: null,
+              engineBackend: engineInfo.backend,
+              engineModelName: engineInfo.modelName,
+            });
           }
 
           maybeApplyTeachUndo();
@@ -1134,6 +1163,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         analysisData: null,
         engineStatus: 'idle',
         engineError: null,
+        engineBackend: null,
+        engineModelName: null,
         treeVersion: rulesChanged ? state.treeVersion + 1 : state.treeVersion,
       };
     }),
@@ -1270,14 +1301,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
             wideRootNoise,
             nnRandomize,
             conservativePass,
-          visits: state.settings.katagoVisits,
-          maxTimeMs: state.settings.katagoMaxTimeMs,
+          visits: Math.max(16, Math.min(state.settings.katagoVisits, ENGINE_MAX_VISITS)),
+          maxTimeMs: Math.max(25, Math.min(state.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS)),
           batchSize: state.settings.katagoBatchSize,
           maxChildren: state.settings.katagoMaxChildren,
           reuseTree: state.settings.katagoReuseTree,
           ownershipMode: aiOwnershipMode,
         })
         .then((analysis) => {
+          const engineInfo = getKataGoEngineClient().getEngineInfo();
+          set({ engineBackend: engineInfo.backend, engineModelName: engineInfo.modelName });
+
           const latest = get();
           if (latest.currentNode.id !== nodeId) return;
           if (latest.currentPlayer !== playerAtStart) return;
@@ -2259,7 +2293,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const rootInfo = decoded.root as { visits?: unknown } | null;
       const visitsRaw = rootInfo?.visits;
       const visits = typeof visitsRaw === 'number' && Number.isFinite(visitsRaw) ? Math.max(0, Math.floor(visitsRaw)) : 0;
-      if (visits > 0) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, Math.min(visits, 5000));
+      if (visits > 0) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, Math.min(visits, ENGINE_MAX_VISITS));
     };
 
     const cloneProps = (props: Record<string, string[]> | undefined): Record<string, string[]> => {

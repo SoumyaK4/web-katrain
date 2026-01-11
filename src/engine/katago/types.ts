@@ -43,6 +43,8 @@ export interface KataGoAnalyzeResponse {
   type: 'katago:analyze_result';
   id: number;
   ok: boolean;
+  backend?: string;
+  modelName?: string;
   analysis?: {
     rootWinRate: number;
     rootScoreLead: number;
@@ -87,6 +89,8 @@ export interface KataGoEvalResponse {
   type: 'katago:eval_result';
   id: number;
   ok: boolean;
+  backend?: string;
+  modelName?: string;
   eval?: {
     rootWinRate: number;
     rootScoreLead: number;

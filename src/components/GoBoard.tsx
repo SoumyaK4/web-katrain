@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { BOARD_SIZE, type CandidateMove, type GameNode } from '../types';
 
@@ -17,6 +17,8 @@ const OWNERSHIP_COLORS = {
   white: [0.92, 0.92, 1.0, 0.8],
 } as const;
 const OWNERSHIP_GAMMA = 1.33;
+const EVAL_DOT_MIN_SIZE = 0.25;
+const EVAL_DOT_MAX_SIZE = 0.5;
 
 function evaluationClass(pointsLost: number): number {
   let i = 0;
@@ -100,19 +102,19 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
     return String(i + 1);
   };
 
-  const toDisplay = (x: number, y: number): { x: number; y: number } => {
+  const toDisplay = useCallback((x: number, y: number): { x: number; y: number } => {
     if (rotation === 1) return { x: BOARD_SIZE - 1 - y, y: x };
     if (rotation === 2) return { x: BOARD_SIZE - 1 - x, y: BOARD_SIZE - 1 - y };
     if (rotation === 3) return { x: y, y: BOARD_SIZE - 1 - x };
     return { x, y };
-  };
+  }, [rotation]);
 
-  const toInternal = (x: number, y: number): { x: number; y: number } => {
+  const toInternal = useCallback((x: number, y: number): { x: number; y: number } => {
     if (rotation === 1) return { x: y, y: BOARD_SIZE - 1 - x };
     if (rotation === 2) return { x: BOARD_SIZE - 1 - x, y: BOARD_SIZE - 1 - y };
     if (rotation === 3) return { x: BOARD_SIZE - 1 - y, y: x };
     return { x, y };
-  };
+  }, [rotation]);
 
   const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
     null
@@ -206,20 +208,36 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
   const evalDots = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowEval || settings.showLastNMistakes === 0) return [];
 
-      const dots: Array<{ x: number; y: number; pointsLost: number; color: string }> = [];
+      const dots: Array<{ key: string; x: number; y: number; pointsLost: number; color: string; size: number }> = [];
       let node: GameNode | null = currentNode;
       let count = 0;
+      let realizedPointsLost: number | null = null;
+
+      const stoneRadius = (cellSize - 2) * 0.5;
+
+      const parentRealizedPointsLost = (n: GameNode): number | null => {
+          const move = n.move;
+          const parentParent = n.parent?.parent;
+          const score = n.analysis?.rootScoreLead;
+          const parentParentScore = parentParent?.analysis?.rootScoreLead;
+          if (!move || !parentParent) return null;
+          if (typeof score !== 'number' || typeof parentParentScore !== 'number') return null;
+          const sign = move.player === 'black' ? 1 : -1;
+          return sign * (score - parentParentScore);
+      };
 
       while (node && node.parent && count < settings.showLastNMistakes) {
           const move = node.move;
           if (!move || move.x < 0 || move.y < 0) {
+              realizedPointsLost = parentRealizedPointsLost(node);
               node = node.parent;
               count++;
               continue;
           }
 
           // Skip captured stones (KaTrain draws eval dots on existing stones only).
-          if (board[move.y]?.[move.x] === null) {
+          if (board[move.y]?.[move.x] !== move.player) {
+              realizedPointsLost = parentRealizedPointsLost(node);
               node = node.parent;
               count++;
               continue;
@@ -240,15 +258,26 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           if (pointsLost !== null) {
               const cls = evaluationClass(pointsLost);
               const color = rgba(KATRAN_EVAL_COLORS[cls]!);
+              let evalScale = 1;
+              if (pointsLost && realizedPointsLost) {
+                  if (pointsLost <= 0.5 && realizedPointsLost <= 1.5) evalScale = 0;
+                  else evalScale = Math.min(1, Math.max(0, realizedPointsLost / pointsLost));
+              }
+              const evalRadius = Math.sqrt(Math.max(0, Math.min(1, evalScale)));
+              const dotRadius =
+                stoneRadius *
+                (EVAL_DOT_MIN_SIZE + evalRadius * (EVAL_DOT_MAX_SIZE - EVAL_DOT_MIN_SIZE));
+              const size = Math.max(2, 2 * dotRadius);
               const d = toDisplay(move.x, move.y);
-              dots.push({ x: d.x, y: d.y, pointsLost, color });
+              dots.push({ key: node.id, x: d.x, y: d.y, pointsLost, color, size });
           }
 
+          realizedPointsLost = parentRealizedPointsLost(node);
           node = node.parent;
           count++;
       }
       return dots;
-  }, [board, currentNode, isAnalysisMode, settings.analysisShowEval, settings.showLastNMistakes, rotation]);
+  }, [board, cellSize, currentNode, isAnalysisMode, settings.analysisShowEval, settings.showLastNMistakes, toDisplay]);
 
   const childMoveRings = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowChildren) return [];
@@ -297,7 +326,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           }
       }
       return out;
-  }, [analysisData, currentNode, isAnalysisMode, settings.analysisShowOwnership, cellSize, padding, rotation]);
+  }, [analysisData, currentNode, isAnalysisMode, settings.analysisShowOwnership, cellSize, padding, toDisplay]);
 
   const policyOverlay = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowPolicy) return [];
@@ -346,7 +375,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           }
       }
       return out;
-  }, [analysisData, isAnalysisMode, settings.analysisShowPolicy, cellSize, padding, rotation]);
+  }, [analysisData, isAnalysisMode, settings.analysisShowPolicy, cellSize, padding, toDisplay]);
 
   const pvOverlay = useMemo(() => {
       const pv = hoveredMove?.pv;
@@ -376,7 +405,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
           moves.push({ x: d.x, y: d.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
       }
       return moves;
-  }, [hoveredMove, isAnalysisMode, currentPlayer, rotation]);
+  }, [hoveredMove, isAnalysisMode, currentPlayer, toDisplay]);
 
   const roiRect = useMemo(() => {
     const roi =
@@ -401,7 +430,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       width: (maxX - minX + 1) * cellSize,
       height: (maxY - minY + 1) * cellSize,
     };
-  }, [cellSize, padding, regionOfInterest, roiDrag, rotation]);
+  }, [cellSize, padding, regionOfInterest, roiDrag, toDisplay]);
 
   return (
     <div
@@ -559,14 +588,19 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove }) =>
       {/* Evaluation Dots (KaTrain-style) */}
       {evalDots.map((d) => (
           <div
-              key={`eval-${d.x}-${d.y}`}
+              key={`eval-${d.key}`}
               className="absolute pointer-events-none"
               style={{
-                  width: 12,
-                  height: 12,
-                  left: padding + d.x * cellSize - 6,
-                  top: padding + d.y * cellSize - 6,
+                  width: d.size,
+                  height: d.size,
+                  left: padding + d.x * cellSize - d.size / 2,
+                  top: padding + d.y * cellSize - d.size / 2,
                   backgroundColor: d.color,
+                  backgroundImage: "url('/katrain/dot.png')",
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundBlendMode: 'multiply',
                   borderRadius: '50%',
                   boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
                   zIndex: 12,

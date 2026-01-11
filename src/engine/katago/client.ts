@@ -10,6 +10,8 @@ class KataGoEngineClient {
   private pendingInit: { resolve: () => void; reject: (e: Error) => void } | null = null;
   private pending = new Map<number, { resolve: (a: Analysis) => void; reject: (e: Error) => void }>();
   private pendingEval = new Map<number, { resolve: (e: EvalResult) => void; reject: (e: Error) => void }>();
+  private backend: string | null = null;
+  private modelName: string | null = null;
 
   constructor() {
     this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
@@ -19,6 +21,10 @@ class KataGoEngineClient {
         const pendingInit = this.pendingInit;
         if (!pendingInit) return;
         this.pendingInit = null;
+        if (msg.ok) {
+          if (typeof msg.backend === 'string') this.backend = msg.backend;
+          if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+        }
         if (!msg.ok) pendingInit.reject(new Error(msg.error ?? 'Init failed'));
         else pendingInit.resolve();
         return;
@@ -27,6 +33,8 @@ class KataGoEngineClient {
         const pending = this.pending.get(msg.id);
         if (!pending) return;
         this.pending.delete(msg.id);
+        if (typeof msg.backend === 'string') this.backend = msg.backend;
+        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
         if (!msg.ok || !msg.analysis) pending.reject(new Error(msg.error ?? 'Analysis failed'));
         else pending.resolve(msg.analysis);
         return;
@@ -35,10 +43,16 @@ class KataGoEngineClient {
         const pending = this.pendingEval.get(msg.id);
         if (!pending) return;
         this.pendingEval.delete(msg.id);
+        if (typeof msg.backend === 'string') this.backend = msg.backend;
+        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
         if (!msg.ok || !msg.eval) pending.reject(new Error(msg.error ?? 'Eval failed'));
         else pending.resolve(msg.eval);
       }
     };
+  }
+
+  getEngineInfo(): { backend: string | null; modelName: string | null } {
+    return { backend: this.backend, modelName: this.modelName };
   }
 
   init(modelUrl: string): Promise<void> {

@@ -10,6 +10,7 @@ import type { KataGoWorkerRequest, KataGoWorkerResponse } from './types';
 import type { GameRules } from '../../types';
 import { parseKataGoModelV8 } from './loadModelV8';
 import { KataGoModelV8Tf } from './modelV8';
+import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from './limits';
 import { MctsSearch, type OwnershipMode } from './analyzeMcts';
 import { extractInputsV7 } from './featuresV7';
 import { postprocessKataGoV8 } from './evalV8';
@@ -157,6 +158,8 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       type: 'katago:eval_result',
       id: msg.id,
       ok: true,
+      backend: tf.getBackend(),
+      modelName: loadedModelName,
       eval: {
         rootWinRate: evaled.blackWinProb,
         rootScoreLead: evaled.blackScoreLead,
@@ -171,8 +174,8 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     await ensureModel(msg.modelUrl);
     if (!model) throw new Error('Model not loaded');
 
-    const maxVisits = Math.max(16, Math.min(msg.visits ?? 256, 5000));
-    const maxTimeMs = Math.max(25, Math.min(msg.maxTimeMs ?? 800, 60_000));
+    const maxVisits = Math.max(16, Math.min(msg.visits ?? 256, ENGINE_MAX_VISITS));
+    const maxTimeMs = Math.max(25, Math.min(msg.maxTimeMs ?? 800, ENGINE_MAX_TIME_MS));
     const batchSize = Math.max(1, Math.min(msg.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
     const maxChildren = Math.max(4, Math.min(msg.maxChildren ?? 64, 361));
     const topK = Math.max(1, Math.min(msg.topK ?? 10, 50));
@@ -241,6 +244,8 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       type: 'katago:analyze_result',
       id: msg.id,
       ok: true,
+      backend: tf.getBackend(),
+      modelName: loadedModelName,
       analysis,
     });
   }
