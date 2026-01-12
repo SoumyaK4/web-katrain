@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import type { GameNode } from '../types';
 
 export const ScoreGraph: React.FC = () => {
-  const { currentNode, jumpToNode, settings } = useGameStore();
+  const { currentNode, jumpToNode, settings, treeVersion } = useGameStore();
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -29,6 +29,7 @@ export const ScoreGraph: React.FC = () => {
 
   const dataPoints = useMemo(() => {
     const threshold = settings.mistakeThreshold ?? 3.0;
+    void treeVersion;
     return nodes.map((node) => {
       const score = node.analysis?.rootScoreLead ?? 0;
       let pointsLost: number | null = null;
@@ -49,7 +50,7 @@ export const ScoreGraph: React.FC = () => {
 
       return { score, node, isMistake };
     });
-  }, [nodes, settings.mistakeThreshold]);
+  }, [nodes, settings.mistakeThreshold, treeVersion]);
 
   const width = 300;
   const height = 100;

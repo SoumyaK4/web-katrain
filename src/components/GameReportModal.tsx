@@ -21,12 +21,13 @@ function fmtNum(x: number | undefined, digits = 2): string {
 }
 
 export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => {
-  const { currentNode, settings } = useGameStore();
+  const { currentNode, settings, treeVersion } = useGameStore();
 
   const report = useMemo(() => {
+    void treeVersion;
     const thresholds = settings.trainerEvalThresholds?.length ? settings.trainerEvalThresholds : DEFAULT_EVAL_THRESHOLDS;
     return computeGameReport({ currentNode, thresholds });
-  }, [currentNode, settings.trainerEvalThresholds]);
+  }, [currentNode, settings.trainerEvalThresholds, treeVersion]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">

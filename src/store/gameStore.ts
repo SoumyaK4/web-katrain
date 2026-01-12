@@ -863,9 +863,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         const now = performance.now();
         if (now - lastUiUpdate > 120 || done === total) {
-          set(() => ({
+          set((s) => ({
             gameAnalysisDone: done,
             gameAnalysisTotal: total,
+            treeVersion: s.treeVersion + 1,
           }));
           lastUiUpdate = now;
         }
@@ -874,11 +875,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
 
       if (token !== gameAnalysisToken) return;
-      set(() => ({
+      set((s) => ({
         isGameAnalysisRunning: false,
         gameAnalysisType: null,
         gameAnalysisDone: done,
         gameAnalysisTotal: total,
+        treeVersion: s.treeVersion + 1,
       }));
     })();
   },
@@ -981,9 +983,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         const now = performance.now();
         if (now - lastUiUpdate > 120 || done === total) {
-          set(() => ({
+          set((s) => ({
             gameAnalysisDone: done,
             gameAnalysisTotal: total,
+            treeVersion: s.treeVersion + 1,
           }));
           lastUiUpdate = now;
         }
@@ -992,11 +995,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
 
       if (token !== gameAnalysisToken) return;
-      set(() => ({
+      set((s) => ({
         isGameAnalysisRunning: false,
         gameAnalysisType: null,
         gameAnalysisDone: done,
         gameAnalysisTotal: total,
+        treeVersion: s.treeVersion + 1,
       }));
     })();
   },
@@ -1122,9 +1126,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         const now = performance.now();
         if (now - lastUiUpdate > 120 || done === total) {
-          set(() => ({
+          set((s) => ({
             gameAnalysisDone: done,
             gameAnalysisTotal: total,
+            treeVersion: s.treeVersion + 1,
           }));
           lastUiUpdate = now;
         }
@@ -1133,11 +1138,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
 
       if (token !== gameAnalysisToken) return;
-      set(() => ({
+      set((s) => ({
         isGameAnalysisRunning: false,
         gameAnalysisType: null,
         gameAnalysisDone: done,
         gameAnalysisTotal: total,
+        treeVersion: s.treeVersion + 1,
       }));
     })();
   },
@@ -1298,23 +1304,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
           };
 
           const latest = get();
-          const engineInfo = getKataGoEngineClient().getEngineInfo();
-          if (latest.currentNode.id === node.id) {
-            set({
-              analysisData: analysisWithTerritory,
-              engineStatus: 'ready',
-              engineError: null,
-              engineBackend: engineInfo.backend,
-              engineModelName: engineInfo.modelName,
-            });
-          } else {
-            set({
-              engineStatus: 'ready',
-              engineError: null,
-              engineBackend: engineInfo.backend,
-              engineModelName: engineInfo.modelName,
-            });
-          }
+	          const engineInfo = getKataGoEngineClient().getEngineInfo();
+	          if (latest.currentNode.id === node.id) {
+	            set((s) => ({
+	              analysisData: analysisWithTerritory,
+	              engineStatus: 'ready',
+	              engineError: null,
+	              engineBackend: engineInfo.backend,
+	              engineModelName: engineInfo.modelName,
+	              treeVersion: s.treeVersion + 1,
+	            }));
+	          } else {
+	            set((s) => ({
+	              engineStatus: 'ready',
+	              engineError: null,
+	              engineBackend: engineInfo.backend,
+	              engineModelName: engineInfo.modelName,
+	              treeVersion: s.treeVersion + 1,
+	            }));
+	          }
 
           maybeApplyTeachUndo();
         })

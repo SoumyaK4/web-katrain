@@ -103,6 +103,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     timerMainTimeUsedSeconds,
     isAiPlaying,
     aiColor,
+    treeVersion,
   } = useGameStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -335,11 +336,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       return grid;
   }, [moveHistory, settings.showMoveNumbers]);
 
-  const evalDots = useMemo(() => {
-      if (!isAnalysisMode || !settings.analysisShowEval || settings.showLastNMistakes === 0) return [];
+	  const evalDots = useMemo(() => {
+	      void treeVersion;
+	      if (!isAnalysisMode || !settings.analysisShowEval || settings.showLastNMistakes === 0) return [];
 
-      const dots: Array<{ key: string; x: number; y: number; pointsLost: number; color: string; size: number }> = [];
-      let node: GameNode | null = currentNode;
+	      const dots: Array<{ key: string; x: number; y: number; pointsLost: number; color: string; size: number }> = [];
+	      let node: GameNode | null = currentNode;
       let count = 0;
       let realizedPointsLost: number | null = null;
 
@@ -419,19 +421,20 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
           count++;
       }
       return dots;
-	  }, [
-	      board,
-	      cellSize,
-	      currentNode,
-	      evalColors,
-	      evalThresholds,
-	      isAnalysisMode,
-	      settings.analysisShowEval,
-	      settings.showLastNMistakes,
-      settings.trainerShowDots,
-      showEvalDotsForPlayer,
-      toDisplay,
-  ]);
+		  }, [
+		      board,
+		      cellSize,
+		      currentNode,
+		      evalColors,
+		      evalThresholds,
+		      isAnalysisMode,
+		      treeVersion,
+		      settings.analysisShowEval,
+		      settings.showLastNMistakes,
+	      settings.trainerShowDots,
+	      showEvalDotsForPlayer,
+	      toDisplay,
+	  ]);
 
   const childMoveRings = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowChildren) return [];
