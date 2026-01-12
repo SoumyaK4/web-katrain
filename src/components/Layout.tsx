@@ -741,7 +741,17 @@ export const Layout: React.FC = () => {
         e.preventDefault();
         if (ctrl) navigateStart();
         else if (shift) jumpBack(10);
-        else navigateBack();
+        else {
+          if (mode === 'play') {
+            const st = useGameStore.getState();
+            const lastMover = st.currentNode.move?.player ?? null;
+            const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
+            navigateBack();
+            if (shouldUndoTwice) navigateBack();
+          } else {
+            navigateBack();
+          }
+        }
         return;
       }
       if (key === 'ArrowRight' || keyLower === 'x') {
@@ -785,6 +795,7 @@ export const Layout: React.FC = () => {
     resetGame,
     passTurn,
     rotateBoard,
+    mode,
     toggleAnalysisMode,
     updateSettings,
     settings.showCoordinates,
@@ -1551,7 +1562,13 @@ export const Layout: React.FC = () => {
               <div className="flex gap-2 mt-3">
                 <button
                   className="flex-1 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm font-semibold"
-                  onClick={() => navigateBack()}
+                  onClick={() => {
+                    const st = useGameStore.getState();
+                    const lastMover = st.currentNode.move?.player ?? null;
+                    const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
+                    navigateBack();
+                    if (shouldUndoTwice) navigateBack();
+                  }}
                   title="Undo (←)"
                 >
                   Undo
