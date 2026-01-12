@@ -27,6 +27,7 @@ import {
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf } from '../utils/sgf';
 import { BOARD_SIZE, type CandidateMove, type GameNode, type Player } from '../types';
 import { parseGtpMove } from '../lib/gtp';
+import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundToHalf } from '../utils/manualScore';
 
 type UiMode = 'play' | 'analyze';
 
@@ -307,6 +308,7 @@ export const Layout: React.FC = () => {
     notification,
     clearNotification,
     analysisData,
+    board,
     currentNode,
     runAnalysis,
     settings,
@@ -353,7 +355,29 @@ export const Layout: React.FC = () => {
     const rootEnd = rootNode.properties?.RE?.[0];
     if (rootEnd && rootEnd.includes('+')) return rootEnd;
     const pass = (n: GameNode | null | undefined) => !!n?.move && (n.move.x < 0 || n.move.y < 0);
-    if (pass(currentNode) && pass(currentNode.parent)) return 'Game ended';
+    if (pass(currentNode) && pass(currentNode.parent)) {
+      if (settings.gameRules === 'japanese') {
+        const currentOwnership = currentNode.analysis?.territory;
+        const previousOwnership = currentNode.parent?.analysis?.territory;
+        if (currentOwnership && previousOwnership) {
+          const manual = computeJapaneseManualScoreFromOwnership({
+            board,
+            komi,
+            capturedBlack,
+            capturedWhite,
+            currentOwnership,
+            previousOwnership,
+          });
+          if (manual) return manual;
+        }
+      }
+
+      const scoreLead = currentNode.analysis?.rootScoreLead;
+      if (Number.isFinite(scoreLead)) {
+        return `${formatResultScoreLead(roundToHalf(scoreLead as number))}?`;
+      }
+      return 'Game ended';
+    }
     return null;
   })();
 

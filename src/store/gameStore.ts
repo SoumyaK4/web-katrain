@@ -2499,6 +2499,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       if (existingChild) {
            get().jumpToNode(existingChild);
+           const after = get();
+           const ended = isPassMove(after.currentNode.move) && isPassMove(after.currentNode.parent?.move);
+           if (!ended && after.isAiPlaying && after.aiColor && after.currentPlayer === after.aiColor) {
+             setTimeout(() => after.makeAiMove(), 500);
+           }
+           if (after.isAnalysisMode && !after.isSelfplayToEnd) {
+             setTimeout(() => void after.runAnalysis(), 0);
+           }
            return;
       }
 
@@ -2524,9 +2532,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
 
       const after = get();
-      if (after.isAnalysisMode && !after.isSelfplayToEnd) {
-        setTimeout(() => void after.runAnalysis(), 0);
+      const ended = isPassMove(after.currentNode.move) && isPassMove(after.currentNode.parent?.move);
+      if (!ended && after.isAiPlaying && after.aiColor && after.currentPlayer === after.aiColor) {
+        setTimeout(() => after.makeAiMove(), 500);
       }
+      if (after.isAnalysisMode && !after.isSelfplayToEnd) setTimeout(() => void after.runAnalysis(), 0);
   },
 
   resign: () => {
