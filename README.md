@@ -1,15 +1,13 @@
 # web-katrain
 
-Browser-based KaTrain clone (UI + workflows) with in-browser KataGo-style analysis (TensorFlow.js WebGPU/WASM fallback).
+Browser-based KaTrain-style UI with in-browser KataGo analysis using TensorFlow.js (WebGPU with WASM/CPU fallback).
 
-## Upstream references (side-by-side)
+## How it works
 
-This project expects sibling checkouts for parity work and assets:
-
-- `../katrain-ref/` – KaTrain reference codebase (Python/Kivy).
-- `../KataGo/` – KataGo reference codebase (C++).
-
-Scripts like `scripts/fetch-katago-small-model.mjs` will copy KaTrain’s default model from `../katrain-ref/katrain/models/` when available.
+- React + Zustand manage game state, settings, and the move tree.
+- A Web Worker runs KataGo-style evaluation/search on the current position.
+- Weights load from `public/models/` or a URL/upload set in Settings.
+- Analysis results feed the UI (policy, ownership, winrate/score graphs).
 
 ## Development
 
@@ -21,11 +19,16 @@ Scripts like `scripts/fetch-katago-small-model.mjs` will copy KaTrain’s defaul
 
 ## Models
 
-Models live under `public/models/`. The default model URL is configurable in-app via Settings.
+Models live in `public/models/`. Settings lets you swap URLs or upload weights for the session.
+Optional parity assets can be pulled from sibling checkouts:
+
+- `../katrain-ref/` – KaTrain reference (Python/Kivy)
+- `../KataGo/` – KataGo reference (C++)
+
+Scripts like `scripts/fetch-katago-small-model.mjs` will copy KaTrain’s default model from `../katrain-ref/katrain/models/` when present.
 
 ## Performance
 
-- For fastest WASM fallback (threaded XNNPACK), serve with COOP/COEP headers to enable `SharedArrayBuffer`:
-  - `Cross-Origin-Opener-Policy: same-origin`
-  - `Cross-Origin-Embedder-Policy: require-corp`
-  Vite dev/preview are configured to send these headers by default.
+For threaded WASM (XNNPACK), serve with COOP/COEP headers to enable `SharedArrayBuffer`:
+`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+Vite dev/preview already sends these headers.
