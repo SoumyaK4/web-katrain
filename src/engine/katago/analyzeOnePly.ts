@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import type { BoardState, Move, Player } from '../../types';
-import { checkCaptures, isValidMove, getOpponent } from '../../utils/gameLogic';
+import { applyCapturesInPlace, isValidMove, getOpponent } from '../../utils/gameLogic';
 import { extractInputsV7 } from './featuresV7';
 import { postprocessKataGoV8 } from './evalV8';
 import type { KataGoModelV8Tf } from './modelV8';
@@ -19,8 +19,8 @@ const cloneBoard = (board: BoardState): BoardState => board.map((row) => [...row
 const applyMove = (board: BoardState, x: number, y: number, player: Player): BoardState => {
   const tentativeBoard = cloneBoard(board);
   tentativeBoard[y][x] = player;
-  const { newBoard } = checkCaptures(tentativeBoard, x, y, player);
-  return newBoard;
+  applyCapturesInPlace(tentativeBoard, x, y, player);
+  return tentativeBoard;
 };
 
 export async function analyzeOnePly(args: {

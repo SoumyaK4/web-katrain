@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { BOARD_SIZE, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest } from '../types';
-import { boardsEqual, checkCaptures, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
+import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
 import { getKataGoEngineClient } from '../engine/katago/client';
@@ -612,14 +612,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return child;
       }
 
-      if (st.board[move.y]?.[move.x] !== null) return null;
-      const tentativeBoard = st.board.map((row) => [...row]);
-      tentativeBoard[move.y]![move.x] = st.currentPlayer;
-      const { captured, newBoard } = checkCaptures(tentativeBoard, move.x, move.y, st.currentPlayer);
-      if (captured.length === 0) {
-        const { liberties } = getLiberties(newBoard, move.x, move.y);
-        if (liberties === 0) return null;
-      }
+	      if (st.board[move.y]?.[move.x] !== null) return null;
+	      const tentativeBoard = st.board.map((row) => [...row]);
+	      tentativeBoard[move.y]![move.x] = st.currentPlayer;
+	      const captured = applyCapturesInPlace(tentativeBoard, move.x, move.y, st.currentPlayer);
+	      const newBoard = tentativeBoard;
+	      if (captured.length === 0) {
+	        const { liberties } = getLiberties(newBoard, move.x, move.y);
+	        if (liberties === 0) return null;
+	      }
       if (parent.parent && boardsEqual(newBoard, parent.parent.gameState.board)) return null;
 
       const newCapturedBlack = st.capturedBlack + (st.currentPlayer === 'white' ? captured.length : 0);
@@ -1198,14 +1199,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Validate
     if (state.board[y][x] !== null) return;
 
-    const tentativeBoard = state.board.map((row) => [...row]);
-    tentativeBoard[y][x] = state.currentPlayer;
+	    const tentativeBoard = state.board.map((row) => [...row]);
+	    tentativeBoard[y][x] = state.currentPlayer;
 
-    const { captured, newBoard } = checkCaptures(tentativeBoard, x, y, state.currentPlayer);
+	    const captured = applyCapturesInPlace(tentativeBoard, x, y, state.currentPlayer);
+	    const newBoard = tentativeBoard;
 
-    // Suicide check
-    if (captured.length === 0) {
-      const { liberties } = getLiberties(newBoard, x, y);
+	    // Suicide check
+	    if (captured.length === 0) {
+	      const { liberties } = getLiberties(newBoard, x, y);
       if (liberties === 0) return;
     }
 
@@ -2354,9 +2356,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       if (parentState.board[move.y]?.[move.x] !== null) return null;
 
-      const tentativeBoard = parentState.board.map((row) => [...row]);
-      tentativeBoard[move.y]![move.x] = move.player;
-      const { captured, newBoard } = checkCaptures(tentativeBoard, move.x, move.y, move.player);
+	      const tentativeBoard = parentState.board.map((row) => [...row]);
+	      tentativeBoard[move.y]![move.x] = move.player;
+	      const captured = applyCapturesInPlace(tentativeBoard, move.x, move.y, move.player);
+	      const newBoard = tentativeBoard;
 
       if (captured.length === 0) {
         const { liberties } = getLiberties(newBoard, move.x, move.y);
@@ -2548,12 +2551,12 @@ const makeHeuristicMove = (store: GameStore) => {
     let bestScore = -Infinity;
 
     // Helper: simulate move
-    const simulate = (x: number, y: number) => {
-        const tentativeBoard = board.map(row => [...row]);
-        tentativeBoard[y][x] = currentPlayer;
-        const { captured, newBoard } = checkCaptures(tentativeBoard, x, y, currentPlayer);
-        return { captured, newBoard };
-    };
+	    const simulate = (x: number, y: number) => {
+	        const tentativeBoard = board.map(row => [...row]);
+	        tentativeBoard[y][x] = currentPlayer;
+	        const captured = applyCapturesInPlace(tentativeBoard, x, y, currentPlayer);
+	        return { captured, newBoard: tentativeBoard };
+	    };
 
     for (const move of legalMoves) {
         let score = Math.random() * 5; // Base random score to break ties

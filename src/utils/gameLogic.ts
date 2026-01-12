@@ -53,7 +53,7 @@ export const getLiberties = (board: BoardState, x: number, y: number): { liberti
   return { liberties: liberties.size, group };
 };
 
-export const checkCaptures = (board: BoardState, x: number, y: number, player: Player): { captured: {x: number, y: number}[], newBoard: BoardState } => {
+export const applyCapturesInPlace = (board: BoardState, x: number, y: number, player: Player): { x: number; y: number }[] => {
   const opponent = getOpponent(player);
   const neighbors = [
     {x: x + 1, y},
@@ -63,22 +63,27 @@ export const checkCaptures = (board: BoardState, x: number, y: number, player: P
   ];
 
   const captured: {x: number, y: number}[] = [];
-  const newBoard = board.map(row => [...row]);
 
   for (const n of neighbors) {
     if (n.x < 0 || n.x >= BOARD_SIZE || n.y < 0 || n.y >= BOARD_SIZE) continue;
 
-    if (newBoard[n.y][n.x] === opponent) {
-      const { liberties, group } = getLiberties(newBoard, n.x, n.y);
+    if (board[n.y][n.x] === opponent) {
+      const { liberties, group } = getLiberties(board, n.x, n.y);
       if (liberties === 0) {
         captured.push(...group);
         for (const stone of group) {
-          newBoard[stone.y][stone.x] = null;
+          board[stone.y][stone.x] = null;
         }
       }
     }
   }
 
+  return captured;
+};
+
+export const checkCaptures = (board: BoardState, x: number, y: number, player: Player): { captured: {x: number, y: number}[], newBoard: BoardState } => {
+  const newBoard = board.map(row => [...row]);
+  const captured = applyCapturesInPlace(newBoard, x, y, player);
   return { captured, newBoard };
 };
 
@@ -94,17 +99,17 @@ export const isValidMove = (board: BoardState, x: number, y: number, player: Pla
     tentativeBoard[y][x] = player;
 
     // 3. Check Captures
-    const { captured, newBoard } = checkCaptures(tentativeBoard, x, y, player);
+    const captured = applyCapturesInPlace(tentativeBoard, x, y, player);
 
     // 4. Suicide Check
     if (captured.length === 0) {
-        const { liberties } = getLiberties(newBoard, x, y);
+        const { liberties } = getLiberties(tentativeBoard, x, y);
         if (liberties === 0) return false;
     }
 
     // 5. Ko Check (Simple Ko)
     if (previousBoard) {
-        if (boardsEqual(newBoard, previousBoard)) return false;
+        if (boardsEqual(tentativeBoard, previousBoard)) return false;
     }
 
     return true;
