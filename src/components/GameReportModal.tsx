@@ -74,14 +74,16 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
               <div className="text-center font-mono text-gray-200">Black</div>
               <div className="text-center font-mono text-gray-200">White</div>
 
-              {[
-                ['Moves', (p: Player) => String(report.stats[p].numMoves)],
-                ['Accuracy', (p: Player) => fmtNum(report.stats[p].accuracy, 1)],
-                ['Mean point loss', (p: Player) => fmtNum(report.stats[p].meanPtLoss, 2)],
-                ['Weighted point loss', (p: Player) => fmtNum(report.stats[p].weightedPtLoss, 2)],
-                ['AI top move', (p: Player) => fmtPct(report.stats[p].aiTopMove)],
-                ['AI top5 / approved', (p: Player) => fmtPct(report.stats[p].aiTop5Move)],
-              ].map(([label, valueFn]) => (
+              {(
+                [
+                  ['Moves', (p: Player) => String(report.stats[p].numMoves)],
+                  ['Accuracy', (p: Player) => fmtNum(report.stats[p].accuracy, 1)],
+                  ['Mean point loss', (p: Player) => fmtNum(report.stats[p].meanPtLoss, 2)],
+                  ['Weighted point loss', (p: Player) => fmtNum(report.stats[p].weightedPtLoss, 2)],
+                  ['AI top move', (p: Player) => fmtPct(report.stats[p].aiTopMove)],
+                  ['AI top5 / approved', (p: Player) => fmtPct(report.stats[p].aiTop5Move)],
+                ] as Array<[string, (p: Player) => string]>
+              ).map(([label, valueFn]) => (
                 <React.Fragment key={label}>
                   <div className="text-gray-300">{label}</div>
                   <div className="text-center font-mono text-gray-200">{valueFn('black')}</div>
