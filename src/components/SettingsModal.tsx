@@ -146,6 +146,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         />
                     </div>
 
+                    <div className="flex items-center justify-between">
+                        <label className="text-gray-300">Load SGF Fast Analysis</label>
+                        <input
+                            type="checkbox"
+                            checked={settings.loadSgfFastAnalysis}
+                            onChange={(e) => updateSettings({ loadSgfFastAnalysis: e.target.checked })}
+                            className="toggle"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                        KaTrain-style: runs fast MCTS analysis on load (uses “Fast Visits”) so graphs/points lost fill in quickly.
+                    </p>
+
                     <div className="space-y-1">
                         <label className="text-gray-300 block text-sm">PV Animation Time (sec)</label>
                         <input

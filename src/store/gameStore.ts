@@ -272,6 +272,7 @@ const defaultSettings: GameSettings = {
   showLastNMistakes: 3,
   mistakeThreshold: 3.0,
   loadSgfRewind: true,
+  loadSgfFastAnalysis: false,
   animPvTimeSeconds: 0.5,
   gameRules: 'japanese',
   trainerLowVisits: 25,
@@ -2678,13 +2679,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       analysisData: current.analysis || null,
 	      treeVersion: state.treeVersion + 1,
 	      settings: { ...state.settings, gameRules: rules },
-	    }));
+		    }));
 
-	    // KaTrain-like: start a quick background analysis of the whole mainline so graphs populate fast.
-	    if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
-	      setTimeout(() => get().startQuickGameAnalysis(), 0);
-	    }
-	  },
+		    // KaTrain-like: start a quick background analysis of the whole mainline so graphs populate fast.
+		    if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
+		      const fast = get().settings.loadSgfFastAnalysis;
+		      setTimeout(() => (fast ? get().startFastGameAnalysis() : get().startQuickGameAnalysis()), 0);
+		    }
+		  },
 
   passTurn: () => {
       const state = get();

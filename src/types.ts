@@ -81,6 +81,7 @@ export interface GameSettings {
   showLastNMistakes: number; // KaTrain-like eval dots: 0 disables, else show last N moves
   mistakeThreshold: number; // Points lost to consider a mistake (WinRateGraph + mistake nav)
   loadSgfRewind: boolean; // KaTrain general/load_sgf_rewind
+  loadSgfFastAnalysis: boolean; // KaTrain general/load_fast_analysis
   animPvTimeSeconds: number; // KaTrain general/anim_pv_time
   gameRules: GameRules; // KataGo rules preset (KaTrain default: japanese)
   trainerLowVisits: number; // KaTrain trainer/low_visits
