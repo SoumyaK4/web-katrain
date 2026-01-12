@@ -15,6 +15,7 @@ dist-ssr
 # KataGo models (fetched via script)
 public/models/*.bin.gz
 public/models/*.txt.gz
+!public/models/katago-small.bin.gz
 public/tfjs/*.wasm
 
 # Editor directories and files
