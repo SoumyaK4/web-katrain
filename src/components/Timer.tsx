@@ -4,10 +4,8 @@ import { useGameStore } from '../store/gameStore';
 import { formatKaTrainClockSeconds, stepKaTrainTimer, type KaTrainTimerDisplay } from '../utils/katrainTimer';
 
 export const Timer: React.FC = () => {
-  const { timerPaused, toggleTimerPaused } = useGameStore((s) => ({
-    timerPaused: s.timerPaused,
-    toggleTimerPaused: s.toggleTimerPaused,
-  }));
+  const timerPaused = useGameStore((s) => s.timerPaused);
+  const toggleTimerPaused = useGameStore((s) => s.toggleTimerPaused);
 
   const [display, setDisplay] = useState<KaTrainTimerDisplay>(() => ({
     timeSeconds: 0,
