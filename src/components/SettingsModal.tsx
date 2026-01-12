@@ -5,18 +5,29 @@ import type { GameSettings } from '../types';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { publicUrl } from '../utils/publicUrl';
 
+let uploadedModelUrl: string | null = null;
+let lastManualModelUrl: string | null = null;
+
+const revokeUploadedModelUrl = () => {
+    if (!uploadedModelUrl) return;
+    URL.revokeObjectURL(uploadedModelUrl);
+    uploadedModelUrl = null;
+};
+
 interface SettingsModalProps {
     onClose: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const { settings, updateSettings, engineBackend, engineModelName } = useGameStore();
+    const modelUploadInputRef = React.useRef<HTMLInputElement>(null);
     const DEFAULT_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0];
     const DEFAULT_SHOW_DOTS = [true, true, true, true, true, true];
     const DEFAULT_SAVE_FEEDBACK = [true, true, true, true, false, false];
     const DEFAULT_ANIM_PV_TIME = 0.5;
     const KATRAIN_DEFAULT_MODEL_URL = publicUrl('models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz');
     const SMALL_MODEL_URL = publicUrl('models/katago-small.bin.gz');
+    const isUploadedModel = settings.katagoModelUrl.startsWith('blob:');
 
     const TOP_MOVE_OPTIONS: Array<{ value: GameSettings['trainerTopMovesShow']; label: string }> = [
         { value: 'top_move_delta_score', label: 'Δ Score (points lost)' },
@@ -26,6 +37,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         { value: 'top_move_delta_winrate', label: 'Δ Winrate' },
         { value: 'top_move_nothing', label: 'Nothing' },
     ];
+
+    React.useEffect(() => {
+        if (!isUploadedModel) {
+            lastManualModelUrl = settings.katagoModelUrl;
+        }
+        if (!uploadedModelUrl) return;
+        if (settings.katagoModelUrl !== uploadedModelUrl) {
+            revokeUploadedModelUrl();
+        }
+    }, [isUploadedModel, settings.katagoModelUrl]);
+
+    const handleModelUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!isUploadedModel) {
+            lastManualModelUrl = settings.katagoModelUrl;
+        }
+        if (uploadedModelUrl) URL.revokeObjectURL(uploadedModelUrl);
+        const objectUrl = URL.createObjectURL(file);
+        uploadedModelUrl = objectUrl;
+        updateSettings({ katagoModelUrl: objectUrl });
+        event.target.value = '';
+    };
+
+    const handleClearUpload = () => {
+        if (!isUploadedModel) return;
+        revokeUploadedModelUrl();
+        updateSettings({ katagoModelUrl: lastManualModelUrl ?? SMALL_MODEL_URL });
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -997,6 +1037,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 >
                                     Small Model
                                 </button>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-400 block">Upload weights (.bin.gz)</label>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs font-mono text-white border border-gray-600"
+                                        onClick={() => modelUploadInputRef.current?.click()}
+                                    >
+                                        Upload Weights
+                                    </button>
+                                    {isUploadedModel ? (
+                                        <button
+                                            type="button"
+                                            className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs font-mono text-white border border-gray-600"
+                                            onClick={handleClearUpload}
+                                        >
+                                            Clear Upload
+                                        </button>
+                                    ) : null}
+                                </div>
+                                <input
+                                    ref={modelUploadInputRef}
+                                    type="file"
+                                    accept=".bin,.bin.gz,.gz,application/gzip,application/octet-stream"
+                                    onChange={handleModelUpload}
+                                    className="hidden"
+                                />
+                                {isUploadedModel ? (
+                                    <p className="text-xs text-gray-500">
+                                        Uploaded weights stay in memory for this session only.
+                                    </p>
+                                ) : null}
                             </div>
                             <input
                                 type="text"

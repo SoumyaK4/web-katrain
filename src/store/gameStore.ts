@@ -117,6 +117,7 @@ const normalizeModelUrl = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
+  if (/^(blob:|data:)/i.test(trimmed)) return null;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   if (trimmed.startsWith('/')) {
     if (trimmed.startsWith('/models/')) return publicUrl(trimmed.slice(1));
@@ -139,6 +140,8 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
         const oldDefault = publicUrl(KATRAIN_DEFAULT_MODEL_URL);
         (parsed as { katagoModelUrl: string }).katagoModelUrl =
           normalized === oldDefault ? publicUrl(SMALL_MODEL_URL) : normalized;
+      } else {
+        delete (parsed as { katagoModelUrl?: unknown }).katagoModelUrl;
       }
     }
     return parsed as Partial<GameSettings>;
