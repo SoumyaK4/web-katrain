@@ -189,8 +189,9 @@ export function undoMove(pos: SimPosition, move: number, player: StoneColor, sna
   pos.koPoint = snapshot.koPointBefore;
 }
 
-export function computeLibertyMap(stones: Uint8Array): Uint8Array {
-  const libs = new Uint8Array(BOARD_AREA);
+export function computeLibertyMapInto(stones: Uint8Array, out: Uint8Array): Uint8Array {
+  if (out.length !== BOARD_AREA) throw new Error(`computeLibertyMapInto: expected out length ${BOARD_AREA}, got ${out.length}`);
+  out.fill(0);
   groupSeenStamp++;
   const stamp = groupSeenStamp;
 
@@ -203,12 +204,16 @@ export function computeLibertyMap(stones: Uint8Array): Uint8Array {
     const capLibs = liberties >= 4 ? 4 : liberties;
     for (let i = 0; i < groupLen; i++) {
       const gp = GROUP_BUF[i]!;
-      libs[gp] = capLibs;
+      out[gp] = capLibs;
       GROUP_SEEN[gp] = stamp;
     }
   }
 
-  return libs;
+  return out;
+}
+
+export function computeLibertyMap(stones: Uint8Array): Uint8Array {
+  return computeLibertyMapInto(stones, new Uint8Array(BOARD_AREA));
 }
 
 // KataGo-style "area" for V7 inputs, following `Board::calculateArea` and `Board::calculateAreaForPla`:
@@ -511,7 +516,12 @@ function calculateAreaForPla(args: {
 }
 
 export function computeAreaMapV7KataGo(stones: Uint8Array, isMultiStoneSuicideLegal = false): Uint8Array {
-  const area = new Uint8Array(BOARD_AREA);
+  return computeAreaMapV7KataGoInto(stones, new Uint8Array(BOARD_AREA), isMultiStoneSuicideLegal);
+}
+
+export function computeAreaMapV7KataGoInto(stones: Uint8Array, out: Uint8Array, isMultiStoneSuicideLegal = false): Uint8Array {
+  if (out.length !== BOARD_AREA) throw new Error(`computeAreaMapV7KataGoInto: expected out length ${BOARD_AREA}, got ${out.length}`);
+  out.fill(EMPTY);
   const numGroups = buildGroups(stones);
 
   calculateAreaForPla({
@@ -521,7 +531,7 @@ export function computeAreaMapV7KataGo(stones: Uint8Array, isMultiStoneSuicideLe
     safeBigTerritories: true,
     unsafeBigTerritories: true,
     isMultiStoneSuicideLegal,
-    result: area,
+    result: out,
   });
   calculateAreaForPla({
     stones,
@@ -530,15 +540,15 @@ export function computeAreaMapV7KataGo(stones: Uint8Array, isMultiStoneSuicideLe
     safeBigTerritories: true,
     unsafeBigTerritories: true,
     isMultiStoneSuicideLegal,
-    result: area,
+    result: out,
   });
 
   // nonPassAliveStones = true
   for (let p = 0; p < BOARD_AREA; p++) {
-    if ((area[p] as StoneColor) === EMPTY) area[p] = stones[p]!;
+    if ((out[p] as StoneColor) === EMPTY) out[p] = stones[p]!;
   }
 
-  return area;
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------

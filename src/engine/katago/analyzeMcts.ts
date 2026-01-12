@@ -19,8 +19,9 @@ import {
   undoMove,
   computeLadderFeaturesV7KataGo,
   computeLadderedStonesV7KataGo,
-  computeAreaMapV7KataGo,
+  computeAreaMapV7KataGoInto,
   computeLibertyMap,
+  computeLibertyMapInto,
   type SimPosition,
   type StoneColor,
   type UndoSnapshot,
@@ -612,11 +613,16 @@ async function evaluateBatch(args: {
   const libertyMaps: Uint8Array[] = new Array(batch);
   const areaMaps: Uint8Array[] = new Array(batch);
   const emptyAreaMap = new Uint8Array(BOARD_AREA);
+  const libertyMapScratch = new Uint8Array(batch * BOARD_AREA);
+  const areaMapScratch = includeAreaFeature ? new Uint8Array(batch * BOARD_AREA) : null;
   const symmetries = new Uint8Array(batch);
 
   for (let i = 0; i < batch; i++) {
-    const libertyMap = computeLibertyMap(states[i]!.stones);
-    const areaMap = includeAreaFeature ? computeAreaMapV7KataGo(states[i]!.stones) : emptyAreaMap;
+    const libertyMap = libertyMapScratch.subarray(i * BOARD_AREA, (i + 1) * BOARD_AREA);
+    computeLibertyMapInto(states[i]!.stones, libertyMap);
+    const areaMap = includeAreaFeature
+      ? computeAreaMapV7KataGoInto(states[i]!.stones, areaMapScratch!.subarray(i * BOARD_AREA, (i + 1) * BOARD_AREA))
+      : emptyAreaMap;
     const ladder = computeLadderFeaturesV7KataGo({
       stones: states[i]!.stones,
       koPoint: states[i]!.koPoint,
