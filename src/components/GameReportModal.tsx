@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { computeGameReport } from '../utils/gameReport';
 import type { Player } from '../types';
@@ -21,14 +22,21 @@ function fmtNum(x: number | undefined, digits = 2): string {
 }
 
 export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => {
-  const { currentNode, settings, treeVersion } = useGameStore();
+  const { currentNode, trainerEvalThresholds, treeVersion } = useGameStore(
+    (state) => ({
+      currentNode: state.currentNode,
+      trainerEvalThresholds: state.settings.trainerEvalThresholds,
+      treeVersion: state.treeVersion,
+    }),
+    shallow
+  );
   const [depthFilter, setDepthFilter] = useState<[number, number] | null>(null);
 
   const report = useMemo(() => {
     void treeVersion;
-    const thresholds = settings.trainerEvalThresholds?.length ? settings.trainerEvalThresholds : DEFAULT_EVAL_THRESHOLDS;
+    const thresholds = trainerEvalThresholds?.length ? trainerEvalThresholds : DEFAULT_EVAL_THRESHOLDS;
     return computeGameReport({ currentNode, thresholds, depthFilter });
-  }, [currentNode, depthFilter, settings.trainerEvalThresholds, treeVersion]);
+  }, [currentNode, depthFilter, trainerEvalThresholds, treeVersion]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">

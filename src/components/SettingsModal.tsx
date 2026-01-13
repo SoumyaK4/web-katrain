@@ -1,4 +1,5 @@
 import React from 'react';
+import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { FaTimes } from 'react-icons/fa';
 import type { GameSettings } from '../types';
@@ -19,7 +20,15 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
-    const { settings, updateSettings, engineBackend, engineModelName } = useGameStore();
+    const { settings, updateSettings, engineBackend, engineModelName } = useGameStore(
+        (state) => ({
+            settings: state.settings,
+            updateSettings: state.updateSettings,
+            engineBackend: state.engineBackend,
+            engineModelName: state.engineModelName,
+        }),
+        shallow
+    );
     const modelUploadInputRef = React.useRef<HTMLInputElement>(null);
     const DEFAULT_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0];
     const DEFAULT_SHOW_DOTS = [true, true, true, true, true, true];

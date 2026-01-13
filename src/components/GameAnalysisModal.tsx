@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { ENGINE_MAX_VISITS } from '../engine/katago/limits';
 
@@ -8,8 +9,26 @@ interface GameAnalysisModalProps {
 }
 
 export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose }) => {
-  const { currentNode, isGameAnalysisRunning, gameAnalysisType, gameAnalysisDone, gameAnalysisTotal, startFullGameAnalysis, stopGameAnalysis } =
-    useGameStore();
+  const {
+    currentNode,
+    isGameAnalysisRunning,
+    gameAnalysisType,
+    gameAnalysisDone,
+    gameAnalysisTotal,
+    startFullGameAnalysis,
+    stopGameAnalysis,
+  } = useGameStore(
+    (state) => ({
+      currentNode: state.currentNode,
+      isGameAnalysisRunning: state.isGameAnalysisRunning,
+      gameAnalysisType: state.gameAnalysisType,
+      gameAnalysisDone: state.gameAnalysisDone,
+      gameAnalysisTotal: state.gameAnalysisTotal,
+      startFullGameAnalysis: state.startFullGameAnalysis,
+      stopGameAnalysis: state.stopGameAnalysis,
+    }),
+    shallow
+  );
 
   const defaultStartMove = useMemo(() => currentNode.gameState.moveHistory.length, [currentNode]);
 
@@ -155,4 +174,3 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
     </div>
   );
 };
-

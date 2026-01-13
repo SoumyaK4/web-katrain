@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { BOARD_SIZE, type CandidateMove, type FloatArray, type Move, type Player } from '../types';
 
@@ -41,7 +42,14 @@ type NotesPanelProps = {
 };
 
 export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, showNotes }) => {
-  const { currentNode, setCurrentNodeNote, treeVersion } = useGameStore();
+  const { currentNode, setCurrentNodeNote, treeVersion } = useGameStore(
+    (state) => ({
+      currentNode: state.currentNode,
+      setCurrentNodeNote: state.setCurrentNodeNote,
+      treeVersion: state.treeVersion,
+    }),
+    shallow
+  );
   void treeVersion;
 
   const move = currentNode.move;

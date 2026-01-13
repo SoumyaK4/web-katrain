@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
+import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { BOARD_SIZE, type GameNode } from '../types';
 
@@ -43,7 +44,16 @@ function layoutMoveTree(root: GameNode): Map<GameNode, NodePos> {
 }
 
 export const MoveTree: React.FC = () => {
-  const { rootNode, currentNode, jumpToNode, treeVersion, isInsertMode } = useGameStore();
+  const { rootNode, currentNode, jumpToNode, treeVersion, isInsertMode } = useGameStore(
+    (state) => ({
+      rootNode: state.rootNode,
+      currentNode: state.currentNode,
+      jumpToNode: state.jumpToNode,
+      treeVersion: state.treeVersion,
+      isInsertMode: state.isInsertMode,
+    }),
+    shallow
+  );
   const containerRef = useRef<HTMLDivElement>(null);
 
   const layout = useMemo(() => {
