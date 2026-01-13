@@ -357,6 +357,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     return map;
   }, [analysisData, shouldShowHints]);
 
+  const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
+    null
+  );
+  const [cursorPt, setCursorPt] = useState<{ x: number; y: number } | null>(null);
+
   useEffect(() => {
     if (!shouldShowHints && hoveredMove) onHoverMove(null);
   }, [hoveredMove, onHoverMove, shouldShowHints]);
@@ -632,11 +637,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     setupOverlayCanvas,
     toDisplay,
   ]);
-
-  const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
-    null
-  );
-  const [cursorPt, setCursorPt] = useState<{ x: number; y: number } | null>(null);
 
   const childMoveCoords = useMemo(() => {
     const set = new Set<string>();
