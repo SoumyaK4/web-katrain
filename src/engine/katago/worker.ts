@@ -12,7 +12,7 @@ import { parseKataGoModelV8 } from './loadModelV8';
 import { KataGoModelV8Tf } from './modelV8';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from './limits';
 import { MctsSearch, type OwnershipMode } from './analyzeMcts';
-import { extractInputsV7 } from './featuresV7';
+import { createKataGoInputsV7Scratch, fillInputsV7 } from './featuresV7';
 import { postprocessKataGoV8 } from './evalV8';
 
 let model: KataGoModelV8Tf | null = null;
@@ -20,6 +20,30 @@ let loadedModelName: string | undefined;
 let loadedModelUrl: string | null = null;
 let backendPromise: Promise<void> | null = null;
 let queue: Promise<void> = Promise.resolve();
+
+const V7_SPATIAL_STRIDE = 19 * 19 * 22;
+const V7_GLOBAL_STRIDE = 19;
+
+const evalScratchV7 = createKataGoInputsV7Scratch();
+const evalSpatialV7 = new Float32Array(V7_SPATIAL_STRIDE);
+const evalGlobalV7 = new Float32Array(V7_GLOBAL_STRIDE);
+
+const evalBatchScratchV7 = createKataGoInputsV7Scratch();
+let evalBatchCapacity = 0;
+let evalBatchSpatialV7 = new Float32Array(0);
+let evalBatchGlobalV7 = new Float32Array(0);
+
+function getEvalBatchBuffersV7(batch: number): { spatial: Float32Array; global: Float32Array } {
+  if (batch > evalBatchCapacity) {
+    evalBatchCapacity = batch;
+    evalBatchSpatialV7 = new Float32Array(batch * V7_SPATIAL_STRIDE);
+    evalBatchGlobalV7 = new Float32Array(batch * V7_GLOBAL_STRIDE);
+  }
+  return {
+    spatial: evalBatchSpatialV7.subarray(0, batch * V7_SPATIAL_STRIDE),
+    global: evalBatchGlobalV7.subarray(0, batch * V7_GLOBAL_STRIDE),
+  };
+}
 
 let search: MctsSearch | null = null;
 let searchKey: {
@@ -137,17 +161,20 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     const conservativePass = msg.conservativePass !== false;
     const rules: GameRules = msg.rules === 'chinese' ? 'chinese' : msg.rules === 'korean' ? 'korean' : 'japanese';
 
-    const inputs = extractInputsV7({
+    fillInputsV7({
       board: msg.board,
       currentPlayer: msg.currentPlayer,
       moveHistory: msg.moveHistory,
       komi: msg.komi,
       rules,
       conservativePassAndIsRoot: conservativePass,
+      outSpatial: evalSpatialV7,
+      outGlobal: evalGlobalV7,
+      scratch: evalScratchV7,
     });
 
-    const spatial = tf.tensor4d(inputs.spatial, [1, 19, 19, 22]);
-    const global = tf.tensor2d(inputs.global, [1, 19]);
+    const spatial = tf.tensor4d(evalSpatialV7, [1, 19, 19, 22]);
+    const global = tf.tensor2d(evalGlobalV7, [1, 19]);
     const out = model.forwardValueOnly(spatial, global);
     const [valueLogitsArr, scoreValueArr] = await Promise.all([out.value.data(), out.scoreValue.data()]);
     spatial.dispose();
@@ -198,21 +225,21 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       return;
     }
 
-    const spatialBatch = new Float32Array(batch * 19 * 19 * 22);
-    const globalBatch = new Float32Array(batch * 19);
+    const { spatial: spatialBatch, global: globalBatch } = getEvalBatchBuffersV7(batch);
 
     for (let i = 0; i < batch; i++) {
       const pos = msg.positions[i]!;
-      const inputs = extractInputsV7({
+      fillInputsV7({
         board: pos.board,
         currentPlayer: pos.currentPlayer,
         moveHistory: pos.moveHistory,
         komi: pos.komi,
         rules,
         conservativePassAndIsRoot: conservativePass,
+        outSpatial: spatialBatch.subarray(i * V7_SPATIAL_STRIDE, (i + 1) * V7_SPATIAL_STRIDE),
+        outGlobal: globalBatch.subarray(i * V7_GLOBAL_STRIDE, (i + 1) * V7_GLOBAL_STRIDE),
+        scratch: evalBatchScratchV7,
       });
-      spatialBatch.set(inputs.spatial, i * 19 * 19 * 22);
-      globalBatch.set(inputs.global, i * 19);
     }
 
     const spatial = tf.tensor4d(spatialBatch, [batch, 19, 19, 22]);

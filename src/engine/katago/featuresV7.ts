@@ -9,34 +9,59 @@ export type KataGoInputsV7 = {
   global: Float32Array; // [19]
 };
 
+export type KataGoInputsV7Scratch = {
+  // 0 empty, 1 black, 2 white.
+  stones: Uint8Array;
+  visited: Uint8Array;
+  libertyMarked: Uint8Array;
+  stack: number[];
+  group: number[];
+  touchedLibs: number[];
+};
+
+export function createKataGoInputsV7Scratch(): KataGoInputsV7Scratch {
+  const n = BOARD_SIZE * BOARD_SIZE;
+  return {
+    stones: new Uint8Array(n),
+    visited: new Uint8Array(n),
+    libertyMarked: new Uint8Array(n),
+    stack: [],
+    group: [],
+    touchedLibs: [],
+  };
+}
+
 const idxNHWC = (x: number, y: number, c: number) => ((y * BOARD_SIZE + x) * INPUT_SPATIAL_CHANNELS_V7 + c);
 
-export function extractInputsV7(args: {
+export function fillInputsV7(args: {
   board: BoardState;
   currentPlayer: Player;
   moveHistory: Move[];
   komi: number;
   rules?: GameRules;
   conservativePassAndIsRoot?: boolean;
-}): KataGoInputsV7 {
+  outSpatial: Float32Array; // len 19*19*22
+  outGlobal: Float32Array; // len 19
+  scratch?: KataGoInputsV7Scratch;
+}): void {
   const { board, currentPlayer, moveHistory, komi } = args;
   const rules: GameRules = args.rules ?? 'japanese';
   const pla = currentPlayer;
   const opp = getOpponent(pla);
 
-  const spatial = new Float32Array(BOARD_SIZE * BOARD_SIZE * INPUT_SPATIAL_CHANNELS_V7);
-  const global = new Float32Array(INPUT_GLOBAL_CHANNELS_V7);
+  const spatial = args.outSpatial;
+  const global = args.outGlobal;
+  spatial.fill(0);
+  global.fill(0);
 
   // 0: on board
-  for (let y = 0; y < BOARD_SIZE; y++) {
-    for (let x = 0; x < BOARD_SIZE; x++) {
-      spatial[idxNHWC(x, y, 0)] = 1.0;
-    }
-  }
+  for (let pos = 0; pos < BOARD_SIZE * BOARD_SIZE; pos++) spatial[pos * INPUT_SPATIAL_CHANNELS_V7 + 0] = 1.0;
 
   // Stone planes + build compact board representation for liberty computation.
   // 0 empty, 1 black, 2 white.
-  const stones = new Uint8Array(BOARD_SIZE * BOARD_SIZE);
+  const scratch = args.scratch ?? createKataGoInputsV7Scratch();
+  const stones = scratch.stones;
+  stones.fill(0);
   for (let y = 0; y < BOARD_SIZE; y++) {
     for (let x = 0; x < BOARD_SIZE; x++) {
       const v = board[y][x];
@@ -48,28 +73,13 @@ export function extractInputsV7(args: {
   }
 
   // Liberty planes 3,4,5 - 1,2,3 liberties (for either color stones).
-  const visited = new Uint8Array(BOARD_SIZE * BOARD_SIZE);
-  const libertyMarked = new Uint8Array(BOARD_SIZE * BOARD_SIZE);
-  const stack: number[] = [];
-  const group: number[] = [];
-  const touchedLibs: number[] = [];
-
-  const pushIfInBounds = (x: number, y: number, out: number[]) => {
-    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
-    out.push(y * BOARD_SIZE + x);
-  };
-
-  const neighbors = (pos: number, out: number[]) => {
-    out.length = 0;
-    const x = pos % BOARD_SIZE;
-    const y = (pos / BOARD_SIZE) | 0;
-    pushIfInBounds(x + 1, y, out);
-    pushIfInBounds(x - 1, y, out);
-    pushIfInBounds(x, y + 1, out);
-    pushIfInBounds(x, y - 1, out);
-  };
-
-  const neighTmp: number[] = [];
+  const visited = scratch.visited;
+  const libertyMarked = scratch.libertyMarked;
+  const stack = scratch.stack;
+  const group = scratch.group;
+  const touchedLibs = scratch.touchedLibs;
+  visited.fill(0);
+  libertyMarked.fill(0);
 
   for (let pos = 0; pos < stones.length; pos++) {
     const color = stones[pos];
@@ -87,8 +97,56 @@ export function extractInputsV7(args: {
 
     while (stack.length > 0) {
       const p = stack.pop()!;
-      neighbors(p, neighTmp);
-      for (const npos of neighTmp) {
+      const x = p % BOARD_SIZE;
+      const y = (p / BOARD_SIZE) | 0;
+
+      if (x + 1 < BOARD_SIZE) {
+        const npos = p + 1;
+        const ncolor = stones[npos];
+        if (ncolor === 0) {
+          if (!libertyMarked[npos]) {
+            libertyMarked[npos] = 1;
+            touchedLibs.push(npos);
+            liberties++;
+          }
+        } else if (ncolor === color && !visited[npos]) {
+          visited[npos] = 1;
+          stack.push(npos);
+          group.push(npos);
+        }
+      }
+      if (x > 0) {
+        const npos = p - 1;
+        const ncolor = stones[npos];
+        if (ncolor === 0) {
+          if (!libertyMarked[npos]) {
+            libertyMarked[npos] = 1;
+            touchedLibs.push(npos);
+            liberties++;
+          }
+        } else if (ncolor === color && !visited[npos]) {
+          visited[npos] = 1;
+          stack.push(npos);
+          group.push(npos);
+        }
+      }
+      if (y + 1 < BOARD_SIZE) {
+        const npos = p + BOARD_SIZE;
+        const ncolor = stones[npos];
+        if (ncolor === 0) {
+          if (!libertyMarked[npos]) {
+            libertyMarked[npos] = 1;
+            touchedLibs.push(npos);
+            liberties++;
+          }
+        } else if (ncolor === color && !visited[npos]) {
+          visited[npos] = 1;
+          stack.push(npos);
+          group.push(npos);
+        }
+      }
+      if (y > 0) {
+        const npos = p - BOARD_SIZE;
         const ncolor = stones[npos];
         if (ncolor === 0) {
           if (!libertyMarked[npos]) {
@@ -170,6 +228,18 @@ export function extractInputsV7(args: {
     else wave = delta - 2.0;
     global[18] = wave;
   }
+}
 
+export function extractInputsV7(args: {
+  board: BoardState;
+  currentPlayer: Player;
+  moveHistory: Move[];
+  komi: number;
+  rules?: GameRules;
+  conservativePassAndIsRoot?: boolean;
+}): KataGoInputsV7 {
+  const spatial = new Float32Array(BOARD_SIZE * BOARD_SIZE * INPUT_SPATIAL_CHANNELS_V7);
+  const global = new Float32Array(INPUT_GLOBAL_CHANNELS_V7);
+  fillInputsV7({ ...args, outSpatial: spatial, outGlobal: global });
   return { spatial, global };
 }
