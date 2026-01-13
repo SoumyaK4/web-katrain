@@ -7,6 +7,21 @@ type EvalBatchResult = NonNullable<Extract<KataGoWorkerResponse, { type: 'katago
 
 const takeLastMoves = (moves: Move[]): Move[] => (moves.length <= 5 ? moves : moves.slice(moves.length - 5));
 
+export class KataGoCanceledError extends Error {
+  readonly canceled = true;
+
+  constructor(message = 'Analysis canceled') {
+    super(message);
+    this.name = 'KataGoCanceledError';
+  }
+}
+
+export const isKataGoCanceledError = (err: unknown): err is KataGoCanceledError => {
+  if (!err || typeof err !== 'object') return false;
+  if ((err as { canceled?: boolean }).canceled) return true;
+  return err instanceof Error && err.name === 'KataGoCanceledError';
+};
+
 class KataGoEngineClient {
   private readonly worker: Worker;
   private nextId = 1;
@@ -37,6 +52,10 @@ class KataGoEngineClient {
         const pending = this.pending.get(msg.id);
         if (!pending) return;
         this.pending.delete(msg.id);
+        if (msg.canceled || msg.error === 'canceled') {
+          pending.reject(new KataGoCanceledError());
+          return;
+        }
         if (typeof msg.backend === 'string') this.backend = msg.backend;
         if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
         if (!msg.ok || !msg.analysis) pending.reject(new Error(msg.error ?? 'Analysis failed'));
@@ -79,6 +98,7 @@ class KataGoEngineClient {
   }
 
   async analyze(args: {
+    analysisGroup?: 'interactive' | 'background';
     positionId?: string;
     modelUrl: string;
     board: BoardState;
@@ -105,6 +125,7 @@ class KataGoEngineClient {
     const req: KataGoWorkerRequest = {
       type: 'katago:analyze',
       id,
+      analysisGroup: args.analysisGroup,
       positionId: args.positionId,
       modelUrl: args.modelUrl,
       board: args.board,

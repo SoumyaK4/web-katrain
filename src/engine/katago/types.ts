@@ -16,6 +16,7 @@ export interface KataGoInitResponse {
 export interface KataGoAnalyzeRequest {
   type: 'katago:analyze';
   id: number;
+  analysisGroup?: 'interactive' | 'background';
   positionId?: string;
   modelUrl: string;
   board: BoardState;
@@ -43,6 +44,7 @@ export interface KataGoAnalyzeResponse {
   type: 'katago:analyze_result';
   id: number;
   ok: boolean;
+  canceled?: boolean;
   backend?: string;
   modelName?: string;
   analysis?: {

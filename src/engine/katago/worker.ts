@@ -6,7 +6,7 @@ import '@tensorflow/tfjs-backend-wasm';
 import { setThreadsCount, setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 import pako from 'pako';
 
-import type { KataGoWorkerRequest, KataGoWorkerResponse } from './types';
+import type { KataGoAnalyzeRequest, KataGoWorkerRequest, KataGoWorkerResponse } from './types';
 import type { BoardState, GameRules, Move, Player } from '../../types';
 import { parseKataGoModelV8 } from './loadModelV8';
 import { KataGoModelV8Tf } from './modelV8';
@@ -228,6 +228,9 @@ let searchKey: {
   nnRandomize: boolean;
   conservativePass: boolean;
 } | null = null;
+const latestAnalyzeByGroup = new Map<string, number>();
+let interactiveToken = 0;
+const analyzeMeta = new WeakMap<KataGoAnalyzeRequest, { analysisGroup: 'interactive' | 'background'; interactiveToken: number }>();
 
 async function initBackend(): Promise<void> {
   try {
@@ -452,8 +455,33 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
   }
 
   if (msg.type === 'katago:analyze') {
+    const meta = analyzeMeta.get(msg);
+    const analysisGroup = meta?.analysisGroup ?? msg.analysisGroup ?? 'background';
+    const interactiveTokenAtEnqueue = meta?.interactiveToken ?? interactiveToken;
+    const isStale = () => latestAnalyzeByGroup.get(analysisGroup) !== msg.id;
+    const isPreemptedByInteractive =
+      analysisGroup !== 'interactive' && interactiveToken !== interactiveTokenAtEnqueue;
+    const shouldAbort = () => isStale() || isPreemptedByInteractive;
+    const postCanceled = () =>
+      post({
+        type: 'katago:analyze_result',
+        id: msg.id,
+        ok: false,
+        canceled: true,
+        error: 'canceled',
+      });
+
+    if (shouldAbort()) {
+      postCanceled();
+      return;
+    }
+
     await ensureModel(msg.modelUrl);
     if (!model) throw new Error('Model not loaded');
+    if (shouldAbort()) {
+      postCanceled();
+      return;
+    }
 
     const maxVisits = Math.max(16, Math.min(msg.visits ?? 256, ENGINE_MAX_VISITS));
     const maxTimeMs = Math.max(25, Math.min(msg.maxTimeMs ?? 800, ENGINE_MAX_TIME_MS));
@@ -518,7 +546,15 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       }
     }
 
-    await search!.run({ visits: maxVisits, maxTimeMs, batchSize });
+    const aborted = await search!.run({ visits: maxVisits, maxTimeMs, batchSize, shouldAbort });
+    if (aborted || shouldAbort()) {
+      postCanceled();
+      if (msg.reuseTree !== true) {
+        search = null;
+        searchKey = null;
+      }
+      return;
+    }
     const analysis = search!.getAnalysis({ topK, includeMovesOwnership, analysisPvLen, cloneBuffers: msg.reuseTree === true });
 
     const transfer: Transferable[] = [];
@@ -548,6 +584,12 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
 
 self.onmessage = (ev: MessageEvent<KataGoWorkerRequest>) => {
   const msg = ev.data;
+  if (msg.type === 'katago:analyze') {
+    const analysisGroup = msg.analysisGroup ?? 'background';
+    latestAnalyzeByGroup.set(analysisGroup, msg.id);
+    if (analysisGroup === 'interactive') interactiveToken++;
+    analyzeMeta.set(msg, { analysisGroup, interactiveToken });
+  }
   queue = queue
     .then(() => handleMessage(msg))
     .catch((err: unknown) => {

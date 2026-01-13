@@ -1385,12 +1385,19 @@ export class MctsSearch {
     });
   }
 
-  async run(args: { visits: number; maxTimeMs: number; batchSize: number }): Promise<void> {
+  async run(args: {
+    visits: number;
+    maxTimeMs: number;
+    batchSize: number;
+    shouldAbort?: () => boolean;
+  }): Promise<boolean> {
     const maxVisits = Math.max(16, Math.min(args.visits, ENGINE_MAX_VISITS));
     const maxTimeMs = Math.max(25, Math.min(args.maxTimeMs, ENGINE_MAX_TIME_MS));
     const batchSize = Math.max(1, Math.min(args.batchSize, 64));
+    const shouldAbort = args.shouldAbort;
 
-    if (this.rootNode.visits >= maxVisits) return;
+    if (shouldAbort?.()) return true;
+    if (this.rootNode.visits >= maxVisits) return shouldAbort?.() ?? false;
 
     const neededBoardCapacity = batchSize * BOARD_AREA;
     if (this.jobStonesScratch.length < neededBoardCapacity) this.jobStonesScratch = new Uint8Array(neededBoardCapacity);
@@ -1413,6 +1420,7 @@ export class MctsSearch {
     };
 
     while (this.rootNode.visits < maxVisits && !timeExceeded()) {
+      if (shouldAbort?.()) return true;
       const jobs: Array<{
         leaf: Node;
         path: Node[];
@@ -1428,6 +1436,7 @@ export class MctsSearch {
 
       let attempts = 0;
       while (jobs.length < batchSize && this.rootNode.visits + jobs.length < maxVisits && !timeExceeded()) {
+        if (shouldAbort?.()) break;
         attempts++;
         if (attempts > batchSize * 8) break;
 
@@ -1516,7 +1525,6 @@ export class MctsSearch {
           }
         }
 
-        const jobIdx = jobs.length;
         const recentMovesScratch = this.jobRecentMovesScratch[jobIdx] ?? (this.jobRecentMovesScratch[jobIdx] = []);
         jobs.push({
           leaf: node,
@@ -1596,7 +1604,9 @@ export class MctsSearch {
         }
         job.leaf.pendingEval = false;
       }
+      if (shouldAbort?.()) return true;
     }
+    return shouldAbort?.() ?? false;
   }
 
   getAnalysis(args: { topK: number; analysisPvLen: number; includeMovesOwnership?: boolean; cloneBuffers?: boolean }): {

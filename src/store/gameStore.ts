@@ -3,7 +3,7 @@ import { BOARD_SIZE, type FloatArray, type GameRules, type GameState, type Board
 import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
-import { getKataGoEngineClient } from '../engine/katago/client';
+import { getKataGoEngineClient, isKataGoCanceledError } from '../engine/katago/client';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
 import { publicUrl } from '../utils/publicUrl';
@@ -755,6 +755,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (token !== selfplayToken) return;
         if (!s.isSelfplayToEnd) return;
 
+        while (get().engineStatus === 'loading') {
+          if (token !== selfplayToken) return;
+          if (!get().isSelfplayToEnd) return;
+          await sleep(50);
+        }
+
         const mh = s.moveHistory;
         const last = mh[mh.length - 1];
         const prev = mh[mh.length - 2];
@@ -794,12 +800,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
             maxChildren: s.settings.katagoMaxChildren,
             reuseTree: false,
             ownershipMode: 'root',
+            analysisGroup: 'background',
           });
 
           const best = analysis.moves[0] ?? null;
           if (!best || best.x < 0 || best.y < 0) s.passTurn();
           else s.playMove(best.x, best.y);
-        } catch {
+        } catch (err) {
+          if (isKataGoCanceledError(err)) {
+            await sleep(25);
+            continue;
+          }
           // Fall back to heuristics if engine fails.
           makeHeuristicMove(get());
         }
@@ -993,6 +1004,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               maxChildren,
               reuseTree: false,
               ownershipMode: 'root',
+              analysisGroup: 'background',
             });
             if (!metaSynced) {
               const engineInfo = getKataGoEngineClient().getEngineInfo();
@@ -1135,6 +1147,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               maxChildren,
               reuseTree: false,
               ownershipMode: s.settings.katagoOwnershipMode,
+              analysisGroup: 'background',
             });
 
             if (!metaSynced) {
@@ -1247,6 +1260,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           maxChildren,
           reuseTree,
           ownershipMode: state.settings.katagoOwnershipMode,
+          analysisGroup: 'interactive',
         })
         .then((analysis) => {
           let analysisWithTerritory: AnalysisResult = {
@@ -1364,6 +1378,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           maybeApplyTeachUndo();
         })
         .catch((err: unknown) => {
+          if (isKataGoCanceledError(err)) return;
           const msg = err instanceof Error ? err.message : String(err);
           set({
             engineStatus: 'error',
@@ -1559,6 +1574,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           maxChildren: state.settings.katagoMaxChildren,
           reuseTree: state.settings.katagoReuseTree,
           ownershipMode: aiOwnershipMode,
+          analysisGroup: 'background',
         })
         .then((analysis) => {
           const engineInfo = getKataGoEngineClient().getEngineInfo();
@@ -2171,7 +2187,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           after.currentNode.aiThoughts = chosen.thoughts;
           set((s) => ({ treeVersion: s.treeVersion + 1 }));
         })
-        .catch(() => {
+        .catch((err) => {
+          if (isKataGoCanceledError(err)) {
+            const latest = get();
+            if (latest.currentNode.id !== nodeId) return;
+            if (latest.currentPlayer !== playerAtStart) return;
+            if (!latest.isAiPlaying || latest.aiColor !== playerAtStart) return;
+            setTimeout(() => latest.makeAiMove(), 100);
+            return;
+          }
           makeHeuristicMove(get());
         });
   },
