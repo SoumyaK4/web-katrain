@@ -1,4 +1,4 @@
-import { create } from 'zustand/traditional';
+import { createWithEqualityFn as create } from 'zustand/traditional';
 import { BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest } from '../types';
 import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
@@ -1265,9 +1265,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             analysisWithTerritory = {
               ...analysisWithTerritory,
               moves: analysisWithTerritory.moves.filter((m) => isMoveInRegion(m, roi)),
-              policy: analysisWithTerritory.policy
-                ? (() => {
-                    const p = [...analysisWithTerritory.policy];
+                  policy: analysisWithTerritory.policy
+                    ? (() => {
+                    const p = analysisWithTerritory.policy.slice();
                     for (let y = 0; y < BOARD_SIZE; y++) {
                       for (let x = 0; x < BOARD_SIZE; x++) {
                         if (x >= roi.xMin && x <= roi.xMax && y >= roi.yMin && y <= roi.yMax) continue;
