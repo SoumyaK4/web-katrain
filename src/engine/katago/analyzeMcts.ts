@@ -27,6 +27,7 @@ import {
   type UndoSnapshot,
 } from './fastBoard';
 import { fillInputsV7Fast, type RecentMove } from './featuresV7Fast';
+import { POLICY_OPTIMISM, ROOT_POLICY_OPTIMISM } from './searchParams';
 
 export type OwnershipMode = 'root' | 'tree';
 
@@ -642,6 +643,8 @@ type EvalBatchScratch = {
   symmetries: Uint8Array;
   spatialScratch: Float32Array;
   globalScratch: Float32Array;
+  policyScratch: Float32Array;
+  passScratch: Float32Array;
 };
 
 const EMPTY_AREA_MAP = new Uint8Array(BOARD_AREA);
@@ -654,6 +657,7 @@ function getEvalScratch(args: { batch: number; includeAreaFeature: boolean }): E
   const neededSpatial = batch * BOARD_AREA * 22;
   const neededGlobal = batch * 19;
   const neededMaps = batch * BOARD_AREA;
+  const neededPolicy = batch * BOARD_AREA;
 
   const existing = includeAreaFeature ? evalScratchWithArea : evalScratchNoArea;
   if (
@@ -662,6 +666,8 @@ function getEvalScratch(args: { batch: number; includeAreaFeature: boolean }): E
     existing.globalBatch.length >= neededGlobal &&
     existing.libertyMapScratch.length >= neededMaps &&
     existing.symmetries.length >= batch &&
+    existing.policyScratch.length >= neededPolicy &&
+    existing.passScratch.length >= batch &&
     (!includeAreaFeature || (existing.areaMapScratch && existing.areaMapScratch.length >= neededMaps))
   ) {
     return existing;
@@ -679,6 +685,8 @@ function getEvalScratch(args: { batch: number; includeAreaFeature: boolean }): E
     symmetries: new Uint8Array(batch),
     spatialScratch: new Float32Array(BOARD_AREA * 22),
     globalScratch: new Float32Array(19),
+    policyScratch: new Float32Array(neededPolicy),
+    passScratch: new Float32Array(batch),
   };
 
   if (includeAreaFeature) evalScratchWithArea = scratch;
@@ -691,6 +699,7 @@ async function evaluateBatch(args: {
   includeOwnership?: boolean;
   rules: GameRules;
   nnRandomize: boolean;
+  policyOptimism: number;
   states: Array<{
     stones: Uint8Array;
     koPoint: number;
@@ -722,6 +731,7 @@ async function evaluateBatch(args: {
   const includeOwnership = args.includeOwnership === true;
   const rules = args.rules;
   const nnRandomize = args.nnRandomize;
+  const policyOptimism = Math.max(0, Math.min(args.policyOptimism, 1));
   const includeAreaFeature = rules === 'chinese';
   const batch = states.length;
   const scratch = getEvalScratch({ batch, includeAreaFeature });
@@ -842,6 +852,31 @@ async function evaluateBatch(args: {
   out.scoreValue.dispose();
   if ('ownership' in out) out.ownership.dispose();
 
+  const policyChannels = model.policyOutChannels;
+  let policyLogits = policyArr as Float32Array;
+  let passLogits = passArr as Float32Array;
+
+  if (policyChannels > 1) {
+    const mixedPolicy = scratch.policyScratch.subarray(0, batch * BOARD_AREA);
+    const mixedPass = scratch.passScratch.subarray(0, batch);
+    const mix = policyOptimism;
+    for (let i = 0; i < batch; i++) {
+      const baseOff = i * BOARD_AREA * policyChannels;
+      const outOff = i * BOARD_AREA;
+      for (let p = 0; p < BOARD_AREA; p++) {
+        const src = baseOff + p * policyChannels;
+        const base = policyArr[src]!;
+        const opt = policyArr[src + 1]!;
+        mixedPolicy[outOff + p] = base + (opt - base) * mix;
+      }
+      const passBase = passArr[i * policyChannels]!;
+      const passOpt = passArr[i * policyChannels + 1]!;
+      mixedPass[i] = passBase + (passOpt - passBase) * mix;
+    }
+    policyLogits = mixedPolicy;
+    passLogits = mixedPass;
+  }
+
   const results: Array<{
     policy: Float32Array;
     symmetry: number;
@@ -858,10 +893,10 @@ async function evaluateBatch(args: {
   for (let i = 0; i < batch; i++) {
     const pOff = i * BOARD_AREA;
     const sym = symmetries[i]!;
-    const policy = (policyArr as Float32Array).subarray(pOff, pOff + BOARD_AREA);
+    const policy = policyLogits.subarray(pOff, pOff + BOARD_AREA);
     const ownership = includeOwnership ? (ownershipArr as Float32Array).subarray(pOff, pOff + BOARD_AREA) : undefined;
 
-    const passLogit = passArr[i]!;
+    const passLogit = passLogits[i]!;
     const vOff = i * 3;
     const sOff = i * 4;
     const evaled = postprocessKataGoV8({
@@ -1004,6 +1039,7 @@ export class MctsSearch {
         includeOwnership: true,
         rules: args.rules,
         nnRandomize: args.nnRandomize,
+        policyOptimism: ROOT_POLICY_OPTIMISM,
         states: [
           {
             stones: rootPos.stones,
@@ -1236,6 +1272,7 @@ export class MctsSearch {
         includeOwnership,
         rules: this.rules,
         nnRandomize: this.nnRandomize,
+        policyOptimism: POLICY_OPTIMISM,
         states: jobs.map((j) => ({
           stones: j.stones,
           koPoint: j.koPoint,
@@ -1533,6 +1570,7 @@ export async function analyzeMcts(args: {
       includeOwnership: true,
       rules,
       nnRandomize,
+      policyOptimism: ROOT_POLICY_OPTIMISM,
       states: [
         {
           stones: rootPos.stones,
@@ -1719,6 +1757,7 @@ export async function analyzeMcts(args: {
       includeOwnership: true,
       rules,
       nnRandomize,
+      policyOptimism: POLICY_OPTIMISM,
       states: jobs.map((j) => ({
         stones: j.stones,
         koPoint: j.koPoint,

@@ -350,12 +350,8 @@ export class KataGoModelV8Tf {
       p1Out = p1Out.add(g1Bias.reshape([g1Bias.shape[0], 1, 1, g1Bias.shape[1]])) as tf.Tensor4D;
       const p1Out2 = bnAct(p1Out, this.p1BN, this.p1Activation);
 
-      let policy = conv2d(p1Out2, this.p2); // [N,19,19,policyOutChannels]
-      let policyPass = tf.matMul(g1Concat, this.passMul.w) as tf.Tensor2D; // [N,policyOutChannels]
-      if (this.policyOutChannels > 1) {
-        policy = policy.slice([0, 0, 0, 0], [policy.shape[0], policy.shape[1], policy.shape[2], 1]) as tf.Tensor4D;
-        policyPass = policyPass.slice([0, 0], [policyPass.shape[0], 1]) as tf.Tensor2D;
-      }
+      const policy = conv2d(p1Out2, this.p2); // [N,19,19,policyOutChannels]
+      const policyPass = tf.matMul(g1Concat, this.passMul.w) as tf.Tensor2D; // [N,policyOutChannels]
 
       // Value head
       const v1Out = conv2d(trunk, this.v1);
@@ -395,12 +391,8 @@ export class KataGoModelV8Tf {
       p1Out = p1Out.add(g1Bias.reshape([g1Bias.shape[0], 1, 1, g1Bias.shape[1]])) as tf.Tensor4D;
       const p1Out2 = bnAct(p1Out, this.p1BN, this.p1Activation);
 
-      let policy = conv2d(p1Out2, this.p2);
-      let policyPass = tf.matMul(g1Concat, this.passMul.w) as tf.Tensor2D;
-      if (this.policyOutChannels > 1) {
-        policy = policy.slice([0, 0, 0, 0], [policy.shape[0], policy.shape[1], policy.shape[2], 1]) as tf.Tensor4D;
-        policyPass = policyPass.slice([0, 0], [policyPass.shape[0], 1]) as tf.Tensor2D;
-      }
+      const policy = conv2d(p1Out2, this.p2);
+      const policyPass = tf.matMul(g1Concat, this.passMul.w) as tf.Tensor2D;
 
       const v1Out = conv2d(trunk, this.v1);
       const v1Out2 = bnAct(v1Out, this.v1BN, this.v1Activation);

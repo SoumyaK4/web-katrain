@@ -4,6 +4,7 @@ import { applyCapturesInPlace, isValidMove, getOpponent } from '../../utils/game
 import { extractInputsV7 } from './featuresV7';
 import { postprocessKataGoV8 } from './evalV8';
 import type { KataGoModelV8Tf } from './modelV8';
+import { ROOT_POLICY_OPTIMISM } from './searchParams';
 
 type Candidate = {
   x: number;
@@ -64,6 +65,18 @@ export async function analyzeOnePly(args: {
   rootOut.value.dispose();
   rootOut.scoreValue.dispose();
 
+  const policyChannels = model.policyOutChannels;
+  let policyLogits = policyLogitsArr as Float32Array;
+  if (policyChannels > 1) {
+    const mixed = new Float32Array(BOARD_SIZE * BOARD_SIZE);
+    for (let pos = 0; pos < BOARD_SIZE * BOARD_SIZE; pos++) {
+      const base = policyLogitsArr[pos * policyChannels]!;
+      const opt = policyLogitsArr[pos * policyChannels + 1]!;
+      mixed[pos] = base + (opt - base) * ROOT_POLICY_OPTIMISM;
+    }
+    policyLogits = mixed;
+  }
+
   // Compute legality + softmax for coordinate moves only.
   const legal: number[] = [];
   const logits = new Float64Array(BOARD_SIZE * BOARD_SIZE);
@@ -74,7 +87,7 @@ export async function analyzeOnePly(args: {
       if (board[y][x] !== null) continue;
       if (!isValidMove(board, x, y, currentPlayer, previousBoard)) continue;
       const pos = y * BOARD_SIZE + x;
-      const logit = policyLogitsArr[pos];
+      const logit = policyLogits[pos]!;
       logits[pos] = logit;
       legal.push(pos);
       if (logit > maxLogit) maxLogit = logit;
