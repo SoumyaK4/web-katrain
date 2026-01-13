@@ -78,6 +78,8 @@ export interface KataGoEvalRequest {
   id: number;
   modelUrl: string;
   board: BoardState;
+  previousBoard?: BoardState;
+  previousPreviousBoard?: BoardState;
   currentPlayer: Player;
   moveHistory: Move[];
   komi: number;
@@ -106,6 +108,8 @@ export interface KataGoEvalBatchRequest {
   modelUrl: string;
   positions: Array<{
     board: BoardState;
+    previousBoard?: BoardState;
+    previousPreviousBoard?: BoardState;
     currentPlayer: Player;
     moveHistory: Move[];
     komi: number;

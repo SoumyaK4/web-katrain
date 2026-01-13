@@ -137,6 +137,8 @@ class KataGoEngineClient {
   async evaluate(args: {
     modelUrl: string;
     board: BoardState;
+    previousBoard?: BoardState;
+    previousPreviousBoard?: BoardState;
     currentPlayer: Player;
     moveHistory: Move[];
     komi: number;
@@ -149,6 +151,8 @@ class KataGoEngineClient {
       id,
       modelUrl: args.modelUrl,
       board: args.board,
+      previousBoard: args.previousBoard,
+      previousPreviousBoard: args.previousPreviousBoard,
       currentPlayer: args.currentPlayer,
       moveHistory: takeLastMoves(args.moveHistory),
       komi: args.komi,
@@ -166,6 +170,8 @@ class KataGoEngineClient {
     modelUrl: string;
     positions: Array<{
       board: BoardState;
+      previousBoard?: BoardState;
+      previousPreviousBoard?: BoardState;
       currentPlayer: Player;
       moveHistory: Move[];
       komi: number;
@@ -180,6 +186,8 @@ class KataGoEngineClient {
       modelUrl: args.modelUrl,
       positions: args.positions.map((p) => ({
         board: p.board,
+        previousBoard: p.previousBoard,
+        previousPreviousBoard: p.previousPreviousBoard,
         currentPlayer: p.currentPlayer,
         moveHistory: takeLastMoves(p.moveHistory),
         komi: p.komi,

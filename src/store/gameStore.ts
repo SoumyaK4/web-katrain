@@ -863,6 +863,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
               modelUrl: get().settings.katagoModelUrl,
               positions: toEval.map((n) => ({
                 board: n.gameState.board,
+                previousBoard: n.parent?.gameState.board,
+                previousPreviousBoard: n.parent?.parent?.gameState.board,
                 currentPlayer: n.gameState.currentPlayer,
                 moveHistory: n.gameState.moveHistory,
                 komi: n.gameState.komi,
