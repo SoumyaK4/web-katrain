@@ -80,19 +80,17 @@ export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: bool
   const width = 300;
   const height = 100;
 
-  const scoreValues = useMemo(() => {
+  const { scoreValues, winrateValues } = useMemo(() => {
     void treeVersion;
-    return nodes.map((n) => n.analysis?.rootScoreLead ?? Number.NaN);
+    const scores: number[] = [];
+    const winrates: number[] = [];
+    for (const node of nodes) {
+      scores.push(node.analysis?.rootScoreLead ?? Number.NaN);
+      const rawWin = node.analysis?.rootWinRate;
+      winrates.push(typeof rawWin === 'number' ? (rawWin - 0.5) * 100 : Number.NaN);
+    }
+    return { scoreValues: scores, winrateValues: winrates };
   }, [nodes, treeVersion]);
-  const winrateValues = useMemo(
-    () => {
-      void treeVersion;
-      return nodes.map((n) =>
-        typeof n.analysis?.rootWinRate === 'number' ? (n.analysis.rootWinRate - 0.5) * 100 : Number.NaN
-      );
-    },
-    [nodes, treeVersion]
-  );
 
   const scoreScale = useMemo(() => computeSymmetricScale(scoreValues, SCORE_GRANULARITY), [scoreValues]);
   const winrateScale = useMemo(() => computeSymmetricScale(winrateValues, WINRATE_GRANULARITY), [winrateValues]);

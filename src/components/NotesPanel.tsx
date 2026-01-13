@@ -41,7 +41,8 @@ type NotesPanelProps = {
 };
 
 export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, showNotes }) => {
-  const { currentNode, setCurrentNodeNote } = useGameStore();
+  const { currentNode, setCurrentNodeNote, treeVersion } = useGameStore();
+  void treeVersion;
 
   const move = currentNode.move;
   const parent = currentNode.parent;

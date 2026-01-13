@@ -306,6 +306,7 @@ export const Layout: React.FC = () => {
     analysisData,
     board,
     currentNode,
+    treeVersion,
     runAnalysis,
     settings,
     updateSettings,
@@ -347,6 +348,7 @@ export const Layout: React.FC = () => {
   const modeControls = uiState.analysisControls[mode];
   const modePanels = uiState.panels[mode];
   const lockAiDetails = mode === 'play' && settings.trainerLockAi;
+  void treeVersion;
 
   const sgfExportOptions = useMemo<KaTrainSgfExportOptions>(() => {
     const saveCommentsPlayer =
