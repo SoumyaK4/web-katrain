@@ -196,26 +196,16 @@ function expandNode(args: {
         hasEmptyNeighbor = true;
         break;
       }
-    }
-
-    if (!hasEmptyNeighbor) {
-      for (let i = 0; i < nCount; i++) {
-        const n = NEIGHBOR_LIST[nStart + i]!;
-        const c = stones[n] as StoneColor;
-        if (c === opp && libs[n] === 1) {
+      if (c === opp) {
+        if (libs[n] === 1) {
           captures = true;
           break;
         }
+        continue;
       }
-      if (!captures) {
-        for (let i = 0; i < nCount; i++) {
-          const n = NEIGHBOR_LIST[nStart + i]!;
-          const c = stones[n] as StoneColor;
-          if (c === pla && libs[n] > 1) {
-            connectsToSafeGroup = true;
-            break;
-          }
-        }
+      if (c === pla && libs[n] > 1) {
+        connectsToSafeGroup = true;
+        break;
       }
     }
 
