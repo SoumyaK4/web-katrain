@@ -308,8 +308,9 @@ async function ensureModel(modelUrl: string): Promise<void> {
   out.scoreValue.dispose();
 }
 
-function post(msg: KataGoWorkerResponse) {
-  self.postMessage(msg);
+function post(msg: KataGoWorkerResponse, transfer?: Transferable[]) {
+  if (transfer && transfer.length > 0) self.postMessage(msg, transfer);
+  else self.postMessage(msg);
 }
 
 async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
@@ -520,6 +521,15 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     await search!.run({ visits: maxVisits, maxTimeMs, batchSize });
     const analysis = search!.getAnalysis({ topK, includeMovesOwnership, analysisPvLen });
 
+    const transfer: Transferable[] = [];
+    const push = (value?: unknown) => {
+      if (value && ArrayBuffer.isView(value)) transfer.push(value.buffer);
+    };
+    push(analysis.ownership);
+    push(analysis.ownershipStdev);
+    push(analysis.policy);
+    for (const move of analysis.moves) push(move.ownership);
+
     post({
       type: 'katago:analyze_result',
       id: msg.id,
@@ -527,7 +537,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       backend: tf.getBackend(),
       modelName: loadedModelName,
       analysis,
-    });
+    }, transfer);
   }
 }
 

@@ -5,6 +5,7 @@ export type Player = 'black' | 'white';
 export type Intersection = Player | null;
 export type BoardState = Intersection[][];
 export type GameRules = 'japanese' | 'chinese' | 'korean';
+export type FloatArray = Float32Array | number[];
 
 export interface Move {
     x: number;
@@ -35,7 +36,7 @@ export interface CandidateMove {
   order: number; // 0 for best move
   prior?: number; // policy prior probability (0..1)
   pv?: string[]; // principal variation, GTP coords (e.g. ["D4","Q16",...])
-  ownership?: number[]; // optional per-move ownership (KaTrain includeMovesOwnership)
+  ownership?: FloatArray; // optional per-move ownership (KaTrain includeMovesOwnership)
 }
 
 export interface AnalysisResult {
@@ -45,8 +46,8 @@ export interface AnalysisResult {
   rootScoreStdev?: number;
   moves: CandidateMove[];
   territory: number[][]; // 19x19 grid, values -1 (white) to 1 (black)
-  policy?: number[]; // len 362, illegal = -1, pass at index 361
-  ownershipStdev?: number[]; // len 361
+  policy?: FloatArray; // len 362, illegal = -1, pass at index 361
+  ownershipStdev?: FloatArray; // len 361
 }
 
 export type RegionOfInterest = { xMin: number; xMax: number; yMin: number; yMax: number };

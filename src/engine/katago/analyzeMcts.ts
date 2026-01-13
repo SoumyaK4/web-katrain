@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
-import type { BoardState, GameRules, Move, Player } from '../../types';
+import type { BoardState, FloatArray, GameRules, Move, Player } from '../../types';
 import { postprocessKataGoV8 } from './evalV8';
 import type { KataGoModelV8Tf } from './modelV8';
 import { expectedWhiteScoreValue, SQRT_BOARD_AREA } from './scoreValue';
@@ -1345,9 +1345,9 @@ export class MctsSearch {
     rootScoreLead: number;
     rootScoreSelfplay: number;
     rootScoreStdev: number;
-    ownership: number[];
-    ownershipStdev: number[];
-    policy: number[];
+    ownership: FloatArray;
+    ownershipStdev: FloatArray;
+    policy: FloatArray;
     moves: Array<{
       x: number;
       y: number;
@@ -1362,7 +1362,7 @@ export class MctsSearch {
       order: number;
       prior: number;
       pv: string[];
-      ownership?: number[];
+      ownership?: FloatArray;
     }>;
   } {
     const topK = Math.max(1, Math.min(args.topK, 50));
@@ -1470,7 +1470,7 @@ export class MctsSearch {
         prior: m.prior,
         pv: m.pv,
         ownership:
-          includeMovesOwnership && m.edge.child?.ownership ? Array.from(m.edge.child.ownership) : undefined,
+          includeMovesOwnership && m.edge.child?.ownership ? new Float32Array(m.edge.child.ownership) : undefined,
       };
     });
 
@@ -1478,15 +1478,17 @@ export class MctsSearch {
       this.ownershipMode === 'tree'
         ? averageTreeOwnership(this.rootNode)
         : { ownership: this.rootOwnership, ownershipStdev: new Float32Array(BOARD_AREA) };
+    const ownershipOut = this.ownershipMode === 'tree' ? ownership : new Float32Array(ownership);
+    const policyOut = new Float32Array(this.rootPolicy);
 
     return {
       rootWinRate,
       rootScoreLead,
       rootScoreSelfplay,
       rootScoreStdev,
-      ownership: Array.from(ownership),
-      ownershipStdev: Array.from(ownershipStdev),
-      policy: Array.from(this.rootPolicy),
+      ownership: ownershipOut,
+      ownershipStdev,
+      policy: policyOut,
       moves,
     };
   }
@@ -1514,9 +1516,9 @@ export async function analyzeMcts(args: {
   rootScoreLead: number;
   rootScoreSelfplay: number;
   rootScoreStdev: number;
-  ownership: number[]; // len 361, +1 black owns, -1 white owns (tree-averaged)
-  ownershipStdev: number[]; // len 361 (tree stdev)
-  policy: number[]; // len 362, illegal = -1, pass at index 361
+  ownership: FloatArray; // len 361, +1 black owns, -1 white owns (tree-averaged)
+  ownershipStdev: FloatArray; // len 361 (tree stdev)
+  policy: FloatArray; // len 362, illegal = -1, pass at index 361
   moves: Array<{
     x: number;
     y: number;
@@ -1905,9 +1907,9 @@ export async function analyzeMcts(args: {
     rootScoreLead,
     rootScoreSelfplay,
     rootScoreStdev,
-    ownership: Array.from(ownership),
-    ownershipStdev: Array.from(ownershipStdev),
-    policy: Array.from(rootPolicy),
+    ownership,
+    ownershipStdev,
+    policy: rootPolicy,
     moves,
   };
 }

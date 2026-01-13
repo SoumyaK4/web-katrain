@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SIZE, type CandidateMove, type Move, type Player } from '../types';
+import { BOARD_SIZE, type CandidateMove, type FloatArray, type Move, type Player } from '../types';
 
 function moveToLabel(move: Move | null): string {
   if (!move) return 'Root';
@@ -20,7 +20,7 @@ function bestMoveFromCandidates(moves: CandidateMove[] | undefined): CandidateMo
 }
 
 type PolicyMove = { prob: number; x: number; y: number; isPass: boolean };
-function policyRanking(policy: number[]): PolicyMove[] {
+function policyRanking(policy: FloatArray): PolicyMove[] {
   const out: PolicyMove[] = [];
   for (let y = 0; y < BOARD_SIZE; y++) {
     for (let x = 0; x < BOARD_SIZE; x++) {

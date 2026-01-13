@@ -1,4 +1,4 @@
-import type { CandidateMove, GameNode, GameState, BoardState, Player } from "../types";
+import type { CandidateMove, GameNode, GameState, BoardState, Player, FloatArray } from "../types";
 import { BOARD_SIZE } from "../types";
 import { encodeKaTrainKtFromAnalysis, KATRAIN_ANALYSIS_FORMAT_VERSION } from './katrainSgfAnalysis';
 
@@ -111,7 +111,7 @@ function computePointsLost(node: GameNode): number | null {
     return typeof candidate?.pointsLost === 'number' ? candidate.pointsLost : null;
 }
 
-function policyStats(args: { policy: number[]; move: { x: number; y: number } }): { rank: number; prob: number; bestMove: string; bestProb: number } | null {
+function policyStats(args: { policy: FloatArray; move: { x: number; y: number } }): { rank: number; prob: number; bestMove: string; bestProb: number } | null {
     const policy = args.policy;
     const move = args.move;
     const idx = move.x < 0 || move.y < 0 ? BOARD_SIZE * BOARD_SIZE : move.y * BOARD_SIZE + move.x;

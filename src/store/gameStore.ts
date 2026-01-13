@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { BOARD_SIZE, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest } from '../types';
+import { BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest } from '../types';
 import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
@@ -1585,7 +1585,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           node.analysis = analysisWithTerritory;
 
           type PolicyMove = { prob: number; x: number; y: number; isPass: boolean };
-          const policyRanking = (policy: number[]): PolicyMove[] => {
+          const policyRanking = (policy: FloatArray): PolicyMove[] => {
             const out: PolicyMove[] = [];
             for (let y = 0; y < BOARD_SIZE; y++) {
               for (let x = 0; x < BOARD_SIZE; x++) {
@@ -1762,11 +1762,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (!a || !a.move || a.move.x < 0 || a.move.y < 0) return false;
                 if (!b || !b.move || b.move.x < 0 || b.move.y < 0) return false;
 
-                const cheb = (m: Move) => Math.max(Math.abs(m.x - x), Math.abs(m.y - y));
-                return cheb(a.move) >= 5 && cheb(b.move) >= 5;
-              };
+              const cheb = (m: Move) => Math.max(Math.abs(m.x - x), Math.abs(m.y - y));
+              return cheb(a.move) >= 5 && cheb(b.move) >= 5;
+            };
 
-              const settledness = (ownership: number[], player: Player): number => {
+              const settledness = (ownership: FloatArray, player: Player): number => {
                 if (strategy === 'simple') {
                   const sign = player === 'black' ? 1 : -1;
                   let sum = 0;

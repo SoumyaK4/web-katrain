@@ -1,4 +1,4 @@
-import type { BoardState, GameRules, Move, Player } from '../../types';
+import type { BoardState, FloatArray, GameRules, Move, Player } from '../../types';
 
 export interface KataGoInitRequest {
   type: 'katago:init';
@@ -50,9 +50,9 @@ export interface KataGoAnalyzeResponse {
     rootScoreLead: number;
     rootScoreSelfplay: number;
     rootScoreStdev: number;
-    ownership: number[]; // len 361, +1 black owns, -1 white owns
-    ownershipStdev: number[]; // len 361
-    policy: number[]; // len 362, illegal = -1, pass at index 361
+    ownership: FloatArray; // len 361, +1 black owns, -1 white owns
+    ownershipStdev: FloatArray; // len 361
+    policy: FloatArray; // len 362, illegal = -1, pass at index 361
     moves: Array<{
       x: number;
       y: number;
@@ -67,7 +67,7 @@ export interface KataGoAnalyzeResponse {
       order: number;
       prior: number;
       pv: string[];
-      ownership?: number[]; // len 361, +1 black owns, -1 white owns (position after this move)
+      ownership?: FloatArray; // len 361, +1 black owns, -1 white owns (position after this move)
     }>;
   };
   error?: string;
