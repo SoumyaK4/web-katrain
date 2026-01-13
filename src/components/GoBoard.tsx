@@ -101,7 +101,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   const {
     board,
     playMove,
-    passTurn,
     moveHistory,
     analysisData,
     isAnalysisMode,
@@ -119,7 +118,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     (state) => ({
       board: state.board,
       playMove: state.playMove,
-      passTurn: state.passTurn,
       moveHistory: state.moveHistory,
       analysisData: state.analysisData,
       isAnalysisMode: state.isAnalysisMode,
@@ -140,19 +138,23 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   const containerRef = useRef<HTMLDivElement>(null);
   const gridCanvasRef = useRef<HTMLCanvasElement>(null);
   const ownershipCanvasRef = useRef<HTMLCanvasElement>(null);
+  const ghostCanvasRef = useRef<HTMLCanvasElement>(null);
   const stonesCanvasRef = useRef<HTMLCanvasElement>(null);
   const lastMoveCanvasRef = useRef<HTMLCanvasElement>(null);
   const ringsCanvasRef = useRef<HTMLCanvasElement>(null);
   const pvCanvasRef = useRef<HTMLCanvasElement>(null);
   const policyCanvasRef = useRef<HTMLCanvasElement>(null);
+  const hintsCanvasRef = useRef<HTMLCanvasElement>(null);
   const evalCanvasRef = useRef<HTMLCanvasElement>(null);
   const dotImageRef = useRef<HTMLImageElement | null>(null);
+  const topMoveImageRef = useRef<HTMLImageElement | null>(null);
   const stoneImagesRef = useRef<{ black: HTMLImageElement | null; white: HTMLImageElement | null; inner: HTMLImageElement | null }>({
     black: null,
     white: null,
     inner: null,
   });
   const [dotTextureVersion, setDotTextureVersion] = useState(0);
+  const [topMoveTextureVersion, setTopMoveTextureVersion] = useState(0);
   const [stoneTextureVersion, setStoneTextureVersion] = useState(0);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
@@ -190,6 +192,16 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     img.src = DOT_URL;
     dotImageRef.current = img;
     const handleLoad = () => setDotTextureVersion((v) => v + 1);
+    if (img.complete) handleLoad();
+    else img.addEventListener('load', handleLoad);
+    return () => img.removeEventListener('load', handleLoad);
+  }, []);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = TOPMOVE_URL;
+    topMoveImageRef.current = img;
+    const handleLoad = () => setTopMoveTextureVersion((v) => v + 1);
     if (img.complete) handleLoad();
     else img.addEventListener('load', handleLoad);
     return () => img.removeEventListener('load', handleLoad);
@@ -334,6 +346,20 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
 
   const territory = analysisData?.territory ?? currentNode.parent?.analysis?.territory ?? null;
+  const shouldShowHints = isAnalysisMode && !!analysisData && settings.analysisShowHints && !settings.analysisShowPolicy;
+  const hintMoveMap = useMemo(() => {
+    if (!shouldShowHints || !analysisData) return null;
+    const map = new Map<string, CandidateMove>();
+    for (const move of analysisData.moves) {
+      if (move.x < 0 || move.y < 0) continue;
+      map.set(`${move.x},${move.y}`, move);
+    }
+    return map;
+  }, [analysisData, shouldShowHints]);
+
+  useEffect(() => {
+    if (!shouldShowHints && hoveredMove) onHoverMove(null);
+  }, [hoveredMove, onHoverMove, shouldShowHints]);
 
   useEffect(() => {
     const canvas = gridCanvasRef.current;
@@ -462,6 +488,60 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     setupOverlayCanvas,
     stoneTextureVersion,
     territory,
+    toDisplay,
+  ]);
+
+  useEffect(() => {
+    const canvas = ghostCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (isSelectingRegionOfInterest) return;
+
+    const blackImg = stoneImagesRef.current.black;
+    const whiteImg = stoneImagesRef.current.white;
+    const stoneRadius = cellSize * STONE_SIZE;
+    const stoneDiameter = 2 * stoneRadius;
+
+    const drawGhost = (x: number, y: number, player: typeof currentPlayer) => {
+      const d = toDisplay(x, y);
+      const left = originX + d.x * cellSize - stoneRadius;
+      const top = originY + d.y * cellSize - stoneRadius;
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      const img = player === 'black' ? blackImg : whiteImg;
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, left, top, stoneDiameter, stoneDiameter);
+      } else {
+        ctx.beginPath();
+        ctx.fillStyle = rgba(player === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
+        ctx.arc(left + stoneRadius, top + stoneRadius, stoneRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    };
+
+    if (cursorPt && !board[cursorPt.y]?.[cursorPt.x]) {
+      drawGhost(cursorPt.x, cursorPt.y, currentPlayer);
+    }
+
+    if (isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0)) {
+      if (hoveredMove.x >= 0 && hoveredMove.y >= 0) {
+        drawGhost(hoveredMove.x, hoveredMove.y, currentPlayer);
+      }
+    }
+  }, [
+    board,
+    cellSize,
+    cursorPt,
+    currentPlayer,
+    hoveredMove,
+    isAnalysisMode,
+    isSelectingRegionOfInterest,
+    originX,
+    originY,
+    setupOverlayCanvas,
+    stoneTextureVersion,
     toDisplay,
   ]);
 
@@ -621,9 +701,47 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const pt = eventToInternal(e);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    const displayCol = Math.round((localX - originX) / cellSize);
+    const displayRow = Math.round((localY - originY) / cellSize);
+    let pt: { x: number; y: number } | null = null;
+    if (displayCol >= 0 && displayCol < BOARD_SIZE && displayRow >= 0 && displayRow < BOARD_SIZE) {
+      const internal = toInternal(displayCol, displayRow);
+      if (internal.x >= 0 && internal.x < BOARD_SIZE && internal.y >= 0 && internal.y < BOARD_SIZE) {
+        pt = internal;
+      }
+    }
     setCursorPt(pt);
-    if (!isSelectingRegionOfInterest) return;
+    if (!isSelectingRegionOfInterest) {
+      if (shouldShowHints && hintMoveMap && pt) {
+        const move = hintMoveMap.get(`${pt.x},${pt.y}`) ?? null;
+        if (move) {
+          const isBest = move.order === 0;
+          const lowVisitsThreshold = Math.max(1, settings.trainerLowVisits);
+          const uncertain = move.visits < lowVisitsThreshold && !isBest && !childMoveCoords.has(`${move.x},${move.y}`);
+          const scale = uncertain ? UNCERTAIN_HINT_SCALE : HINT_SCALE;
+          const radius = cellSize * STONE_SIZE * scale;
+          const d = toDisplay(move.x, move.y);
+          const cx = originX + d.x * cellSize;
+          const cy = originY + d.y * cellSize;
+          const dx = localX - cx;
+          const dy = localY - cy;
+          const inHint = dx * dx + dy * dy <= radius * radius;
+          if (inHint) {
+            if (!hoveredMove || hoveredMove.x !== move.x || hoveredMove.y !== move.y) onHoverMove(move);
+          } else if (hoveredMove) {
+            onHoverMove(null);
+          }
+        } else if (hoveredMove) {
+          onHoverMove(null);
+        }
+      } else if (hoveredMove) {
+        onHoverMove(null);
+      }
+      return;
+    }
     if (!roiDrag) return;
     if (!pt) return;
     setRoiDrag((prev) => (prev ? { ...prev, end: pt } : prev));
@@ -647,12 +765,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     setRegionOfInterest({ xMin, xMax, yMin, yMax });
   };
 
-  const handlePointerLeave = () => setCursorPt(null);
-
-  const handleAnalysisClick = (e: React.MouseEvent, move: CandidateMove) => {
-      e.stopPropagation();
-      if (move.x === -1 || move.y === -1) passTurn();
-      else playMove(move.x, move.y);
+  const handlePointerLeave = () => {
+    setCursorPt(null);
+    if (hoveredMove) onHoverMove(null);
   };
 
   const ownershipTexture = useMemo(() => {
@@ -903,9 +1018,138 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     toDisplay,
   ]);
 
-	  const pvMoves = useMemo(() => {
-	      const pv = hoveredMove?.pv;
-	      if (!isAnalysisMode || !pv || pv.length === 0) return [];
+  useEffect(() => {
+    const canvas = hintsCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (!shouldShowHints || !analysisData) return;
+
+    const moves = analysisData.moves.filter((m) => m.x >= 0 && m.y >= 0);
+    if (moves.length === 0) return;
+
+    const topMoveImg = topMoveImageRef.current;
+    const lowVisitsThreshold = Math.max(1, settings.trainerLowVisits);
+    const primary = settings.trainerTopMovesShow;
+    const secondary = settings.trainerTopMovesShowSecondary;
+    const show = [primary, secondary].filter((opt) => opt !== 'top_move_nothing');
+    const showText = show.length > 0;
+    const sign = currentPlayer === 'black' ? 1 : -1;
+    const stoneRadius = cellSize * STONE_SIZE;
+    const fontFamily =
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+    const baseFontSize = 10;
+    const subFontSize = 9;
+
+    const getLabel = (move: CandidateMove, opt: typeof primary): string => {
+      switch (opt) {
+        case 'top_move_delta_score':
+          return formatLoss(-move.pointsLost, settings.trainerExtraPrecision);
+        case 'top_move_score':
+          return formatScore(sign * move.scoreLead);
+        case 'top_move_winrate': {
+          const playerWinRate = currentPlayer === 'black' ? move.winRate : 1 - move.winRate;
+          return formatWinrate(playerWinRate);
+        }
+        case 'top_move_delta_winrate': {
+          const winRateLost = move.winRateLost ?? sign * (analysisData.rootWinRate - move.winRate);
+          return formatDeltaWinrate(-winRateLost);
+        }
+        case 'top_move_visits':
+          return formatVisits(move.visits);
+        case 'top_move_nothing':
+          return '';
+      }
+    };
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (const move of moves) {
+      const d = toDisplay(move.x, move.y);
+      const isBest = move.order === 0;
+      const uncertain = move.visits < lowVisitsThreshold && !isBest && !childMoveCoords.has(`${move.x},${move.y}`);
+      const scale = uncertain ? UNCERTAIN_HINT_SCALE : HINT_SCALE;
+      const textOn = !uncertain && showText;
+      const alpha = uncertain ? HINTS_LO_ALPHA : HINTS_ALPHA;
+      if (scale <= 0) continue;
+
+      const cls = evaluationClass(move.pointsLost, evalThresholds, evalColors.length);
+      const col = evalColors[cls]!;
+      const bg = rgba(col, alpha);
+
+      const evalSize = stoneRadius * scale;
+      const size = 2 * evalSize;
+      const cx = originX + d.x * cellSize;
+      const cy = originY + d.y * cellSize;
+      const left = cx - evalSize;
+      const top = cy - evalSize;
+
+      if (textOn) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, evalSize * 0.98, 0, Math.PI * 2);
+        ctx.fillStyle = approxBoardColor;
+        ctx.fill();
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, evalSize, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = bg;
+      ctx.fill();
+      if (topMoveImg && topMoveImg.complete && topMoveImg.naturalWidth > 0) {
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(topMoveImg, left, top, size, size);
+      }
+      ctx.restore();
+
+      if (isBest) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, evalSize - 1, 0, Math.PI * 2);
+        ctx.strokeStyle = rgba(TOP_MOVE_BORDER_COLOR);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      if (textOn) {
+        ctx.fillStyle = HINT_TEXT_COLOR;
+        if (show.length === 1) {
+          ctx.font = `700 ${baseFontSize}px ${fontFamily}`;
+          ctx.fillText(getLabel(move, show[0] as typeof primary), cx, cy);
+        } else {
+          ctx.font = `700 ${baseFontSize}px ${fontFamily}`;
+          ctx.fillText(getLabel(move, show[0] as typeof primary), cx, cy - baseFontSize * 0.35);
+          ctx.font = `700 ${subFontSize}px ${fontFamily}`;
+          ctx.globalAlpha = 0.9;
+          ctx.fillText(getLabel(move, show[1] as typeof primary), cx, cy + subFontSize * 0.55);
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }, [
+    analysisData,
+    approxBoardColor,
+    cellSize,
+    childMoveCoords,
+    currentPlayer,
+    evalColors,
+    evalThresholds,
+    originX,
+    originY,
+    settings.trainerExtraPrecision,
+    settings.trainerLowVisits,
+    settings.trainerTopMovesShow,
+    settings.trainerTopMovesShowSecondary,
+    setupOverlayCanvas,
+    shouldShowHints,
+    topMoveTextureVersion,
+    toDisplay,
+  ]);
+
+  const pvMoves = useMemo(() => {
+      const pv = hoveredMove?.pv;
+      if (!isAnalysisMode || !pv || pv.length === 0) return [];
 
 	      const upToMove = typeof pvUpToMove === 'number' ? pvUpToMove : pv.length;
 	      const opp: typeof currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
@@ -1102,6 +1346,19 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
         />
       )}
 
+      {/* Ghost Stones */}
+      <canvas
+        ref={ghostCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 5,
+        }}
+      />
+
       {/* Policy Overlay (KaTrain-style) */}
       <canvas
         ref={policyCanvasRef}
@@ -1153,56 +1410,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 	          zIndex: 13,
 	        }}
 	      />
-
-	      {/* Ghost Stone (Cursor) */}
-	      {cursorPt && !isSelectingRegionOfInterest && !board[cursorPt.y]?.[cursorPt.x] && (
-	        (() => {
-	          const d = toDisplay(cursorPt.x, cursorPt.y);
-	          const stoneDiameter = 2 * (cellSize * STONE_SIZE);
-	          return (
-	            <div
-	              className="absolute rounded-full shadow-sm flex items-center justify-center pointer-events-none"
-	              style={{
-	                width: stoneDiameter,
-	                height: stoneDiameter,
-	                left: originX + d.x * cellSize - stoneDiameter / 2,
-	                top: originY + d.y * cellSize - stoneDiameter / 2,
-	                backgroundImage: `url('${currentPlayer === 'black' ? BLACK_STONE_URL : WHITE_STONE_URL}')`,
-	                backgroundSize: 'contain',
-	                backgroundPosition: 'center',
-	                backgroundRepeat: 'no-repeat',
-	                opacity: 0.6,
-	                zIndex: 5,
-	              }}
-	            />
-	          );
-	        })()
-	      )}
-
-	      {/* Ghost Stone (Hover) */}
-	      {isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0) && (
-	          (() => {
-	            const d = toDisplay(hoveredMove.x, hoveredMove.y);
-            const stoneDiameter = 2 * (cellSize * STONE_SIZE);
-            return (
-          <div
-              className="absolute rounded-full shadow-sm flex items-center justify-center pointer-events-none"
-              style={{
-                  width: stoneDiameter,
-                  height: stoneDiameter,
-                  left: originX + d.x * cellSize - stoneDiameter / 2,
-                  top: originY + d.y * cellSize - stoneDiameter / 2,
-                  backgroundImage: `url('${currentPlayer === 'black' ? BLACK_STONE_URL : WHITE_STONE_URL}')`,
-                  backgroundSize: 'contain',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  opacity: 0.6,
-                  zIndex: 5
-              }}
-          />
-            );
-          })()
-      )}
 
 	      {/* PV Overlay (Hover) */}
 	      <canvas
@@ -1257,120 +1464,17 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       )}
 
       {/* Hints / Top Moves (E) */}
-      {isAnalysisMode && analysisData && settings.analysisShowHints && !settings.analysisShowPolicy &&
-        analysisData.moves.filter((m) => m.x >= 0 && m.y >= 0).map((move) => {
-          const d = toDisplay(move.x, move.y);
-          const isBest = move.order === 0;
-          const lowVisitsThreshold = Math.max(1, settings.trainerLowVisits);
-          const uncertain = move.visits < lowVisitsThreshold && !isBest && !childMoveCoords.has(`${move.x},${move.y}`);
-          const scale = uncertain ? UNCERTAIN_HINT_SCALE : HINT_SCALE;
-          const textOn = !uncertain;
-          const alpha = uncertain ? HINTS_LO_ALPHA : HINTS_ALPHA;
-          if (scale <= 0) return null;
-
-	          const cls = evaluationClass(move.pointsLost, evalThresholds, evalColors.length);
-	          const col = evalColors[cls]!;
-	          const bg = rgba(col, alpha);
-
-          const primary = settings.trainerTopMovesShow;
-          const secondary = settings.trainerTopMovesShowSecondary;
-          const show = [primary, secondary].filter((opt) => opt !== 'top_move_nothing');
-
-          const sign = currentPlayer === 'black' ? 1 : -1;
-          const playerWinRate = currentPlayer === 'black' ? move.winRate : 1 - move.winRate;
-          const winRateLost = move.winRateLost ?? sign * (analysisData.rootWinRate - move.winRate);
-
-          const getLabel = (opt: typeof primary): string => {
-            switch (opt) {
-              case 'top_move_delta_score':
-                return formatLoss(-move.pointsLost, settings.trainerExtraPrecision);
-              case 'top_move_score':
-                return formatScore(sign * move.scoreLead);
-              case 'top_move_winrate':
-                return formatWinrate(playerWinRate);
-              case 'top_move_delta_winrate':
-                return formatDeltaWinrate(-winRateLost);
-              case 'top_move_visits':
-                return formatVisits(move.visits);
-              case 'top_move_nothing':
-                return '';
-            }
-          };
-
-          const stoneRadius = cellSize * STONE_SIZE;
-          const evalSize = stoneRadius * scale;
-          const size = 2 * evalSize;
-          const showText = textOn && show.length > 0;
-
-          return (
-              <div key={`hint-${move.x}-${move.y}`}>
-                {showText && (
-                <div
-                  className="absolute pointer-events-none rounded-full"
-                  style={{
-                      width: size * 0.98,
-                      height: size * 0.98,
-                      left: originX + d.x * cellSize - (size * 0.98) / 2,
-                      top: originY + d.y * cellSize - (size * 0.98) / 2,
-                      backgroundColor: approxBoardColor,
-                      zIndex: 15,
-                    }}
-                  />
-                )}
-
-                <div
-                  className="absolute flex items-center justify-center cursor-pointer"
-                  style={{
-                    width: size,
-                    height: size,
-                    left: originX + d.x * cellSize - size / 2,
-                    top: originY + d.y * cellSize - size / 2,
-                    backgroundColor: bg,
-                    backgroundImage: `url('${TOPMOVE_URL}')`,
-                    backgroundSize: 'contain',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundBlendMode: 'multiply',
-                    maskImage: `url('${TOPMOVE_URL}')`,
-                    WebkitMaskImage: `url('${TOPMOVE_URL}')`,
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    maskPosition: 'center',
-                    WebkitMaskPosition: 'center',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat',
-                    border: isBest ? `2px solid ${rgba(TOP_MOVE_BORDER_COLOR)}` : undefined,
-                    borderRadius: '50%',
-                    boxSizing: 'border-box',
-                    zIndex: 16,
-                    color: HINT_TEXT_COLOR,
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    fontWeight: 700,
-                    fontSize: show.length === 1 ? 10 : 10,
-                    lineHeight: 0.9,
-                    textAlign: 'center',
-                  }}
-                  onClick={(e) => handleAnalysisClick(e, move)}
-                  onMouseEnter={() => onHoverMove(move)}
-                  onMouseLeave={() => onHoverMove(null)}
-                >
-                  {showText && (
-                    <div className="pointer-events-none select-none">
-                      {show.length === 1 ? (
-                        <div>{getLabel(show[0] as typeof primary)}</div>
-                      ) : (
-                        <>
-                          <div>{getLabel(show[0] as typeof primary)}</div>
-                          <div className="text-[9px] opacity-90">{getLabel(show[1] as typeof primary)}</div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-          );
-      })}
+      <canvas
+        ref={hintsCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 16,
+        }}
+      />
 
       {/* Tooltip */}
       {isAnalysisMode && hoveredMove && hoveredMove.x >= 0 && hoveredMove.y >= 0 && (
