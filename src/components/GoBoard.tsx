@@ -6,6 +6,11 @@ import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { publicUrl } from '../utils/publicUrl';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
+const HOSHI_POINTS_19 = [
+  [3, 3], [3, 9], [3, 15],
+  [9, 3], [9, 9], [9, 15],
+  [15, 3], [15, 9], [15, 15],
+] as const;
 
 const OWNERSHIP_COLORS = {
   black: [0.0, 0.0, 0.1, 0.75],
@@ -114,11 +119,22 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   } = useGameStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const gridCanvasRef = useRef<HTMLCanvasElement>(null);
   const ownershipCanvasRef = useRef<HTMLCanvasElement>(null);
+  const stonesCanvasRef = useRef<HTMLCanvasElement>(null);
+  const lastMoveCanvasRef = useRef<HTMLCanvasElement>(null);
+  const ringsCanvasRef = useRef<HTMLCanvasElement>(null);
+  const pvCanvasRef = useRef<HTMLCanvasElement>(null);
   const policyCanvasRef = useRef<HTMLCanvasElement>(null);
   const evalCanvasRef = useRef<HTMLCanvasElement>(null);
   const dotImageRef = useRef<HTMLImageElement | null>(null);
+  const stoneImagesRef = useRef<{ black: HTMLImageElement | null; white: HTMLImageElement | null; inner: HTMLImageElement | null }>({
+    black: null,
+    white: null,
+    inner: null,
+  });
   const [dotTextureVersion, setDotTextureVersion] = useState(0);
+  const [stoneTextureVersion, setStoneTextureVersion] = useState(0);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   const evalThresholds: readonly number[] = settings.trainerEvalThresholds?.length ? settings.trainerEvalThresholds : KATRAN_EVAL_THRESHOLDS;
@@ -158,6 +174,25 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     if (img.complete) handleLoad();
     else img.addEventListener('load', handleLoad);
     return () => img.removeEventListener('load', handleLoad);
+  }, []);
+
+  useEffect(() => {
+    const black = new Image();
+    const white = new Image();
+    const inner = new Image();
+    black.src = BLACK_STONE_URL;
+    white.src = WHITE_STONE_URL;
+    inner.src = INNER_URL;
+    stoneImagesRef.current = { black, white, inner };
+    const handleLoad = () => setStoneTextureVersion((v) => v + 1);
+    const images = [black, white, inner];
+    for (const img of images) {
+      if (img.complete) handleLoad();
+      else img.addEventListener('load', handleLoad);
+    }
+    return () => {
+      for (const img of images) img.removeEventListener('load', handleLoad);
+    };
   }, []);
 
   // KaTrain grid spacing/margins (see `badukpan.py:get_grid_spaces_margins`).
@@ -208,13 +243,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     [boardHeight, boardWidth]
   );
 
-  // Hoshi points for 19x19
-  const hoshiPoints = [
-    [3, 3], [3, 9], [3, 15],
-    [9, 3], [9, 9], [9, 15],
-    [15, 3], [15, 9], [15, 15]
-  ];
-
   // KaTrain-style coordinates and rotation behavior.
   const GTP_COORD = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'] as const;
   const rotation = boardRotation ?? 0;
@@ -245,6 +273,266 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     if (rotation === 3) return { x: BOARD_SIZE - 1 - y, y: x };
     return { x, y };
   }, [rotation]);
+
+  // Theme styling
+  const boardColor = settings.boardTheme === 'dark' ? '#333' : (settings.boardTheme === 'flat' ? '#eebb77' : '#DCB35C');
+  const lineColor = settings.boardTheme === 'dark' ? '#888' : '#000';
+  const labelColor = settings.boardTheme === 'dark' ? '#ccc' : '#404040';
+  const approxBoardColor =
+    settings.boardTheme === 'dark'
+      ? boardColor
+      : settings.boardTheme === 'flat'
+        ? boardColor
+        : rgba(APPROX_BOARD_COLOR);
+
+  // Derived from moveHistory or currentNode from store
+  const lastMove = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1] : null;
+
+  const moveNumbers = useMemo(() => {
+    if (!settings.showMoveNumbers) return null;
+    const grid: Array<Array<number | null>> = Array.from({ length: BOARD_SIZE }, () =>
+      Array<number | null>(BOARD_SIZE).fill(null)
+    );
+    for (let i = 0; i < moveHistory.length; i++) {
+      const m = moveHistory[i]!;
+      if (m.x < 0 || m.y < 0) continue;
+      grid[m.y]![m.x] = i + 1;
+    }
+    return grid;
+  }, [moveHistory, settings.showMoveNumbers]);
+
+  const childMoveRings = useMemo(() => {
+    if (!isAnalysisMode || !settings.analysisShowChildren) return [];
+    return currentNode.children
+      .map((c) => c.move)
+      .filter((m): m is NonNullable<typeof m> => !!m && m.x >= 0 && m.y >= 0);
+  }, [currentNode, isAnalysisMode, settings.analysisShowChildren]);
+
+  const bestHintMoveCoords = useMemo(() => {
+    if (!isAnalysisMode || !settings.analysisShowHints || settings.analysisShowPolicy) return null;
+    const best = analysisData?.moves.find((m) => m.order === 0 && m.x >= 0 && m.y >= 0);
+    return best ? { x: best.x, y: best.y } : null;
+  }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
+
+  const territory = analysisData?.territory ?? currentNode.parent?.analysis?.territory ?? null;
+
+  useEffect(() => {
+    const canvas = gridCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+
+    const startX = originX;
+    const startY = originY;
+    const endX = originX + cellSize * (BOARD_SIZE - 1);
+    const endY = originY + cellSize * (BOARD_SIZE - 1);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = lineColor;
+    ctx.beginPath();
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      const x = originX + i * cellSize + 0.5;
+      ctx.moveTo(x, startY);
+      ctx.lineTo(x, endY);
+      const y = originY + i * cellSize + 0.5;
+      ctx.moveTo(startX, y);
+      ctx.lineTo(endX, y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = lineColor;
+    const r = cellSize * 0.1;
+    for (const [hx, hy] of HOSHI_POINTS_19) {
+      const d = toDisplay(hx, hy);
+      const cx = originX + d.x * cellSize;
+      const cy = originY + d.y * cellSize;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [cellSize, lineColor, originX, originY, setupOverlayCanvas, toDisplay]);
+
+  useEffect(() => {
+    const canvas = stonesCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+
+    const blackImg = stoneImagesRef.current.black;
+    const whiteImg = stoneImagesRef.current.white;
+    const stoneRadius = cellSize * STONE_SIZE;
+    const stoneDiameter = 2 * stoneRadius;
+    const fontSize = stoneDiameter * 0.9;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font =
+      `bold ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+
+    for (let y = 0; y < BOARD_SIZE; y++) {
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        const cell = board[y]?.[x] ?? null;
+        if (!cell) continue;
+        const d = toDisplay(x, y);
+        const cx = originX + d.x * cellSize;
+        const cy = originY + d.y * cellSize;
+        const left = cx - stoneRadius;
+        const top = cy - stoneRadius;
+
+        const ownershipVal = isAnalysisMode && settings.analysisShowOwnership && territory ? (territory[y]?.[x] ?? 0) : null;
+        const ownershipAbs = ownershipVal !== null ? Math.min(1, Math.abs(ownershipVal)) : 0;
+        const owner =
+          ownershipVal !== null
+            ? ownershipVal > 0
+              ? 'black'
+              : 'white'
+            : null;
+        const stoneAlpha =
+          ownershipVal !== null && owner
+            ? cell === owner
+              ? STONE_MIN_ALPHA + (1 - STONE_MIN_ALPHA) * ownershipAbs
+              : STONE_MIN_ALPHA
+            : 1;
+        const showMark = ownershipVal !== null && owner && cell !== owner && ownershipAbs > 0;
+        const markSize = Math.max(0, MARK_SIZE * ownershipAbs * stoneDiameter);
+        const markColor = owner === 'black' ? STONE_COLORS.black : STONE_COLORS.white;
+        const otherColor = owner === 'black' ? STONE_COLORS.white : STONE_COLORS.black;
+        const outlineColor = [
+          (markColor[0] + otherColor[0]) / 2,
+          (markColor[1] + otherColor[1]) / 2,
+          (markColor[2] + otherColor[2]) / 2,
+          1,
+        ] as const;
+
+        ctx.globalAlpha = stoneAlpha;
+        const img = cell === 'black' ? blackImg : whiteImg;
+        if (img && img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, left, top, stoneDiameter, stoneDiameter);
+        } else {
+          ctx.beginPath();
+          ctx.fillStyle = rgba(cell === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
+          ctx.arc(cx, cy, stoneRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        if (showMark && markSize > 0) {
+          ctx.fillStyle = rgba(markColor);
+          ctx.strokeStyle = rgba(outlineColor);
+          const markLeft = cx - markSize / 2;
+          const markTop = cy - markSize / 2;
+          ctx.fillRect(markLeft, markTop, markSize, markSize);
+          ctx.strokeRect(markLeft, markTop, markSize, markSize);
+        }
+
+        const moveNumber = moveNumbers?.[y]?.[x];
+        if (settings.showMoveNumbers && moveNumber != null) {
+          ctx.fillStyle = 'rgba(217,173,102,0.8)';
+          ctx.fillText(String(moveNumber), cx, cy);
+        }
+      }
+    }
+  }, [
+    board,
+    cellSize,
+    isAnalysisMode,
+    moveNumbers,
+    originX,
+    originY,
+    settings.analysisShowOwnership,
+    settings.showMoveNumbers,
+    setupOverlayCanvas,
+    stoneTextureVersion,
+    territory,
+    toDisplay,
+  ]);
+
+  useEffect(() => {
+    const canvas = lastMoveCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (!lastMove || lastMove.x < 0 || lastMove.y < 0) return;
+    const cell = board[lastMove.y]?.[lastMove.x];
+    if (!cell) return;
+
+    const d = toDisplay(lastMove.x, lastMove.y);
+    const stoneDiameter = 2 * (cellSize * STONE_SIZE);
+    const innerDiameter = stoneDiameter * 0.8;
+    const left = originX + d.x * cellSize - innerDiameter / 2;
+    const top = originY + d.y * cellSize - innerDiameter / 2;
+    const color = cell === 'black' ? rgba(STONE_COLORS.white) : rgba(STONE_COLORS.black);
+    const innerImg = stoneImagesRef.current.inner;
+
+    if (innerImg && innerImg.complete && innerImg.naturalWidth > 0) {
+      ctx.drawImage(innerImg, left, top, innerDiameter, innerDiameter);
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillStyle = color;
+      ctx.fillRect(left, top, innerDiameter, innerDiameter);
+      ctx.restore();
+    } else {
+      const r = innerDiameter / 2;
+      ctx.beginPath();
+      ctx.arc(left + r, top + r, r, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1, cellSize * 0.04);
+      ctx.stroke();
+    }
+  }, [board, cellSize, lastMove, originX, originY, setupOverlayCanvas, stoneTextureVersion, toDisplay]);
+
+  useEffect(() => {
+    const canvas = ringsCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (!isAnalysisMode || !settings.analysisShowChildren) return;
+    if (childMoveRings.length === 0) return;
+
+    const strokeWidth = Math.max(1, cellSize * 0.04);
+    const ringRadius = Math.max(0, cellSize * STONE_SIZE - strokeWidth);
+    if (ringRadius <= 0) return;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineCap = 'round';
+
+    for (const m of childMoveRings) {
+      const d = toDisplay(m.x, m.y);
+      const cx = originX + d.x * cellSize;
+      const cy = originY + d.y * cellSize;
+      const isBest = !!bestHintMoveCoords && bestHintMoveCoords.x === m.x && bestHintMoveCoords.y === m.y;
+      const showContrast = !isBest;
+      const dashDeg = showContrast ? 18 : 10;
+      const circumference = 2 * Math.PI * ringRadius;
+      const dash = (circumference * dashDeg) / 360;
+      const gap = (circumference * (30 - dashDeg)) / 360;
+      const stoneCol = rgba(m.player === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
+      const contrastCol = rgba(NEXT_MOVE_DASH_CONTRAST_COLORS[m.player]);
+
+      if (showContrast) {
+        ctx.setLineDash([]);
+        ctx.strokeStyle = contrastCol;
+        ctx.beginPath();
+        ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([dash, gap]);
+      ctx.strokeStyle = stoneCol;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }, [
+    bestHintMoveCoords,
+    cellSize,
+    childMoveRings,
+    isAnalysisMode,
+    originX,
+    originY,
+    settings.analysisShowChildren,
+    setupOverlayCanvas,
+    toDisplay,
+  ]);
 
   const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
     null
@@ -346,58 +634,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       if (move.x === -1 || move.y === -1) passTurn();
       else playMove(move.x, move.y);
   };
-
-  // Derived from moveHistory or currentNode from store
-  const lastMove = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1] : null;
-
-  const lastMoveMark = useMemo(() => {
-    if (!lastMove || lastMove.x < 0 || lastMove.y < 0) return null;
-    const cell = board[lastMove.y]?.[lastMove.x];
-    if (!cell) return null;
-    const d = toDisplay(lastMove.x, lastMove.y);
-    const stoneDiameter = 2 * (cellSize * STONE_SIZE);
-    const innerDiameter = stoneDiameter * 0.8;
-    const col = cell === 'black' ? rgba(STONE_COLORS.white) : rgba(STONE_COLORS.black);
-    return {
-      left: originX + d.x * cellSize - innerDiameter / 2,
-      top: originY + d.y * cellSize - innerDiameter / 2,
-      size: innerDiameter,
-      color: col,
-    };
-  }, [board, cellSize, lastMove, originX, originY, toDisplay]);
-
-  const moveNumbers = useMemo(() => {
-      if (!settings.showMoveNumbers) return null;
-      const grid: Array<Array<number | null>> = Array.from({ length: BOARD_SIZE }, () =>
-          Array<number | null>(BOARD_SIZE).fill(null)
-      );
-      for (let i = 0; i < moveHistory.length; i++) {
-          const m = moveHistory[i]!;
-          if (m.x < 0 || m.y < 0) continue;
-          grid[m.y]![m.x] = i + 1;
-      }
-      return grid;
-  }, [moveHistory, settings.showMoveNumbers]);
-
-  const childMoveRings = useMemo(() => {
-      if (!isAnalysisMode || !settings.analysisShowChildren) return [];
-      return currentNode.children
-          .map((c) => c.move)
-          .filter((m): m is NonNullable<typeof m> => !!m && m.x >= 0 && m.y >= 0);
-  }, [currentNode, isAnalysisMode, settings.analysisShowChildren]);
-
-  // Theme styling
-  const boardColor = settings.boardTheme === 'dark' ? '#333' : (settings.boardTheme === 'flat' ? '#eebb77' : '#DCB35C');
-  const lineColor = settings.boardTheme === 'dark' ? '#888' : '#000';
-  const labelColor = settings.boardTheme === 'dark' ? '#ccc' : '#404040';
-  const approxBoardColor =
-    settings.boardTheme === 'dark'
-      ? boardColor
-      : settings.boardTheme === 'flat'
-        ? boardColor
-        : rgba(APPROX_BOARD_COLOR);
-
-  const territory = analysisData?.territory ?? currentNode.parent?.analysis?.territory ?? null;
 
   const ownershipTexture = useMemo(() => {
     if (!isAnalysisMode || !settings.analysisShowOwnership) return null;
@@ -647,7 +883,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     toDisplay,
   ]);
 
-	  const pvOverlay = useMemo(() => {
+	  const pvMoves = useMemo(() => {
 	      const pv = hoveredMove?.pv;
 	      if (!isAnalysisMode || !pv || pv.length === 0) return [];
 
@@ -663,6 +899,48 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 	      }
 	      return moves;
 	  }, [hoveredMove, isAnalysisMode, pvUpToMove, currentPlayer, toDisplay]);
+
+  useEffect(() => {
+    const canvas = pvCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (!isAnalysisMode || pvMoves.length === 0) return;
+
+    const blackImg = stoneImagesRef.current.black;
+    const whiteImg = stoneImagesRef.current.white;
+    const stoneRadius = cellSize * STONE_SIZE;
+    const size = 2 * stoneRadius + 1;
+    const fontSize = cellSize / 1.45;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fontSize}px sans-serif`;
+
+    for (const m of pvMoves) {
+      const left = originX + m.x * cellSize - stoneRadius - 1;
+      const top = originY + m.y * cellSize - stoneRadius;
+      const img = m.player === 'black' ? blackImg : whiteImg;
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, left, top, size, size);
+      } else {
+        ctx.beginPath();
+        ctx.fillStyle = rgba(m.player === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
+        ctx.arc(left + size / 2, top + size / 2, stoneRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = m.player === 'black' ? 'white' : 'black';
+      ctx.fillText(String(m.idx), left + size / 2, top + size / 2);
+    }
+  }, [
+    cellSize,
+    isAnalysisMode,
+    originX,
+    originY,
+    pvMoves,
+    setupOverlayCanvas,
+    stoneTextureVersion,
+  ]);
 
   const roiRect = useMemo(() => {
     const roi =
@@ -688,12 +966,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       height: (maxY - minY) * cellSize + (2 / 3) * cellSize,
     };
   }, [cellSize, originX, originY, regionOfInterest, roiDrag, toDisplay]);
-
-  const bestHintMoveCoords = useMemo(() => {
-    if (!isAnalysisMode || !settings.analysisShowHints || settings.analysisShowPolicy) return null;
-    const best = analysisData?.moves.find((m) => m.order === 0 && m.x >= 0 && m.y >= 0);
-    return best ? { x: best.x, y: best.y } : null;
-  }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
 
   const passCircle = useMemo(() => {
     const m = lastMove;
@@ -754,6 +1026,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
                     fontSize: cellSize / 1.5,
                     color: labelColor,
                     textAlign: 'center',
+                    zIndex: 4,
                     }}
                 >
                 {getXCoordinateText(i)}
@@ -771,6 +1044,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
                     fontSize: cellSize / 1.5,
                     color: labelColor,
                     textAlign: 'center',
+                    zIndex: 4,
                     }}
                 >
                 {getYCoordinateText(i)}
@@ -780,52 +1054,18 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       )}
 
 
-      {/* Grid Lines */}
-      {Array.from({ length: BOARD_SIZE }).map((_, i) => (
-        <React.Fragment key={i}>
-          {/* Vertical lines */}
-          <div
-            className="absolute"
-            style={{
-              left: originX + i * cellSize,
-              top: originY,
-              width: 1,
-              height: cellSize * (BOARD_SIZE - 1),
-              backgroundColor: lineColor
-            }}
-          />
-          {/* Horizontal lines */}
-          <div
-            className="absolute"
-            style={{
-              left: originX,
-              top: originY + i * cellSize,
-              width: cellSize * (BOARD_SIZE - 1),
-              height: 1,
-              backgroundColor: lineColor
-            }}
-          />
-        </React.Fragment>
-      ))}
-
-      {/* Hoshi Points */}
-      {hoshiPoints.map(([hx, hy], idx) => {
-        const d = toDisplay(hx, hy);
-        const r = cellSize * 0.1;
-        return (
-          <div
-            key={`hoshi-${idx}`}
-            className="absolute rounded-full"
-            style={{
-              width: 2 * r,
-              height: 2 * r,
-              left: originX + d.x * cellSize - r,
-              top: originY + d.y * cellSize - r,
-              backgroundColor: lineColor,
-            }}
-          />
-        );
-      })}
+      {/* Grid + Hoshi */}
+      <canvas
+        ref={gridCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 2,
+        }}
+      />
 
       {/* Ownership / Territory Overlay (KaTrain-style) */}
       {ownershipTexture && (
@@ -856,90 +1096,17 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       />
 
       {/* Stones */}
-      {board.map((row, y) =>
-        row.map((cell, x) => {
-          if (!cell) return null;
-          const d = toDisplay(x, y);
-          const stoneDiameter = 2 * (cellSize * STONE_SIZE);
-          const ownershipVal = isAnalysisMode && settings.analysisShowOwnership && territory ? (territory[y]?.[x] ?? 0) : null;
-          const ownershipAbs = ownershipVal !== null ? Math.min(1, Math.abs(ownershipVal)) : 0;
-          const owner =
-            ownershipVal !== null
-              ? ownershipVal > 0
-                ? 'black'
-                : 'white'
-              : null;
-          const stoneAlpha =
-            ownershipVal !== null && owner
-              ? cell === owner
-                ? STONE_MIN_ALPHA + (1 - STONE_MIN_ALPHA) * ownershipAbs
-                : STONE_MIN_ALPHA
-              : 1;
-          const showMark = ownershipVal !== null && owner && cell !== owner && ownershipAbs > 0;
-          const markSize = Math.max(0, MARK_SIZE * ownershipAbs * stoneDiameter);
-          const markColor = owner === 'black' ? STONE_COLORS.black : STONE_COLORS.white;
-          const otherColor = owner === 'black' ? STONE_COLORS.white : STONE_COLORS.black;
-          const outlineColor = [
-            (markColor[0] + otherColor[0]) / 2,
-            (markColor[1] + otherColor[1]) / 2,
-            (markColor[2] + otherColor[2]) / 2,
-            1,
-          ] as const;
-          return (
-            <div
-              key={`${x}-${y}`}
-              className="absolute flex items-center justify-center"
-              style={{
-                width: stoneDiameter,
-                height: stoneDiameter,
-                left: originX + d.x * cellSize - stoneDiameter / 2,
-                top: originY + d.y * cellSize - stoneDiameter / 2,
-                borderRadius: '50%',
-                boxSizing: 'border-box',
-              }}
-            >
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url('${cell === 'black' ? BLACK_STONE_URL : WHITE_STONE_URL}')`,
-                  backgroundSize: 'contain',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  opacity: stoneAlpha,
-                }}
-              />
-
-              {showMark && markSize > 0 && (
-                <div
-                  className="absolute"
-                  style={{
-                    width: markSize,
-                    height: markSize,
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    backgroundColor: rgba(markColor),
-                    border: `1px solid ${rgba(outlineColor)}`,
-                    boxSizing: 'border-box',
-                  }}
-                />
-              )}
-
-              {settings.showMoveNumbers && moveNumbers?.[y]?.[x] !== null && (
-                  <div
-                    className="font-bold font-mono"
-                    style={{
-                      color: 'rgba(217,173,102,0.8)',
-                      fontSize: (cellSize * STONE_SIZE) * 0.9,
-                    }}
-                  >
-                    {moveNumbers?.[y]?.[x]}
-                  </div>
-              )}
-            </div>
-          );
-        })
-      )}
+      <canvas
+        ref={stonesCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 8,
+        }}
+      />
 
       {/* Evaluation Dots (KaTrain-style) */}
       <canvas
@@ -955,27 +1122,17 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       />
 
 	      {/* Last Move Marker (KaTrain-style) */}
-	      {lastMoveMark && (
-	        <div
-          className="absolute pointer-events-none"
-          style={{
-            width: lastMoveMark.size,
-            height: lastMoveMark.size,
-            left: lastMoveMark.left,
-            top: lastMoveMark.top,
-            backgroundColor: lastMoveMark.color,
-            maskImage: `url('${INNER_URL}')`,
-            WebkitMaskImage: `url('${INNER_URL}')`,
-            maskSize: 'contain',
-            WebkitMaskSize: 'contain',
-            maskPosition: 'center',
-            WebkitMaskPosition: 'center',
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            zIndex: 13,
-          }}
-        />
-	      )}
+	      <canvas
+	        ref={lastMoveCanvasRef}
+	        className="absolute pointer-events-none"
+	        style={{
+	          left: 0,
+	          top: 0,
+	          width: boardWidth,
+	          height: boardHeight,
+	          zIndex: 13,
+	        }}
+	      />
 
 	      {/* Ghost Stone (Cursor) */}
 	      {cursorPt && !isSelectingRegionOfInterest && !board[cursorPt.y]?.[cursorPt.x] && (
@@ -1028,95 +1185,30 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       )}
 
 	      {/* PV Overlay (Hover) */}
-	      {pvOverlay.map((m) => {
-	          const stoneRadius = cellSize * STONE_SIZE;
-	          const size = 2 * stoneRadius + 1;
-	          const textColor = m.player === 'black' ? 'white' : 'black';
-	          return (
-	              <div
-	                  key={`pv-${m.idx}-${m.x}-${m.y}`}
-	                  className="absolute flex items-center justify-center pointer-events-none"
-	                  style={{
-	                      width: size,
-	                      height: size,
-	                      left: originX + m.x * cellSize - stoneRadius - 1,
-	                      top: originY + m.y * cellSize - stoneRadius,
-	                      zIndex: 20,
-	                  }}
-	              >
-	                  <div
-	                    className="absolute inset-0"
-	                    style={{
-	                      backgroundImage: `url('${m.player === 'black' ? BLACK_STONE_URL : WHITE_STONE_URL}')`,
-	                      backgroundSize: 'contain',
-	                      backgroundPosition: 'center',
-	                      backgroundRepeat: 'no-repeat',
-	                    }}
-	                  />
-	                  <div
-	                    className="font-bold"
-	                    style={{
-	                      color: textColor,
-	                      fontSize: cellSize / 1.45,
-	                      lineHeight: 1,
-	                    }}
-	                  >
-	                    {m.idx}
-	                  </div>
-	              </div>
-	          );
-	      })}
+	      <canvas
+	        ref={pvCanvasRef}
+	        className="absolute pointer-events-none"
+	        style={{
+	          left: 0,
+	          top: 0,
+	          width: boardWidth,
+	          height: boardHeight,
+	          zIndex: 20,
+	        }}
+	      />
 
       {/* Children Overlay (Q) */}
-      {isAnalysisMode && settings.analysisShowChildren && childMoveRings.map((m) => {
-          const d = toDisplay(m.x, m.y);
-          const strokeWidth = Math.max(1, cellSize * 0.04);
-          const ringRadius = Math.max(0, cellSize * STONE_SIZE - strokeWidth);
-          const ringSize = 2 * (ringRadius + strokeWidth);
-          const isBest = !!bestHintMoveCoords && bestHintMoveCoords.x === m.x && bestHintMoveCoords.y === m.y;
-          const showContrast = !isBest;
-          const dashDeg = showContrast ? 18 : 10;
-          const circumference = 2 * Math.PI * ringRadius;
-          const dash = (circumference * dashDeg) / 360;
-          const gap = (circumference * (30 - dashDeg)) / 360;
-          const stoneCol = rgba(m.player === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
-          const contrastCol = rgba(NEXT_MOVE_DASH_CONTRAST_COLORS[m.player]);
-          return (
-              <svg
-                key={`child-${m.x}-${m.y}-${m.player}`}
-                className="absolute pointer-events-none"
-                width={ringSize}
-                height={ringSize}
-                viewBox={`0 0 ${ringSize} ${ringSize}`}
-                style={{
-                  left: originX + d.x * cellSize - ringSize / 2,
-                  top: originY + d.y * cellSize - ringSize / 2,
-                  zIndex: 14,
-                }}
-              >
-                {showContrast && (
-                  <circle
-                    cx={ringSize / 2}
-                    cy={ringSize / 2}
-                    r={ringRadius}
-                    fill="none"
-                    stroke={contrastCol}
-                    strokeWidth={strokeWidth}
-                  />
-                )}
-                <circle
-                  cx={ringSize / 2}
-                  cy={ringSize / 2}
-                  r={ringRadius}
-                  fill="none"
-                  stroke={stoneCol}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={`${dash} ${gap}`}
-                  strokeLinecap="round"
-                />
-              </svg>
-          );
-      })}
+      <canvas
+        ref={ringsCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 14,
+        }}
+      />
 
       {/* Pass Circle (KaTrain-style) */}
       {passCircle && (
