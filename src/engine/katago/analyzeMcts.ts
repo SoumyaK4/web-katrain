@@ -31,6 +31,13 @@ import { POLICY_OPTIMISM, ROOT_POLICY_OPTIMISM } from './searchParams';
 
 export type OwnershipMode = 'root' | 'tree';
 
+type PolicyValueOutput = ReturnType<KataGoModelV8Tf['forwardPolicyValue']>;
+type PolicyValueOwnershipOutput = ReturnType<KataGoModelV8Tf['forward']>;
+
+const hasOwnership = (out: PolicyValueOutput | PolicyValueOwnershipOutput): out is PolicyValueOwnershipOutput => {
+  return 'ownership' in out;
+};
+
 type Edge = {
   move: number; // 0..360 or PASS_MOVE
   prior: number;
@@ -331,7 +338,7 @@ function computeBlackUtilityFromEval(args: {
   return -whiteUtility;
 }
 
-const VALUE_WEIGHT_EXPONENT = 0.25;
+const VALUE_WEIGHT_EXPONENT: number = 0.25;
 const USE_NOISE_PRUNING = true;
 const NOISE_PRUNE_UTILITY_SCALE = 0.15;
 const NOISE_PRUNING_CAP = 1e50;
@@ -1072,7 +1079,7 @@ async function evaluateBatch(args: {
   const globalTensor = tf.tensor2d(globalBatch, [batch, 19]);
   const out = includeOwnership ? model.forward(spatialTensor, globalTensor) : model.forwardPolicyValue(spatialTensor, globalTensor);
 
-  const ownershipPromise = includeOwnership && 'ownership' in out ? out.ownership.data() : Promise.resolve(null);
+  const ownershipPromise = includeOwnership && hasOwnership(out) ? out.ownership.data() : Promise.resolve(null);
   const [policyArr, passArr, valueArr, scoreArr, ownershipArr] = await Promise.all([
     out.policy.data(),
     out.policyPass.data(),
@@ -1087,7 +1094,7 @@ async function evaluateBatch(args: {
   out.policyPass.dispose();
   out.value.dispose();
   out.scoreValue.dispose();
-  if ('ownership' in out) out.ownership.dispose();
+  if (hasOwnership(out)) out.ownership.dispose();
 
   const policyChannels = model.policyOutChannels;
   const usePolicyOptimism = policyChannels === 2 || (policyChannels === 4 && model.modelVersion >= 16);

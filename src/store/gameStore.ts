@@ -110,7 +110,6 @@ const createEmptyBoard = (): BoardState => {
 const EMPTY_TERRITORY: number[][] = Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => 0));
 
 const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v1';
-const SMALL_MODEL_URL = 'models/katago-small.bin.gz';
 const KATRAIN_DEFAULT_MODEL_URL = 'models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz';
 
 const normalizeModelUrl = (value: unknown): string | null => {
