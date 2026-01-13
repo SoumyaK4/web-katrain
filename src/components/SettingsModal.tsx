@@ -64,7 +64,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const handleClearUpload = () => {
         if (!isUploadedModel) return;
         revokeUploadedModelUrl();
-        updateSettings({ katagoModelUrl: lastManualModelUrl ?? SMALL_MODEL_URL });
+        updateSettings({ katagoModelUrl: lastManualModelUrl ?? KATRAIN_DEFAULT_MODEL_URL });
     };
 
     return (
@@ -1076,7 +1076,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 value={settings.katagoModelUrl}
                                 onChange={(e) => updateSettings({ katagoModelUrl: e.target.value })}
                                 className="w-full bg-gray-700 text-white rounded p-2 border border-gray-600 focus:border-green-500 outline-none text-xs font-mono"
-                                placeholder={SMALL_MODEL_URL}
+                                placeholder={KATRAIN_DEFAULT_MODEL_URL}
                             />
                             <p className="text-xs text-gray-500">
                                 Use a local path under <span className="font-mono">{publicUrl('models/')}</span> or a full URL (must allow CORS).

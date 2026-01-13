@@ -137,9 +137,7 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
     if ('katagoModelUrl' in parsed) {
       const normalized = normalizeModelUrl((parsed as { katagoModelUrl?: unknown }).katagoModelUrl);
       if (normalized) {
-        const oldDefault = publicUrl(KATRAIN_DEFAULT_MODEL_URL);
-        (parsed as { katagoModelUrl: string }).katagoModelUrl =
-          normalized === oldDefault ? publicUrl(SMALL_MODEL_URL) : normalized;
+        (parsed as { katagoModelUrl: string }).katagoModelUrl = normalized;
       } else {
         delete (parsed as { katagoModelUrl?: unknown }).katagoModelUrl;
       }
@@ -320,7 +318,7 @@ const defaultSettings: GameSettings = {
   analysisShowHints: true,
   analysisShowPolicy: false,
   analysisShowOwnership: true,
-  katagoModelUrl: publicUrl(SMALL_MODEL_URL),
+  katagoModelUrl: publicUrl(KATRAIN_DEFAULT_MODEL_URL),
   katagoVisits: 500,
   katagoFastVisits: 25,
   katagoMaxTimeMs: 8000,
@@ -328,7 +326,7 @@ const defaultSettings: GameSettings = {
   katagoMaxChildren: 361,
   katagoTopK: 10,
   katagoReuseTree: true,
-  katagoOwnershipMode: 'tree',
+  katagoOwnershipMode: 'root',
   katagoWideRootNoise: 0.04,
   katagoAnalysisPvLen: 15,
   katagoNnRandomize: true,
