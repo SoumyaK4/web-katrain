@@ -52,12 +52,13 @@ function lastFinite(values: number[]): number {
 }
 
 export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: boolean }> = ({ showScore, showWinrate }) => {
-  const { currentNode, jumpToNode } = useGameStore();
+  const { currentNode, jumpToNode, treeVersion } = useGameStore();
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   // KaTrain-style graph: show the whole mainline for the current branch.
   const { nodes, highlightedIndex } = useMemo(() => {
+    void treeVersion;
     const path: GameNode[] = [];
     let node: GameNode | null = currentNode;
     while (node) {
@@ -74,15 +75,23 @@ export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: bool
     }
 
     return { nodes: out, highlightedIndex: Math.max(0, path.length - 1) };
-  }, [currentNode]);
+  }, [currentNode, treeVersion]);
 
   const width = 300;
   const height = 100;
 
-  const scoreValues = useMemo(() => nodes.map((n) => n.analysis?.rootScoreLead ?? Number.NaN), [nodes]);
+  const scoreValues = useMemo(() => {
+    void treeVersion;
+    return nodes.map((n) => n.analysis?.rootScoreLead ?? Number.NaN);
+  }, [nodes, treeVersion]);
   const winrateValues = useMemo(
-    () => nodes.map((n) => (typeof n.analysis?.rootWinRate === 'number' ? (n.analysis.rootWinRate - 0.5) * 100 : Number.NaN)),
-    [nodes]
+    () => {
+      void treeVersion;
+      return nodes.map((n) =>
+        typeof n.analysis?.rootWinRate === 'number' ? (n.analysis.rootWinRate - 0.5) * 100 : Number.NaN
+      );
+    },
+    [nodes, treeVersion]
   );
 
   const scoreScale = useMemo(() => computeSymmetricScale(scoreValues, SCORE_GRANULARITY), [scoreValues]);
