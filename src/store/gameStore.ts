@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from 'zustand/traditional';
 import { BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest } from '../types';
 import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
