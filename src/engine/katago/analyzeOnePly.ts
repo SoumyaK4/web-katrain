@@ -66,13 +66,15 @@ export async function analyzeOnePly(args: {
   rootOut.scoreValue.dispose();
 
   const policyChannels = model.policyOutChannels;
+  const usePolicyOptimism = policyChannels === 2 || (policyChannels === 4 && model.modelVersion >= 16);
+  const mix = usePolicyOptimism ? ROOT_POLICY_OPTIMISM : 0;
   let policyLogits = policyLogitsArr as Float32Array;
   if (policyChannels > 1) {
     const mixed = new Float32Array(BOARD_SIZE * BOARD_SIZE);
     for (let pos = 0; pos < BOARD_SIZE * BOARD_SIZE; pos++) {
       const base = policyLogitsArr[pos * policyChannels]!;
       const opt = policyLogitsArr[pos * policyChannels + 1]!;
-      mixed[pos] = base + (opt - base) * ROOT_POLICY_OPTIMISM;
+      mixed[pos] = base + (opt - base) * mix;
     }
     policyLogits = mixed;
   }

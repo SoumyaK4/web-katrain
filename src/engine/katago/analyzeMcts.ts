@@ -853,13 +853,14 @@ async function evaluateBatch(args: {
   if ('ownership' in out) out.ownership.dispose();
 
   const policyChannels = model.policyOutChannels;
+  const usePolicyOptimism = policyChannels === 2 || (policyChannels === 4 && model.modelVersion >= 16);
+  const mix = usePolicyOptimism ? policyOptimism : 0;
   let policyLogits = policyArr as Float32Array;
   let passLogits = passArr as Float32Array;
 
   if (policyChannels > 1) {
     const mixedPolicy = scratch.policyScratch.subarray(0, batch * BOARD_AREA);
     const mixedPass = scratch.passScratch.subarray(0, batch);
-    const mix = policyOptimism;
     for (let i = 0; i < batch; i++) {
       const baseOff = i * BOARD_AREA * policyChannels;
       const outOff = i * BOARD_AREA;
