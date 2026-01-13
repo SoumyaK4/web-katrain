@@ -115,6 +115,10 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 
   const containerRef = useRef<HTMLDivElement>(null);
   const ownershipCanvasRef = useRef<HTMLCanvasElement>(null);
+  const policyCanvasRef = useRef<HTMLCanvasElement>(null);
+  const evalCanvasRef = useRef<HTMLCanvasElement>(null);
+  const dotImageRef = useRef<HTMLImageElement | null>(null);
+  const [dotTextureVersion, setDotTextureVersion] = useState(0);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   const evalThresholds: readonly number[] = settings.trainerEvalThresholds?.length ? settings.trainerEvalThresholds : KATRAN_EVAL_THRESHOLDS;
@@ -146,6 +150,16 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     return () => obs.disconnect();
   }, []);
 
+  useEffect(() => {
+    const img = new Image();
+    img.src = DOT_URL;
+    dotImageRef.current = img;
+    const handleLoad = () => setDotTextureVersion((v) => v + 1);
+    if (img.complete) handleLoad();
+    else img.addEventListener('load', handleLoad);
+    return () => img.removeEventListener('load', handleLoad);
+  }, []);
+
   // KaTrain grid spacing/margins (see `badukpan.py:get_grid_spaces_margins`).
   const gridSpacesMarginX = useMemo(
     () => (settings.showCoordinates ? { left: 1.5, right: 0.75 } : { left: 0.75, right: 0.75 }),
@@ -171,6 +185,28 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   const originX = Math.floor(cellSize * gridSpacesMarginX.left + 0.5);
   const originY = Math.floor(cellSize * gridSpacesMarginY.top + 0.5);
   const coordOffset = (cellSize * 1.5) / 2;
+
+  const setupOverlayCanvas = useCallback(
+    (canvas: HTMLCanvasElement): CanvasRenderingContext2D | null => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      const width = Math.max(1, boardWidth);
+      const height = Math.max(1, boardHeight);
+      const pixelWidth = Math.max(1, Math.round(width * dpr));
+      const pixelHeight = Math.max(1, Math.round(height * dpr));
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      return ctx;
+    },
+    [boardHeight, boardWidth]
+  );
 
   // Hoshi points for 19x19
   const hoshiPoints = [
@@ -343,106 +379,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       return grid;
   }, [moveHistory, settings.showMoveNumbers]);
 
-	  const evalDots = useMemo(() => {
-	      void treeVersion;
-	      if (!isAnalysisMode || !settings.analysisShowEval || settings.showLastNMistakes === 0) return [];
-
-	      const dots: Array<{ key: string; x: number; y: number; pointsLost: number; color: string; size: number }> = [];
-	      let node: GameNode | null = currentNode;
-      let count = 0;
-      let realizedPointsLost: number | null = null;
-
-      const stoneRadius = cellSize * STONE_SIZE;
-
-      const parentRealizedPointsLost = (n: GameNode): number | null => {
-          const move = n.move;
-          const parentParent = n.parent?.parent;
-          const score = n.analysis?.rootScoreLead;
-          const parentParentScore = parentParent?.analysis?.rootScoreLead;
-          if (!move || !parentParent) return null;
-          if (typeof score !== 'number' || typeof parentParentScore !== 'number') return null;
-          const sign = move.player === 'black' ? 1 : -1;
-          return sign * (score - parentParentScore);
-      };
-
-      while (node && node.parent && count < settings.showLastNMistakes) {
-          const move = node.move;
-          if (!move || move.x < 0 || move.y < 0) {
-              realizedPointsLost = parentRealizedPointsLost(node);
-              node = node.parent;
-              count++;
-              continue;
-          }
-
-          if (!showEvalDotsForPlayer[move.player]) {
-              realizedPointsLost = parentRealizedPointsLost(node);
-              node = node.parent;
-              count++;
-              continue;
-          }
-
-          // Skip captured stones (KaTrain draws eval dots on existing stones only).
-          if (board[move.y]?.[move.x] !== move.player) {
-              realizedPointsLost = parentRealizedPointsLost(node);
-              node = node.parent;
-              count++;
-              continue;
-          }
-
-          let pointsLost: number | null = null;
-          const parentScore = node.parent.analysis?.rootScoreLead;
-          const childScore = node.analysis?.rootScoreLead;
-          if (typeof parentScore === 'number' && typeof childScore === 'number') {
-              const sign = move.player === 'black' ? 1 : -1;
-              pointsLost = sign * (parentScore - childScore);
-          } else {
-              const parentAnalysis = node.parent.analysis;
-              const candidate = parentAnalysis?.moves.find((m) => m.x === move.x && m.y === move.y);
-              if (candidate) pointsLost = candidate.pointsLost;
-          }
-
-	          if (pointsLost !== null) {
-	              const cls = evaluationClass(pointsLost, evalThresholds, evalColors.length);
-	              if (settings.trainerShowDots?.[cls] === false) {
-	                  realizedPointsLost = parentRealizedPointsLost(node);
-	                  node = node.parent;
-	                  count++;
-	                  continue;
-	              }
-	              const color = rgba(evalColors[cls]!);
-              let evalScale = 1;
-              if (pointsLost && realizedPointsLost) {
-                  if (pointsLost <= 0.5 && realizedPointsLost <= 1.5) evalScale = 0;
-                  else evalScale = Math.min(1, Math.max(0, realizedPointsLost / pointsLost));
-              }
-              const evalRadius = Math.sqrt(Math.max(0, Math.min(1, evalScale)));
-              const dotRadius =
-                stoneRadius * (EVAL_DOT_MIN_SIZE + evalRadius * (EVAL_DOT_MAX_SIZE - EVAL_DOT_MIN_SIZE));
-              const size = Math.max(2, 2 * dotRadius);
-              const d = toDisplay(move.x, move.y);
-              dots.push({ key: node.id, x: d.x, y: d.y, pointsLost, color, size });
-          }
-
-          realizedPointsLost = parentRealizedPointsLost(node);
-          node = node.parent;
-          count++;
-      }
-      return dots;
-		  }, [
-		      board,
-		      cellSize,
-		      currentNode,
-		      evalColors,
-		      evalThresholds,
-		      isAnalysisMode,
-		      treeVersion,
-		      settings.analysisShowEval,
-		      settings.showLastNMistakes,
-	      settings.trainerShowDots,
-	      showEvalDotsForPlayer,
-	      toDisplay,
-	  ]);
-
   const childMoveRings = useMemo(() => {
       if (!isAnalysisMode || !settings.analysisShowChildren) return [];
       return currentNode.children
@@ -509,79 +445,207 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     ctx.putImageData(new ImageData(ownershipTexture.bytes, ownershipTexture.width, ownershipTexture.height), 0, 0);
   }, [ownershipTexture]);
 
-  const policyOverlay = useMemo(() => {
-      if (!isAnalysisMode || !settings.analysisShowPolicy) return [];
-      const policy = analysisData?.policy;
-      if (!policy) return [];
+  useEffect(() => {
+    const canvas = evalCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (!isAnalysisMode || !settings.analysisShowEval || settings.showLastNMistakes === 0) return;
+    void treeVersion;
 
-      let best = 0;
-      for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
-          const v = policy[i] ?? -1;
-          if (v > best) best = v;
+    const dotImg = dotImageRef.current;
+    let node: GameNode | null = currentNode;
+    let count = 0;
+    let realizedPointsLost: number | null = null;
+
+    const stoneRadius = cellSize * STONE_SIZE;
+
+    const parentRealizedPointsLost = (n: GameNode): number | null => {
+      const move = n.move;
+      const parentParent = n.parent?.parent;
+      const score = n.analysis?.rootScoreLead;
+      const parentParentScore = parentParent?.analysis?.rootScoreLead;
+      if (!move || !parentParent) return null;
+      if (typeof score !== 'number' || typeof parentParentScore !== 'number') return null;
+      const sign = move.player === 'black' ? 1 : -1;
+      return sign * (score - parentParentScore);
+    };
+
+    while (node && node.parent && count < settings.showLastNMistakes) {
+      const move = node.move;
+      if (!move || move.x < 0 || move.y < 0) {
+        realizedPointsLost = parentRealizedPointsLost(node);
+        node = node.parent;
+        count++;
+        continue;
       }
 
-      const out: React.ReactNode[] = [];
-      const textLb = 0.01 * 0.01;
-      for (let y = 0; y < BOARD_SIZE; y++) {
-          for (let x = 0; x < BOARD_SIZE; x++) {
-              const p = policy[y * BOARD_SIZE + x] ?? -1;
-              if (p < 0) continue;
-              const d = toDisplay(x, y);
-	              const polOrder = Math.max(0, 5 + Math.trunc(Math.log10(Math.max(1e-9, p - 1e-9))));
-	              const col = evalColors[Math.min(evalColors.length - 1, polOrder)]!;
-              const showText = p > textLb;
-              const scale = showText ? 0.95 : 0.5;
-              const stoneRadius = cellSize * STONE_SIZE;
-              const bgRadius = stoneRadius * HINT_SCALE * 0.98;
-              const coloredRadius = stoneRadius * HINT_SCALE * scale;
-              const bgSize = 2 * bgRadius;
-              const size = 2 * coloredRadius;
-              const isBest = best > 0 && p === best;
-
-              if (showText) {
-                out.push(
-                  <div
-                    key={`pol-bg-${x}-${y}`}
-                    className="absolute pointer-events-none rounded-full"
-                    style={{
-                      width: bgSize,
-                      height: bgSize,
-                      left: originX + d.x * cellSize - bgSize / 2,
-                      top: originY + d.y * cellSize - bgSize / 2,
-                      backgroundColor: approxBoardColor,
-                      zIndex: 15,
-                    }}
-                  />
-                );
-              }
-
-              const labelRaw = `${(100 * p).toFixed(2)}`.slice(0, 4) + '%';
-              out.push(
-                <div
-                  key={`pol-${x}-${y}`}
-                  className="absolute pointer-events-none flex items-center justify-center font-mono rounded-full"
-                  style={{
-                    width: size,
-                    height: size,
-                    left: originX + d.x * cellSize - size / 2,
-                    top: originY + d.y * cellSize - size / 2,
-                    backgroundColor: rgba(col, 0.5),
-                    border: isBest ? `2px solid ${rgba(TOP_MOVE_BORDER_COLOR, 0.5)}` : undefined,
-                    boxSizing: 'border-box',
-                    zIndex: 16,
-                    color: 'black',
-                    fontSize: cellSize / 4,
-                    lineHeight: 1,
-                    textAlign: 'center',
-                  }}
-                >
-                  {showText ? labelRaw : null}
-                </div>
-              );
-          }
+      if (!showEvalDotsForPlayer[move.player]) {
+        realizedPointsLost = parentRealizedPointsLost(node);
+        node = node.parent;
+        count++;
+        continue;
       }
-      return out;
-	  }, [analysisData, approxBoardColor, cellSize, evalColors, isAnalysisMode, originX, originY, settings.analysisShowPolicy, toDisplay]);
+
+      if (board[move.y]?.[move.x] !== move.player) {
+        realizedPointsLost = parentRealizedPointsLost(node);
+        node = node.parent;
+        count++;
+        continue;
+      }
+
+      let pointsLost: number | null = null;
+      const parentScore = node.parent.analysis?.rootScoreLead;
+      const childScore = node.analysis?.rootScoreLead;
+      if (typeof parentScore === 'number' && typeof childScore === 'number') {
+        const sign = move.player === 'black' ? 1 : -1;
+        pointsLost = sign * (parentScore - childScore);
+      } else {
+        const parentAnalysis = node.parent.analysis;
+        const candidate = parentAnalysis?.moves.find((m) => m.x === move.x && m.y === move.y);
+        if (candidate) pointsLost = candidate.pointsLost;
+      }
+
+      if (pointsLost !== null) {
+        const cls = evaluationClass(pointsLost, evalThresholds, evalColors.length);
+        if (settings.trainerShowDots?.[cls] === false) {
+          realizedPointsLost = parentRealizedPointsLost(node);
+          node = node.parent;
+          count++;
+          continue;
+        }
+        const color = rgba(evalColors[cls]!);
+        let evalScale = 1;
+        if (pointsLost && realizedPointsLost) {
+          if (pointsLost <= 0.5 && realizedPointsLost <= 1.5) evalScale = 0;
+          else evalScale = Math.min(1, Math.max(0, realizedPointsLost / pointsLost));
+        }
+        const evalRadius = Math.sqrt(Math.max(0, Math.min(1, evalScale)));
+        const dotRadius = stoneRadius * (EVAL_DOT_MIN_SIZE + evalRadius * (EVAL_DOT_MAX_SIZE - EVAL_DOT_MIN_SIZE));
+        const size = Math.max(2, 2 * dotRadius);
+        const d = toDisplay(move.x, move.y);
+        const cx = originX + d.x * cellSize;
+        const cy = originY + d.y * cellSize;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        if (dotImg && dotImg.complete && dotImg.naturalWidth > 0) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.beginPath();
+          ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(dotImg, cx - size / 2, cy - size / 2, size, size);
+          ctx.restore();
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      realizedPointsLost = parentRealizedPointsLost(node);
+      node = node.parent;
+      count++;
+    }
+  }, [
+    board,
+    cellSize,
+    currentNode,
+    evalColors,
+    evalThresholds,
+    isAnalysisMode,
+    originX,
+    originY,
+    settings.analysisShowEval,
+    settings.showLastNMistakes,
+    settings.trainerShowDots,
+    setupOverlayCanvas,
+    showEvalDotsForPlayer,
+    toDisplay,
+    dotTextureVersion,
+    treeVersion,
+  ]);
+
+  useEffect(() => {
+    const canvas = policyCanvasRef.current;
+    if (!canvas) return;
+    const ctx = setupOverlayCanvas(canvas);
+    if (!ctx) return;
+    if (!isAnalysisMode || !settings.analysisShowPolicy) return;
+    const policy = analysisData?.policy;
+    if (!policy) return;
+
+    let best = 0;
+    for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+      const v = policy[i] ?? -1;
+      if (v > best) best = v;
+    }
+
+    const textLb = 0.01 * 0.01;
+    const stoneRadius = cellSize * STONE_SIZE;
+    const bgRadius = stoneRadius * HINT_SCALE * 0.98;
+    const fontSize = cellSize / 4;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font =
+      `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+
+    for (let y = 0; y < BOARD_SIZE; y++) {
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        const p = policy[y * BOARD_SIZE + x] ?? -1;
+        if (p < 0) continue;
+        const d = toDisplay(x, y);
+        const polOrder = Math.max(0, 5 + Math.trunc(Math.log10(Math.max(1e-9, p - 1e-9))));
+        const col = evalColors[Math.min(evalColors.length - 1, polOrder)]!;
+        const showText = p > textLb;
+        const scale = showText ? 0.95 : 0.5;
+        const coloredRadius = stoneRadius * HINT_SCALE * scale;
+        const isBest = best > 0 && p === best;
+        const cx = originX + d.x * cellSize;
+        const cy = originY + d.y * cellSize;
+
+        if (showText) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, bgRadius, 0, Math.PI * 2);
+          ctx.fillStyle = approxBoardColor;
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, coloredRadius, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(col, 0.5);
+        ctx.fill();
+        if (isBest) {
+          ctx.strokeStyle = rgba(TOP_MOVE_BORDER_COLOR, 0.5);
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        if (showText) {
+          const labelRaw = `${(100 * p).toFixed(2)}`.slice(0, 4) + '%';
+          ctx.fillStyle = 'black';
+          ctx.fillText(labelRaw, cx, cy);
+        }
+      }
+    }
+  }, [
+    analysisData,
+    approxBoardColor,
+    cellSize,
+    evalColors,
+    isAnalysisMode,
+    originX,
+    originY,
+    settings.analysisShowPolicy,
+    setupOverlayCanvas,
+    toDisplay,
+  ]);
 
 	  const pvOverlay = useMemo(() => {
 	      const pv = hoveredMove?.pv;
@@ -779,7 +843,17 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       )}
 
       {/* Policy Overlay (KaTrain-style) */}
-      {policyOverlay}
+      <canvas
+        ref={policyCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 16,
+        }}
+      />
 
       {/* Stones */}
       {board.map((row, y) =>
@@ -868,27 +942,17 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       )}
 
       {/* Evaluation Dots (KaTrain-style) */}
-      {evalDots.map((d) => (
-          <div
-              key={`eval-${d.key}`}
-              className="absolute pointer-events-none"
-              style={{
-                  width: d.size,
-                  height: d.size,
-                  left: originX + d.x * cellSize - d.size / 2,
-                  top: originY + d.y * cellSize - d.size / 2,
-                  backgroundColor: d.color,
-                  backgroundImage: `url('${DOT_URL}')`,
-                  backgroundSize: 'contain',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundBlendMode: 'multiply',
-                  borderRadius: '50%',
-                  boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
-                  zIndex: 12,
-              }}
-          />
-      ))}
+      <canvas
+        ref={evalCanvasRef}
+        className="absolute pointer-events-none"
+        style={{
+          left: 0,
+          top: 0,
+          width: boardWidth,
+          height: boardHeight,
+          zIndex: 12,
+        }}
+      />
 
 	      {/* Last Move Marker (KaTrain-style) */}
 	      {lastMoveMark && (
