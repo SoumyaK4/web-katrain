@@ -5,367 +5,941 @@ This document provides detailed ASCII flow diagrams explaining how web-katrain w
 ## System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Browser (Main Thread)                        │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │                     React UI Layer                             │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │ │
-│  │  │  GoBoard │  │ MoveTree │  │  Graphs  │  │   Settings   │  │ │
-│  │  │ (Canvas) │  │  (SVG)   │  │ (Charts) │  │   (Modal)    │  │ │
-│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘  │ │
-│  │       │             │             │               │           │ │
-│  │       └─────────────┴─────────────┴───────────────┘           │ │
-│  │                            │                                   │ │
-│  └────────────────────────────┼───────────────────────────────────┘ │
-│                               │                                     │
-│  ┌────────────────────────────▼───────────────────────────────────┐ │
-│  │              Zustand Store (gameStore.ts)                      │ │
-│  │  ┌────────────┐  ┌──────────────┐  ┌─────────────────────┐   │ │
-│  │  │ Game State │  │ Move History │  │   Analysis State    │   │ │
-│  │  │  • board   │  │  • tree      │  │   • results         │   │ │
-│  │  │  • turn    │  │  • current   │  │   • isAnalyzing     │   │ │
-│  │  │  • captures│  │  • variations│  │   • mode (cont/batch)│  │ │
-│  │  └────────────┘  └──────────────┘  └─────────────────────┘   │ │
-│  └────────────────────────────┬───────────────────────────────────┘ │
-│                               │                                     │
-│  ┌────────────────────────────▼───────────────────────────────────┐ │
-│  │           KataGoEngineClient (Singleton)                       │ │
-│  │  • postMessage(analyze request) ──────────────────────┐       │ │
-│  │  • Promise<AnalysisResult> ◄──────────────────────────┼─┐     │ │
-│  └───────────────────────────────────────────────────────┼─┼─────┘ │
-│                                                           │ │       │
-└───────────────────────────────────────────────────────────┼─┼───────┘
-                                                            │ │
-                    ════════════════════════════════════════╪═╪═══════
-                                  Worker Boundary           │ │
-                    ════════════════════════════════════════╪═╪═══════
-                                                            │ │
-┌───────────────────────────────────────────────────────────▼─▼───────┐
-│                      Web Worker (Dedicated Thread)                  │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │                  Worker Message Handler                        │ │
-│  │  • Receives: { type: 'analyze', position, settings }          │ │
-│  │  • Sends: { type: 'result', analysis: {...} }                 │ │
-│  └────────────────────────┬───────────────────────────────────────┘ │
-│                           │                                          │
-│  ┌────────────────────────▼───────────────────────────────────────┐ │
-│  │              MCTS Engine (analyzeMcts.ts)                      │ │
-│  │  ┌──────────────┐    ┌──────────────┐    ┌─────────────────┐ │ │
-│  │  │ Search Tree  │◄──►│  fastBoard   │◄──►│  NN Evaluator   │ │ │
-│  │  │  (UCB1)      │    │ (Simulation) │    │  (modelV8.ts)   │ │ │
-│  │  └──────────────┘    └──────────────┘    └────────┬────────┘ │ │
-│  └───────────────────────────────────────────────────┼──────────┘ │
-│                                                       │             │
-│  ┌────────────────────────────────────────────────────▼──────────┐ │
-│  │                  TensorFlow.js Runtime                         │ │
-│  │  ┌──────────────────────────────────────────────────────────┐ │ │
-│  │  │  Backend Selection (auto-detected):                      │ │ │
-│  │  │                                                           │ │ │
-│  │  │  1. WebGPU ────► GPU acceleration (fastest)              │ │ │
-│  │  │        ↓ (if unavailable)                                │ │ │
-│  │  │  2. WASM ──────► XNNPACK + threads (fast, needs COOP)    │ │ │
-│  │  │        ↓ (if SharedArrayBuffer unavailable)              │ │ │
-│  │  │  3. CPU ───────► JavaScript fallback (slowest)           │ │ │
-│  │  │                                                           │ │ │
-│  │  └──────────────────────────────────────────────────────────┘ │ │
-│  │                                                                │ │
-│  │  Model: 22-channel features ──► NN ──► policy + value + more  │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           BROWSER  (Main Thread)                             ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║   ╭─────────────────────────  React UI Layer  ─────────────────────────╮    ║
+║   │                                                                     │    ║
+║   │   ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌─────────────┐  │    ║
+║   │   │  GoBoard   │  │  MoveTree  │  │   Graphs   │  │  Settings   │  │    ║
+║   │   │  (Canvas)  │  │   (SVG)    │  │  (Charts)  │  │   (Modal)   │  │    ║
+║   │   │            │  │            │  │            │  │             │  │    ║
+║   │   │ ∙ 10 layers│  │ ∙ branches │  │ ∙ winrate  │  │ ∙ model     │  │    ║
+║   │   │ ∙ ownership│  │ ∙ navigate │  │ ∙ score    │  │ ∙ analysis  │  │    ║
+║   │   │ ∙ hints    │  │ ∙ collapse │  │ ∙ timeline │  │ ∙ AI play   │  │    ║
+║   │   └──────┬─────┘  └──────┬─────┘  └──────┬─────┘  └──────┬──────┘  │    ║
+║   │          │               │               │               │         │    ║
+║   │          └───────────────┴───────┬───────┴───────────────┘         │    ║
+║   ╰──────────────────────────────────┼──────────────────────────────────╯    ║
+║                                      │                                       ║
+║                                      ▼                                       ║
+║   ╭──────────────────  Zustand Store (gameStore.ts)  ──────────────────╮    ║
+║   │                                                                     │    ║
+║   │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────┐  │    ║
+║   │  │   Game State    │ │   Tree State    │ │  Analysis State     │  │    ║
+║   │  │  ═══════════    │ │  ══════════     │ │  ══════════════     │  │    ║
+║   │  │  board[19][19]  │ │  rootNode       │ │  isAnalyzing        │  │    ║
+║   │  │  currentPlayer  │ │  currentNode    │ │  analysisMode       │  │    ║
+║   │  │  captures {B,W} │ │  variations[]   │ │  cachedResults{}    │  │    ║
+║   │  │  koPoint        │ │  moveNumber     │ │  continuousAnalysis │  │    ║
+║   │  └─────────────────┘ └─────────────────┘ └─────────────────────┘  │    ║
+║   │                                                                     │    ║
+║   ╰────────────────────────────────┬────────────────────────────────────╯    ║
+║                                    │                                         ║
+║                                    ▼                                         ║
+║   ╭────────────────  KataGoEngineClient (Singleton)  ──────────────────╮    ║
+║   │                                                                     │    ║
+║   │    analyze(position, settings) ─────────────────────────┐          │    ║
+║   │                                                          │          │    ║
+║   │    Promise<AnalysisResult>  ◄────────────────────────────┼──┐      │    ║
+║   │                                                          │  │      │    ║
+║   ╰──────────────────────────────────────────────────────────┼──┼──────╯    ║
+║                                                              │  │            ║
+╠══════════════════════════════════════════════════════════════╪══╪════════════╣
+║                         WORKER BOUNDARY                      │  │            ║
+║                    (postMessage / onmessage)                 │  │            ║
+╠══════════════════════════════════════════════════════════════╪══╪════════════╣
+║                                                              │  │            ║
+║                      WEB WORKER  (Dedicated Thread)          ▼  │            ║
+║                                                                 │            ║
+║   ╭──────────────────  Message Handler  ───────────────────────┼───────╮    ║
+║   │  onmessage: { type, position, settings, requestId }        │       │    ║
+║   │  postMessage: { type, analysis, requestId }  ──────────────┘       │    ║
+║   ╰────────────────────────────┬───────────────────────────────────────╯    ║
+║                                │                                             ║
+║                                ▼                                             ║
+║   ╭───────────────────  MCTS Engine  ──────────────────────────────────╮    ║
+║   │                                                                     │    ║
+║   │   ┌─────────────┐      ┌─────────────┐      ┌─────────────────┐   │    ║
+║   │   │ Search Tree │◄────►│  FastBoard  │◄────►│   NN Evaluator  │   │    ║
+║   │   │             │      │             │      │                 │   │    ║
+║   │   │  UCB1 + PUCT│      │  Zobrist    │      │  22ch → Policy  │   │    ║
+║   │   │  Selection  │      │  Hashing    │      │       → Value   │   │    ║
+║   │   │  Expansion  │      │  Fast plays │      │       → Owner   │   │    ║
+║   │   │  Backprop   │      │  Ko detect  │      │       → Score   │   │    ║
+║   │   └─────────────┘      └─────────────┘      └────────┬────────┘   │    ║
+║   │                                                       │            │    ║
+║   ╰───────────────────────────────────────────────────────┼────────────╯    ║
+║                                                           │                  ║
+║                                                           ▼                  ║
+║   ╭───────────────────  TensorFlow.js  ────────────────────────────────╮    ║
+║   │                                                                     │    ║
+║   │   Backend Priority:                                                 │    ║
+║   │   ┌─────────────────────────────────────────────────────────────┐  │    ║
+║   │   │  ① WebGPU  ───►  GPU compute shaders     (~10ms/eval)       │  │    ║
+║   │   │       ↓ fallback                                            │  │    ║
+║   │   │  ② WASM    ───►  XNNPACK + threads       (~50-100ms/eval)   │  │    ║
+║   │   │       ↓ fallback                                            │  │    ║
+║   │   │  ③ CPU     ───►  JavaScript (slowest)    (~500ms+/eval)     │  │    ║
+║   │   └─────────────────────────────────────────────────────────────┘  │    ║
+║   │                                                                     │    ║
+║   ╰─────────────────────────────────────────────────────────────────────╯    ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
 ## User Play & Analysis Flow
 
 ```
-User Action                Game Store               Engine Worker
-────────────────────────────────────────────────────────────────────
+    ┌─────────────┐           ┌─────────────────┐           ┌──────────────────┐
+    │    USER     │           │   GAME STORE    │           │  ENGINE WORKER   │
+    └──────┬──────┘           └────────┬────────┘           └────────┬─────────┘
+           │                           │                              │
+           │  Click board (x,y)        │                              │
+           │──────────────────────────►│                              │
+           │                           │                              │
+           │                     ┌─────┴─────┐                        │
+           │                     │ Validate  │                        │
+           │                     │   Move    │                        │
+           │                     └─────┬─────┘                        │
+           │                           │                              │
+           │                           ▼                              │
+           │                     ╔═══════════╗                        │
+           │                     ║  CHECKS   ║                        │
+           │                     ╠═══════════╣                        │
+           │                     ║ ∙ Empty?  ║                        │
+           │                     ║ ∙ Ko?     ║                        │
+           │                     ║ ∙ Suicide?║                        │
+           │                     ║ ∙ Capture?║                        │
+           │                     ╚═════╤═════╝                        │
+           │                           │                              │
+           │                           ▼                              │
+           │                     ┌───────────┐                        │
+           │                     │  Update   │                        │
+           │                     │  State    │                        │
+           │                     │ ─────────-│                        │
+           │                     │ board[][] │                        │
+           │                     │ turn      │                        │
+           │                     │ captures  │                        │
+           │                     │ koPoint   │                        │
+           │                     └─────┬─────┘                        │
+           │                           │                              │
+           │                           ▼                              │
+           │                     ┌───────────┐                        │
+           │                     │ Add Node  │                        │
+           │                     │ to Tree   │                        │
+           │                     └─────┬─────┘                        │
+           │                           │                              │
+           │  UI re-renders            │                              │
+           │◄──────────────────────────┤                              │
+           │  (shows new stone)        │                              │
+           │                           │                              │
+           │                           │  [if analysis enabled]       │
+           │                           │                              │
+           │                           │   analyze(position)          │
+           │                           │─────────────────────────────►│
+           │                           │                              │
+           │   (main thread free)      │                        ┌─────┴─────┐
+           │                           │                        │  Extract  │
+           │                           │                        │  Features │
+           │                           │                        │  (22 ch)  │
+           │                           │                        └─────┬─────┘
+           │                           │                              │
+           │                           │                              ▼
+           │                           │                        ┌───────────┐
+           │                           │                        │    NN     │
+           │                           │                        │  Forward  │
+           │                           │                        │   Pass    │
+           │                           │                        └─────┬─────┘
+           │                           │                              │
+           │                           │                              ▼
+           │                           │                        ┌───────────┐
+           │                           │                        │   MCTS    │
+           │                           │                        │  Search   │
+           │                           │                        │ (N visits)│
+           │                           │                        └─────┬─────┘
+           │                           │                              │
+           │                           │      AnalysisResult          │
+           │                           │◄─────────────────────────────│
+           │                           │   {                          │
+           │                           │     moveInfos: [...]         │
+           │                           │     rootInfo: {...}          │
+           │                           │     ownership: [...]         │
+           │                           │   }                          │
+           │                           │                              │
+           │                     ┌─────┴─────┐                        │
+           │                     │  Store    │                        │
+           │                     │ Analysis  │                        │
+           │                     │ in Node   │                        │
+           │                     └─────┬─────┘                        │
+           │                           │                              │
+           │  UI re-renders            │                              │
+           │◄──────────────────────────┤                              │
+           │                           │                              │
+           ▼                           ▼                              ▼
 
-  User clicks              playMove(x, y)
-  board at (x,y) ────────► │
-                           ├─► Validate move
-                           │   (gameLogic.ts)
-                           │
-                           ├─► Check captures,
-                           │   ko, suicide
-                           │
-                           ├─► Update board state
-                           │   [board, turn, captures]
-                           │
-                           ├─► Add to game tree
-                           │   (new GameNode)
-                           │
-                           ├─► Trigger re-render
-                           │   (React updates)
-                           │
-                           │   If analysis enabled:
-                           │
-                           ├─► engineClient        ────► analyze(position)
-                           │   .analyze({...})            │
-                           │                              ├─► Extract features
-                           │                              │   (22 channels)
-                           │                              │
-                           │   (Main thread                ├─► Run NN forward
-                           │    continues,                │   pass (TF.js)
-                           │    board shows                │
-                           │    move)                      ├─► Get policy/value
-                           │                              │
-                           │                              ├─► Run MCTS search
-                           │                              │   (N visits)
-                           │                              │
-                           │   Promise resolves    ◄────  └─► Return analysis
-  Board updates   ◄────────┤   with AnalysisResult            {policy, winrate,
-  with analysis            │   {                               ownership, ...}
-  results:                 │     moveInfos: [...],
-  • Best moves             │     rootInfo: {...},
-  • Win rate               │     ownership: [...],
-  • Territory              │   }
-  • Policy hints           │
-                           └─► Store analysis in
-                               current node
-
-                               Trigger re-render
-                               with analysis data
-
-  User sees:
-  • Move hints (circles)
-  • Winrate (%)
-  • Score estimate
-  • Territory map
-  • PV (variation)
+    ╔═══════════════════════════════════════════════════════╗
+    ║                  USER NOW SEES                        ║
+    ╠═══════════════════════════════════════════════════════╣
+    ║  ┌──────────┐  ┌──────────┐  ┌──────────┐            ║
+    ║  │ Move     │  │ Winrate  │  │Territory │            ║
+    ║  │ Hints    │  │   52%    │  │   Map    │            ║
+    ║  │  ○ ○     │  │          │  │  ▓░▓░░   │            ║
+    ║  │   ○      │  │ B+2.5    │  │  ░▓▓░░   │            ║
+    ║  └──────────┘  └──────────┘  └──────────┘            ║
+    ║                                                       ║
+    ║  Principal Variation: D4 → Q16 → R4 → ...            ║
+    ╚═══════════════════════════════════════════════════════╝
 ```
 
 ## Game Tree Navigation
 
 ```
-                      Game Tree Structure
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                            GAME TREE STRUCTURE                                ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-        ┌─────────────────────────────────────────┐
-        │          Root (empty board)             │
-        │   node.moves = []                       │
-        │   node.children = [move1, move2, ...]   │
-        └──────┬────────────────────┬──────────────┘
-               │                    │
-       ┌───────▼────────┐   ┌───────▼────────┐
-       │  Black B4      │   │  Black D4      │  ◄── Variations
-       │  node.move =   │   │  (alt opening)  │      (different
-       │    {x:1, y:3}  │   └─────────────────┘      first moves)
-       │  node.analysis │
-       │  node.children │
-       └───────┬────────┘
-               │
-       ┌───────▼────────┐
-       │  White D16     │
-       │  node.parent ──┼──► points back up
-       └───────┬────────┘
-               │
-       ┌───────▼────────┐
-       │  Black Q16     │ ◄── currentNode (where user is)
-       │  node.children │
-       └────────────────┘
+                               ┌──────────────────┐
+                               │   ROOT NODE      │
+                               │   ────────────   │
+                               │   Empty board    │
+                               │   moves = []     │
+                               └────────┬─────────┘
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    │                   │                   │
+                    ▼                   ▼                   ▼
+           ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+           │  ● Black D4    │  │  ● Black Q16   │  │  ● Black C3    │
+           │  ────────────  │  │   (alt line)   │  │   (alt line)   │
+           │  analysis ✓    │  └────────────────┘  └────────────────┘
+           │  children[2]   │
+           └───────┬────────┘
+                   │
+          ┌────────┴────────┐
+          │                 │
+          ▼                 ▼
+   ┌────────────────┐  ┌────────────────┐
+   │  ○ White Q16   │  │  ○ White R4    │
+   │  ────────────  │  │   (variation)  │
+   │  parent ↑      │  └────────────────┘
+   │  analysis ✓    │
+   └───────┬────────┘
+           │
+           ▼
+   ┌────────────────┐
+   │  ● Black R4    │
+   │  ════════════  │◄─────  currentNode
+   │  analysis ✓    │        (user position)
+   │  children[0]   │
+   └───────┬────────┘
+           │
+           ▼
+   ┌────────────────┐
+   │  ○ White C16   │
+   │  ────────────  │
+   │  analysis ⏳   │◄─────  (analyzing...)
+   └────────────────┘
 
-Navigation Flow:
 
-  User Action         Store Updates              UI Renders
-  ────────────────────────────────────────────────────────────
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │                          NODE PROPERTIES                                  │
+  ├───────────────────────────────────────────────────────────────────────────┤
+  │                                                                           │
+  │   GameNode {                                                              │
+  │     move: { x, y, color } | null    // null for root                     │
+  │     parent: GameNode | null         // doubly linked                     │
+  │     children: GameNode[]            // branching variations              │
+  │     analysis?: AnalysisResult       // cached engine analysis            │
+  │     comment?: string                // SGF comments                      │
+  │   }                                                                       │
+  │                                                                           │
+  └───────────────────────────────────────────────────────────────────────────┘
 
-  Press ► (next)      goToNextNode()              Board shows
-  ────────────────►   │                           next position
-                      ├─► currentNode =           │
-                      │   currentNode.children[0] │
-                      │                           │
-                      └─► Rebuild board state     │
-                          from root to current ───┘
-                          (replay all moves)
 
-  Press ◄ (prev)      goToPreviousNode()          Board shows
-  ────────────────►   │                           previous
-                      ├─► currentNode =           position
-                      │   currentNode.parent      │
-                      │                           │
-                      └─► Rebuild board state ────┘
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                           NAVIGATION CONTROLS                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-  Click tree node     goToNode(node)              Board shows
-  ────────────────►   │                           that position
-                      ├─► currentNode = node      │
-                      │                           │
-                      └─► Rebuild board state ────┘
+   ┌─────────────────┐      ┌─────────────────────┐      ┌───────────────────┐
+   │  USER ACTION    │      │    STORE UPDATE     │      │   RESULT          │
+   └────────┬────────┘      └──────────┬──────────┘      └─────────┬─────────┘
+            │                          │                           │
+            │   ► (Next)               │                           │
+            │─────────────────────────►│  goToNextNode()           │
+            │                          │  ├─ current = child[0]    │
+            │                          │  └─ rebuild board ────────┼──► Show next
+            │                          │                           │    position
+            │   ◄ (Prev)               │                           │
+            │─────────────────────────►│  goToPreviousNode()       │
+            │                          │  ├─ current = parent      │
+            │                          │  └─ rebuild board ────────┼──► Show prev
+            │                          │                           │    position
+            │   ▲/▼ (Variation)        │                           │
+            │─────────────────────────►│  goToVariation(idx)       │
+            │                          │  ├─ current = sibling[i]  │
+            │                          │  └─ rebuild board ────────┼──► Show
+            │                          │                           │    variation
+            │   Click tree node        │                           │
+            │─────────────────────────►│  goToNode(node)           │
+            │                          │  ├─ current = node        │
+            │                          │  └─ rebuild board ────────┼──► Jump to
+            │                          │                           │    position
+            │   Home                   │                           │
+            │─────────────────────────►│  goToRoot()               │
+            │                          │  └─ current = root ───────┼──► Empty
+            │                          │                           │    board
+            │   End                    │                           │
+            │─────────────────────────►│  goToEnd()                │
+            │                          │  └─ follow main line ─────┼──► Final
+            │                          │                           │    position
+            ▼                          ▼                           ▼
 
-  Navigate to var.    Follow different child      Shows alternate
-  ────────────────►   in children[] array         line of play
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Board Rebuild: Walk from root → currentNode, replaying all moves          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Model Loading & Backend Selection
 
 ```
-App Initialization
-       │
-       ├─► Create Web Worker
-       │   (katago.worker.ts)
-       │
-       ├─► Worker: Load TF.js
-       │   import '@tensorflow/tfjs'
-       │
-       └─► Worker: Initialize
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          APP INITIALIZATION                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-┌──────────────────────────────────────────────────────────────┐
-│              Backend Detection & Selection                   │
-└──────────────────────────────────────────────────────────────┘
+                              ┌─────────────────┐
+                              │   App Start     │
+                              └────────┬────────┘
+                                       │
+                                       ▼
+                              ┌─────────────────┐
+                              │  Create Worker  │
+                              │  (dedicated     │
+                              │   thread)       │
+                              └────────┬────────┘
+                                       │
+                                       ▼
+                              ┌─────────────────┐
+                              │  Load TF.js    │
+                              │  runtime       │
+                              └────────┬────────┘
+                                       │
+                                       ▼
 
-    Try WebGPU Backend
-    ─────────────────────────────────────────────────
-    │
-    ├─► tf.setBackend('webgpu')
-    │
-    ├─► Check: GPU available?
-    │          WebGPU API supported?
-    │
-    ├─► Success? ──────────────────────► Use WebGPU ✓
-    │                                     (Fastest: ~10ms/eval)
-    │
-    └─► Failed?
-        │
-        Try WASM Backend
-        ─────────────────────────────────────────────
-        │
-        ├─► tf.setBackend('wasm')
-        │
-        ├─► Check: SharedArrayBuffer available?
-        │          (requires COOP/COEP headers)
-        │
-        ├─► Success? ──────────────────► Use WASM + XNNPACK ✓
-        │                                 Threaded if SAB available
-        │                                 (Fast: ~50-100ms/eval)
-        │
-        └─► Failed or SAB unavailable?
-            │
-            CPU Backend (Fallback)
-            ─────────────────────────────────────────
-            │
-            ├─► tf.setBackend('cpu')
-            │
-            └─► Use JavaScript ────────► CPU-only mode ✓
-                                         (Slow: ~500ms+/eval)
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                     BACKEND DETECTION (Auto-Cascade)                          ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-┌──────────────────────────────────────────────────────────────┐
-│                    Model Loading Flow                        │
-└──────────────────────────────────────────────────────────────┘
+        ┌──────────────────────────────────────────────────────────────────┐
+        │                                                                  │
+        │   ① TRY WEBGPU                                                   │
+        │   ══════════════════════════════════════════════════════════    │
+        │                                                                  │
+        │       tf.setBackend('webgpu')                                    │
+        │                  │                                               │
+        │                  ▼                                               │
+        │       ┌──────────────────┐                                       │
+        │       │  GPU available?  │                                       │
+        │       │  WebGPU API ok?  │                                       │
+        │       └────────┬─────────┘                                       │
+        │                │                                                 │
+        │         ┌──────┴──────┐                                          │
+        │         │             │                                          │
+        │        YES           NO                                          │
+        │         │             │                                          │
+        │         ▼             │                                          │
+        │   ╔═══════════╗       │                                          │
+        │   ║  WebGPU   ║       │                                          │
+        │   ║  ~10ms    ║       │                                          │
+        │   ║  /eval    ║       │                                          │
+        │   ╚═════╤═════╝       │                                          │
+        │         │             │                                          │
+        │      READY ✓          ▼                                          │
+        │                                                                  │
+        │   ② TRY WASM                                                     │
+        │   ══════════════════════════════════════════════════════════    │
+        │                                                                  │
+        │       tf.setBackend('wasm')                                      │
+        │                  │                                               │
+        │                  ▼                                               │
+        │       ┌────────────────────────┐                                 │
+        │       │  SharedArrayBuffer     │                                 │
+        │       │  available? (needs     │                                 │
+        │       │  COOP/COEP headers)    │                                 │
+        │       └───────────┬────────────┘                                 │
+        │                   │                                              │
+        │           ┌───────┴───────┐                                      │
+        │           │               │                                      │
+        │          YES             NO                                      │
+        │           │               │                                      │
+        │           ▼               ▼                                      │
+        │   ╔═════════════╗  ╔═════════════╗                               │
+        │   ║WASM+XNNPACK ║  ║ WASM (no    ║                               │
+        │   ║ (threaded)  ║  ║  threads)   ║                               │
+        │   ║ ~50-100ms   ║  ║ ~100-200ms  ║                               │
+        │   ╚══════╤══════╝  ╚══════╤══════╝                               │
+        │          │                │                                      │
+        │       READY ✓          READY ✓                                   │
+        │                                                                  │
+        │   ③ FALLBACK: CPU                                                │
+        │   ══════════════════════════════════════════════════════════    │
+        │                                                                  │
+        │       tf.setBackend('cpu')                                       │
+        │                  │                                               │
+        │                  ▼                                               │
+        │         ╔═══════════════╗                                        │
+        │         ║  JavaScript   ║                                        │
+        │         ║   (slowest)   ║                                        │
+        │         ║   ~500ms+     ║                                        │
+        │         ╚═══════╤═══════╝                                        │
+        │                 │                                                │
+        │              READY ✓                                             │
+        │                                                                  │
+        └──────────────────────────────────────────────────────────────────┘
 
-    Settings Determine Model Source
-    ────────────────────────────────
-    │
-    ├─► Default: public/models/kata1-b6c96-s1273261824-d576593463.bin.gz
-    ├─► Custom URL: User-provided HTTP(S) URL
-    └─► Upload: File from user's computer (stored in memory)
 
-    Load Model
-    ──────────
-    │
-    ├─► Fetch gzipped binary
-    │   (40-300MB depending on size)
-    │
-    ├─► Decompress (pako.ungzip)
-    │
-    ├─► Parse binary format
-    │   (loadModelV8.ts)
-    │   │
-    │   ├─► Read header
-    │   ├─► Extract layer weights
-    │   └─► Build tf.LayersModel
-    │
-    ├─► Warmup inference
-    │   (run dummy position)
-    │
-    └─► Ready for analysis ✓
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                           MODEL LOADING FLOW                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-    Model inputs:  22 channels × 19×19
-                   [black stones, white stones, turns since,
-                    ladder features, liberties, ko, ...]
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                       MODEL SOURCES                                 │
+    ├─────────────────────────────────────────────────────────────────────┤
+    │                                                                     │
+    │   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐          │
+    │   │   Default    │   │  Custom URL  │   │    Upload    │          │
+    │   │  ──────────  │   │  ──────────  │   │  ──────────  │          │
+    │   │  Built-in    │   │  User HTTP   │   │  Local file  │          │
+    │   │  b6c96 model │   │  endpoint    │   │  (memory)    │          │
+    │   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘          │
+    │          │                  │                  │                   │
+    │          └──────────────────┼──────────────────┘                   │
+    │                             │                                      │
+    │                             ▼                                      │
+    │                      modelUrl: string                              │
+    │                                                                     │
+    └─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                       LOADING PIPELINE                              │
+    └─────────────────────────────────────────────────────────────────────┘
 
-    Model outputs: • Policy (362 moves: 19×19 + pass)
-                   • Value (winrate)
-                   • ScoreMean (expected score)
-                   • Ownership (19×19 territory prediction)
-                   • Lead (score distribution parameters)
+          ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+          │   FETCH     │      │ DECOMPRESS  │      │   PARSE     │
+          │  ─────────  │─────►│  ─────────  │─────►│  ─────────  │
+          │  .bin.gz    │      │  pako       │      │  modelV8.ts │
+          │  40-300MB   │      │  ungzip     │      │  ─────────  │
+          └─────────────┘      └─────────────┘      │  • header   │
+                                                    │  • weights  │
+                                                    │  • layers   │
+                                                    └──────┬──────┘
+                                                           │
+                                                           ▼
+                                                    ┌─────────────┐
+                                                    │   WARMUP    │
+                                                    │  ─────────  │
+                                                    │  Run dummy  │
+                                                    │  inference  │
+                                                    └──────┬──────┘
+                                                           │
+                                                           ▼
+                                                    ╔═════════════╗
+                                                    ║   READY ✓   ║
+                                                    ╚═════════════╝
+
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          MODEL I/O SPECIFICATION                              ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                         INPUT FEATURES                              │
+    │                        22 channels × 19×19                          │
+    ├─────────────────────────────────────────────────────────────────────┤
+    │                                                                     │
+    │   Channel    Description                                            │
+    │   ───────    ───────────                                            │
+    │    0- 1      Current player stones (black/white)                    │
+    │    2- 3      Opponent stones                                        │
+    │    4- 8      Turns since stone was played (1,2,3,4,5+)             │
+    │    9-12      Liberties (1,2,3,4+)                                   │
+    │   13-14      Ladder features (capture/escape)                       │
+    │   15-16      Pass-alive territory                                   │
+    │   17-18      Ko features                                            │
+    │   19-21      Board edge, rule features                              │
+    │                                                                     │
+    └─────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                        OUTPUT HEADS                                 │
+    ├─────────────────────────────────────────────────────────────────────┤
+    │                                                                     │
+    │   ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+    │   │  POLICY    │  │   VALUE    │  │   OWNER    │  │   SCORE    │  │
+    │   │  ────────  │  │  ────────  │  │  ────────  │  │  ────────  │  │
+    │   │  362 moves │  │  Win prob  │  │  19×19     │  │  Expected  │  │
+    │   │  (19×19    │  │  [-1, +1]  │  │  territory │  │  point     │  │
+    │   │   + pass)  │  │            │  │  [-1, +1]  │  │  diff      │  │
+    │   └────────────┘  └────────────┘  └────────────┘  └────────────┘  │
+    │                                                                     │
+    └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## AI Move Selection Flow
 
 ```
-User Enables "AI Plays Black"
-       │
-       ├─► Store: aiBlack = true
-       │
-       └─► After each White move...
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                        AI MOVE SELECTION PROCESS                              ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-┌──────────────────────────────────────────────────────────────┐
-│                   AI Move Selection Process                  │
-└──────────────────────────────────────────────────────────────┘
+                    ┌───────────────────────────────────────┐
+                    │      User enables AI for a color      │
+                    │  ═══════════════════════════════════  │
+                    │                                       │
+                    │   ┌─────────────┐   ┌─────────────┐  │
+                    │   │ AI plays ●  │   │ AI plays ○  │  │
+                    │   │   Black     │   │   White     │  │
+                    │   └─────────────┘   └─────────────┘  │
+                    │                                       │
+                    └───────────────────┬───────────────────┘
+                                        │
+                                        ▼
+                              ┌───────────────────┐
+                              │  Opponent plays   │
+                              │  their move       │
+                              └─────────┬─────────┘
+                                        │
+                                        ▼
+                              ┌───────────────────┐
+                              │  aiAutoPlay()     │
+                              │  triggered        │
+                              └─────────┬─────────┘
+                                        │
+                                        ▼
+          ┌─────────────────────────────────────────────────────────────┐
+          │                                                             │
+          │   engineClient.analyze(position, { maxVisits: N })          │
+          │                                                             │
+          └───────────────────────────┬─────────────────────────────────┘
+                                      │
+                                      ▼
+          ┌─────────────────────────────────────────────────────────────┐
+          │                    AnalysisResult                           │
+          ├─────────────────────────────────────────────────────────────┤
+          │                                                             │
+          │   moveInfos: [                                              │
+          │     { move: 'Q16', visits: 1200, winrate: 0.523, ... },    │
+          │     { move: 'D4',  visits:  800, winrate: 0.518, ... },    │
+          │     { move: 'R4',  visits:  450, winrate: 0.512, ... },    │
+          │     ...                                                     │
+          │   ]                                                         │
+          │                                                             │
+          └───────────────────────────┬─────────────────────────────────┘
+                                      │
+                                      ▼
 
-    gameStore.aiAutoPlay()
-    ──────────────────────
-       │
-       ├─► Request analysis
-       │   engineClient.analyze(currentPosition)
-       │
-       ├─► Get AnalysisResult
-       │   {
-       │     moveInfos: [
-       │       {move: 'Q16', winrate: 0.52, ...},
-       │       {move: 'D4',  winrate: 0.51, ...},
-       │       ...
-       │     ],
-       │     ...
-       │   }
-       │
-       └─► Select move by strategy:
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         AI STRATEGY ALGORITHMS                                ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║   ┌─────────────┬────────────────────────────────────────────────────────┐   ║
+║   │  STRATEGY   │  DESCRIPTION                                           │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  default    │  Always play the top-ranked move                       │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Strongest play, no randomness                       │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  calibrated │  Temperature sampling by visit count                   │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → P(move) ∝ visits^(1/temp)                           │   ║
+║   │             │  → Mimics human-like variation                         │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  rank       │  Target specific playing strength                      │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Applies score handicap for target rank              │   ║
+║   │             │  → e.g., "Play like a 5-kyu"                           │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  simple     │  Random selection from top N moves                     │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Uniform distribution over top-N                     │   ║
+║   │             │  → Adds variety without weak play                      │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  policy     │  Sample directly from NN policy output                 │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Ignores MCTS refinement                             │   ║
+║   │             │  → More exploratory / creative                         │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  local      │  Prefer moves near last played stone                   │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Weights moves by proximity                          │   ║
+║   │             │  → Creates fighting / contact games                    │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  tenuki     │  Prefer moves far from last played stone               │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Inverse of local strategy                           │   ║
+║   │             │  → Creates whole-board, strategic games                │   ║
+║   │             │                                                        │   ║
+║   ├─────────────┼────────────────────────────────────────────────────────┤   ║
+║   │             │                                                        │   ║
+║   │  weighted   │  Sample weighted by score intervals                    │   ║
+║   │             │  ───────────────────────────────────                   │   ║
+║   │             │  → Configurable score-based weighting                  │   ║
+║   │             │  → Fine-grained strength control                       │   ║
+║   │             │                                                        │   ║
+║   └─────────────┴────────────────────────────────────────────────────────┘   ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-           ┌────────────────────────────────────────┐
-           │      AI Strategy Algorithms            │
-           ├────────────────────────────────────────┤
-           │                                        │
-           │ • default                              │
-           │   ──► Play top move                    │
-           │                                        │
-           │ • calibrated                           │
-           │   ──► Weighted by visit counts         │
-           │       (temperature sampling)           │
-           │                                        │
-           │ • rank                                 │
-           │   ──► Target specific rank strength    │
-           │       (add score handicap)             │
-           │                                        │
-           │ • simple                               │
-           │   ──► Pick from top-N randomly         │
-           │                                        │
-           │ • policy                               │
-           │   ──► Sample from policy distribution  │
-           │                                        │
-           │ • local                                │
-           │   ──► Prefer moves near last move      │
-           │                                        │
-           │ • tenuki                               │
-           │   ──► Prefer moves far from last move  │
-           │                                        │
-           │ • weighted                             │
-           │   ──► Weighted by score intervals      │
-           │                                        │
-           └────────────────────────────────────────┘
-                          │
-                          ▼
-           Selected Move (e.g., 'Q4')
-                          │
-                          ▼
-           playMove(x, y)
-                          │
-                          └─► Update game state
-                              Add to tree
-                              Trigger render
+                                      │
+                                      │  Strategy selects move
+                                      │
+                                      ▼
+                          ┌───────────────────────┐
+                          │   Selected: 'Q4'      │
+                          └───────────┬───────────┘
+                                      │
+                                      ▼
+                          ┌───────────────────────┐
+                          │   playMove(16, 3)     │
+                          └───────────┬───────────┘
+                                      │
+                  ┌───────────────────┼───────────────────┐
+                  │                   │                   │
+                  ▼                   ▼                   ▼
+          ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+          │ Update      │     │ Add to      │     │ Re-render   │
+          │ board[][]   │     │ game tree   │     │ UI          │
+          └─────────────┘     └─────────────┘     └─────────────┘
+                                      │
+                                      ▼
+                       ┌──────────────────────────────┐
+                       │   [Teaching Mode Check]      │
+                       │   ────────────────────────   │
+                       │                              │
+                       │   If move quality < thresh:  │
+                       │   └─► Auto-undo & show hint  │
+                       │                              │
+                       └──────────────────────────────┘
+                                      │
+                                      ▼
+                          ╔═══════════════════════╗
+                          ║  AI move on board ✓   ║
+                          ╚═══════════════════════╝
+```
 
-                              If teaching mode enabled:
-                              ├─► Check if move quality < threshold
-                              └─► Auto-undo if too weak
+## MCTS Search Algorithm
 
-    User sees AI's move on board
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                    MONTE CARLO TREE SEARCH (MCTS)                             ║
+║                                                                               ║
+║   The core algorithm that turns raw NN evaluations into strong move choices  ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    For each visit (repeated N times):
+
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │  ① SELECTION                                                             │
+    │  ════════════                                                            │
+    │                                                                          │
+    │  Starting from root, descend tree by choosing child with highest UCB:    │
+    │                                                                          │
+    │               ┌───────────────────────────────────────────────────┐      │
+    │               │                                                   │      │
+    │               │   UCB = Q + c_puct × P × √(N_parent) / (1 + N)   │      │
+    │               │         ─┬─        ─┬─                            │      │
+    │               │          │          └── Prior from NN policy      │      │
+    │               │          └───────────── Mean value from search    │      │
+    │               │                                                   │      │
+    │               └───────────────────────────────────────────────────┘      │
+    │                                                                          │
+    │          [Root]                                                          │
+    │             │                                                            │
+    │      ┌──────┼──────┐                                                     │
+    │      │      │      │                                                     │
+    │      ▼      ▼      ▼                                                     │
+    │    (0.8)  (0.9)★ (0.7)    ← Select highest UCB                          │
+    │             │                                                            │
+    │        ┌────┴────┐                                                       │
+    │        ▼         ▼                                                       │
+    │      (0.85)★   (0.6)     ← Continue until leaf                          │
+    │                                                                          │
+    └──────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │  ② EXPANSION                                                             │
+    │  ═══════════                                                             │
+    │                                                                          │
+    │  At leaf node, run NN evaluation to get policy + value:                  │
+    │                                                                          │
+    │       ┌─────────────┐         ┌─────────────────────────────────┐       │
+    │       │             │         │                                 │       │
+    │       │  Position   │────────►│     Neural Network Forward      │       │
+    │       │  Features   │         │            Pass                 │       │
+    │       │  (22ch)     │         │                                 │       │
+    │       │             │         └───────────────┬─────────────────┘       │
+    │       └─────────────┘                         │                         │
+    │                                               ▼                         │
+    │                              ┌────────────────────────────────┐         │
+    │                              │  policy[362]  │  value: 0.52  │         │
+    │                              └────────────────────────────────┘         │
+    │                                                                          │
+    │  Create children for top-k moves by policy:                              │
+    │                                                                          │
+    │                         [Leaf] ──────────────────┐                       │
+    │                            │                     │                       │
+    │               ┌────────────┼────────────┐        │                       │
+    │               │            │            │        │                       │
+    │               ▼            ▼            ▼        ▼                       │
+    │            [D4]         [Q16]        [R4]     [...]                      │
+    │           P=0.25        P=0.18      P=0.12                               │
+    │           N=0           N=0         N=0                                  │
+    │                                                                          │
+    └──────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │  ③ BACKPROPAGATION                                                       │
+    │  ══════════════════                                                      │
+    │                                                                          │
+    │  Propagate value back up the tree, updating statistics:                  │
+    │                                                                          │
+    │          [Root]                                                          │
+    │          N: 100 → 101                                                    │
+    │          Q: 0.51 → 0.511       ▲                                         │
+    │             │                  │                                         │
+    │             ▼                  │  value = 0.52                           │
+    │          [Child]              │  (flipped for opponent)                 │
+    │          N: 30 → 31            │                                         │
+    │          Q: 0.48 → 0.481       │                                         │
+    │             │                  │                                         │
+    │             ▼                  │                                         │
+    │          [Leaf]               │                                         │
+    │          N: 0 → 1        ─────┘                                         │
+    │          Q: 0 → 0.52                                                     │
+    │                                                                          │
+    │  Formula:  Q_new = Q_old + (value - Q_old) / N_new                       │
+    │                                                                          │
+    └──────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │  ④ REPEAT                                                                │
+    │  ════════                                                                │
+    │                                                                          │
+    │  Continue for maxVisits iterations, then return results:                 │
+    │                                                                          │
+    │       ┌─────────────────────────────────────────────────────────┐       │
+    │       │                                                         │       │
+    │       │   moveInfos: [                                          │       │
+    │       │     { move: 'D4',  visits: 450, winrate: 0.523 },      │       │
+    │       │     { move: 'Q16', visits: 320, winrate: 0.518 },      │       │
+    │       │     { move: 'R4',  visits: 180, winrate: 0.512 },      │       │
+    │       │   ]                                                     │       │
+    │       │                                                         │       │
+    │       │   rootInfo: {                                           │       │
+    │       │     visits: 1000,                                       │       │
+    │       │     winrate: 0.521,                                     │       │
+    │       │     scoreLead: +2.5,                                    │       │
+    │       │   }                                                     │       │
+    │       │                                                         │       │
+    │       └─────────────────────────────────────────────────────────┘       │
+    │                                                                          │
+    └──────────────────────────────────────────────────────────────────────────┘
+
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         SEARCH TREE VISUALIZATION                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+                              ┌─────────────────┐
+                              │     ROOT        │
+                              │  ═════════════  │
+                              │  N: 1000        │
+                              │  Q: 0.521       │
+                              │  (Black to play)│
+                              └────────┬────────┘
+                                       │
+          ┌────────────────────────────┼────────────────────────────┐
+          │                            │                            │
+          ▼                            ▼                            ▼
+   ┌─────────────┐              ┌─────────────┐              ┌─────────────┐
+   │    D4       │              │    Q16      │              │    R4       │
+   │  ─────────  │              │  ─────────  │              │  ─────────  │
+   │  N: 450     │              │  N: 320     │              │  N: 180     │
+   │  Q: 0.523   │              │  Q: 0.518   │              │  Q: 0.512   │
+   │  P: 0.25    │              │  P: 0.18    │              │  P: 0.12    │
+   │  ★ Best    │              │             │              │             │
+   └──────┬──────┘              └──────┬──────┘              └─────────────┘
+          │                            │
+     ┌────┴────┐                  ┌────┴────┐
+     │         │                  │         │
+     ▼         ▼                  ▼         ▼
+  ┌─────┐  ┌─────┐            ┌─────┐  ┌─────┐
+  │Q16  │  │R4   │            │D4   │  │C3   │
+  │N:200│  │N:150│            │N:180│  │N:100│
+  └─────┘  └─────┘            └─────┘  └─────┘
+
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                           KEY OPTIMIZATIONS                                   ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║   ┌─────────────────┬───────────────────────────────────────────────────┐    ║
+║   │  Optimization   │  Description                                      │    ║
+║   ├─────────────────┼───────────────────────────────────────────────────┤    ║
+║   │                 │                                                   │    ║
+║   │  Tree Reuse     │  When position advances, reuse existing subtree   │    ║
+║   │                 │  → Warm start from previous search                │    ║
+║   │                 │                                                   │    ║
+║   │  PV Caching     │  Cache principal variation across searches        │    ║
+║   │                 │  → Reduces redundant computation                  │    ║
+║   │                 │                                                   │    ║
+║   │  Virtual Loss   │  Temporarily reduce Q during selection            │    ║
+║   │                 │  → Enables parallel search (future)               │    ║
+║   │                 │                                                   │    ║
+║   │  ROI Analysis   │  Restrict ownership calc to region of interest    │    ║
+║   │                 │  → Faster per-node evaluation                     │    ║
+║   │                 │                                                   │    ║
+║   │  Batch Eval     │  Group multiple positions for NN inference        │    ║
+║   │                 │  → Better GPU utilization                         │    ║
+║   │                 │                                                   │    ║
+║   └─────────────────┴───────────────────────────────────────────────────┘    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+```
+
+## Codebase Structure
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                           PROJECT FILE STRUCTURE                              ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+web-katrain/
+│
+├── src/
+│   │
+│   ├── components/                    ◄─── React UI Components
+│   │   │
+│   │   ├── Layout.tsx                      Main app layout, mode switching
+│   │   ├── GoBoard.tsx                     Canvas-based board rendering
+│   │   ├── MoveTree.tsx                    SVG tree navigation widget
+│   │   ├── SettingsModal.tsx               Configuration modal
+│   │   ├── GameAnalysisModal.tsx           Post-game review
+│   │   ├── AnalysisGraphs.tsx              Winrate/score charts
+│   │   ├── StonesCaptured.tsx              Capture display
+│   │   ├── KataGoIndicator.tsx             Engine status
+│   │   └── DebugPanel.tsx                  Developer info
+│   │
+│   ├── store/                         ◄─── State Management
+│   │   │
+│   │   └── gameStore.ts                    Zustand store (game, tree, analysis)
+│   │
+│   ├── engine/                        ◄─── KataGo Engine
+│   │   │
+│   │   └── katago/
+│   │       │
+│   │       ├── client.ts                   Main thread API wrapper
+│   │       ├── worker.ts                   Web Worker entry point
+│   │       ├── analyzeMcts.ts              MCTS implementation
+│   │       ├── fastBoard.ts                Fast board simulation
+│   │       ├── features.ts                 NN feature extraction
+│   │       ├── loadModelV8.ts              Binary model parser
+│   │       ├── modelV8.ts                  NN architecture definition
+│   │       ├── symmetry.ts                 Board symmetry handling
+│   │       ├── ladderDetector.ts           Ladder reading
+│   │       └── types.ts                    Engine type definitions
+│   │
+│   ├── utils/                         ◄─── Game Logic & Utilities
+│   │   │
+│   │   ├── gameLogic.ts                    Rules (captures, ko, suicide)
+│   │   ├── sgf.ts                          SGF parsing/generation
+│   │   ├── katrainSgfAnalysis.ts           KaTrain SGF format support
+│   │   ├── gameReport.ts                   Analysis report generation
+│   │   ├── aiStrategies.ts                 AI move selection algorithms
+│   │   ├── katrainTimer.ts                 Game clock logic
+│   │   └── mockAnalysis.ts                 Testing utilities
+│   │
+│   ├── types.ts                       ◄─── Central Type Definitions
+│   │
+│   └── App.tsx                        ◄─── Application Entry Point
+│
+├── public/
+│   │
+│   └── models/                        ◄─── Neural Network Models
+│       │
+│       └── kata1-b6c96-*.bin.gz            Default model (gzipped)
+│
+├── test/                              ◄─── Test Suite
+│   │
+│   ├── gameLogic.test.ts                   Game rule tests
+│   ├── sgf.test.ts                         SGF parser tests
+│   ├── katrainTimer.test.ts                Timer logic tests
+│   └── gameReport.test.ts                  Report generation tests
+│
+└── docs/                              ◄─── Documentation
+    │
+    └── diagram.md                          This file
+
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                            DATA FLOW OVERVIEW                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │                                                                         │
+    │   User Input                                                            │
+    │       │                                                                 │
+    │       ▼                                                                 │
+    │   ┌─────────────────┐      ┌─────────────────┐      ┌───────────────┐  │
+    │   │   Components    │◄────►│   gameStore     │◄────►│  Engine       │  │
+    │   │   (React)       │      │   (Zustand)     │      │  (Worker)     │  │
+    │   │                 │      │                 │      │               │  │
+    │   │   ∙ GoBoard     │      │   ∙ board[][]   │      │   ∙ MCTS      │  │
+    │   │   ∙ MoveTree    │      │   ∙ gameTree    │      │   ∙ NN Eval   │  │
+    │   │   ∙ Settings    │      │   ∙ analysis    │      │   ∙ Features  │  │
+    │   └─────────────────┘      └─────────────────┘      └───────────────┘  │
+    │       │                                                   │            │
+    │       └───────────────────────┬───────────────────────────┘            │
+    │                               │                                        │
+    │                               ▼                                        │
+    │                         Display Update                                 │
+    │                                                                         │
+    └─────────────────────────────────────────────────────────────────────────┘
+
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          KEY FILE RESPONSIBILITIES                            ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║   FILE                          │  LOC   │  RESPONSIBILITY                    ║
+║   ──────────────────────────────┼────────┼───────────────────────────────────║
+║   gameStore.ts                  │  2971  │  Central state, all game actions  ║
+║   analyzeMcts.ts                │  2330  │  MCTS search implementation       ║
+║   Layout.tsx                    │  1968  │  Main UI layout & mode switching  ║
+║   GoBoard.tsx                   │  1529  │  Board rendering (10 canvas)      ║
+║   SettingsModal.tsx             │  1279  │  All configuration options        ║
+║   fastBoard.ts                  │   650  │  Fast game simulation             ║
+║   features.ts                   │   480  │  22-channel feature extraction    ║
+║   gameLogic.ts                  │   350  │  Go rules implementation          ║
+║   sgf.ts                        │   320  │  SGF format parsing               ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 ```
