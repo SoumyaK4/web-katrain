@@ -113,7 +113,7 @@ const createEmptyBoard = (): BoardState => {
 const EMPTY_TERRITORY: number[][] = Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => 0));
 
 const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v1';
-const KATRAIN_DEFAULT_MODEL_URL = 'models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz';
+const DEFAULT_MODEL_PATH = 'models/katago-small.bin.gz';
 
 const normalizeModelUrl = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
@@ -135,8 +135,12 @@ const resolveModelUrlForFetch = (value: string): string => {
   if (/^(blob:|data:|https?:|file:)/i.test(trimmed)) return trimmed;
   if (trimmed.startsWith('//')) return trimmed;
   if (typeof window === 'undefined') return trimmed;
-  const relative = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
-  return new URL(relative, window.location.href).toString();
+  // Absolute paths (starting with /) resolve against the origin
+  if (trimmed.startsWith('/')) {
+    return new URL(trimmed, window.location.origin).toString();
+  }
+  // Relative paths resolve against the current page href
+  return new URL(trimmed, window.location.href).toString();
 };
 
 const loadStoredSettings = (): Partial<GameSettings> | null => {
@@ -330,7 +334,7 @@ const defaultSettings: GameSettings = {
   analysisShowHints: true,
   analysisShowPolicy: false,
   analysisShowOwnership: true,
-  katagoModelUrl: publicUrl(KATRAIN_DEFAULT_MODEL_URL),
+  katagoModelUrl: publicUrl(DEFAULT_MODEL_PATH),
   katagoVisits: 500,
   katagoFastVisits: 25,
   katagoMaxTimeMs: 8000,
