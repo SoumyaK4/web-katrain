@@ -129,6 +129,16 @@ const normalizeModelUrl = (value: unknown): string | null => {
   return trimmed;
 };
 
+const resolveModelUrlForFetch = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (/^(blob:|data:|https?:|file:)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//')) return trimmed;
+  if (typeof window === 'undefined') return trimmed;
+  const relative = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
+  return new URL(relative, window.location.href).toString();
+};
+
 const loadStoredSettings = (): Partial<GameSettings> | null => {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -791,9 +801,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const node = s.currentNode;
           const parentBoard = node.parent?.gameState.board;
           const grandparentBoard = node.parent?.parent?.gameState.board;
+          const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
           const analysis = await getKataGoEngineClient().analyze({
             positionId: node.id,
-            modelUrl: s.settings.katagoModelUrl,
+            modelUrl,
             board: s.board,
             previousBoard: parentBoard,
             previousPreviousBoard: grandparentBoard,
@@ -881,8 +892,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const toEval = chunk.filter((n) => !n.analysis);
         if (toEval.length > 0) {
           try {
+            const modelUrl = resolveModelUrlForFetch(get().settings.katagoModelUrl);
             const evals = await getKataGoEngineClient().evaluateBatch({
-              modelUrl: get().settings.katagoModelUrl,
+              modelUrl,
               positions: toEval.map((n) => ({
                 board: n.gameState.board,
                 previousBoard: n.parent?.gameState.board,
@@ -996,9 +1008,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           try {
             const parentBoard = node.parent?.gameState.board;
             const grandparentBoard = node.parent?.parent?.gameState.board;
+            const modelUrl = resolveModelUrlForFetch(get().settings.katagoModelUrl);
             const analysis = await getKataGoEngineClient().analyze({
               positionId: node.id,
-              modelUrl: get().settings.katagoModelUrl,
+              modelUrl,
               board: node.gameState.board,
               previousBoard: parentBoard,
               previousPreviousBoard: grandparentBoard,
@@ -1139,10 +1152,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const maxChildren = Math.max(4, Math.min(s.settings.katagoMaxChildren, 361));
             const topK = Math.max(5, Math.min(s.settings.katagoTopK, 50));
             const analysisPvLen = Math.max(0, Math.min(s.settings.katagoAnalysisPvLen, 60));
+            const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
 
             const analysis = await getKataGoEngineClient().analyze({
               positionId: node.id,
-              modelUrl: s.settings.katagoModelUrl,
+              modelUrl,
               board: node.gameState.board,
               previousBoard: parentBoard,
               previousPreviousBoard: grandparentBoard,
@@ -1247,7 +1261,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 		      const node = state.currentNode;
 		      const parentBoard = node.parent?.gameState.board;
 		      const grandparentBoard = node.parent?.parent?.gameState.board;
-		      const modelUrl = state.settings.katagoModelUrl;
+		      const modelUrl = resolveModelUrlForFetch(state.settings.katagoModelUrl);
           const rules = state.settings.gameRules;
           const analysisPvLen = opts?.analysisPvLen ?? state.settings.katagoAnalysisPvLen;
           const wideRootNoise = opts?.wideRootNoise ?? state.settings.katagoWideRootNoise;
@@ -1600,7 +1614,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
 	      const parentBoard = node.parent?.gameState.board;
 	      const grandparentBoard = node.parent?.parent?.gameState.board;
-	      const modelUrl = state.settings.katagoModelUrl;
+	      const modelUrl = resolveModelUrlForFetch(state.settings.katagoModelUrl);
         const rules = state.settings.gameRules;
         const analysisPvLen = state.settings.katagoAnalysisPvLen;
         const wideRootNoise = state.settings.katagoWideRootNoise;
