@@ -37,9 +37,48 @@ export interface KataGoAnalyzeRequest {
   maxTimeMs?: number;
   batchSize?: number;
   maxChildren?: number;
+  reportDuringSearchEveryMs?: number;
   ownershipRefreshIntervalMs?: number;
   reuseTree?: boolean;
   ownershipMode?: 'none' | 'root' | 'tree';
+}
+
+export interface KataGoAnalysisPayload {
+  rootWinRate: number;
+  rootScoreLead: number;
+  rootScoreSelfplay: number;
+  rootScoreStdev: number;
+  rootVisits: number;
+  ownership: FloatArray; // len 361, +1 black owns, -1 white owns
+  ownershipStdev: FloatArray; // len 361
+  policy: FloatArray; // len 362, illegal = -1, pass at index 361
+  moves: Array<{
+    x: number;
+    y: number;
+    winRate: number;
+    winRateLost: number;
+    scoreLead: number;
+    scoreSelfplay: number;
+    scoreStdev: number;
+    visits: number;
+    pointsLost: number;
+    relativePointsLost: number;
+    order: number;
+    prior: number;
+    pv: string[];
+    ownership?: FloatArray; // len 361, +1 black owns, -1 white owns (position after this move)
+  }>;
+}
+
+export interface KataGoAnalyzeUpdate {
+  type: 'katago:analyze_update';
+  id: number;
+  ok: boolean;
+  canceled?: boolean;
+  backend?: string;
+  modelName?: string;
+  analysis?: KataGoAnalysisPayload;
+  error?: string;
 }
 
 export interface KataGoAnalyzeResponse {
@@ -49,32 +88,7 @@ export interface KataGoAnalyzeResponse {
   canceled?: boolean;
   backend?: string;
   modelName?: string;
-  analysis?: {
-    rootWinRate: number;
-    rootScoreLead: number;
-    rootScoreSelfplay: number;
-    rootScoreStdev: number;
-    rootVisits: number;
-    ownership: FloatArray; // len 361, +1 black owns, -1 white owns
-    ownershipStdev: FloatArray; // len 361
-    policy: FloatArray; // len 362, illegal = -1, pass at index 361
-    moves: Array<{
-      x: number;
-      y: number;
-      winRate: number;
-      winRateLost: number;
-      scoreLead: number;
-      scoreSelfplay: number;
-      scoreStdev: number;
-      visits: number;
-      pointsLost: number;
-      relativePointsLost: number;
-      order: number;
-      prior: number;
-      pv: string[];
-      ownership?: FloatArray; // len 361, +1 black owns, -1 white owns (position after this move)
-    }>;
-  };
+  analysis?: KataGoAnalysisPayload;
   error?: string;
 }
 
@@ -139,4 +153,9 @@ export interface KataGoEvalBatchResponse {
 }
 
 export type KataGoWorkerRequest = KataGoInitRequest | KataGoAnalyzeRequest | KataGoEvalRequest | KataGoEvalBatchRequest;
-export type KataGoWorkerResponse = KataGoInitResponse | KataGoAnalyzeResponse | KataGoEvalResponse | KataGoEvalBatchResponse;
+export type KataGoWorkerResponse =
+  | KataGoInitResponse
+  | KataGoAnalyzeUpdate
+  | KataGoAnalyzeResponse
+  | KataGoEvalResponse
+  | KataGoEvalBatchResponse;

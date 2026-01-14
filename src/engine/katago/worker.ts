@@ -510,6 +510,13 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     const nnRandomize = msg.nnRandomize !== false;
     const conservativePass = msg.conservativePass !== false;
     const roiKey = regionKey(msg.regionOfInterest);
+    const reportEveryMsRaw = msg.reportDuringSearchEveryMs;
+    const reportEveryMs =
+      typeof reportEveryMsRaw === 'number' && Number.isFinite(reportEveryMsRaw)
+        ? Math.max(0, reportEveryMsRaw)
+        : 0;
+    const shouldReport = reportEveryMs > 0;
+    const cloneBuffers = msg.reuseTree === true || shouldReport;
 
     const canReuse =
       msg.reuseTree === true &&
@@ -564,41 +571,97 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       }
     }
 
-    const aborted = await search!.run({ visits: maxVisits, maxTimeMs, batchSize, shouldAbort });
-    if (aborted || shouldAbort()) {
-      postCanceled();
+    const postAnalysis = (analysis: ReturnType<MctsSearch['getAnalysis']>, type: 'katago:analyze_update' | 'katago:analyze_result') => {
+      const transfer: Transferable[] = [];
+      const push = (value?: unknown) => {
+        if (value && ArrayBuffer.isView(value)) transfer.push(value.buffer);
+      };
+      push(analysis.ownership);
+      push(analysis.ownershipStdev);
+      push(analysis.policy);
+      for (const move of analysis.moves) push(move.ownership);
+
+      post(
+        {
+          type,
+          id: msg.id,
+          ok: true,
+          backend: tf.getBackend(),
+          modelName: loadedModelName,
+          analysis,
+        },
+        transfer
+      );
+    };
+
+    const buildAnalysis = () =>
+      search!.getAnalysis({
+        topK,
+        includeMovesOwnership,
+        analysisPvLen,
+        cloneBuffers,
+        ownershipRefreshIntervalMs: msg.ownershipRefreshIntervalMs,
+      });
+
+    if (!shouldReport) {
+      const aborted = await search!.run({ visits: maxVisits, maxTimeMs, batchSize, shouldAbort });
+      if (aborted || shouldAbort()) {
+        postCanceled();
+        if (msg.reuseTree !== true) {
+          search = null;
+          searchKey = null;
+        }
+        return;
+      }
+      postAnalysis(buildAnalysis(), 'katago:analyze_result');
       if (msg.reuseTree !== true) {
         search = null;
         searchKey = null;
       }
       return;
     }
-    const analysis = search!.getAnalysis({
-      topK,
-      includeMovesOwnership,
-      analysisPvLen,
-      cloneBuffers: msg.reuseTree === true,
-      ownershipRefreshIntervalMs: msg.ownershipRefreshIntervalMs,
-    });
 
-    const transfer: Transferable[] = [];
-    const push = (value?: unknown) => {
-      if (value && ArrayBuffer.isView(value)) transfer.push(value.buffer);
-    };
-    push(analysis.ownership);
-    push(analysis.ownershipStdev);
-    push(analysis.policy);
-    for (const move of analysis.moves) push(move.ownership);
+    const deadline = performance.now() + maxTimeMs;
+    let lastReportVisits = -1;
+    while (true) {
+      if (shouldAbort()) {
+        postCanceled();
+        if (msg.reuseTree !== true) {
+          search = null;
+          searchKey = null;
+        }
+        return;
+      }
+      const now = performance.now();
+      const remaining = deadline - now;
+      if (remaining <= 0) break;
+      const sliceMs = Math.min(reportEveryMs, remaining);
+      const aborted = await search!.run({ visits: maxVisits, maxTimeMs: sliceMs, batchSize, shouldAbort });
+      if (aborted || shouldAbort()) {
+        postCanceled();
+        if (msg.reuseTree !== true) {
+          search = null;
+          searchKey = null;
+        }
+        return;
+      }
+      const analysis = buildAnalysis();
+      const done = analysis.rootVisits >= maxVisits || performance.now() >= deadline;
+      if (done) {
+        postAnalysis(analysis, 'katago:analyze_result');
+        if (msg.reuseTree !== true) {
+          search = null;
+          searchKey = null;
+        }
+        return;
+      }
+      if (analysis.rootVisits > lastReportVisits) {
+        lastReportVisits = analysis.rootVisits;
+        postAnalysis(analysis, 'katago:analyze_update');
+      }
+    }
 
-    post({
-      type: 'katago:analyze_result',
-      id: msg.id,
-      ok: true,
-      backend: tf.getBackend(),
-      modelName: loadedModelName,
-      analysis,
-    }, transfer);
-
+    postAnalysis(buildAnalysis(), 'katago:analyze_result');
     if (msg.reuseTree !== true) {
       search = null;
       searchKey = null;

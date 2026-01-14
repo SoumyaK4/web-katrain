@@ -4,6 +4,7 @@ import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye }
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
 import { getKataGoEngineClient, isKataGoCanceledError } from '../engine/katago/client';
+import type { KataGoAnalysisPayload } from '../engine/katago/types';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
 import { publicUrl } from '../utils/publicUrl';
@@ -86,6 +87,7 @@ interface GameStore extends GameState {
     conservativePass?: boolean;
     reuseTree?: boolean;
     ownershipRefreshIntervalMs?: number;
+    reportEveryMs?: number;
   }) => Promise<void>;
   analyzeExtra: (mode: 'extra' | 'equalize' | 'sweep' | 'alternative' | 'stop') => void;
   resetCurrentAnalysis: () => void;
@@ -390,6 +392,9 @@ let continuousToken = 0;
 let selfplayToken = 0;
 let gameAnalysisToken = 0;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+// KaTrain-style report cadence (seconds -> ms).
+const REPORT_DURING_SEARCH_EVERY_MS = 1000;
+const CONTINUOUS_REPORT_DURING_SEARCH_MS = 250;
 
 export const useGameStore = create<GameStore>((set, get) => ({
   // Flat properties (mirrored from currentNode.gameState for easy access)
@@ -1255,6 +1260,89 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const topK = Math.max(1, Math.min(opts?.topK ?? state.settings.katagoTopK, 50));
           const reuseTree = opts?.reuseTree ?? state.settings.katagoReuseTree;
           const ownershipRefreshIntervalMs = opts?.ownershipRefreshIntervalMs;
+          const reportEveryMsRaw = opts?.reportEveryMs;
+          const reportEveryMs =
+            typeof reportEveryMsRaw === 'number' && Number.isFinite(reportEveryMsRaw)
+              ? Math.max(0, reportEveryMsRaw)
+              : (state.isContinuousAnalysis ? CONTINUOUS_REPORT_DURING_SEARCH_MS : REPORT_DURING_SEARCH_EVERY_MS);
+          const reportDuringSearchEveryMs = reportEveryMs > 0 ? reportEveryMs : undefined;
+          let lastProgressVisits = -1;
+          let lastTreeUpdateAt = 0;
+          const treeUpdateEveryMs = reportEveryMs > 0 ? reportEveryMs : 0;
+
+          const buildAnalysisResult = (analysis: KataGoAnalysisPayload): AnalysisResult => {
+            let analysisWithTerritory: AnalysisResult = {
+              rootWinRate: analysis.rootWinRate,
+              rootScoreLead: analysis.rootScoreLead,
+              rootScoreSelfplay: analysis.rootScoreSelfplay,
+              rootScoreStdev: analysis.rootScoreStdev,
+              rootVisits: analysis.rootVisits,
+              moves: analysis.moves,
+              territory: ownershipToTerritoryGrid(analysis.ownership),
+              policy: analysis.policy,
+              ownershipStdev: analysis.ownershipStdev,
+              ownershipMode: state.settings.katagoOwnershipMode,
+            };
+
+            const roi = get().regionOfInterest;
+            if (roi) {
+              analysisWithTerritory = {
+                ...analysisWithTerritory,
+                moves: analysisWithTerritory.moves.filter((m) => isMoveInRegion(m, roi)),
+                policy: analysisWithTerritory.policy
+                  ? (() => {
+                      const p = analysisWithTerritory.policy.slice();
+                      for (let y = 0; y < BOARD_SIZE; y++) {
+                        for (let x = 0; x < BOARD_SIZE; x++) {
+                          if (x >= roi.xMin && x <= roi.xMax && y >= roi.yMin && y <= roi.yMax) continue;
+                          p[y * BOARD_SIZE + x] = -1;
+                        }
+                      }
+                      return p;
+                    })()
+                  : analysisWithTerritory.policy,
+              };
+            }
+
+            return analysisWithTerritory;
+          };
+
+          const applyAnalysis = (analysis: KataGoAnalysisPayload, isFinal: boolean) => {
+            const analysisWithTerritory = buildAnalysisResult(analysis);
+            node.analysis = analysisWithTerritory;
+
+            const latest = get();
+            const isCurrent = latest.currentNode.id === node.id;
+            const now = performance.now();
+            const shouldBumpTree =
+              isFinal || (isCurrent && treeUpdateEveryMs > 0 && now - lastTreeUpdateAt >= treeUpdateEveryMs);
+            if (shouldBumpTree) lastTreeUpdateAt = now;
+
+            if (!isCurrent && !isFinal && !shouldBumpTree) return;
+
+            const engineInfo = isFinal ? getKataGoEngineClient().getEngineInfo() : null;
+            set((s) => {
+              const next: Partial<GameStore> = {};
+              if (isCurrent) next.analysisData = analysisWithTerritory;
+              if (isFinal && engineInfo) {
+                next.engineStatus = 'ready';
+                next.engineError = null;
+                next.engineBackend = engineInfo.backend;
+                next.engineModelName = engineInfo.modelName;
+              }
+              if (shouldBumpTree) next.treeVersion = s.treeVersion + 1;
+              return next;
+            });
+          };
+
+          const onProgress = reportDuringSearchEveryMs
+            ? (analysis: KataGoAnalysisPayload) => {
+                const visits = typeof analysis.rootVisits === 'number' ? analysis.rootVisits : 0;
+                if (visits <= lastProgressVisits) return;
+                lastProgressVisits = visits;
+                applyAnalysis(analysis, false);
+              }
+            : undefined;
 
       set({ engineStatus: 'loading', engineError: null });
       node.analysisVisitsRequested = visits;
@@ -1281,47 +1369,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           maxTimeMs,
           batchSize,
           maxChildren,
+          reportDuringSearchEveryMs,
           ownershipRefreshIntervalMs,
           reuseTree,
           ownershipMode: state.settings.katagoOwnershipMode,
           analysisGroup: 'interactive',
+          onProgress,
         })
         .then((analysis) => {
-          let analysisWithTerritory: AnalysisResult = {
-            rootWinRate: analysis.rootWinRate,
-            rootScoreLead: analysis.rootScoreLead,
-            rootScoreSelfplay: analysis.rootScoreSelfplay,
-            rootScoreStdev: analysis.rootScoreStdev,
-            rootVisits: analysis.rootVisits,
-            moves: analysis.moves,
-            territory: ownershipToTerritoryGrid(analysis.ownership),
-            policy: analysis.policy,
-            ownershipStdev: analysis.ownershipStdev,
-            ownershipMode: state.settings.katagoOwnershipMode,
-          };
-
-          const roi = get().regionOfInterest;
-          if (roi) {
-            analysisWithTerritory = {
-              ...analysisWithTerritory,
-              moves: analysisWithTerritory.moves.filter((m) => isMoveInRegion(m, roi)),
-                  policy: analysisWithTerritory.policy
-                    ? (() => {
-                    const p = analysisWithTerritory.policy.slice();
-                    for (let y = 0; y < BOARD_SIZE; y++) {
-                      for (let x = 0; x < BOARD_SIZE; x++) {
-                        if (x >= roi.xMin && x <= roi.xMax && y >= roi.yMin && y <= roi.yMax) continue;
-                        p[y * BOARD_SIZE + x] = -1;
-                      }
-                    }
-                    return p;
-                  })()
-                : analysisWithTerritory.policy,
-            };
-          }
-
-          // Store analysis in node even if user navigated elsewhere.
-          node.analysis = analysisWithTerritory;
+          applyAnalysis(analysis, true);
 
           const maybeApplyTeachUndo = () => {
             const latestState = get();
@@ -1379,27 +1435,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
             setTimeout(() => set({ notification: null }), 3000);
             latestState.navigateBack();
           };
-
-          const latest = get();
-	          const engineInfo = getKataGoEngineClient().getEngineInfo();
-	          if (latest.currentNode.id === node.id) {
-	            set((s) => ({
-	              analysisData: analysisWithTerritory,
-	              engineStatus: 'ready',
-	              engineError: null,
-	              engineBackend: engineInfo.backend,
-	              engineModelName: engineInfo.modelName,
-	              treeVersion: s.treeVersion + 1,
-	            }));
-	          } else {
-	            set((s) => ({
-	              engineStatus: 'ready',
-	              engineError: null,
-	              engineBackend: engineInfo.backend,
-	              engineModelName: engineInfo.modelName,
-	              treeVersion: s.treeVersion + 1,
-	            }));
-	          }
 
           maybeApplyTeachUndo();
         })

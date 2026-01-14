@@ -26,7 +26,10 @@ class KataGoEngineClient {
   private readonly worker: Worker;
   private nextId = 1;
   private pendingInit: { resolve: () => void; reject: (e: Error) => void } | null = null;
-  private pending = new Map<number, { resolve: (a: Analysis) => void; reject: (e: Error) => void }>();
+  private pending = new Map<
+    number,
+    { resolve: (a: Analysis) => void; reject: (e: Error) => void; onProgress?: (a: Analysis) => void }
+  >();
   private pendingEval = new Map<number, { resolve: (e: EvalResult) => void; reject: (e: Error) => void }>();
   private pendingEvalBatch = new Map<number, { resolve: (e: EvalBatchResult) => void; reject: (e: Error) => void }>();
   private backend: string | null = null;
@@ -46,6 +49,16 @@ class KataGoEngineClient {
         }
         if (!msg.ok) pendingInit.reject(new Error(msg.error ?? 'Init failed'));
         else pendingInit.resolve();
+        return;
+      }
+      if (msg.type === 'katago:analyze_update') {
+        const pending = this.pending.get(msg.id);
+        if (!pending) return;
+        if (msg.canceled || msg.error === 'canceled') return;
+        if (typeof msg.backend === 'string') this.backend = msg.backend;
+        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+        if (!msg.ok || !msg.analysis) return;
+        pending.onProgress?.(msg.analysis);
         return;
       }
       if (msg.type === 'katago:analyze_result') {
@@ -119,9 +132,11 @@ class KataGoEngineClient {
     maxTimeMs?: number;
     batchSize?: number;
     maxChildren?: number;
+    reportDuringSearchEveryMs?: number;
     ownershipRefreshIntervalMs?: number;
     reuseTree?: boolean;
     ownershipMode?: 'none' | 'root' | 'tree';
+    onProgress?: (analysis: Analysis) => void;
   }): Promise<Analysis> {
     const id = this.nextId++;
     const req: KataGoWorkerRequest = {
@@ -148,12 +163,13 @@ class KataGoEngineClient {
       maxTimeMs: args.maxTimeMs,
       batchSize: args.batchSize,
       maxChildren: args.maxChildren,
+      reportDuringSearchEveryMs: args.reportDuringSearchEveryMs,
       ownershipRefreshIntervalMs: args.ownershipRefreshIntervalMs,
       reuseTree: args.reuseTree,
       ownershipMode: args.ownershipMode,
     };
     const promise = new Promise<Analysis>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      this.pending.set(id, { resolve, reject, onProgress: args.onProgress });
     });
     this.worker.postMessage(req);
     return promise;
