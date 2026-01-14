@@ -1846,10 +1846,10 @@ export class MctsSearch {
       let cached = this.treeOwnershipCache;
       const refreshIntervalMs = args.ownershipRefreshIntervalMs ?? 0;
       const now = performance.now();
-      const shouldRefresh =
-        !cached ||
-        (cached.visits !== visits && (refreshIntervalMs <= 0 || now - cached.timestamp >= refreshIntervalMs));
-      if (shouldRefresh) {
+      if (!cached) {
+        cached = { visits, timestamp: now, ...averageTreeOwnership(this.rootNode) };
+        this.treeOwnershipCache = cached;
+      } else if (cached.visits !== visits && (refreshIntervalMs <= 0 || now - cached.timestamp >= refreshIntervalMs)) {
         cached = { visits, timestamp: now, ...averageTreeOwnership(this.rootNode) };
         this.treeOwnershipCache = cached;
       }
