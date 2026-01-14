@@ -44,6 +44,7 @@ export interface AnalysisResult {
   rootScoreLead: number;
   rootScoreSelfplay?: number;
   rootScoreStdev?: number;
+  rootVisits?: number;
   moves: CandidateMove[];
   territory: number[][]; // 19x19 grid, values -1 (white) to 1 (black)
   policy?: FloatArray; // len 362, illegal = -1, pass at index 361

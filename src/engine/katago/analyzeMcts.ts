@@ -42,6 +42,7 @@ type Edge = {
   move: number; // 0..360 or PASS_MOVE
   prior: number;
   child: Node | null;
+  pvCache?: { visits: number; depth: number; pv: string[] };
 };
 
 type ExpandScratch = {
@@ -837,6 +838,15 @@ function buildPv(edge: Edge, maxDepth: number): string[] {
   }
 
   return pvMoves.map(moveToGtp);
+}
+
+function getPvForEdge(edge: Edge, maxDepth: number): string[] {
+  const visits = edge.child?.visits ?? 0;
+  const cache = edge.pvCache;
+  if (cache && cache.visits === visits && cache.depth === maxDepth) return cache.pv;
+  const pv = buildPv(edge, maxDepth);
+  edge.pvCache = { visits, depth: maxDepth, pv };
+  return pv;
 }
 
 const NUM_SYMMETRIES = 8;
@@ -1637,6 +1647,7 @@ export class MctsSearch {
     rootScoreLead: number;
     rootScoreSelfplay: number;
     rootScoreStdev: number;
+    rootVisits: number;
     ownership: FloatArray;
     ownershipStdev: FloatArray;
     policy: FloatArray;
@@ -1738,7 +1749,7 @@ export class MctsSearch {
       if (diff !== 0) return diff;
       return a.orderIndex - b.orderIndex;
     });
-    for (const row of topMoves) row.pv = buildPv(row.edge, pvDepth);
+    for (const row of topMoves) row.pv = getPvForEdge(row.edge, pvDepth);
 
     const rootStats = computeWeightedRootStats({
       children: childStats,
@@ -1813,6 +1824,7 @@ export class MctsSearch {
       rootScoreLead,
       rootScoreSelfplay,
       rootScoreStdev,
+      rootVisits: this.rootNode.visits,
       ownership,
       ownershipStdev,
       policy: policyOut,
@@ -1843,6 +1855,7 @@ export async function analyzeMcts(args: {
   rootScoreLead: number;
   rootScoreSelfplay: number;
   rootScoreStdev: number;
+  rootVisits: number;
   ownership: FloatArray; // len 361, +1 black owns, -1 white owns (tree-averaged)
   ownershipStdev: FloatArray; // len 361 (tree stdev)
   policy: FloatArray; // len 362, illegal = -1, pass at index 361
@@ -2202,7 +2215,7 @@ export async function analyzeMcts(args: {
       scoreSelfplay,
       scoreStdev,
       prior: e.prior,
-      pv: buildPv(e, pvDepth),
+      pv: getPvForEdge(e, pvDepth),
     });
   }
 
@@ -2263,6 +2276,7 @@ export async function analyzeMcts(args: {
     rootScoreLead,
     rootScoreSelfplay,
     rootScoreStdev,
+    rootVisits: rootNode.visits,
     ownership,
     ownershipStdev,
     policy: rootPolicy,
