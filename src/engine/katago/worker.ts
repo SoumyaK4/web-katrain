@@ -573,7 +573,13 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       }
       return;
     }
-    const analysis = search!.getAnalysis({ topK, includeMovesOwnership, analysisPvLen, cloneBuffers: msg.reuseTree === true });
+    const analysis = search!.getAnalysis({
+      topK,
+      includeMovesOwnership,
+      analysisPvLen,
+      cloneBuffers: msg.reuseTree === true,
+      ownershipRefreshIntervalMs: msg.ownershipRefreshIntervalMs,
+    });
 
     const transfer: Transferable[] = [];
     const push = (value?: unknown) => {

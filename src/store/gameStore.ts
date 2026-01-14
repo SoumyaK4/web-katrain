@@ -85,6 +85,7 @@ interface GameStore extends GameState {
     nnRandomize?: boolean;
     conservativePass?: boolean;
     reuseTree?: boolean;
+    ownershipRefreshIntervalMs?: number;
   }) => Promise<void>;
   analyzeExtra: (mode: 'extra' | 'equalize' | 'sweep' | 'alternative' | 'stop') => void;
   resetCurrentAnalysis: () => void;
@@ -464,9 +465,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       const token = ++continuousToken;
       void (async () => {
-          let nodeId: string | null = null;
-          let visits = 0;
-
           while (true) {
               const state = get();
               if (token !== continuousToken) return;
@@ -477,17 +475,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const rawFast = state.settings.katagoFastVisits;
               const fast = Number.isFinite(rawFast) ? rawFast : 25;
               const initialVisits = Math.max(16, Math.min(target, Math.floor(fast)));
-              if (state.currentNode.id !== nodeId) {
-                  nodeId = state.currentNode.id;
-                  visits = initialVisits;
-              } else if (visits < target) {
-                  visits = Math.min(target, Math.max(visits + 1, visits * 2));
+              const node = state.currentNode;
+              const currentVisits =
+                typeof node.analysis?.rootVisits === 'number' ? node.analysis.rootVisits : (node.analysisVisitsRequested ?? 0);
+              const normalizedVisits = Number.isFinite(currentVisits) ? Math.max(0, Math.floor(currentVisits)) : 0;
+
+              let nextVisits: number;
+              if (normalizedVisits < 1) {
+                  nextVisits = initialVisits;
+              } else if (normalizedVisits < target) {
+                  const bumped = Math.max(normalizedVisits + 1, normalizedVisits * 2);
+                  nextVisits = Math.min(target, Math.max(initialVisits, bumped));
               } else {
                   await sleep(500);
                   continue;
               }
 
-              await get().runAnalysis({ force: true, visits });
+              await get().runAnalysis({
+                force: true,
+                visits: nextVisits,
+                reuseTree: true,
+                ownershipRefreshIntervalMs: state.settings.katagoOwnershipMode === 'tree' ? 500 : undefined,
+              });
               await sleep(50);
           }
       })();
@@ -1245,6 +1254,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const maxChildren = Math.max(4, Math.min(opts?.maxChildren ?? state.settings.katagoMaxChildren, 361));
           const topK = Math.max(1, Math.min(opts?.topK ?? state.settings.katagoTopK, 50));
           const reuseTree = opts?.reuseTree ?? state.settings.katagoReuseTree;
+          const ownershipRefreshIntervalMs = opts?.ownershipRefreshIntervalMs;
 
       set({ engineStatus: 'loading', engineError: null });
       node.analysisVisitsRequested = visits;
@@ -1271,6 +1281,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           maxTimeMs,
           batchSize,
           maxChildren,
+          ownershipRefreshIntervalMs,
           reuseTree,
           ownershipMode: state.settings.katagoOwnershipMode,
           analysisGroup: 'interactive',

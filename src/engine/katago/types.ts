@@ -37,6 +37,7 @@ export interface KataGoAnalyzeRequest {
   maxTimeMs?: number;
   batchSize?: number;
   maxChildren?: number;
+  ownershipRefreshIntervalMs?: number;
   reuseTree?: boolean;
   ownershipMode?: 'none' | 'root' | 'tree';
 }

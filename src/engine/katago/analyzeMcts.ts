@@ -1242,7 +1242,7 @@ export class MctsSearch {
   private jobPrevStonesScratch = new Uint8Array(0);
   private jobPrevPrevStonesScratch = new Uint8Array(0);
   private jobRecentMovesScratch: RecentMove[][] = [];
-  private treeOwnershipCache: { visits: number; ownership: Float32Array; ownershipStdev: Float32Array } | null = null;
+  private treeOwnershipCache: { visits: number; ownership: Float32Array; ownershipStdev: Float32Array; timestamp: number } | null = null;
 
   private constructor(args: {
     model: KataGoModelV8Tf;
@@ -1673,7 +1673,13 @@ export class MctsSearch {
     return shouldAbort?.() ?? false;
   }
 
-  getAnalysis(args: { topK: number; analysisPvLen: number; includeMovesOwnership?: boolean; cloneBuffers?: boolean }): {
+  getAnalysis(args: {
+    topK: number;
+    analysisPvLen: number;
+    includeMovesOwnership?: boolean;
+    cloneBuffers?: boolean;
+    ownershipRefreshIntervalMs?: number;
+  }): {
     rootWinRate: number;
     rootScoreLead: number;
     rootScoreSelfplay: number;
@@ -1838,8 +1844,13 @@ export class MctsSearch {
     if (this.ownershipMode === 'tree') {
       const visits = this.rootNode.visits;
       let cached = this.treeOwnershipCache;
-      if (!cached || cached.visits !== visits) {
-        cached = { visits, ...averageTreeOwnership(this.rootNode) };
+      const refreshIntervalMs = args.ownershipRefreshIntervalMs ?? 0;
+      const now = performance.now();
+      const shouldRefresh =
+        !cached ||
+        (cached.visits !== visits && (refreshIntervalMs <= 0 || now - cached.timestamp >= refreshIntervalMs));
+      if (shouldRefresh) {
+        cached = { visits, timestamp: now, ...averageTreeOwnership(this.rootNode) };
         this.treeOwnershipCache = cached;
       }
       ownership = cloneBuffers ? new Float32Array(cached.ownership) : cached.ownership;

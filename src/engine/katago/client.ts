@@ -119,6 +119,7 @@ class KataGoEngineClient {
     maxTimeMs?: number;
     batchSize?: number;
     maxChildren?: number;
+    ownershipRefreshIntervalMs?: number;
     reuseTree?: boolean;
     ownershipMode?: 'none' | 'root' | 'tree';
   }): Promise<Analysis> {
@@ -147,6 +148,7 @@ class KataGoEngineClient {
       maxTimeMs: args.maxTimeMs,
       batchSize: args.batchSize,
       maxChildren: args.maxChildren,
+      ownershipRefreshIntervalMs: args.ownershipRefreshIntervalMs,
       reuseTree: args.reuseTree,
       ownershipMode: args.ownershipMode,
     };
