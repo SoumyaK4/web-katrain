@@ -22,7 +22,8 @@ export const generateMockAnalysis = (
             rootWinRate: 0.5,
             rootScoreLead: 0,
             moves: [],
-            territory: calculateTerritory(board)
+            territory: calculateTerritory(board),
+            ownershipMode: 'root'
         };
     }
 
@@ -116,6 +117,7 @@ export const generateMockAnalysis = (
         rootWinRate: candidates[0].winRate,
         rootScoreLead: candidates[0].scoreLead,
         moves: candidates,
-        territory: calculateTerritory(board)
+        territory: calculateTerritory(board),
+        ownershipMode: 'root'
     };
 };

@@ -328,7 +328,10 @@ function serializeMoveNode(node: GameNode, trainer: KaTrainSgfExportTrainerConfi
     delete props.C;
     // KT analysis caching (KaTrain trainer/save_analysis)
     // When disabled, we still export user notes and move tree without embedding full analysis blobs.
-    if (trainer.saveAnalysis && node.analysis) props.KT = encodeKaTrainKtFromAnalysis({ analysis: node.analysis });
+    if (trainer.saveAnalysis && node.analysis) {
+        const ownershipMode = node.analysis.ownershipMode ?? 'root';
+        if (ownershipMode !== 'none') props.KT = encodeKaTrainKtFromAnalysis({ analysis: node.analysis });
+    }
 
     const key = move.player === 'black' ? 'B' : 'W';
     const coord = move.x < 0 || move.y < 0 ? '' : coordinateToSgf(move.x, move.y);
@@ -406,7 +409,10 @@ export const generateSgfFromTree = (rootNode: GameNode, opts?: KaTrainSgfExportO
     if (placements.AB) props.AB = placements.AB;
     if (placements.AW) props.AW = placements.AW;
 
-    if (trainer.saveAnalysis && rootNode.analysis) props.KT = encodeKaTrainKtFromAnalysis({ analysis: rootNode.analysis });
+    if (trainer.saveAnalysis && rootNode.analysis) {
+        const ownershipMode = rootNode.analysis.ownershipMode ?? 'root';
+        if (ownershipMode !== 'none') props.KT = encodeKaTrainKtFromAnalysis({ analysis: rootNode.analysis });
+    }
 
     delete props.C;
     const rootSegments: string[] = [];

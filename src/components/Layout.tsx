@@ -453,8 +453,14 @@ export const Layout: React.FC = () => {
     const pass = (n: GameNode | null | undefined) => !!n?.move && (n.move.x < 0 || n.move.y < 0);
     if (pass(currentNode) && pass(currentNode.parent)) {
       if (settings.gameRules === 'japanese') {
-        const currentOwnership = currentNode.analysis?.territory;
-        const previousOwnership = currentNode.parent?.analysis?.territory;
+        const currentOwnership =
+          currentNode.analysis && (currentNode.analysis.ownershipMode ?? 'root') !== 'none'
+            ? currentNode.analysis.territory
+            : null;
+        const previousOwnership =
+          currentNode.parent?.analysis && (currentNode.parent.analysis.ownershipMode ?? 'root') !== 'none'
+            ? currentNode.parent.analysis.territory
+            : null;
         if (currentOwnership && previousOwnership) {
           const manual = computeJapaneseManualScoreFromOwnership({
             board,

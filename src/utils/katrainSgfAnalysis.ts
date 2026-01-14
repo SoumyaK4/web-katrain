@@ -316,5 +316,6 @@ export function kaTrainAnalysisToAnalysisResult(args: {
     territory: ownershipToGrid(a.ownership, boardSize),
     policy: a.policy ?? undefined,
     ownershipStdev: undefined,
+    ownershipMode: 'root',
   };
 }

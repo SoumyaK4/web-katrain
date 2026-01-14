@@ -119,7 +119,7 @@ class KataGoEngineClient {
     batchSize?: number;
     maxChildren?: number;
     reuseTree?: boolean;
-    ownershipMode?: 'root' | 'tree';
+    ownershipMode?: 'none' | 'root' | 'tree';
   }): Promise<Analysis> {
     const id = this.nextId++;
     const req: KataGoWorkerRequest = {

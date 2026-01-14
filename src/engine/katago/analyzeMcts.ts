@@ -29,7 +29,7 @@ import {
 import { fillInputsV7Fast, type RecentMove } from './featuresV7Fast';
 import { POLICY_OPTIMISM, ROOT_POLICY_OPTIMISM } from './searchParams';
 
-export type OwnershipMode = 'root' | 'tree';
+export type OwnershipMode = 'none' | 'root' | 'tree';
 
 type PolicyValueOutput = ReturnType<KataGoModelV8Tf['forwardPolicyValue']>;
 type PolicyValueOwnershipOutput = ReturnType<KataGoModelV8Tf['forward']>;
@@ -1297,10 +1297,11 @@ export class MctsSearch {
     const rootPos: SimPosition = { stones: rootStones.slice(), koPoint: rootKoPoint };
     const rootNode = new Node(playerToColor(args.currentPlayer));
 
+    const includeOwnership = args.ownershipMode !== 'none';
     const rootEval = (
       await evaluateBatch({
         model: args.model,
-        includeOwnership: true,
+        includeOwnership,
         rules: args.rules,
         nnRandomize: args.nnRandomize,
         policyOptimism: ROOT_POLICY_OPTIMISM,
@@ -1320,15 +1321,17 @@ export class MctsSearch {
         ],
       })
     )[0]!;
-    if (!rootEval.ownership) throw new Error('Missing ownership output');
 
-    const rootOwnershipSign = args.currentPlayer === 'black' ? 1 : -1;
     const rootOwnership = new Float32Array(BOARD_AREA);
-    const rootSym = rootEval.symmetry;
-    const rootSymOff = rootSym * BOARD_AREA;
-    for (let i = 0; i < BOARD_AREA; i++) {
-      const symPos = rootSym === 0 ? i : SYM_POS_MAP[rootSymOff + i]!;
-      rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[symPos]! * outputScaleMultiplier);
+    if (includeOwnership) {
+      if (!rootEval.ownership) throw new Error('Missing ownership output');
+      const rootOwnershipSign = args.currentPlayer === 'black' ? 1 : -1;
+      const rootSym = rootEval.symmetry;
+      const rootSymOff = rootSym * BOARD_AREA;
+      for (let i = 0; i < BOARD_AREA; i++) {
+        const symPos = rootSym === 0 ? i : SYM_POS_MAP[rootSymOff + i]!;
+        rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[symPos]! * outputScaleMultiplier);
+      }
     }
 
     const rootPolicy = new Float32Array(BOARD_AREA + 1);

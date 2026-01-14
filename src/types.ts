@@ -48,6 +48,7 @@ export interface AnalysisResult {
   territory: number[][]; // 19x19 grid, values -1 (white) to 1 (black)
   policy?: FloatArray; // len 362, illegal = -1, pass at index 361
   ownershipStdev?: FloatArray; // len 361
+  ownershipMode?: 'none' | 'root' | 'tree';
 }
 
 export type RegionOfInterest = { xMin: number; xMax: number; yMin: number; yMax: number };

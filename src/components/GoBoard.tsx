@@ -345,7 +345,13 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     return best ? { x: best.x, y: best.y } : null;
   }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
 
-  const territory = analysisData?.territory ?? currentNode.parent?.analysis?.territory ?? null;
+  const analysisTerritory =
+    analysisData && (analysisData.ownershipMode ?? 'root') !== 'none' ? analysisData.territory : null;
+  const parentTerritory =
+    currentNode.parent?.analysis && (currentNode.parent.analysis.ownershipMode ?? 'root') !== 'none'
+      ? currentNode.parent.analysis.territory
+      : null;
+  const territory = analysisTerritory ?? parentTerritory ?? null;
   const shouldShowHints = isAnalysisMode && !!analysisData && settings.analysisShowHints && !settings.analysisShowPolicy;
   const hintMoveMap = useMemo(() => {
     if (!shouldShowHints || !analysisData) return null;

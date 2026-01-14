@@ -488,8 +488,9 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     const batchSize = Math.max(1, Math.min(msg.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
     const maxChildren = Math.max(4, Math.min(msg.maxChildren ?? 64, 361));
     const topK = Math.max(1, Math.min(msg.topK ?? 10, 50));
-    const ownershipMode: OwnershipMode = msg.ownershipMode ?? 'root';
     const includeMovesOwnership = msg.includeMovesOwnership === true;
+    const requestedOwnershipMode: OwnershipMode = msg.ownershipMode ?? 'root';
+    const ownershipMode: OwnershipMode = includeMovesOwnership ? 'tree' : requestedOwnershipMode;
     const analysisPvLen = Math.max(0, Math.min(msg.analysisPvLen ?? 15, 60));
     const wideRootNoise = Math.max(0, Math.min(msg.wideRootNoise ?? 0.04, 5));
     const rules: GameRules = msg.rules === 'chinese' ? 'chinese' : msg.rules === 'korean' ? 'korean' : 'japanese';

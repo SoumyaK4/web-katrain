@@ -798,7 +798,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             batchSize: s.settings.katagoBatchSize,
             maxChildren: s.settings.katagoMaxChildren,
             reuseTree: false,
-            ownershipMode: 'root',
+            ownershipMode: 'none',
             analysisGroup: 'background',
           });
 
@@ -898,6 +898,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 territory: EMPTY_TERRITORY,
                 policy: undefined,
                 ownershipStdev: undefined,
+                ownershipMode: 'none',
               };
               node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, 1);
             }
@@ -1002,7 +1003,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               batchSize,
               maxChildren,
               reuseTree: false,
-              ownershipMode: 'root',
+              ownershipMode: 'none',
               analysisGroup: 'background',
             });
             if (!metaSynced) {
@@ -1017,9 +1018,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
               rootScoreSelfplay: analysis.rootScoreSelfplay,
               rootScoreStdev: analysis.rootScoreStdev,
               moves: analysis.moves,
-              territory: ownershipToTerritoryGrid(analysis.ownership),
-              policy: analysis.policy,
-              ownershipStdev: analysis.ownershipStdev,
+              territory: EMPTY_TERRITORY,
+              policy: undefined,
+              ownershipStdev: undefined,
+              ownershipMode: 'none',
             };
             node.analysisVisitsRequested = fastVisits;
           } catch {
@@ -1164,6 +1166,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               territory: ownershipToTerritoryGrid(analysis.ownership),
               policy: analysis.policy,
               ownershipStdev: analysis.ownershipStdev,
+              ownershipMode: s.settings.katagoOwnershipMode,
             };
             node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, visits);
           } catch {
@@ -1208,13 +1211,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       // Check if current node already has analysis
       const desiredVisits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, ENGINE_MAX_VISITS));
-      if (
-        !opts?.force &&
-        state.currentNode.analysis &&
-        (state.currentNode.analysisVisitsRequested ?? 0) >= desiredVisits
-      ) {
-          set({ analysisData: state.currentNode.analysis });
+      if (!opts?.force && state.currentNode.analysis) {
+        const existing = state.currentNode.analysis;
+        const existingOwnershipMode = existing.ownershipMode ?? 'root';
+        const requiredOwnershipMode = state.settings.katagoOwnershipMode;
+        const ownershipOk =
+          requiredOwnershipMode === 'tree'
+            ? existingOwnershipMode === 'tree'
+            : requiredOwnershipMode === 'root'
+              ? existingOwnershipMode === 'root' || existingOwnershipMode === 'tree'
+              : true;
+        const needsPolicy = state.settings.analysisShowPolicy;
+        const policyOk = !needsPolicy || !!existing.policy;
+        if ((state.currentNode.analysisVisitsRequested ?? 0) >= desiredVisits && ownershipOk && policyOk) {
+          set({ analysisData: existing });
           return;
+        }
       }
 
 		      const node = state.currentNode;
@@ -1271,6 +1283,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             territory: ownershipToTerritoryGrid(analysis.ownership),
             policy: analysis.policy,
             ownershipStdev: analysis.ownershipStdev,
+            ownershipMode: state.settings.katagoOwnershipMode,
           };
 
           const roi = get().regionOfInterest;
@@ -1594,6 +1607,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             territory: ownershipToTerritoryGrid(analysis.ownership),
             policy: analysis.policy,
             ownershipStdev: analysis.ownershipStdev,
+            ownershipMode: aiOwnershipMode,
           };
 
           // Cache analysis on the node we analyzed.
