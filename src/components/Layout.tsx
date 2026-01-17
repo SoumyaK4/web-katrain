@@ -483,24 +483,6 @@ export const Layout: React.FC = () => {
     return () => window.removeEventListener('mousedown', onDown);
   }, []);
 
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    mode,
-    sgfExportOptions,
-    fileInputRef,
-    setIsSettingsOpen,
-    setIsGameAnalysisOpen,
-    setIsGameReportOpen,
-    setAnalysisMenuOpen,
-    setViewMenuOpen,
-    setMenuOpen,
-    setIsKeyboardHelpOpen,
-    toggleLibrary: handleToggleLibrary,
-    closeLibrary: handleCloseLibrary,
-    toggleSidebar: handleToggleSidebar,
-    toast,
-  });
-
   // Computed values
   const engineDot = useMemo(() => {
     if (engineStatus === 'loading') return 'bg-yellow-400';
@@ -720,6 +702,24 @@ export const Layout: React.FC = () => {
       toast('Failed to load SGF or OGS URL.', 'error');
     }
   };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    mode,
+    sgfExportOptions,
+    fileInputRef,
+    setIsSettingsOpen,
+    setIsGameAnalysisOpen,
+    setIsGameReportOpen,
+    setAnalysisMenuOpen,
+    setViewMenuOpen,
+    setMenuOpen,
+    setIsKeyboardHelpOpen,
+    toggleLibrary: handleToggleLibrary,
+    closeLibrary: handleCloseLibrary,
+    toggleSidebar: handleToggleSidebar,
+    toast,
+  });
 
   const jumpBack = (n: number) => {
     for (let i = 0; i < n; i++) navigateBack();
