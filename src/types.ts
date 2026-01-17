@@ -71,11 +71,22 @@ export interface GameNode {
   properties?: Record<string, string[]>;
 }
 
+export type BoardThemeId =
+  | 'bamboo'
+  | 'flat'
+  | 'dark'
+  | 'hikaru'
+  | 'shell-slate'
+  | 'yunzi'
+  | 'happy-stones'
+  | 'kifu'
+  | 'baduktv';
+
 export interface GameSettings {
   soundEnabled: boolean;
   showCoordinates: boolean;
   showMoveNumbers: boolean;
-  boardTheme: 'bamboo' | 'flat' | 'dark';
+  boardTheme: BoardThemeId;
   timerSound: boolean; // KaTrain timer/sound
   timerMainTimeMinutes: number; // KaTrain timer/main_time (minutes)
   timerByoLengthSeconds: number; // KaTrain timer/byo_length (seconds)

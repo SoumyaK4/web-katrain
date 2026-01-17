@@ -5,6 +5,7 @@ import { FaTimes } from 'react-icons/fa';
 import type { GameSettings } from '../types';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { publicUrl } from '../utils/publicUrl';
+import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 
 let uploadedModelUrl: string | null = null;
 let lastManualModelUrl: string | null = null;
@@ -413,9 +414,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             onChange={(e) => updateSettings({ boardTheme: e.target.value as GameSettings['boardTheme'] })}
                             className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none"
                         >
-                            <option value="bamboo">Bamboo (Classic)</option>
-                            <option value="flat">Flat Color</option>
-                            <option value="dark">Dark Mode</option>
+                            {BOARD_THEME_OPTIONS.map((theme) => (
+                                <option key={theme.value} value={theme.value}>
+                                    {theme.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

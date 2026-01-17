@@ -8,6 +8,7 @@ import type { KataGoAnalysisPayload } from '../engine/katago/types';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
 import { publicUrl } from '../utils/publicUrl';
+import { isBoardThemeId } from '../utils/boardThemes';
 
 interface GameStore extends GameState {
   // Tree State
@@ -158,6 +159,11 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
         delete (parsed as { katagoModelUrl?: unknown }).katagoModelUrl;
       }
     }
+    if ('boardTheme' in parsed) {
+      if (!isBoardThemeId((parsed as { boardTheme?: unknown }).boardTheme)) {
+        delete (parsed as { boardTheme?: unknown }).boardTheme;
+      }
+    }
     return parsed as Partial<GameSettings>;
   } catch {
     return null;
@@ -305,7 +311,7 @@ const defaultSettings: GameSettings = {
   soundEnabled: true,
   showCoordinates: true,
   showMoveNumbers: false,
-  boardTheme: 'bamboo',
+  boardTheme: 'hikaru',
   timerSound: true,
   timerMainTimeMinutes: 0,
   timerByoLengthSeconds: 30,

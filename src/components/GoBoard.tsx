@@ -5,6 +5,7 @@ import { BOARD_SIZE, type CandidateMove, type GameNode } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { publicUrl } from '../utils/publicUrl';
+import { getBoardTheme } from '../utils/boardThemes';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const HOSHI_POINTS_19 = [
@@ -41,12 +42,28 @@ const HINT_SCALE = 0.98;
 const UNCERTAIN_HINT_SCALE = 0.7;
 const TOP_MOVE_BORDER_COLOR = [10 / 255, 200 / 255, 250 / 255, 1] as const;
 const HINT_TEXT_COLOR = 'black';
-const BOARD_URL = publicUrl('katrain/board.png');
 const DOT_URL = publicUrl('katrain/dot.png');
 const INNER_URL = publicUrl('katrain/inner.png');
 const TOPMOVE_URL = publicUrl('katrain/topmove.png');
-const BLACK_STONE_URL = publicUrl('katrain/B_stone.png');
-const WHITE_STONE_URL = publicUrl('katrain/W_stone.png');
+
+const parsePercent = (value: string | undefined, fallback = 1): number => {
+  if (!value) return fallback;
+  const trimmed = value.trim();
+  if (trimmed.endsWith('%')) {
+    const num = Number.parseFloat(trimmed.slice(0, -1));
+    return Number.isFinite(num) ? num / 100 : fallback;
+  }
+  return fallback;
+};
+
+const parseEm = (value: string | undefined, base: number): number => {
+  if (!value) return 0;
+  const trimmed = value.trim();
+  if (trimmed === '0') return 0;
+  const num = Number.parseFloat(trimmed.replace(/em$/, ''));
+  if (!Number.isFinite(num)) return 0;
+  return num * base;
+};
 
 function evaluationClass(pointsLost: number, thresholds: readonly number[] = KATRAN_EVAL_THRESHOLDS, colorsLen = 6): number {
   let i = 0;
@@ -148,9 +165,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   const evalCanvasRef = useRef<HTMLCanvasElement>(null);
   const dotImageRef = useRef<HTMLImageElement | null>(null);
   const topMoveImageRef = useRef<HTMLImageElement | null>(null);
-  const stoneImagesRef = useRef<{ black: HTMLImageElement | null; white: HTMLImageElement | null; inner: HTMLImageElement | null }>({
-    black: null,
-    white: null,
+  const stoneImagesRef = useRef<{ black: HTMLImageElement[]; white: HTMLImageElement[]; inner: HTMLImageElement | null }>({
+    black: [],
+    white: [],
     inner: null,
   });
   const [dotTextureVersion, setDotTextureVersion] = useState(0);
@@ -159,6 +176,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   const evalThresholds: readonly number[] = settings.trainerEvalThresholds?.length ? settings.trainerEvalThresholds : KATRAN_EVAL_THRESHOLDS;
+  const boardTheme = useMemo(() => getBoardTheme(settings.boardTheme), [settings.boardTheme]);
   const evalColors = useMemo(() => getKaTrainEvalColors(settings.trainerTheme), [settings.trainerTheme]);
   const showEvalDotsForPlayer = useMemo(() => {
     if (settings.trainerEvalShowAi) return { black: true, white: true };
@@ -208,15 +226,25 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   }, []);
 
   useEffect(() => {
-    const black = new Image();
-    const white = new Image();
+    const buildImages = (paths: Array<string | undefined>) =>
+      paths
+        .filter((p): p is string => !!p)
+        .map((src) => {
+          const img = new Image();
+          img.src = src;
+          return img;
+        });
+
+    const blackPaths = [boardTheme.stones.black.image, ...(boardTheme.stones.black.imageVariations ?? [])];
+    const whitePaths = [boardTheme.stones.white.image, ...(boardTheme.stones.white.imageVariations ?? [])];
+    const black = buildImages(blackPaths);
+    const white = buildImages(whitePaths);
     const inner = new Image();
-    black.src = BLACK_STONE_URL;
-    white.src = WHITE_STONE_URL;
     inner.src = INNER_URL;
     stoneImagesRef.current = { black, white, inner };
+
     const handleLoad = () => setStoneTextureVersion((v) => v + 1);
-    const images = [black, white, inner];
+    const images = [...black, ...white, inner];
     for (const img of images) {
       if (img.complete) handleLoad();
       else img.addEventListener('load', handleLoad);
@@ -224,7 +252,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     return () => {
       for (const img of images) img.removeEventListener('load', handleLoad);
     };
-  }, []);
+  }, [boardTheme]);
 
   // KaTrain grid spacing/margins (see `badukpan.py:get_grid_spaces_margins`).
   const gridSpacesMarginX = useMemo(
@@ -306,15 +334,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   }, [rotation]);
 
   // Theme styling
-  const boardColor = settings.boardTheme === 'dark' ? '#333' : (settings.boardTheme === 'flat' ? '#eebb77' : '#DCB35C');
-  const lineColor = settings.boardTheme === 'dark' ? '#888' : '#000';
-  const labelColor = settings.boardTheme === 'dark' ? '#ccc' : '#404040';
-  const approxBoardColor =
-    settings.boardTheme === 'dark'
-      ? boardColor
-      : settings.boardTheme === 'flat'
-        ? boardColor
-        : rgba(APPROX_BOARD_COLOR);
+  const boardColor = boardTheme.board.backgroundColor;
+  const lineColor = boardTheme.board.foregroundColor ?? '#000';
+  const labelColor = boardTheme.coordColor ?? '#404040';
+  const approxBoardColor = boardTheme.board.texture ? rgba(APPROX_BOARD_COLOR) : boardColor;
+  const boardTexture = boardTheme.board.texture;
 
   // Derived from moveHistory or currentNode from store
   const lastMove = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1] : null;
@@ -413,10 +437,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     const ctx = setupOverlayCanvas(canvas);
     if (!ctx) return;
 
-    const blackImg = stoneImagesRef.current.black;
-    const whiteImg = stoneImagesRef.current.white;
+    const blackImages = stoneImagesRef.current.black;
+    const whiteImages = stoneImagesRef.current.white;
     const stoneRadius = cellSize * STONE_SIZE;
     const stoneDiameter = 2 * stoneRadius;
+    const blackConfig = boardTheme.stones.black;
+    const whiteConfig = boardTheme.stones.white;
     const fontSize = stoneDiameter * 0.9;
 
     ctx.textAlign = 'center';
@@ -431,8 +457,14 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
         const d = toDisplay(x, y);
         const cx = originX + d.x * cellSize;
         const cy = originY + d.y * cellSize;
-        const left = cx - stoneRadius;
-        const top = cy - stoneRadius;
+        const stoneConfig = cell === 'black' ? blackConfig : whiteConfig;
+        const scale = parsePercent(stoneConfig.size, 1);
+        const diameter = stoneDiameter * scale;
+        const radius = diameter / 2;
+        const offsetX = parseEm(stoneConfig.imageOffsetX, stoneDiameter);
+        const offsetY = parseEm(stoneConfig.imageOffsetY, stoneDiameter);
+        const left = cx - radius + offsetX;
+        const top = cy - radius + offsetY;
 
         const ownershipVal = isAnalysisMode && settings.analysisShowOwnership && territory ? (territory[y]?.[x] ?? 0) : null;
         const ownershipAbs = ownershipVal !== null ? Math.min(1, Math.abs(ownershipVal)) : 0;
@@ -460,15 +492,38 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
         ] as const;
 
         ctx.globalAlpha = stoneAlpha;
-        const img = cell === 'black' ? blackImg : whiteImg;
+        const moveNumber = moveNumbers?.[y]?.[x];
+        const imageList = cell === 'black' ? blackImages : whiteImages;
+        const variantIndex = imageList.length > 0
+          ? Math.abs(((moveNumber ?? 0) + x * 7 + y * 13) % imageList.length)
+          : 0;
+        const img = imageList[variantIndex];
+        const shadowOffsetX = parseEm(stoneConfig.shadowOffsetX, stoneDiameter);
+        const shadowOffsetY = parseEm(stoneConfig.shadowOffsetY, stoneDiameter);
+        const shadowBlur = parseEm(stoneConfig.shadowBlur, stoneDiameter);
+        const hasShadow = stoneConfig.shadowColor && stoneConfig.shadowColor !== 'transparent';
+        ctx.save();
+        if (hasShadow) {
+          ctx.shadowColor = stoneConfig.shadowColor!;
+          ctx.shadowOffsetX = shadowOffsetX;
+          ctx.shadowOffsetY = shadowOffsetY;
+          ctx.shadowBlur = shadowBlur;
+        }
         if (img && img.complete && img.naturalWidth > 0) {
-          ctx.drawImage(img, left, top, stoneDiameter, stoneDiameter);
+          ctx.drawImage(img, left, top, diameter, diameter);
         } else {
           ctx.beginPath();
-          ctx.fillStyle = rgba(cell === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
-          ctx.arc(cx, cy, stoneRadius, 0, Math.PI * 2);
+          ctx.fillStyle = stoneConfig.backgroundColor ?? rgba(cell === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
           ctx.fill();
+          const borderWidth = parseEm(stoneConfig.borderWidth, stoneDiameter);
+          if (borderWidth > 0 && stoneConfig.borderColor) {
+            ctx.lineWidth = borderWidth;
+            ctx.strokeStyle = stoneConfig.borderColor;
+            ctx.stroke();
+          }
         }
+        ctx.restore();
         ctx.globalAlpha = 1;
 
         if (showMark && markSize > 0) {
@@ -480,7 +535,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
           ctx.strokeRect(markLeft, markTop, markSize, markSize);
         }
 
-        const moveNumber = moveNumbers?.[y]?.[x];
         if (settings.showMoveNumbers && moveNumber != null) {
           ctx.fillStyle = 'rgba(217,173,102,0.8)';
           ctx.fillText(String(moveNumber), cx, cy);
@@ -489,6 +543,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     }
   }, [
     board,
+    boardTheme,
     cellSize,
     isAnalysisMode,
     moveNumbers,
@@ -509,24 +564,31 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     if (!ctx) return;
     if (isSelectingRegionOfInterest) return;
 
-    const blackImg = stoneImagesRef.current.black;
-    const whiteImg = stoneImagesRef.current.white;
+    const blackImages = stoneImagesRef.current.black;
+    const whiteImages = stoneImagesRef.current.white;
     const stoneRadius = cellSize * STONE_SIZE;
     const stoneDiameter = 2 * stoneRadius;
 
     const drawGhost = (x: number, y: number, player: typeof currentPlayer) => {
       const d = toDisplay(x, y);
-      const left = originX + d.x * cellSize - stoneRadius;
-      const top = originY + d.y * cellSize - stoneRadius;
+      const stoneConfig = player === 'black' ? boardTheme.stones.black : boardTheme.stones.white;
+      const scale = parsePercent(stoneConfig.size, 1);
+      const diameter = stoneDiameter * scale;
+      const radius = diameter / 2;
+      const offsetX = parseEm(stoneConfig.imageOffsetX, stoneDiameter);
+      const offsetY = parseEm(stoneConfig.imageOffsetY, stoneDiameter);
+      const left = originX + d.x * cellSize - radius + offsetX;
+      const top = originY + d.y * cellSize - radius + offsetY;
       ctx.save();
       ctx.globalAlpha = 0.6;
-      const img = player === 'black' ? blackImg : whiteImg;
+      const imageList = player === 'black' ? blackImages : whiteImages;
+      const img = imageList[0];
       if (img && img.complete && img.naturalWidth > 0) {
-        ctx.drawImage(img, left, top, stoneDiameter, stoneDiameter);
+        ctx.drawImage(img, left, top, diameter, diameter);
       } else {
         ctx.beginPath();
         ctx.fillStyle = rgba(player === 'black' ? STONE_COLORS.black : STONE_COLORS.white);
-        ctx.arc(left + stoneRadius, top + stoneRadius, stoneRadius, 0, Math.PI * 2);
+        ctx.arc(left + radius, top + radius, radius, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -554,6 +616,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     setupOverlayCanvas,
     stoneTextureVersion,
     toDisplay,
+    boardTheme,
   ]);
 
   useEffect(() => {
@@ -1177,8 +1240,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     if (!ctx) return;
     if (!isAnalysisMode || pvMoves.length === 0) return;
 
-    const blackImg = stoneImagesRef.current.black;
-    const whiteImg = stoneImagesRef.current.white;
+    const blackImages = stoneImagesRef.current.black;
+    const whiteImages = stoneImagesRef.current.white;
     const stoneRadius = cellSize * STONE_SIZE;
     const size = 2 * stoneRadius + 1;
     const fontSize = cellSize / 1.45;
@@ -1189,7 +1252,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     for (const m of pvMoves) {
       const left = originX + m.x * cellSize - stoneRadius - 1;
       const top = originY + m.y * cellSize - stoneRadius;
-      const img = m.player === 'black' ? blackImg : whiteImg;
+      const imageList = m.player === 'black' ? blackImages : whiteImages;
+      const img = imageList[0];
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, left, top, size, size);
       } else {
@@ -1249,22 +1313,22 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center">
 	      <div
-	        className="relative shadow-lg rounded-sm cursor-pointer select-none"
-	        style={{
+        className="relative shadow-lg rounded-sm cursor-pointer select-none"
+        style={{
             width: boardWidth,
             height: boardHeight,
             backgroundColor: boardColor,
-            backgroundImage: settings.boardTheme === 'bamboo' ? `url('${BOARD_URL}')` : undefined,
-            backgroundSize: settings.boardTheme === 'bamboo' ? '100% 100%' : undefined,
-            backgroundRepeat: settings.boardTheme === 'bamboo' ? 'no-repeat' : undefined,
+            backgroundImage: boardTexture ? `url('${boardTexture}')` : undefined,
+            backgroundSize: boardTexture ? '100% 100%' : undefined,
+            backgroundRepeat: boardTexture ? 'no-repeat' : undefined,
             overflow: 'hidden',
         }}
-	        onClick={handleClick}
-	        onPointerDown={handlePointerDown}
-	        onPointerMove={handlePointerMove}
-	        onPointerUp={handlePointerUp}
-	        onPointerLeave={handlePointerLeave}
-	      >
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+      >
       {/* Region of interest (KaTrain-style) */}
       {roiRect && (
         <div
