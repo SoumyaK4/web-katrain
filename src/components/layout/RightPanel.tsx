@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes } from 'react-icons/fa';
+import { FaChevronDown, FaChevronRight, FaTimes } from 'react-icons/fa';
 import type { Player, GameNode, Move } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { ScoreWinrateGraph } from '../ScoreWinrateGraph';
@@ -18,6 +18,8 @@ interface RightPanelProps {
   setMode: (m: UiMode) => void;
   modePanels: UiState['panels'][UiMode];
   updatePanels: (partial: Partial<UiState['panels'][UiMode]>) => void;
+  rootNode: GameNode;
+  treeVersion: number;
   // Player info
   currentPlayer: Player;
   isAiPlaying: boolean;
@@ -57,6 +59,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   setMode,
   modePanels,
   updatePanels,
+  rootNode,
+  treeVersion,
   currentPlayer,
   isAiPlaying,
   aiColor,
@@ -82,6 +86,39 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 }) => {
   const isAiBlack = isAiPlaying && aiColor === 'black';
   const isAiWhite = isAiPlaying && aiColor === 'white';
+
+  const analysisCounts = React.useMemo(() => {
+    void treeVersion;
+    let analyzed = 0;
+    let total = 0;
+    const stack: GameNode[] = [rootNode];
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      if (node.move) total += 1;
+      if (node.analysis) analyzed += 1;
+      for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]!);
+    }
+    return { analyzed, total };
+  }, [rootNode, treeVersion]);
+
+  const SectionHeader: React.FC<{
+    title: string;
+    open: boolean;
+    onToggle: () => void;
+    actions?: React.ReactNode;
+  }> = ({ title, open, onToggle, actions }) => (
+    <div className="flex items-center justify-between">
+      <button
+        type="button"
+        className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2"
+        onClick={onToggle}
+      >
+        {open ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+        {title}
+      </button>
+      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+    </div>
+  );
 
   const renderPlayerInfo = (player: Player) => {
     const isTurn = currentPlayer === player;
@@ -163,31 +200,57 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </button>
         </div>
 
-        {/* Players */}
-        <div className="p-3 flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
-
-        {/* Timer / MoveTree area */}
+        {/* Game Tree */}
         <div className="px-3 pb-3">
-          {mode === 'play' ? (
-            <div className="bg-slate-900 border border-slate-700/50 rounded p-3">
+          <SectionHeader
+            title="Game Tree"
+            open={modePanels.treeOpen}
+            onToggle={() => updatePanels({ treeOpen: !modePanels.treeOpen })}
+          />
+          {modePanels.treeOpen && (
+            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden h-44">
+              <MoveTree />
+            </div>
+          )}
+        </div>
+
+        {/* Game Info */}
+        <div className="px-3 pb-3">
+          <SectionHeader
+            title="Game Info"
+            open={modePanels.infoOpen}
+            onToggle={() => updatePanels({ infoOpen: !modePanels.infoOpen })}
+          />
+          {modePanels.infoOpen && (
+            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
+              <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
               <Timer />
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-slate-400">Komi</div>
-                <div className="font-mono text-sm text-slate-200">{komi}</div>
-              </div>
-              <div className="flex items-center justify-between mt-1">
-                <div className="text-xs text-slate-400">Captured</div>
-                <div className="font-mono text-sm text-slate-200">
-                  B:{capturedWhite} · W:{capturedBlack}
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Komi</span>
+                  <span className="font-mono text-slate-100">{komi}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Moves</span>
+                  <span className="font-mono text-slate-100">{moveHistory.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Captured</span>
+                  <span className="font-mono text-slate-100">B:{capturedWhite} · W:{capturedBlack}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Analyzed</span>
+                  <span className="font-mono text-slate-100">{analysisCounts.analyzed}/{analysisCounts.total}</span>
                 </div>
               </div>
               {endResult && (
-                <div className="flex items-center justify-between mt-1">
-                  <div className="text-xs text-slate-400">Result</div>
-                  <div className="font-mono text-sm text-slate-200">{endResult}</div>
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span className="text-slate-400">Result</span>
+                  <span className="font-mono text-slate-100">{endResult}</span>
                 </div>
               )}
-              <div className="flex gap-2 mt-3">
+
+              <div className="flex gap-2">
                 <button
                   className="flex-1 px-3 py-2 rounded-lg bg-slate-700/80 hover:bg-slate-600/80 text-sm font-medium text-slate-200"
                   onClick={() => {
@@ -213,7 +276,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 </button>
               </div>
 
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2">
                 <button
                   className={[
                     'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
@@ -234,131 +297,141 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="bg-slate-900 border border-slate-700/50 rounded overflow-hidden h-44">
-              <MoveTree />
-            </div>
           )}
         </div>
 
-        {/* Graph panel */}
-        <div className="px-3">
-          <div className="flex items-center justify-between">
-            <button
-              className="text-sm font-semibold text-slate-200 hover:text-white"
-              onClick={() => updatePanels({ graphOpen: !modePanels.graphOpen })}
-            >
-              Score / Winrate Graph
-            </button>
-            <div className="flex gap-1">
-              <PanelHeaderButton
-                label="Score"
-                colorClass="bg-blue-600/30"
-                active={modePanels.graph.score}
-                onClick={() =>
-                  updatePanels({ graph: { ...modePanels.graph, score: !modePanels.graph.score } })
-                }
-              />
-              <PanelHeaderButton
-                label="Win%"
-                colorClass="bg-green-600/30"
-                active={modePanels.graph.winrate}
-                onClick={() =>
-                  updatePanels({ graph: { ...modePanels.graph, winrate: !modePanels.graph.winrate } })
-                }
-              />
-            </div>
-          </div>
-          {modePanels.graphOpen && (
-            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-2">
-              {modePanels.graph.score || modePanels.graph.winrate ? (
-                <div style={{ height: 140 }}>
-                  <ScoreWinrateGraph showScore={modePanels.graph.score} showWinrate={modePanels.graph.winrate} />
-                </div>
-              ) : (
-                <div className="h-20 flex items-center justify-center text-slate-500 text-sm">Graph hidden</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Stats panel */}
-        <div className="px-3 mt-3">
-          <div className="flex items-center justify-between">
-            <button
-              className="text-sm font-semibold text-slate-200 hover:text-white"
-              onClick={() => updatePanels({ statsOpen: !modePanels.statsOpen })}
-            >
-              Move Stats
-            </button>
-            <div className="flex gap-1">
-              <PanelHeaderButton
-                label="Score"
-                colorClass="bg-blue-600/30"
-                active={modePanels.stats.score}
-                onClick={() =>
-                  updatePanels({ stats: { ...modePanels.stats, score: !modePanels.stats.score } })
-                }
-              />
-              <PanelHeaderButton
-                label="Win%"
-                colorClass="bg-green-600/30"
-                active={modePanels.stats.winrate}
-                onClick={() =>
-                  updatePanels({ stats: { ...modePanels.stats, winrate: !modePanels.stats.winrate } })
-                }
-              />
-              <PanelHeaderButton
-                label="Pts"
-                colorClass="bg-red-600/30"
-                active={modePanels.stats.points}
-                onClick={() =>
-                  updatePanels({ stats: { ...modePanels.stats, points: !modePanels.stats.points } })
-                }
-              />
-            </div>
-          </div>
-          {modePanels.statsOpen && (
-            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden">
-              {modePanels.stats.winrate && (
-                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
-                  <div className="text-sm text-slate-300">Winrate</div>
-                  <div className="font-mono text-sm text-green-300">
-                    {typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : '-'}
+        {/* Analysis */}
+        <div className="px-3 pb-3">
+          <SectionHeader
+            title="Analysis"
+            open={modePanels.analysisOpen}
+            onToggle={() => updatePanels({ analysisOpen: !modePanels.analysisOpen })}
+            actions={
+              <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
+                <span title={engineMetaTitle}>{engineMeta}</span>
+              </div>
+            }
+          />
+          {modePanels.analysisOpen && (
+            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
+              <div className="text-xs text-slate-400">{statusText}</div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <button
+                    className="text-sm font-semibold text-slate-200 hover:text-white"
+                    onClick={() => updatePanels({ graphOpen: !modePanels.graphOpen })}
+                  >
+                    Score / Winrate Graph
+                  </button>
+                  <div className="flex gap-1">
+                    <PanelHeaderButton
+                      label="Score"
+                      colorClass="bg-blue-600/30"
+                      active={modePanels.graph.score}
+                      onClick={() =>
+                        updatePanels({ graph: { ...modePanels.graph, score: !modePanels.graph.score } })
+                      }
+                    />
+                    <PanelHeaderButton
+                      label="Win%"
+                      colorClass="bg-green-600/30"
+                      active={modePanels.graph.winrate}
+                      onClick={() =>
+                        updatePanels({ graph: { ...modePanels.graph, winrate: !modePanels.graph.winrate } })
+                      }
+                    />
                   </div>
                 </div>
-              )}
-              {modePanels.stats.score && (
-                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
-                  <div className="text-sm text-slate-300">Score</div>
-                  <div className="font-mono text-sm text-blue-300">
-                    {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+                {modePanels.graphOpen && (
+                  <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-2">
+                    {modePanels.graph.score || modePanels.graph.winrate ? (
+                      <div style={{ height: 140 }}>
+                        <ScoreWinrateGraph showScore={modePanels.graph.score} showWinrate={modePanels.graph.winrate} />
+                      </div>
+                    ) : (
+                      <div className="h-20 flex items-center justify-center text-slate-500 text-sm">Graph hidden</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <button
+                    className="text-sm font-semibold text-slate-200 hover:text-white"
+                    onClick={() => updatePanels({ statsOpen: !modePanels.statsOpen })}
+                  >
+                    Move Stats
+                  </button>
+                  <div className="flex gap-1">
+                    <PanelHeaderButton
+                      label="Score"
+                      colorClass="bg-blue-600/30"
+                      active={modePanels.stats.score}
+                      onClick={() =>
+                        updatePanels({ stats: { ...modePanels.stats, score: !modePanels.stats.score } })
+                      }
+                    />
+                    <PanelHeaderButton
+                      label="Win%"
+                      colorClass="bg-green-600/30"
+                      active={modePanels.stats.winrate}
+                      onClick={() =>
+                        updatePanels({ stats: { ...modePanels.stats, winrate: !modePanels.stats.winrate } })
+                      }
+                    />
+                    <PanelHeaderButton
+                      label="Pts"
+                      colorClass="bg-red-600/30"
+                      active={modePanels.stats.points}
+                      onClick={() =>
+                        updatePanels({ stats: { ...modePanels.stats, points: !modePanels.stats.points } })
+                      }
+                    />
                   </div>
                 </div>
-              )}
-              {modePanels.stats.points && (
-                <div className="flex items-center justify-between px-3 py-2">
-                  <div className="text-sm text-slate-300">{pointsLost != null && pointsLost < 0 ? 'Points gained' : 'Points lost'}</div>
-                  <div className="font-mono text-sm text-red-300">{pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}</div>
-                </div>
-              )}
-              {!modePanels.stats.winrate && !modePanels.stats.score && !modePanels.stats.points && (
-                <div className="px-3 py-3 text-sm text-slate-500">Stats hidden</div>
-              )}
+                {modePanels.statsOpen && (
+                  <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden">
+                    {modePanels.stats.winrate && (
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
+                        <div className="text-sm text-slate-300">Winrate</div>
+                        <div className="font-mono text-sm text-green-300">
+                          {typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : '-'}
+                        </div>
+                      </div>
+                    )}
+                    {modePanels.stats.score && (
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800">
+                        <div className="text-sm text-slate-300">Score</div>
+                        <div className="font-mono text-sm text-blue-300">
+                          {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+                        </div>
+                      </div>
+                    )}
+                    {modePanels.stats.points && (
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="text-sm text-slate-300">{pointsLost != null && pointsLost < 0 ? 'Points gained' : 'Points lost'}</div>
+                        <div className="font-mono text-sm text-red-300">{pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}</div>
+                      </div>
+                    )}
+                    {!modePanels.stats.winrate && !modePanels.stats.score && !modePanels.stats.points && (
+                      <div className="px-3 py-3 text-sm text-slate-500">Stats hidden</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Notes panel */}
-        <div className="px-3 mt-3 flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between">
-            <button
-              className="text-sm font-semibold text-slate-200 hover:text-white"
-              onClick={() => updatePanels({ notesOpen: !modePanels.notesOpen })}
-            >
-              Info & Notes
-            </button>
-            <div className="flex items-center gap-2">
+        {/* Comment / Notes */}
+        <div className="px-3 pb-3 flex-1 flex flex-col min-h-0">
+          <SectionHeader
+            title="Comment"
+            open={modePanels.notesOpen}
+            onToggle={() => updatePanels({ notesOpen: !modePanels.notesOpen })}
+            actions={
               <div className="flex gap-1">
                 <PanelHeaderButton
                   label="Info"
@@ -381,12 +454,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   onClick={() => updatePanels({ notes: { ...modePanels.notes, notes: !modePanels.notes.notes } })}
                 />
               </div>
-              <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
-                <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
-                <span title={engineMetaTitle}>{engineMeta}</span>
-              </div>
-            </div>
-          </div>
+            }
+          />
           {modePanels.notesOpen && (
             <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded flex-1 min-h-0 overflow-hidden flex flex-col">
               <div className="px-3 py-2 border-b border-slate-800 text-xs text-slate-300 flex items-center justify-between">

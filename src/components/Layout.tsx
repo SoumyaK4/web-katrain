@@ -726,6 +726,8 @@ export const Layout: React.FC = () => {
         setMode={setMode}
         modePanels={modePanels}
         updatePanels={updatePanels}
+        rootNode={rootNode}
+        treeVersion={treeVersion}
         currentPlayer={currentPlayer}
         isAiPlaying={isAiPlaying}
         aiColor={aiColor}

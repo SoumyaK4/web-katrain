@@ -18,6 +18,9 @@ export type UiState = {
   panels: Record<
     UiMode,
     {
+      treeOpen: boolean;
+      infoOpen: boolean;
+      analysisOpen: boolean;
       graphOpen: boolean;
       graph: GraphOptions;
       statsOpen: boolean;
@@ -53,20 +56,26 @@ export function defaultUiState(): UiState {
     },
     panels: {
       play: {
+        treeOpen: true,
+        infoOpen: true,
+        analysisOpen: true,
         graphOpen: false,
         graph: { score: true, winrate: false },
         statsOpen: true,
         stats: { score: true, winrate: true, points: true },
         notesOpen: true,
-        notes: { info: true, infoDetails: false, notes: false },
+        notes: { info: false, infoDetails: false, notes: true },
       },
       analyze: {
+        treeOpen: true,
+        infoOpen: true,
+        analysisOpen: true,
         graphOpen: false,
         graph: { score: true, winrate: true },
         statsOpen: true,
         stats: { score: true, winrate: true, points: true },
         notesOpen: true,
-        notes: { info: true, infoDetails: true, notes: false },
+        notes: { info: false, infoDetails: true, notes: true },
       },
     },
   };
@@ -91,6 +100,9 @@ export function loadUiState(): UiState {
       const src = parsed.panels?.[m];
       const fallback = d.panels[m];
       return {
+        treeOpen: typeof src?.treeOpen === 'boolean' ? src.treeOpen : fallback.treeOpen,
+        infoOpen: typeof src?.infoOpen === 'boolean' ? src.infoOpen : fallback.infoOpen,
+        analysisOpen: typeof src?.analysisOpen === 'boolean' ? src.analysisOpen : fallback.analysisOpen,
         graphOpen: typeof src?.graphOpen === 'boolean' ? src.graphOpen : fallback.graphOpen,
         graph: { ...fallback.graph, ...(src?.graph ?? {}) },
         statsOpen: typeof src?.statsOpen === 'boolean' ? src.statsOpen : fallback.statsOpen,
