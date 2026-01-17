@@ -106,6 +106,7 @@ interface GameStore extends GameState {
   setRootProperty: (key: string, value: string) => void;
   setCurrentNodeNote: (note: string) => void;
   rotateBoard: () => void;
+  startNewGame: (opts: { komi: number; rules: GameRules }) => void;
 }
 
 const createEmptyBoard = (): BoardState => {
@@ -2592,6 +2593,55 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   navigatePrevMistake: () => {
       get().findMistake('undo');
+  },
+
+  startNewGame: ({ komi, rules }) => {
+    const state = get();
+    get().stopSelfplayToEnd();
+    get().stopGameAnalysis();
+    if (state.settings.soundEnabled) {
+      playNewGameSound();
+    }
+    const nextSettings: GameSettings = { ...state.settings, gameRules: rules };
+    saveStoredSettings(nextSettings);
+
+    const rootState: GameState = {
+      board: createEmptyBoard(),
+      currentPlayer: 'black',
+      moveHistory: [],
+      capturedBlack: 0,
+      capturedWhite: 0,
+      komi,
+    };
+    const newRoot = createNode(null, null, rootState, 'root');
+    newRoot.properties = { RU: [rulesToSgfRu(rules)] };
+
+    set({
+      settings: nextSettings,
+      board: rootState.board,
+      currentPlayer: rootState.currentPlayer,
+      moveHistory: rootState.moveHistory,
+      capturedBlack: rootState.capturedBlack,
+      capturedWhite: rootState.capturedWhite,
+      komi: rootState.komi,
+      boardRotation: 0,
+      regionOfInterest: null,
+      isSelectingRegionOfInterest: false,
+      isInsertMode: false,
+      insertAfterNodeId: null,
+      insertAnchorNodeId: null,
+      isSelfplayToEnd: false,
+      isAiPlaying: false,
+      aiColor: null,
+      analysisData: null,
+      timerPaused: true,
+      timerMainTimeUsedSeconds: 0,
+      timerPeriodsUsed: { black: 0, white: 0 },
+
+      rootNode: newRoot,
+      currentNode: newRoot,
+      treeVersion: state.treeVersion + 1,
+    });
   },
 
   resetGame: () => {

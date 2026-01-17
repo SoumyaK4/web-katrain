@@ -16,6 +16,7 @@ interface UseKeyboardShortcutsOptions {
   setViewMenuOpen: (v: boolean) => void;
   setMenuOpen: (v: boolean) => void;
   setIsKeyboardHelpOpen: (v: boolean) => void;
+  openNewGame: () => void;
   toggleLibrary: () => void;
   closeLibrary: () => void;
   toggleSidebar: () => void;
@@ -33,13 +34,13 @@ export function useKeyboardShortcuts({
   setViewMenuOpen,
   setMenuOpen,
   setIsKeyboardHelpOpen,
+  openNewGame,
   toggleLibrary,
   closeLibrary,
   toggleSidebar,
   toast,
 }: UseKeyboardShortcutsOptions): void {
   const {
-    resetGame,
     passTurn,
     rotateBoard,
     navigateBack,
@@ -68,7 +69,6 @@ export function useKeyboardShortcuts({
     updateSettings,
   } = useGameStore(
     (state) => ({
-      resetGame: state.resetGame,
       passTurn: state.passTurn,
       rotateBoard: state.rotateBoard,
       navigateBack: state.navigateBack,
@@ -201,7 +201,7 @@ export function useKeyboardShortcuts({
       }
       if (ctrl && keyLower === 'n') {
         e.preventDefault();
-        resetGame();
+        openNewGame();
         return;
       }
 
@@ -480,7 +480,6 @@ export function useKeyboardShortcuts({
     navigateStart,
     navigateEnd,
     toggleContinuousAnalysis,
-    resetGame,
     passTurn,
     rotateBoard,
     mode,
@@ -518,6 +517,7 @@ export function useKeyboardShortcuts({
     setViewMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
+    openNewGame,
     toggleLibrary,
     closeLibrary,
     toggleSidebar,
