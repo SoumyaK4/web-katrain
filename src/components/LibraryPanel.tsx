@@ -19,6 +19,7 @@ interface LibraryPanelProps {
   width?: number;
   onClose: () => void;
   isMobile?: boolean;
+  analysisContent?: React.ReactNode;
   getCurrentSgf: () => string;
   onLoadSgf: (sgf: string) => void;
   onToast: (msg: string, type: 'info' | 'error' | 'success') => void;
@@ -30,6 +31,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   width,
   onClose,
   isMobile = false,
+  analysisContent,
   getCurrentSgf,
   onLoadSgf,
   onToast,
@@ -983,39 +985,21 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   onClick={() => setGraphOpen((prev) => !prev)}
                 >
                   {graphOpen ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
-                  Analysis Graph
+                  Analysis
                 </button>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
-                    className={[
-                      'px-2 py-1 rounded text-xs font-medium',
-                      graphOptions.score ? 'bg-blue-600/30 text-blue-200 border border-blue-500/50' : 'bg-slate-800/60 text-slate-400 border border-slate-700/50',
-                    ].join(' ')}
-                    onClick={() => setGraphOptions((prev) => ({ ...prev, score: !prev.score }))}
-                  >
-                    Score
-                  </button>
-                  <button
-                    type="button"
-                    className={[
-                      'px-2 py-1 rounded text-xs font-medium',
-                      graphOptions.winrate ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/50' : 'bg-slate-800/60 text-slate-400 border border-slate-700/50',
-                    ].join(' ')}
-                    onClick={() => setGraphOptions((prev) => ({ ...prev, winrate: !prev.winrate }))}
-                  >
-                    Win%
-                  </button>
-                </div>
                 {graphOpen && (
                   <div className="mt-2" style={{ height: graphHeight }}>
-                    {graphOptions.score || graphOptions.winrate ? (
-                      <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-xs text-slate-500 border border-slate-800 rounded">
-                        Graph hidden
-                      </div>
-                    )}
+                    <div className="h-full overflow-y-auto">
+                      {analysisContent ? (
+                        analysisContent
+                      ) : graphOptions.score || graphOptions.winrate ? (
+                        <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-xs text-slate-500 border border-slate-800 rounded">
+                          Graph hidden
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

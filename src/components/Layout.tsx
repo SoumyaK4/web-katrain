@@ -6,6 +6,8 @@ import { SettingsModal } from './SettingsModal';
 import { GameAnalysisModal } from './GameAnalysisModal';
 import { GameReportModal } from './GameReportModal';
 import { KeyboardHelpModal } from './KeyboardHelpModal';
+import { AnalysisPanel } from './AnalysisPanel';
+import { NewGameModal } from './NewGameModal';
 import { FaTimes } from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
 import { loadSgfOrOgs } from '../utils/ogs';
@@ -52,6 +54,7 @@ function computePointsLost(args: { currentNode: GameNode }): number | null {
 export const Layout: React.FC = () => {
   const {
     resetGame,
+    startNewGame,
     passTurn,
     resign,
     makeAiMove,
@@ -115,6 +118,7 @@ export const Layout: React.FC = () => {
   } = useGameStore(
     (state) => ({
       resetGame: state.resetGame,
+      startNewGame: state.startNewGame,
       passTurn: state.passTurn,
       resign: state.resign,
       makeAiMove: state.makeAiMove,
@@ -187,6 +191,7 @@ export const Layout: React.FC = () => {
   const [isGameAnalysisOpen, setIsGameAnalysisOpen] = useState(false);
   const [isGameReportOpen, setIsGameReportOpen] = useState(false);
   const [isKeyboardHelpOpen, setIsKeyboardHelpOpen] = useState(false);
+  const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
@@ -717,6 +722,7 @@ export const Layout: React.FC = () => {
     setViewMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
+    openNewGame: () => setIsNewGameOpen(true),
     toggleLibrary: handleToggleLibrary,
     closeLibrary: handleCloseLibrary,
     toggleSidebar: handleToggleSidebar,
@@ -740,13 +746,24 @@ export const Layout: React.FC = () => {
       {isGameAnalysisOpen && <GameAnalysisModal onClose={() => setIsGameAnalysisOpen(false)} />}
       {isGameReportOpen && <GameReportModal onClose={() => setIsGameReportOpen(false)} />}
       {isKeyboardHelpOpen && <KeyboardHelpModal onClose={() => setIsKeyboardHelpOpen(false)} />}
+      {isNewGameOpen && (
+        <NewGameModal
+          onClose={() => setIsNewGameOpen(false)}
+          onStart={({ komi: nextKomi, rules }) => {
+            startNewGame({ komi: nextKomi, rules });
+            setIsNewGameOpen(false);
+          }}
+          defaultKomi={komi}
+          defaultRules={settings.gameRules}
+        />
+      )}
 
       <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".sgf" />
 
       <MenuDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onNewGame={resetGame}
+        onNewGame={() => setIsNewGameOpen(true)}
         onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
         onLoad={handleLoadClick}
         onCopy={handleCopySgf}
@@ -771,6 +788,31 @@ export const Layout: React.FC = () => {
         onLoadSgf={handleLoadFromLibrary}
         onToast={toast}
         isMobile={isMobile}
+        analysisContent={
+          isDesktop ? (
+            <AnalysisPanel
+              mode={mode}
+              modePanels={modePanels}
+              updatePanels={updatePanels}
+              statusText={statusText}
+              engineDot={engineDot}
+              engineMeta={engineMeta}
+              engineMetaTitle={engineMetaTitle}
+              isGameAnalysisRunning={isGameAnalysisRunning}
+              gameAnalysisType={gameAnalysisType}
+              gameAnalysisDone={gameAnalysisDone}
+              gameAnalysisTotal={gameAnalysisTotal}
+              startQuickGameAnalysis={startQuickGameAnalysis}
+              startFastGameAnalysis={startFastGameAnalysis}
+              stopGameAnalysis={stopGameAnalysis}
+              onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
+              onOpenGameReport={() => setIsGameReportOpen(true)}
+              winRate={winRate ?? null}
+              scoreLead={scoreLead ?? null}
+              pointsLost={pointsLost}
+            />
+          ) : null
+        }
       />
 
       {isDesktop && libraryOpen && (
@@ -816,7 +858,7 @@ export const Layout: React.FC = () => {
           setIsGameAnalysisOpen={setIsGameAnalysisOpen}
           setIsGameReportOpen={setIsGameReportOpen}
           onOpenMenu={() => setMenuOpen(true)}
-          onNewGame={resetGame}
+          onNewGame={() => setIsNewGameOpen(true)}
           onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
           onLoad={handleLoadClick}
           onOpenSidePanel={handleOpenSidePanel}
@@ -927,6 +969,7 @@ export const Layout: React.FC = () => {
         moveHistory={moveHistory}
         isMobile={isMobile}
         activeMobileTab={mobileTab}
+        showAnalysisSection={!isDesktop}
       />
 
       {isMobile && (
