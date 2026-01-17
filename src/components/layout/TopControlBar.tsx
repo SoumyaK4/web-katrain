@@ -21,6 +21,7 @@ import {
 import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
 import { IconButton, TogglePill } from './ui';
+import { BOARD_THEME_OPTIONS } from '../../utils/boardThemes';
 
 interface TopControlBarProps {
   settings: GameSettings;
@@ -307,6 +308,18 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 <span>Sound</span>
                 <span className="text-xs text-slate-400">{settings.soundEnabled ? 'on' : 'off'}</span>
               </button>
+              <div className="border-t border-slate-700/50 px-3 py-2">
+                <div className="text-xs text-slate-400 mb-1">Board theme</div>
+                <select
+                  value={settings.boardTheme}
+                  onChange={(e) => updateSettings({ boardTheme: e.target.value as GameSettings['boardTheme'] })}
+                  className="w-full bg-slate-900 border border-slate-700/60 rounded px-2 py-1 text-xs text-slate-200"
+                >
+                  {BOARD_THEME_OPTIONS.map((theme) => (
+                    <option key={theme.id} value={theme.id}>{theme.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </div>
