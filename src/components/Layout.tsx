@@ -559,6 +559,10 @@ export const Layout: React.FC = () => {
     return rgba(col, GHOST_ALPHA);
   }, [analysisData, evalColors, isAnalysisMode, settings.analysisShowPolicy]);
 
+  const winRateLabel = typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : null;
+  const scoreLeadLabel = typeof scoreLead === 'number' ? formatResultScoreLead(scoreLead) : null;
+  const pointsLostLabel = typeof pointsLost === 'number' ? formatResultScoreLead(pointsLost) : null;
+
   const setMode = (next: UiMode) => {
     setUiState((prev) => ({ ...prev, mode: next }));
   };
@@ -816,6 +820,9 @@ export const Layout: React.FC = () => {
           isSidebarOpen={sidebarOpen}
           onCopySgf={handleCopySgf}
           onPasteSgf={handlePasteSgf}
+          winRateLabel={winRateLabel}
+          scoreLeadLabel={scoreLeadLabel}
+          pointsLostLabel={pointsLostLabel}
         />
 
         {/* Board */}

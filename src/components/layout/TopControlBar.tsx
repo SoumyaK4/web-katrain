@@ -66,6 +66,9 @@ interface TopControlBarProps {
   isSidebarOpen: boolean;
   onCopySgf: () => void;
   onPasteSgf: () => void;
+  winRateLabel?: string | null;
+  scoreLeadLabel?: string | null;
+  pointsLostLabel?: string | null;
 }
 
 export const TopControlBar: React.FC<TopControlBarProps> = ({
@@ -109,6 +112,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   isSidebarOpen,
   onCopySgf,
   onPasteSgf,
+  winRateLabel,
+  scoreLeadLabel,
+  pointsLostLabel,
 }) => {
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
     if (typeof document === 'undefined') return false;
@@ -203,6 +209,24 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
       </div>
 
       <div className="flex-grow" />
+
+      <div className="hidden xl:flex items-center gap-2 text-xs text-slate-300">
+        {winRateLabel && (
+          <div className="px-2 py-1 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-200">
+            Win {winRateLabel}
+          </div>
+        )}
+        {scoreLeadLabel && (
+          <div className="px-2 py-1 rounded bg-blue-600/20 border border-blue-500/40 text-blue-200">
+            Score {scoreLeadLabel}
+          </div>
+        )}
+        {pointsLostLabel && (
+          <div className="px-2 py-1 rounded bg-amber-600/20 border border-amber-500/40 text-amber-200">
+            Δ {pointsLostLabel}
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-2">
         {regionOfInterest && (
