@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight, FaDownload } from 'react-icons/fa';
+import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight, FaDownload, FaCheckSquare, FaSquare } from 'react-icons/fa';
 import { createLibraryItem, deleteLibraryItem, loadLibrary, saveLibrary, updateLibraryItem, type LibraryItem } from '../utils/library';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 
@@ -27,6 +27,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [items, setItems] = useState<LibraryItem[]>(() => loadLibrary());
   const [query, setQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [isResizingGraph, setIsResizingGraph] = useState(false);
 
   useEffect(() => saveLibrary(items), [items]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set<string>();
+      for (const item of items) {
+        if (prev.has(item.id)) next.add(item.id);
+      }
+      return next;
+    });
+  }, [items]);
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -173,6 +185,37 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     link.click();
     URL.revokeObjectURL(url);
     onToast(`Exported \"${item.name}\".`, 'success');
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedIds(new Set(sortedItems.map((item) => item.id)));
+  };
+
+  const handleClearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.size} item(s) from Library?`)) return;
+    setItems((prev) => prev.filter((item) => !selectedIds.has(item.id)));
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkExport = () => {
+    if (selectedIds.size === 0) return;
+    const selected = items.filter((item) => selectedIds.has(item.id));
+    selected.forEach((item, idx) => {
+      window.setTimeout(() => handleDownload(item), idx * 120);
+    });
+    onToast(`Exported ${selected.length} item${selected.length > 1 ? 's' : ''}.`, 'success');
   };
 
   const handleLoad = (item: LibraryItem) => {
@@ -319,8 +362,46 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               {listOpen ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
               Library Items
             </button>
-            <div className="text-xs text-slate-500">{sortedItems.length} items</div>
+            <div className="flex items-center gap-2">
+              {sortedItems.length > 0 && (
+                <button
+                  type="button"
+                  className="text-xs text-slate-400 hover:text-slate-200"
+                  onClick={handleSelectAll}
+                >
+                  Select all
+                </button>
+              )}
+              <div className="text-xs text-slate-500">
+                {sortedItems.length} items{selectedIds.size > 0 ? ` · ${selectedIds.size} selected` : ''}
+              </div>
+            </div>
           </div>
+          {selectedIds.size > 0 && (
+            <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 text-xs text-slate-300">
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/60"
+                onClick={handleBulkExport}
+              >
+                Export
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-rose-900/40 border border-rose-700/50 text-rose-200 hover:bg-rose-800/50"
+                onClick={handleBulkDelete}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="ml-auto px-2 py-1 rounded bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/60"
+                onClick={handleClearSelection}
+              >
+                Clear
+              </button>
+            </div>
+          )}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {!listOpen ? (
               <div className="p-4 text-xs text-slate-500">Library list hidden</div>
@@ -340,6 +421,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                     ].join(' ')}
                     onClick={() => handleLoad(item)}
                   >
+                    <button
+                      type="button"
+                      className="text-slate-500 hover:text-slate-200 p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleSelect(item.id);
+                      }}
+                      title={selectedIds.has(item.id) ? 'Deselect' : 'Select'}
+                    >
+                      {selectedIds.has(item.id) ? <FaCheckSquare /> : <FaSquare />}
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-slate-100 truncate">{item.name}</div>
                       <div className="text-xs text-slate-500">
