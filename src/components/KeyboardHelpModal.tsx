@@ -64,6 +64,7 @@ const SHORTCUT_CATEGORIES = [
       { key: 'Ctrl+N', description: 'New game' },
       { key: 'Ctrl+S', description: 'Save SGF' },
       { key: 'Ctrl+L', description: 'Load SGF' },
+      { key: 'Ctrl+Shift+L', description: 'Toggle library' },
       { key: 'Ctrl+C', description: 'Copy SGF' },
       { key: 'Ctrl+V', description: 'Paste SGF' },
     ],

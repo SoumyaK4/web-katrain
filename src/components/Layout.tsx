@@ -7,7 +7,7 @@ import { GameAnalysisModal } from './GameAnalysisModal';
 import { GameReportModal } from './GameReportModal';
 import { KeyboardHelpModal } from './KeyboardHelpModal';
 import { FaTimes } from 'react-icons/fa';
-import { downloadSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
+import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
 import { BOARD_SIZE, type CandidateMove, type GameNode, type Player } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundToHalf } from '../utils/manualScore';
@@ -18,6 +18,7 @@ import { MenuDrawer } from './layout/MenuDrawer';
 import { TopControlBar } from './layout/TopControlBar';
 import { BottomControlBar } from './layout/BottomControlBar';
 import { RightPanel } from './layout/RightPanel';
+import { LibraryPanel } from './LibraryPanel';
 import {
   type UiMode,
   type UiState,
@@ -178,6 +179,10 @@ export const Layout: React.FC = () => {
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
   const [uiState, setUiState] = useState<UiState>(() => loadUiState());
+  const [libraryOpen, setLibraryOpen] = useState(() => {
+    if (typeof localStorage === 'undefined') return false;
+    return localStorage.getItem('web-katrain:library_open:v1') === 'true';
+  });
 
   const mode = uiState.mode;
   const modeControls = uiState.analysisControls[mode];
@@ -260,6 +265,11 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     saveUiState(uiState);
   }, [uiState]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_open:v1', String(libraryOpen));
+  }, [libraryOpen]);
 
   // Apply per-mode analysis controls to settings on mode changes
   useEffect(() => {
@@ -382,6 +392,8 @@ export const Layout: React.FC = () => {
     setAnalysisMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
+    toggleLibrary: () => setLibraryOpen((prev) => !prev),
+    closeLibrary: () => setLibraryOpen(false),
     toast,
   });
 
@@ -480,6 +492,15 @@ export const Layout: React.FC = () => {
     e.target.value = '';
   };
 
+  const handleLoadFromLibrary = (sgfText: string) => {
+    try {
+      const parsed = parseSgf(sgfText);
+      loadGame(parsed);
+    } catch {
+      toast('Failed to load SGF from library.', 'error');
+    }
+  };
+
   const jumpBack = (n: number) => {
     for (let i = 0; i < n; i++) navigateBack();
   };
@@ -505,10 +526,20 @@ export const Layout: React.FC = () => {
         onNewGame={resetGame}
         onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
         onLoad={handleLoadClick}
+        onToggleLibrary={() => setLibraryOpen((prev) => !prev)}
+        isLibraryOpen={libraryOpen}
         onSettings={() => setIsSettingsOpen(true)}
         isAiWhite={isAiWhite}
         isAiBlack={isAiBlack}
         onToggleAi={toggleAi}
+      />
+
+      <LibraryPanel
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        getCurrentSgf={() => generateSgfFromTree(rootNode, sgfExportOptions)}
+        onLoadSgf={handleLoadFromLibrary}
+        onToast={toast}
       />
 
       {/* Main board column */}
@@ -545,6 +576,8 @@ export const Layout: React.FC = () => {
           setIsGameReportOpen={setIsGameReportOpen}
           onOpenMenu={() => setMenuOpen(true)}
           onOpenSidePanel={() => setRightPanelOpen(true)}
+          onToggleLibrary={() => setLibraryOpen((prev) => !prev)}
+          isLibraryOpen={libraryOpen}
         />
 
         {/* Board */}

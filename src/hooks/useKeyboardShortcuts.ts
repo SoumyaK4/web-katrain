@@ -14,6 +14,8 @@ interface UseKeyboardShortcutsOptions {
   setAnalysisMenuOpen: (v: boolean) => void;
   setMenuOpen: (v: boolean) => void;
   setIsKeyboardHelpOpen: (v: boolean) => void;
+  toggleLibrary: () => void;
+  closeLibrary: () => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
 }
 
@@ -27,6 +29,8 @@ export function useKeyboardShortcuts({
   setAnalysisMenuOpen,
   setMenuOpen,
   setIsKeyboardHelpOpen,
+  toggleLibrary,
+  closeLibrary,
   toast,
 }: UseKeyboardShortcutsOptions): void {
   const {
@@ -160,6 +164,11 @@ export function useKeyboardShortcuts({
         downloadSgfFromTree(rootNode, sgfExportOptions);
         return;
       }
+      if (ctrl && shift && keyLower === 'l') {
+        e.preventDefault();
+        toggleLibrary();
+        return;
+      }
       if (ctrl && keyLower === 'l') {
         e.preventDefault();
         fileInputRef.current?.click();
@@ -192,6 +201,7 @@ export function useKeyboardShortcuts({
         setAnalysisMenuOpen(false);
         setMenuOpen(false);
         setIsKeyboardHelpOpen(false);
+        closeLibrary();
         return;
       }
 

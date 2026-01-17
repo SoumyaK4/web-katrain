@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaBook } from 'react-icons/fa';
 
 interface MenuDrawerProps {
   open: boolean;
@@ -7,6 +7,8 @@ interface MenuDrawerProps {
   onNewGame: () => void;
   onSave: () => void;
   onLoad: () => void;
+  onToggleLibrary: () => void;
+  isLibraryOpen: boolean;
   onSettings: () => void;
   isAiWhite: boolean;
   isAiBlack: boolean;
@@ -19,6 +21,8 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onNewGame,
   onSave,
   onLoad,
+  onToggleLibrary,
+  isLibraryOpen,
   onSettings,
   isAiWhite,
   isAiBlack,
@@ -80,6 +84,19 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               <FaFolderOpen aria-hidden="true" /> Load SGF
             </span>
             <kbd className="text-xs text-slate-400">Ctrl+L</kbd>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"
+            onClick={() => {
+              onToggleLibrary();
+              onClose();
+            }}
+            aria-label="Toggle Library panel"
+          >
+            <span className="flex items-center gap-2">
+              <FaBook aria-hidden="true" /> {isLibraryOpen ? 'Hide Library' : 'Show Library'}
+            </span>
+            <kbd className="text-xs text-slate-400">Ctrl+Shift+L</kbd>
           </button>
           <button
             className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"

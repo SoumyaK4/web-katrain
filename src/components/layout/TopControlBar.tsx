@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   FaBars,
+  FaBook,
   FaChevronDown,
   FaChevronLeft,
   FaRobot,
@@ -48,6 +49,8 @@ interface TopControlBarProps {
   // Menu callbacks
   onOpenMenu: () => void;
   onOpenSidePanel: () => void;
+  onToggleLibrary: () => void;
+  isLibraryOpen: boolean;
 }
 
 export const TopControlBar: React.FC<TopControlBarProps> = ({
@@ -82,11 +85,20 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   setIsGameReportOpen,
   onOpenMenu,
   onOpenSidePanel,
+  onToggleLibrary,
+  isLibraryOpen,
 }) => {
   return (
     <div className="h-14 bg-slate-800 border-b border-slate-700/50 flex items-center px-3 gap-3 select-none">
       <IconButton title="Menu" onClick={onOpenMenu}>
         <FaBars />
+      </IconButton>
+      <IconButton
+        title={isLibraryOpen ? 'Hide library' : 'Show library'}
+        onClick={onToggleLibrary}
+        className={isLibraryOpen ? 'text-emerald-300' : undefined}
+      >
+        <FaBook />
       </IconButton>
 
       <div className="flex items-center gap-2 overflow-x-auto">
