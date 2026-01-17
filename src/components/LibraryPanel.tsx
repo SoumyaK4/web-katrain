@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight, FaDownload, FaCheckSquare, FaSquare, FaPlus } from 'react-icons/fa';
+import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight, FaDownload, FaCheckSquare, FaSquare, FaPlus, FaArrowUp } from 'react-icons/fa';
 import {
   createLibraryFolder,
   createLibraryItem,
@@ -72,6 +72,10 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [listOpen, setListOpen] = useState(() => {
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:library_list_open:v1') !== 'false';
+  });
+  const [recentOpen, setRecentOpen] = useState(() => {
+    if (typeof localStorage === 'undefined') return true;
+    return localStorage.getItem('web-katrain:library_recent_open:v1') !== 'false';
   });
   const [graphHeight, setGraphHeight] = useState(() => {
     if (typeof localStorage === 'undefined') return 180;
@@ -150,6 +154,11 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_recent_open:v1', String(recentOpen));
+  }, [recentOpen]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:library_graph_height:v1', String(graphHeight));
   }, [graphHeight]);
 
@@ -219,6 +228,18 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     return map;
   }, [items]);
 
+  const breadcrumbs = useMemo(() => {
+    if (!currentFolderId) return [];
+    const trail: LibraryFolder[] = [];
+    let current: LibraryItem | undefined = items.find((item) => item.id === currentFolderId);
+    while (current && isFolder(current)) {
+      trail.push(current);
+      const parentId = current.parentId ?? null;
+      current = parentId ? items.find((item) => item.id === parentId) : undefined;
+    }
+    return trail.reverse();
+  }, [currentFolderId, items]);
+
   const childrenMap = useMemo(() => {
     const map = new Map<string | null, LibraryItem[]>();
     for (const item of items) {
@@ -250,6 +271,13 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     }
     return map;
   }, [items, sortKey]);
+
+  const recentFiles = useMemo(() => {
+    return items
+      .filter(isFile)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 5);
+  }, [items]);
 
   const isDescendantOf = (candidateId: string | null, ancestorId: string): boolean => {
     if (!candidateId) return false;
@@ -297,6 +325,12 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     setSelectedIds(new Set());
     setCurrentFolderId(null);
     onToast('Library cleared.', 'info');
+  };
+
+  const handleGoUp = () => {
+    if (!currentFolderId) return;
+    const parentId = parentById.get(currentFolderId) ?? null;
+    setCurrentFolderId(parentId);
   };
 
   const handleDelete = (item: LibraryItem) => {
@@ -681,6 +715,39 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </button>
             )}
           </div>
+          {!isSearching && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/60 disabled:opacity-40"
+                onClick={handleGoUp}
+                disabled={!currentFolderId}
+              >
+                <FaArrowUp className="inline-block mr-1" /> Up
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/60"
+                onClick={() => setCurrentFolderId(null)}
+              >
+                Root
+              </button>
+              {breadcrumbs.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 text-slate-500">
+                  {breadcrumbs.map((crumb, index) => (
+                    <button
+                      key={crumb.id}
+                      type="button"
+                      className="px-1.5 py-0.5 rounded hover:bg-slate-800/60 text-slate-400"
+                      onClick={() => setCurrentFolderId(crumb.id)}
+                    >
+                      {index === 0 ? crumb.name : `/${crumb.name}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {isDragging && (
             <div className="mt-3 text-xs text-emerald-300 border border-emerald-500/40 rounded px-2 py-1 bg-emerald-900/20">
               Drop SGF files to import
@@ -781,11 +848,35 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                 <div>Save the current game or drag SGF files here to build your library.</div>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800">
-                {(childrenMap.get(null) ?? []).map((item) =>
-                  isFolder(item) ? renderFolderRow(item, 0) : renderFileRow(item, 0)
-                )}
-              </div>
+              <>
+                <div className="border-b border-slate-800">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-200 font-semibold"
+                    onClick={() => setRecentOpen((prev) => !prev)}
+                  >
+                    <span className="flex items-center gap-2">
+                      {recentOpen ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+                      Recent
+                    </span>
+                    <span className="text-xs text-slate-500">{recentFiles.length}</span>
+                  </button>
+                  {recentOpen && (
+                    <div className="divide-y divide-slate-800">
+                      {recentFiles.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-slate-500">No recent files.</div>
+                      ) : (
+                        recentFiles.map((item) => renderFileRow(item, 0))
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="divide-y divide-slate-800">
+                  {(childrenMap.get(null) ?? []).map((item) =>
+                    isFolder(item) ? renderFolderRow(item, 0) : renderFileRow(item, 0)
+                  )}
+                </div>
+              </>
             )}
           </div>
 
