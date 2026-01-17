@@ -697,8 +697,12 @@ export const Layout: React.FC = () => {
   };
 
   const handleCloseRightPanel = () => {
-    setRightPanelOpen(false);
-    if (isMobile) setMobileTab('board');
+    if (isMobile) {
+      setRightPanelOpen(false);
+      setMobileTab('board');
+    } else {
+      setShowSidebar(false);
+    }
   };
 
   const handleLoadClick = () => fileInputRef.current?.click();
@@ -1009,10 +1013,6 @@ export const Layout: React.FC = () => {
           onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
           onLoad={handleLoadClick}
           onOpenSidePanel={handleOpenSidePanel}
-          onToggleLibrary={handleToggleLibrary}
-          isLibraryOpen={libraryOpen}
-          onToggleSidebar={handleToggleSidebar}
-          isSidebarOpen={sidebarOpen}
           onCopySgf={handleCopySgf}
           onPasteSgf={handlePasteSgf}
           onSettings={() => setIsSettingsOpen(true)}

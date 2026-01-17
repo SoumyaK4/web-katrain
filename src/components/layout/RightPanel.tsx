@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaFastBackward, FaFastForward, FaArrowUp, FaArrowDown, FaLevelUpAlt, FaSitemap } from 'react-icons/fa';
+import { FaTimes, FaFastBackward, FaFastForward, FaArrowUp, FaArrowDown, FaLevelUpAlt, FaSitemap, FaChevronRight } from 'react-icons/fa';
 import type { Player, GameNode, Move } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { AnalysisPanel } from '../AnalysisPanel';
@@ -342,9 +342,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             type="button"
             className="hidden lg:flex h-10 w-10 items-center justify-center rounded-lg hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors"
             onClick={onClose}
-            title="Hide side panel"
+            title="Hide panel (Ctrl+B)"
           >
-            <FaTimes />
+            <FaChevronRight />
           </button>
         </div>
 

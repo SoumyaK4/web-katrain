@@ -1,10 +1,8 @@
 import React from 'react';
 import {
   FaBars,
-  FaBook,
   FaChevronDown,
   FaChevronLeft,
-  FaColumns,
   FaCopy,
   FaExpand,
   FaCompress,
@@ -69,10 +67,6 @@ interface TopControlBarProps {
   onSave: () => void;
   onLoad: () => void;
   onOpenSidePanel: () => void;
-  onToggleLibrary: () => void;
-  isLibraryOpen: boolean;
-  onToggleSidebar: () => void;
-  isSidebarOpen: boolean;
   onCopySgf: () => void;
   onPasteSgf: () => void;
   onSettings: () => void;
@@ -123,10 +117,6 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onSave,
   onLoad,
   onOpenSidePanel,
-  onToggleLibrary,
-  isLibraryOpen,
-  onToggleSidebar,
-  isSidebarOpen,
   onCopySgf,
   onPasteSgf,
   onSettings,
@@ -183,27 +173,6 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
 
       {/* Divider */}
       <div className="hidden md:block h-6 w-px bg-slate-700/60" />
-
-      {/* Layout toggles */}
-      <div className="hidden md:flex items-center gap-1.5">
-        <IconButton
-          title={isLibraryOpen ? 'Hide library (Ctrl+L)' : 'Show library (Ctrl+L)'}
-          onClick={onToggleLibrary}
-          className={isLibraryOpen ? 'text-emerald-300' : undefined}
-        >
-          <FaBook />
-        </IconButton>
-        <IconButton
-          title={isSidebarOpen ? 'Hide sidebar (Ctrl+B)' : 'Show sidebar (Ctrl+B)'}
-          onClick={onToggleSidebar}
-          className={isSidebarOpen ? 'text-emerald-300' : undefined}
-        >
-          <FaColumns />
-        </IconButton>
-      </div>
-
-      {/* Divider */}
-      <div className="hidden lg:block h-6 w-px bg-slate-700/60" />
 
       {/* Utilities */}
       <div className="hidden lg:flex items-center gap-1.5">

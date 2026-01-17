@@ -722,7 +722,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         <div className="h-14 border-b border-slate-700/50 flex items-center gap-2 px-3">
           <button
             type="button"
-            className="lg:hidden h-9 w-9 flex items-center justify-center rounded hover:bg-slate-700 text-slate-300 hover:text-white"
+            className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors"
             onClick={onClose}
             title="Close library"
           >
@@ -732,9 +732,9 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
-              className="hidden lg:flex h-9 w-9 items-center justify-center rounded hover:bg-slate-700 text-slate-300 hover:text-white"
+              className="hidden lg:flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors"
               onClick={onClose}
-              title="Hide library"
+              title="Hide panel (Ctrl+L)"
             >
               <FaChevronLeft />
             </button>
