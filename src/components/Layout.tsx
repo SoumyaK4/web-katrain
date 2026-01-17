@@ -18,6 +18,7 @@ import { MenuDrawer } from './layout/MenuDrawer';
 import { TopControlBar } from './layout/TopControlBar';
 import { BottomControlBar } from './layout/BottomControlBar';
 import { RightPanel } from './layout/RightPanel';
+import { MobileTabBar, type MobileTab } from './layout/MobileTabBar';
 import { LibraryPanel } from './LibraryPanel';
 import {
   type UiMode,
@@ -179,6 +180,8 @@ export const Layout: React.FC = () => {
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('board');
+  const [lastRightTab, setLastRightTab] = useState<MobileTab>('tree');
   const [uiState, setUiState] = useState<UiState>(() => loadUiState());
   const [libraryOpen, setLibraryOpen] = useState(() => {
     if (typeof localStorage === 'undefined') return false;
@@ -471,9 +474,9 @@ export const Layout: React.FC = () => {
     setViewMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
-    toggleLibrary: () => setLibraryOpen((prev) => !prev),
-    closeLibrary: () => setLibraryOpen(false),
-    toggleSidebar: () => setShowSidebar((prev) => !prev),
+    toggleLibrary: handleToggleLibrary,
+    closeLibrary: handleCloseLibrary,
+    toggleSidebar: handleToggleSidebar,
     toast,
   });
 
@@ -557,6 +560,72 @@ export const Layout: React.FC = () => {
     }));
   };
 
+  const isMobile = !isDesktop;
+
+  const openRightPanelForTab = (tab: MobileTab) => {
+    setRightPanelOpen(true);
+    setLibraryOpen(false);
+    setMobileTab(tab);
+    if (tab === 'tree') updatePanels({ treeOpen: true });
+    if (tab === 'info') updatePanels({ infoOpen: true, notesOpen: true });
+    if (tab === 'analysis') {
+      updatePanels({ analysisOpen: true, graphOpen: true, statsOpen: true });
+    }
+    if (tab === 'tree' || tab === 'info' || tab === 'analysis') {
+      setLastRightTab(tab);
+    }
+  };
+
+  const handleMobileTabChange = (tab: MobileTab) => {
+    if (tab === 'board') {
+      setMobileTab('board');
+      setLibraryOpen(false);
+      setRightPanelOpen(false);
+      return;
+    }
+    if (tab === 'library') {
+      setMobileTab('library');
+      setLibraryOpen(true);
+      setRightPanelOpen(false);
+      return;
+    }
+    openRightPanelForTab(tab);
+  };
+
+  const handleToggleLibrary = () => {
+    if (isMobile) {
+      handleMobileTabChange(libraryOpen ? 'board' : 'library');
+      return;
+    }
+    setLibraryOpen((prev) => !prev);
+  };
+
+  const handleCloseLibrary = () => {
+    setLibraryOpen(false);
+    if (isMobile) setMobileTab('board');
+  };
+
+  const handleToggleSidebar = () => {
+    if (isMobile) {
+      handleMobileTabChange(rightPanelOpen ? 'board' : lastRightTab);
+      return;
+    }
+    setShowSidebar((prev) => !prev);
+  };
+
+  const handleOpenSidePanel = () => {
+    if (isMobile) {
+      handleMobileTabChange(lastRightTab);
+      return;
+    }
+    setRightPanelOpen(true);
+  };
+
+  const handleCloseRightPanel = () => {
+    setRightPanelOpen(false);
+    if (isMobile) setMobileTab('board');
+  };
+
   const handleLoadClick = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -590,6 +659,7 @@ export const Layout: React.FC = () => {
 
   const isAiBlack = isAiPlaying && aiColor === 'black';
   const isAiWhite = isAiPlaying && aiColor === 'white';
+  const sidebarOpen = isMobile ? rightPanelOpen : showSidebar;
 
   return (
     <div className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden">
@@ -606,10 +676,10 @@ export const Layout: React.FC = () => {
         onNewGame={resetGame}
         onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
         onLoad={handleLoadClick}
-        onToggleLibrary={() => setLibraryOpen((prev) => !prev)}
+        onToggleLibrary={handleToggleLibrary}
         isLibraryOpen={libraryOpen}
-        onToggleSidebar={() => setShowSidebar((prev) => !prev)}
-        isSidebarOpen={showSidebar}
+        onToggleSidebar={handleToggleSidebar}
+        isSidebarOpen={sidebarOpen}
         onSettings={() => setIsSettingsOpen(true)}
         isAiWhite={isAiWhite}
         isAiBlack={isAiBlack}
@@ -618,12 +688,13 @@ export const Layout: React.FC = () => {
 
       <LibraryPanel
         open={libraryOpen}
-        onClose={() => setLibraryOpen(false)}
+        onClose={handleCloseLibrary}
         docked={isDesktop}
         width={leftPanelWidth}
         getCurrentSgf={() => generateSgfFromTree(rootNode, sgfExportOptions)}
         onLoadSgf={handleLoadFromLibrary}
         onToast={toast}
+        isMobile={isMobile}
       />
 
       {isDesktop && libraryOpen && (
@@ -634,7 +705,7 @@ export const Layout: React.FC = () => {
       )}
 
       {/* Main board column */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className={['flex flex-col flex-1 min-w-0', isMobile ? 'pb-16' : ''].join(' ')}>
         <TopControlBar
           settings={settings}
           updateControls={updateControls}
@@ -669,11 +740,11 @@ export const Layout: React.FC = () => {
           setIsGameAnalysisOpen={setIsGameAnalysisOpen}
           setIsGameReportOpen={setIsGameReportOpen}
           onOpenMenu={() => setMenuOpen(true)}
-          onOpenSidePanel={() => setRightPanelOpen(true)}
-          onToggleLibrary={() => setLibraryOpen((prev) => !prev)}
+          onOpenSidePanel={handleOpenSidePanel}
+          onToggleLibrary={handleToggleLibrary}
           isLibraryOpen={libraryOpen}
-          onToggleSidebar={() => setShowSidebar((prev) => !prev)}
-          isSidebarOpen={showSidebar}
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={sidebarOpen}
         />
 
         {/* Board */}
@@ -719,7 +790,7 @@ export const Layout: React.FC = () => {
 
       <RightPanel
         open={rightPanelOpen}
-        onClose={() => setRightPanelOpen(false)}
+        onClose={handleCloseRightPanel}
         width={isDesktop ? rightPanelWidth : undefined}
         showOnDesktop={showSidebar}
         mode={mode}
@@ -759,7 +830,16 @@ export const Layout: React.FC = () => {
         lockAiDetails={lockAiDetails}
         currentNode={currentNode}
         moveHistory={moveHistory}
+        isMobile={isMobile}
       />
+
+      {isMobile && (
+        <MobileTabBar
+          activeTab={mobileTab}
+          onTabChange={handleMobileTabChange}
+          showAnalysis
+        />
+      )}
     </div>
   );
 };

@@ -8,6 +8,7 @@ interface LibraryPanelProps {
   docked?: boolean;
   width?: number;
   onClose: () => void;
+  isMobile?: boolean;
   getCurrentSgf: () => string;
   onLoadSgf: (sgf: string) => void;
   onToast: (msg: string, type: 'info' | 'error' | 'success') => void;
@@ -18,6 +19,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   docked = false,
   width,
   onClose,
+  isMobile = false,
   getCurrentSgf,
   onLoadSgf,
   onToast,
@@ -183,6 +185,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           'fixed inset-y-0 left-0 z-40 w-full max-w-sm',
           'lg:static lg:z-auto',
           docked ? 'lg:max-w-none' : 'lg:w-80',
+          isMobile ? 'pb-16' : '',
         ].join(' ')}
         style={docked && width ? { width } : undefined}
         onDragOver={handleDragOver}

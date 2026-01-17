@@ -14,6 +14,7 @@ interface RightPanelProps {
   onClose: () => void;
   width?: number;
   showOnDesktop?: boolean;
+  isMobile?: boolean;
   mode: UiMode;
   setMode: (m: UiMode) => void;
   modePanels: UiState['panels'][UiMode];
@@ -65,6 +66,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   onClose,
   width,
   showOnDesktop = true,
+  isMobile = false,
   mode,
   setMode,
   modePanels,
@@ -222,6 +224,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           open ? 'flex' : 'hidden',
           'lg:static lg:max-w-none lg:z-auto',
           showOnDesktop ? 'lg:flex' : 'lg:hidden',
+          isMobile ? 'pb-16' : '',
         ].join(' ')}
         style={width ? { width } : undefined}
       >

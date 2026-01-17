@@ -515,8 +515,12 @@ export function useKeyboardShortcuts({
     setIsGameAnalysisOpen,
     setIsGameReportOpen,
     setAnalysisMenuOpen,
+    setViewMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
+    toggleLibrary,
+    closeLibrary,
+    toggleSidebar,
     toast,
   ]);
 }
