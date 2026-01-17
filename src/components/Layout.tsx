@@ -449,6 +449,18 @@ export const Layout: React.FC = () => {
     return last;
   }, [currentPlayer, hoveredMove, isAnalysisMode, pvUpToMove]);
 
+  const noteCount = useMemo(() => {
+    void treeVersion;
+    let count = 0;
+    const stack: GameNode[] = [rootNode];
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      if (node.note && node.note.trim()) count += 1;
+      for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]!);
+    }
+    return count;
+  }, [rootNode, treeVersion]);
+
   // Close popovers on outside clicks
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -831,6 +843,7 @@ export const Layout: React.FC = () => {
         currentNode={currentNode}
         moveHistory={moveHistory}
         isMobile={isMobile}
+        activeMobileTab={mobileTab}
       />
 
       {isMobile && (
@@ -838,6 +851,7 @@ export const Layout: React.FC = () => {
           activeTab={mobileTab}
           onTabChange={handleMobileTabChange}
           showAnalysis
+          commentBadge={noteCount}
         />
       )}
     </div>

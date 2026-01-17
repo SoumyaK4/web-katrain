@@ -7,6 +7,7 @@ import { MoveTree } from '../MoveTree';
 import { NotesPanel } from '../NotesPanel';
 import { Timer } from '../Timer';
 import type { UiMode, UiState } from './types';
+import type { MobileTab } from './MobileTabBar';
 import { PanelHeaderButton, formatMoveLabel, playerToShort } from './ui';
 
 interface RightPanelProps {
@@ -15,6 +16,7 @@ interface RightPanelProps {
   width?: number;
   showOnDesktop?: boolean;
   isMobile?: boolean;
+  activeMobileTab?: MobileTab;
   mode: UiMode;
   setMode: (m: UiMode) => void;
   modePanels: UiState['panels'][UiMode];
@@ -67,6 +69,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   width,
   showOnDesktop = true,
   isMobile = false,
+  activeMobileTab,
   mode,
   setMode,
   modePanels,
@@ -107,6 +110,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 }) => {
   const isAiBlack = isAiPlaying && aiColor === 'black';
   const isAiWhite = isAiPlaying && aiColor === 'white';
+  const showTree = !isMobile || activeMobileTab === 'tree';
+  const showInfo = !isMobile || activeMobileTab === 'info';
+  const showAnalysis = !isMobile || activeMobileTab === 'analysis';
+  const showNotes = !isMobile || activeMobileTab === 'info';
 
   const analysisCounts = React.useMemo(() => {
     void treeVersion;
@@ -261,116 +268,121 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         </div>
 
         {/* Game Tree */}
-        <div className="px-3 pb-3">
-          <SectionHeader
-            title="Game Tree"
-            open={modePanels.treeOpen}
-            onToggle={() => updatePanels({ treeOpen: !modePanels.treeOpen })}
-          />
-          {modePanels.treeOpen && (
-            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden">
-              <div style={{ height: treeHeight }}>
-                <MoveTree />
+        {showTree && (
+          <div className="px-3 pb-3">
+            <SectionHeader
+              title="Game Tree"
+              open={modePanels.treeOpen}
+              onToggle={() => updatePanels({ treeOpen: !modePanels.treeOpen })}
+            />
+            {modePanels.treeOpen && (
+              <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden">
+                <div style={{ height: treeHeight }}>
+                  <MoveTree />
+                </div>
+                <div
+                  className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors"
+                  onMouseDown={(e) => {
+                    treeResizeRef.current = { startY: e.clientY, startHeight: treeHeight };
+                    setIsResizingTree(true);
+                  }}
+                />
               </div>
-              <div
-                className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors"
-                onMouseDown={(e) => {
-                  treeResizeRef.current = { startY: e.clientY, startHeight: treeHeight };
-                  setIsResizingTree(true);
-                }}
-              />
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Game Info */}
-        <div className="px-3 pb-3">
-          <SectionHeader
-            title="Game Info"
-            open={modePanels.infoOpen}
-            onToggle={() => updatePanels({ infoOpen: !modePanels.infoOpen })}
-          />
-          {modePanels.infoOpen && (
-            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
-              <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
-              <Timer />
-              <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Komi</span>
-                  <span className="font-mono text-slate-100">{komi}</span>
+        {showInfo && (
+          <div className="px-3 pb-3">
+            <SectionHeader
+              title="Game Info"
+              open={modePanels.infoOpen}
+              onToggle={() => updatePanels({ infoOpen: !modePanels.infoOpen })}
+            />
+            {modePanels.infoOpen && (
+              <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
+                <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
+                <Timer />
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Komi</span>
+                    <span className="font-mono text-slate-100">{komi}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Moves</span>
+                    <span className="font-mono text-slate-100">{moveHistory.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Captured</span>
+                    <span className="font-mono text-slate-100">B:{capturedWhite} · W:{capturedBlack}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Analyzed</span>
+                    <span className="font-mono text-slate-100">{analysisCounts.analyzed}/{analysisCounts.total}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Moves</span>
-                  <span className="font-mono text-slate-100">{moveHistory.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Captured</span>
-                  <span className="font-mono text-slate-100">B:{capturedWhite} · W:{capturedBlack}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Analyzed</span>
-                  <span className="font-mono text-slate-100">{analysisCounts.analyzed}/{analysisCounts.total}</span>
-                </div>
-              </div>
-              {endResult && (
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="text-slate-400">Result</span>
-                  <span className="font-mono text-slate-100">{endResult}</span>
-                </div>
-              )}
+                {endResult && (
+                  <div className="flex items-center justify-between text-xs text-slate-300">
+                    <span className="text-slate-400">Result</span>
+                    <span className="font-mono text-slate-100">{endResult}</span>
+                  </div>
+                )}
 
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 px-3 py-2 rounded-lg bg-slate-700/80 hover:bg-slate-600/80 text-sm font-medium text-slate-200"
-                  onClick={() => {
-                    const st = useGameStore.getState();
-                    const lastMover = st.currentNode.move?.player ?? null;
-                    const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
-                    navigateBack();
-                    if (shouldUndoTwice) navigateBack();
-                  }}
-                  title="Undo (←)"
-                >
-                  Undo
-                </button>
-                <button
-                  className="flex-1 px-3 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/50 text-sm font-medium text-rose-200"
-                  onClick={() => {
-                    const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
-                    resign();
-                    toast(`Result: ${result}`, 'info');
-                  }}
-                >
-                  Resign
-                </button>
-              </div>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 px-3 py-2 rounded-lg bg-slate-700/80 hover:bg-slate-600/80 text-sm font-medium text-slate-200"
+                    onClick={() => {
+                      const st = useGameStore.getState();
+                      const lastMover = st.currentNode.move?.player ?? null;
+                      const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
+                      navigateBack();
+                      if (shouldUndoTwice) navigateBack();
+                    }}
+                    title="Undo (←)"
+                  >
+                    Undo
+                  </button>
+                  <button
+                    className="flex-1 px-3 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/50 text-sm font-medium text-rose-200"
+                    onClick={() => {
+                      const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
+                      resign();
+                      toast(`Result: ${result}`, 'info');
+                    }}
+                  >
+                    Resign
+                  </button>
+                </div>
 
-              <div className="flex gap-2">
-                <button
-                  className={[
-                    'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
-                    isAiWhite ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30',
-                  ].join(' ')}
-                  onClick={() => toggleAi('white')}
-                >
-                  White AI
-                </button>
-                <button
-                  className={[
-                    'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
-                    isAiBlack ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30',
-                  ].join(' ')}
-                  onClick={() => toggleAi('black')}
-                >
-                  Black AI
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className={[
+                      'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
+                      isAiWhite ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30',
+                    ].join(' ')}
+                    onClick={() => toggleAi('white')}
+                  >
+                    White AI
+                  </button>
+                  <button
+                    className={[
+                      'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
+                      isAiBlack ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30',
+                    ].join(' ')}
+                    onClick={() => toggleAi('black')}
+                  >
+                    Black AI
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Analysis */}
-        <div className="px-3 pb-3">
+        {showAnalysis && (
+          <div className="px-3 pb-3">
           <SectionHeader
             title="Analysis"
             open={modePanels.analysisOpen}
@@ -538,10 +550,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               </div>
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         {/* Comment / Notes */}
-        <div className="px-3 pb-3 flex-1 flex flex-col min-h-0">
+        {showNotes && (
+          <div className="px-3 pb-3 flex-1 flex flex-col min-h-0">
           <SectionHeader
             title="Comment"
             open={modePanels.notesOpen}
@@ -593,7 +607,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               </div>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );
