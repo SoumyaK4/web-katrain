@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
+import { loadSgfOrOgs } from '../utils/ogs';
 import type { UiMode } from '../components/layout/types';
 
 interface UseKeyboardShortcutsOptions {
@@ -153,12 +154,17 @@ export function useKeyboardShortcuts({
         }
         if (!text) return;
         try {
-          const parsed = parseSgf(text);
+          const result = await loadSgfOrOgs(text);
+          if (!result.sgf.trim()) return;
+          if (result.source === 'ogs') {
+            toast(`Downloaded OGS game ${result.gameId ?? ''}.`, 'success');
+          }
+          const parsed = parseSgf(result.sgf);
           loadGame(parsed);
           navigateEnd();
           toast('Loaded SGF from clipboard.', 'success');
         } catch {
-          toast('Failed to parse SGF from clipboard.', 'error');
+          toast('Failed to load SGF or OGS URL.', 'error');
         }
       };
 
