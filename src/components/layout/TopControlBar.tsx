@@ -160,13 +160,16 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   };
 
   return (
-    <div className="h-14 bg-slate-800 border-b border-slate-700/50 flex items-center px-2 sm:px-3 gap-2 sm:gap-3 select-none">
+    <div className="h-14 bg-slate-800 border-b border-slate-700/50 flex items-center px-2 sm:px-3 gap-1.5 sm:gap-2 select-none">
+      {/* Mobile menu */}
       <div className="md:hidden">
         <IconButton title="Menu" onClick={onOpenMenu}>
           <FaBars />
         </IconButton>
       </div>
-      <div className="hidden md:flex items-center gap-2">
+
+      {/* File operations */}
+      <div className="hidden md:flex items-center gap-1.5">
         <IconButton title="New game (Ctrl+N)" onClick={onNewGame}>
           <FaPlus />
         </IconButton>
@@ -177,7 +180,12 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           <FaFolderOpen />
         </IconButton>
       </div>
-      <div className="hidden md:flex items-center gap-2">
+
+      {/* Divider */}
+      <div className="hidden md:block h-6 w-px bg-slate-700/60" />
+
+      {/* Layout toggles */}
+      <div className="hidden md:flex items-center gap-1.5">
         <IconButton
           title={isLibraryOpen ? 'Hide library (Ctrl+L)' : 'Show library (Ctrl+L)'}
           onClick={onToggleLibrary}
@@ -193,7 +201,12 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           <FaColumns />
         </IconButton>
       </div>
-      <div className="hidden md:flex items-center gap-2">
+
+      {/* Divider */}
+      <div className="hidden lg:block h-6 w-px bg-slate-700/60" />
+
+      {/* Utilities */}
+      <div className="hidden lg:flex items-center gap-1.5">
         <IconButton title="Copy SGF (Ctrl+C)" onClick={onCopySgf}>
           <FaCopy />
         </IconButton>
@@ -211,7 +224,11 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </IconButton>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+      {/* Divider */}
+      <div className="hidden lg:block h-6 w-px bg-slate-700/60" />
+
+      {/* Analysis toggles */}
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
         <TogglePill
           label="Children"
           shortcut="Q"
@@ -247,45 +264,48 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
 
       <div className="flex-grow" />
 
+      {/* Engine status */}
       {engineMeta && (
         <div
           className={[
-            'hidden lg:flex items-center gap-2 px-2 py-1 rounded border text-xs',
+            'hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border',
             engineError
               ? 'bg-rose-900/30 border-rose-600/50 text-rose-200'
-              : 'bg-slate-800/60 border-slate-700/60 text-slate-300',
+              : 'bg-slate-900/50 border-slate-700/50 text-slate-300',
           ].join(' ')}
           title={engineMetaTitle}
         >
           <span className={['inline-block h-2 w-2 rounded-full', engineDot].join(' ')} />
-          <span className="max-w-[240px] truncate">{engineMeta}</span>
-          {engineError && <span className="text-[10px] uppercase tracking-wide">error</span>}
+          <span className="max-w-[200px] truncate">{engineMeta}</span>
+          {engineError && <span className="text-[10px] uppercase tracking-wide font-semibold">error</span>}
         </div>
       )}
 
-      <div className="hidden xl:flex items-center gap-1.5 text-xs text-slate-300">
+      {/* Analysis badges */}
+      <div className="hidden xl:flex items-center gap-1.5 text-xs">
         {winRateLabel && (
-          <div className="px-2 py-1 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-200 font-medium">
+          <div className="px-2 py-0.5 rounded-md bg-emerald-600/20 border border-emerald-500/40 text-emerald-200 font-medium">
             Win {winRateLabel}
           </div>
         )}
         {scoreLeadLabel && (
-          <div className="px-2 py-1 rounded bg-blue-600/20 border border-blue-500/40 text-blue-200 font-medium">
+          <div className="px-2 py-0.5 rounded-md bg-blue-600/20 border border-blue-500/40 text-blue-200 font-medium">
             Score {scoreLeadLabel}
           </div>
         )}
         {pointsLostLabel && (
-          <div className="px-2 py-1 rounded bg-amber-600/20 border border-amber-500/40 text-amber-200 font-medium">
+          <div className="px-2 py-0.5 rounded-md bg-amber-600/20 border border-amber-500/40 text-amber-200 font-medium">
             Δ {pointsLostLabel}
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Mode badges */}
+      <div className="flex items-center gap-1.5">
         {regionOfInterest && (
           <button
             type="button"
-            className="px-2 py-1 rounded border bg-green-900/30 border-green-600 text-green-200 text-xs font-semibold hover:bg-green-900/50"
+            className="px-2 py-0.5 rounded-md border bg-green-900/30 border-green-600/60 text-green-200 text-xs font-semibold hover:bg-green-900/50 transition-colors"
             title="Region of interest active (click to clear)"
             onClick={() => setRegionOfInterest(null)}
           >
@@ -293,13 +313,14 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           </button>
         )}
         {isInsertMode && (
-          <div className="px-2 py-1 rounded border bg-purple-900/30 border-purple-600 text-purple-200 text-xs font-semibold">
+          <div className="px-2 py-0.5 rounded-md border bg-purple-900/30 border-purple-600/60 text-purple-200 text-xs font-semibold">
             Insert
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Right controls */}
+      <div className="flex items-center gap-1.5">
         <IconButton
           title="Open side panel"
           onClick={onOpenSidePanel}
@@ -307,7 +328,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         >
           <FaChevronLeft />
         </IconButton>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-1.5">
           <IconButton title="Settings (F8)" onClick={onSettings}>
             <FaCog />
           </IconButton>
@@ -318,14 +339,14 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <div className="relative" data-menu-popover>
           <button
             type="button"
-            className="px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/30 text-slate-400 hover:bg-slate-700/50 flex items-center gap-2 text-sm font-medium"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700/30 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 flex items-center gap-1.5 text-sm font-medium transition-colors"
             onClick={() => setViewMenuOpen(!viewMenuOpen)}
             title="View options"
           >
-            <FaSlidersH /> View <FaChevronDown className="opacity-80" />
+            <FaSlidersH size={14} /> View <FaChevronDown size={10} className="opacity-80" />
           </button>
           {viewMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-slate-800 border border-slate-700/50 rounded shadow-xl overflow-hidden z-50">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-slate-800 border border-slate-700/50 rounded-lg shadow-xl overflow-hidden z-50">
               <button
                 className="w-full px-3 py-2 text-left hover:bg-slate-700 flex items-center justify-between"
                 onClick={toggleFullscreen}
@@ -376,7 +397,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                   className="w-full bg-slate-900 border border-slate-700/60 rounded px-2 py-1 text-xs text-slate-200"
                 >
                   {BOARD_THEME_OPTIONS.map((theme) => (
-                    <option key={theme.id} value={theme.id}>{theme.label}</option>
+                    <option key={theme.value} value={theme.value}>{theme.label}</option>
                   ))}
                 </select>
               </div>
@@ -386,27 +407,29 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <button
           type="button"
           className={[
-            'px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2',
-            isAnalysisMode ? 'bg-blue-600/30 border border-blue-500/50 text-blue-200' : 'bg-slate-800/50 border border-slate-700/30 text-slate-400 hover:bg-slate-700/50',
+            'px-2.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors',
+            isAnalysisMode
+              ? 'bg-blue-600/30 border border-blue-500/50 text-blue-200 shadow-sm shadow-blue-500/10'
+              : 'bg-slate-800/50 border border-slate-700/30 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200',
           ].join(' ')}
           title="Toggle analysis mode (Tab)"
           onClick={toggleAnalysisMode}
         >
-          <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
+          <span className={['inline-block h-2 w-2 rounded-full', engineDot].join(' ')} />
           Analyze
         </button>
 
         <div className="relative" data-menu-popover>
           <button
             type="button"
-            className="px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/30 text-slate-400 hover:bg-slate-700/50 flex items-center gap-2 text-sm font-medium"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700/30 text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 flex items-center gap-1.5 text-sm font-medium transition-colors"
             onClick={() => setAnalysisMenuOpen(!analysisMenuOpen)}
             title="Analysis actions"
           >
-            Actions <FaChevronDown className="opacity-80" />
+            Actions <FaChevronDown size={10} className="opacity-80" />
           </button>
           {analysisMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-slate-700/50 rounded shadow-xl overflow-hidden z-50">
+            <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-slate-700/50 rounded-lg shadow-xl overflow-hidden z-50">
               <button
                 className="w-full px-3 py-2 text-left hover:bg-slate-700 flex items-center justify-between"
                 onClick={() => {

@@ -64,7 +64,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/98 border-t border-slate-700/60 backdrop-blur-sm shadow-lg shadow-black/20"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/98 border-t border-slate-700/60 backdrop-blur-sm shadow-xl shadow-black/30"
       role="tablist"
     >
       <div
@@ -79,9 +79,9 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={[
-                'py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors',
+                'py-3 px-2 flex flex-col items-center justify-center gap-1.5 text-xs font-medium transition-all',
                 isActive
-                  ? 'text-emerald-200 bg-emerald-500/10 border-t-2 border-emerald-400'
+                  ? 'text-emerald-200 bg-emerald-500/10 border-t-2 border-emerald-400 shadow-inner'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60 border-t-2 border-transparent',
               ].join(' ')}
               role="tab"

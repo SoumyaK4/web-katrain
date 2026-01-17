@@ -64,7 +64,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   }, []);
 
   return (
-    <div className="h-16 bg-slate-800 border-t border-slate-700/50 flex items-center px-3 justify-between select-none">
+    <div className="h-16 bg-slate-800 border-t border-slate-700/50 flex items-center px-3 gap-3 select-none">
       <div className="relative">
         {passPolicyColor && (
           <div
@@ -74,7 +74,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         )}
         <button
           ref={passBtnRef}
-          className="relative px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 rounded-lg text-sm font-medium text-slate-200"
+          className="relative px-4 py-2 bg-slate-700/80 hover:bg-slate-600/80 rounded-lg text-sm font-medium text-slate-200 transition-colors"
           onClick={passTurn}
           aria-label="Pass turn"
           title="Pass (P)"
@@ -116,15 +116,19 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         )}
       </div>
 
-      <div className="flex items-center gap-1">
+      {/* Navigation controls */}
+      <div className="flex-1 flex items-center justify-center gap-1">
         <IconButton
           title="Previous mistake (N)"
           onClick={() => findMistake('undo')}
           disabled={isInsertMode}
-          className="text-red-300"
+          className="text-red-300 hover:text-red-200"
         >
           <FaExclamationTriangle />
         </IconButton>
+
+        <div className="h-6 w-px bg-slate-700/60 mx-0.5" />
+
         <IconButton title="Start (Home)" onClick={navigateStart} disabled={isInsertMode}>
           <FaStepBackward />
         </IconButton>
@@ -135,12 +139,14 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           <FaChevronLeft />
         </IconButton>
 
-        <div className="px-3 text-sm text-slate-300 font-mono flex items-center gap-2">
-          <span className={currentPlayer === 'black' ? 'text-white' : 'text-slate-500'}>B</span>
-          <span className="text-slate-500">·</span>
-          <span className={currentPlayer === 'white' ? 'text-white' : 'text-slate-500'}>W</span>
-          <span className="text-slate-500 ml-2">Move</span>
-          <span className="text-white">{moveHistory.length}</span>
+        {/* Move counter */}
+        <div className="px-3 py-1.5 rounded-md bg-slate-900/60 border border-slate-700/50 text-sm text-slate-300 font-mono flex items-center gap-2 min-w-[120px] justify-center">
+          <span className={currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'}>B</span>
+          <span className="text-slate-600">·</span>
+          <span className={currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'}>W</span>
+          <span className="text-slate-600 mx-1">|</span>
+          <span className="text-slate-400">Move</span>
+          <span className="text-white font-semibold">{moveHistory.length}</span>
         </div>
 
         <IconButton title="Forward (→)" onClick={navigateForward} disabled={isInsertMode}>
@@ -152,11 +158,14 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         <IconButton title="End (End)" onClick={navigateEnd} disabled={isInsertMode}>
           <FaStepForward />
         </IconButton>
+
+        <div className="h-6 w-px bg-slate-700/60 mx-0.5" />
+
         <IconButton
           title="Next mistake (Shift+N)"
           onClick={() => findMistake('redo')}
           disabled={isInsertMode}
-          className="text-red-300"
+          className="text-red-300 hover:text-red-200"
         >
           <FaExclamationTriangle />
         </IconButton>
@@ -165,8 +174,9 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         </IconButton>
       </div>
 
+      {/* AI Move button */}
       <button
-        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium text-white shadow-lg shadow-emerald-600/20"
+        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-600 rounded-lg text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all"
         onClick={() => makeAiMove()}
         aria-label="Make AI move"
         title="AI move (Enter)"

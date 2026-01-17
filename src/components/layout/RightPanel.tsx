@@ -258,14 +258,18 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     return (
       <div
         className={[
-          'flex-1 rounded-lg px-3 py-2.5 flex items-center gap-3 shadow-md transition-all',
-          isTurn ? 'bg-slate-700/90 border-2 border-emerald-500/50 shadow-emerald-500/10' : 'bg-slate-800/50 border border-slate-700/30',
+          'flex-1 rounded-lg px-2.5 py-2 flex items-center gap-2.5 shadow-sm transition-all',
+          isTurn
+            ? 'bg-slate-700/90 border-2 border-emerald-500/50 shadow-emerald-500/10'
+            : 'bg-slate-800/50 border border-slate-700/30',
         ].join(' ')}
       >
         <div
           className={[
-            'h-10 w-10 rounded-full flex items-center justify-center font-bold shadow-md text-sm',
-            player === 'black' ? 'bg-slate-950 text-white border-2 border-slate-700' : 'bg-slate-100 text-slate-900 border-2 border-slate-300',
+            'h-9 w-9 rounded-full flex items-center justify-center font-bold shadow-sm text-sm',
+            player === 'black'
+              ? 'bg-slate-950 text-white border-2 border-slate-700'
+              : 'bg-slate-100 text-slate-900 border-2 border-slate-300',
           ].join(' ')}
           title={player === 'black' ? blackName : whiteName}
         >
@@ -304,7 +308,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         <div className="h-14 border-b border-slate-700/50 flex items-center px-3 py-2 gap-2">
           <button
             type="button"
-            className="lg:hidden h-10 w-10 flex items-center justify-center rounded hover:bg-slate-700 text-slate-300 hover:text-white"
+            className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors"
             onClick={onClose}
             title="Close side panel"
           >
@@ -313,8 +317,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <div className="flex flex-1 gap-2">
             <button
               className={[
-                'flex-1 h-10 rounded font-semibold border',
-                mode === 'play' ? 'bg-blue-600/30 border-blue-500 text-white' : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white',
+                'flex-1 h-10 rounded-lg font-semibold border transition-all',
+                mode === 'play'
+                  ? 'bg-blue-600/30 border-blue-500/60 text-white shadow-sm'
+                  : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700/80 hover:text-white',
               ].join(' ')}
               onClick={() => setMode('play')}
             >
@@ -322,10 +328,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             </button>
             <button
               className={[
-                'flex-1 h-10 rounded font-semibold border',
+                'flex-1 h-10 rounded-lg font-semibold border transition-all',
                 mode === 'analyze'
-                  ? 'bg-blue-600/30 border-blue-500 text-white'
-                  : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white',
+                  ? 'bg-blue-600/30 border-blue-500/60 text-white shadow-sm'
+                  : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700/80 hover:text-white',
               ].join(' ')}
               onClick={() => setMode('analyze')}
             >
@@ -334,7 +340,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </div>
           <button
             type="button"
-            className="hidden lg:flex h-10 w-10 items-center justify-center rounded hover:bg-slate-700 text-slate-300 hover:text-white"
+            className="hidden lg:flex h-10 w-10 items-center justify-center rounded-lg hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors"
             onClick={onClose}
             title="Hide side panel"
           >
@@ -346,7 +352,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <div className="flex flex-col min-h-full">
             {/* Game Tree */}
             {showTree && (
-              <div className="px-3 pb-3">
+              <div className="px-3 pt-1">
                 <SectionHeader
                   title="Game Tree"
                   open={modePanels.treeOpen}
@@ -501,14 +507,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
             {/* Game Info */}
             {showInfo && (
-              <div className="px-3 pb-3">
+              <div className="px-3 pt-1">
                 <SectionHeader
                   title="Game Info"
                   open={modePanels.infoOpen}
                   onToggle={() => updatePanels((current) => ({ infoOpen: !current.infoOpen }))}
                 />
                 {modePanels.infoOpen && (
-                  <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-4">
+                  <div className="mt-1 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
                     <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
                     <Timer />
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
@@ -676,20 +682,20 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
             {/* Analysis */}
             {showAnalysis && showAnalysisSection && (
-              <div className="px-3 pb-3">
+              <div className="px-3 pt-1">
                 <SectionHeader
                   title="Analysis"
                   open={modePanels.analysisOpen}
                   onToggle={() => updatePanels((current) => ({ analysisOpen: !current.analysisOpen }))}
                   actions={
-                    <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
-                      <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
+                    <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+                      <span className={['inline-block h-2 w-2 rounded-full', engineDot].join(' ')} />
                       <span title={engineMetaTitle}>{engineMeta}</span>
                     </div>
                   }
                 />
                 {modePanels.analysisOpen && (
-                  <div className="mt-2">
+                  <div className="mt-1">
                     <AnalysisPanel
                       mode={mode}
                       modePanels={modePanels}
@@ -718,7 +724,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
             {/* Comment / Notes */}
             {showNotes && (
-              <div className="px-3 pb-3 flex-1 flex flex-col min-h-[280px]">
+              <div className="px-3 pt-1 pb-3 flex-1 flex flex-col min-h-[280px]">
                 <SectionHeader
                   title="Comment"
                   open={modePanels.notesOpen}
@@ -755,7 +761,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   }
                 />
                 {modePanels.notesOpen && (
-                  <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded flex-1 min-h-0 overflow-hidden flex flex-col">
+                  <div className="mt-1 bg-slate-900 border border-slate-700/50 rounded flex-1 min-h-0 overflow-hidden flex flex-col">
                     <div className="px-3 py-2 border-b border-slate-800 text-xs text-slate-300 flex items-center justify-between">
                       <div className="truncate">
                         <span className="font-mono">{playerToShort(currentPlayer)}</span> ·{' '}

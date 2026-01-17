@@ -68,8 +68,8 @@ export const IconButton: React.FC<{
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
         className={[
-          'h-10 w-10 flex items-center justify-center rounded',
-          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-700 text-slate-300 hover:text-white',
+          'h-10 w-10 flex items-center justify-center rounded-lg transition-colors',
+          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-700/80 text-slate-300 hover:text-white active:bg-slate-700',
           className ?? '',
         ].join(' ')}
       >
@@ -102,19 +102,21 @@ export const TogglePill: React.FC<{
         aria-label={`${active ? 'Hide' : 'Show'} ${label}`}
         aria-pressed={active}
         className={[
-          'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2',
+          'px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all border',
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-700/50',
-          active ? 'bg-slate-700/80 text-white' : 'bg-slate-800/50 text-slate-400',
+          active
+            ? 'bg-slate-700/80 text-white border-slate-600/50 shadow-sm'
+            : 'bg-slate-800/50 text-slate-400 border-slate-700/30',
         ].join(' ')}
       >
         <span
           className={[
-            'inline-block h-2.5 w-2.5 rounded-full',
+            'inline-block h-2 w-2 rounded-full',
             active ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-slate-600',
           ].join(' ')}
           aria-hidden="true"
         />
-        <span>{shortcut ? `${shortcut} ${label}` : label}</span>
+        <span className="whitespace-nowrap">{shortcut ? `${shortcut} ${label}` : label}</span>
       </button>
       <Tooltip
         label={`${active ? 'Hide' : 'Show'} ${label}`}
@@ -176,15 +178,15 @@ export const SectionHeader: React.FC<{
   onToggle: () => void;
   actions?: React.ReactNode;
 }> = ({ title, open, onToggle, actions }) => (
-  <div className="flex items-center justify-between">
+  <div className="flex items-center justify-between py-2.5">
     <button
       type="button"
-      className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2"
+      className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2 transition-colors"
       onClick={onToggle}
     >
-      {open ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+      {open ? <FaChevronDown size={11} className="text-slate-400" /> : <FaChevronRight size={11} className="text-slate-400" />}
       {title}
     </button>
-    {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+    {actions ? <div className="flex items-center gap-1.5">{actions}</div> : null}
   </div>
 );
