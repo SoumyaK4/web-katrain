@@ -178,6 +178,7 @@ export const Layout: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [uiState, setUiState] = useState<UiState>(() => loadUiState());
   const [libraryOpen, setLibraryOpen] = useState(() => {
     if (typeof localStorage === 'undefined') return false;
@@ -452,6 +453,7 @@ export const Layout: React.FC = () => {
       if (!target) return;
       if (target.closest('[data-menu-popover]')) return;
       setAnalysisMenuOpen(false);
+      setViewMenuOpen(false);
     };
     window.addEventListener('mousedown', onDown);
     return () => window.removeEventListener('mousedown', onDown);
@@ -466,6 +468,7 @@ export const Layout: React.FC = () => {
     setIsGameAnalysisOpen,
     setIsGameReportOpen,
     setAnalysisMenuOpen,
+    setViewMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
     toggleLibrary: () => setLibraryOpen((prev) => !prev),
@@ -635,6 +638,7 @@ export const Layout: React.FC = () => {
         <TopControlBar
           settings={settings}
           updateControls={updateControls}
+          updateSettings={updateSettings}
           regionOfInterest={regionOfInterest}
           setRegionOfInterest={setRegionOfInterest}
           isInsertMode={isInsertMode}
@@ -643,6 +647,8 @@ export const Layout: React.FC = () => {
           engineDot={engineDot}
           analysisMenuOpen={analysisMenuOpen}
           setAnalysisMenuOpen={setAnalysisMenuOpen}
+          viewMenuOpen={viewMenuOpen}
+          setViewMenuOpen={setViewMenuOpen}
           analyzeExtra={analyzeExtra}
           startSelectRegionOfInterest={startSelectRegionOfInterest}
           resetCurrentAnalysis={resetCurrentAnalysis}

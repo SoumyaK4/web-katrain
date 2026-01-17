@@ -12,6 +12,7 @@ interface UseKeyboardShortcutsOptions {
   setIsGameAnalysisOpen: (v: boolean) => void;
   setIsGameReportOpen: (v: boolean) => void;
   setAnalysisMenuOpen: (v: boolean) => void;
+  setViewMenuOpen: (v: boolean) => void;
   setMenuOpen: (v: boolean) => void;
   setIsKeyboardHelpOpen: (v: boolean) => void;
   toggleLibrary: () => void;
@@ -28,6 +29,7 @@ export function useKeyboardShortcuts({
   setIsGameAnalysisOpen,
   setIsGameReportOpen,
   setAnalysisMenuOpen,
+  setViewMenuOpen,
   setMenuOpen,
   setIsKeyboardHelpOpen,
   toggleLibrary,
@@ -206,6 +208,7 @@ export function useKeyboardShortcuts({
         setIsGameAnalysisOpen(false);
         setIsGameReportOpen(false);
         setAnalysisMenuOpen(false);
+        setViewMenuOpen(false);
         setMenuOpen(false);
         setIsKeyboardHelpOpen(false);
         closeLibrary();
