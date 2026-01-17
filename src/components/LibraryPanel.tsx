@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight, FaDownload, FaCheckSquare, FaSquare, FaPlus, FaArrowUp } from 'react-icons/fa';
+import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight, FaDownload, FaCheckSquare, FaSquare, FaPlus, FaArrowUp, FaChevronLeft } from 'react-icons/fa';
 import {
   createLibraryFolder,
   createLibraryItem,
@@ -708,7 +708,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         ref={panelRef}
         data-dropzone="library"
         className={[
-          'bg-slate-900 border-r border-slate-700/50 flex flex-col',
+          'bg-slate-900 border-r border-slate-700/50 flex flex-col overflow-x-hidden',
           'fixed inset-y-0 left-0 z-40 w-full max-w-sm',
           'lg:static lg:z-auto',
           docked ? 'lg:max-w-none' : 'lg:w-80',
@@ -730,6 +730,14 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           </button>
           <div className="font-semibold text-slate-100">Library</div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              className="hidden lg:flex h-9 w-9 items-center justify-center rounded hover:bg-slate-700 text-slate-300 hover:text-white"
+              onClick={onClose}
+              title="Hide library"
+            >
+              <FaChevronLeft />
+            </button>
             <button
               type="button"
               className="px-2 py-1 rounded bg-slate-800/70 text-xs text-slate-200 hover:bg-slate-700"

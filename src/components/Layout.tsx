@@ -230,6 +230,10 @@ export const Layout: React.FC = () => {
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [isFileDragActive, setIsFileDragActive] = useState(false);
   const fileDragCounter = useRef(0);
+  const [viewportWidth, setViewportWidth] = useState(() => {
+    if (typeof window === 'undefined') return 1200;
+    return window.innerWidth;
+  });
 
   const mode = uiState.mode;
   const modeControls = uiState.analysisControls[mode];
@@ -343,11 +347,28 @@ export const Layout: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!isResizingLeft && !isResizingRight) return;
     const minLeft = 220;
-    const maxLeft = 520;
     const minRight = 280;
-    const maxRight = 520;
+    const maxLeftLimit = 520;
+    const maxRightLimit = 520;
+    const minMain = isDesktop ? 420 : 0;
+    const maxLeft = Math.max(
+      minLeft,
+      Math.min(maxLeftLimit, viewportWidth - minMain - (showSidebar ? rightPanelWidth : 0))
+    );
+    const maxRight = Math.max(
+      minRight,
+      Math.min(maxRightLimit, viewportWidth - minMain - (libraryOpen ? leftPanelWidth : 0))
+    );
     const onMove = (e: MouseEvent) => {
       if (isResizingLeft) {
         const next = Math.min(maxLeft, Math.max(minLeft, e.clientX));
@@ -370,7 +391,42 @@ export const Layout: React.FC = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [isResizingLeft, isResizingRight]);
+  }, [
+    isResizingLeft,
+    isResizingRight,
+    isDesktop,
+    viewportWidth,
+    leftPanelWidth,
+    rightPanelWidth,
+    libraryOpen,
+    showSidebar,
+  ]);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    const minLeft = 220;
+    const minRight = 280;
+    const maxLeftLimit = 520;
+    const maxRightLimit = 520;
+    const minMain = 420;
+    const maxLeft = Math.max(
+      minLeft,
+      Math.min(maxLeftLimit, viewportWidth - minMain - (showSidebar ? rightPanelWidth : 0))
+    );
+    const maxRight = Math.max(
+      minRight,
+      Math.min(maxRightLimit, viewportWidth - minMain - (libraryOpen ? leftPanelWidth : 0))
+    );
+
+    if (libraryOpen) {
+      const nextLeft = Math.min(maxLeft, Math.max(minLeft, leftPanelWidth));
+      if (nextLeft !== leftPanelWidth) setLeftPanelWidth(nextLeft);
+    }
+    if (showSidebar) {
+      const nextRight = Math.min(maxRight, Math.max(minRight, rightPanelWidth));
+      if (nextRight !== rightPanelWidth) setRightPanelWidth(nextRight);
+    }
+  }, [isDesktop, viewportWidth, libraryOpen, showSidebar, leftPanelWidth, rightPanelWidth]);
 
   // Apply per-mode analysis controls to settings on mode changes
   useEffect(() => {
@@ -909,6 +965,7 @@ export const Layout: React.FC = () => {
         <div
           className="hidden lg:block w-1 cursor-col-resize bg-slate-800/60 hover:bg-slate-600/80 transition-colors"
           onMouseDown={() => setIsResizingLeft(true)}
+          onDoubleClick={handleToggleLibrary}
         />
       )}
 
@@ -952,24 +1009,24 @@ export const Layout: React.FC = () => {
           onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
           onLoad={handleLoadClick}
           onOpenSidePanel={handleOpenSidePanel}
-        onToggleLibrary={handleToggleLibrary}
-        isLibraryOpen={libraryOpen}
-        onToggleSidebar={handleToggleSidebar}
-        isSidebarOpen={sidebarOpen}
-        onCopySgf={handleCopySgf}
-        onPasteSgf={handlePasteSgf}
-        onSettings={() => setIsSettingsOpen(true)}
-        onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
-        winRateLabel={winRateLabel}
-        scoreLeadLabel={scoreLeadLabel}
-        pointsLostLabel={pointsLostLabel}
-        engineMeta={engineMeta}
-        engineMetaTitle={engineMetaTitle}
+          onToggleLibrary={handleToggleLibrary}
+          isLibraryOpen={libraryOpen}
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={sidebarOpen}
+          onCopySgf={handleCopySgf}
+          onPasteSgf={handlePasteSgf}
+          onSettings={() => setIsSettingsOpen(true)}
+          onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
+          winRateLabel={winRateLabel}
+          scoreLeadLabel={scoreLeadLabel}
+          pointsLostLabel={pointsLostLabel}
+          engineMeta={engineMeta}
+          engineMetaTitle={engineMetaTitle}
           engineError={engineError}
         />
 
         {/* Board */}
-        <div className="flex-1 flex items-center justify-center bg-slate-900 overflow-auto p-4 relative">
+        <div className={['flex-1 flex items-center justify-center bg-slate-900 overflow-auto relative', isMobile ? 'p-2' : 'p-4'].join(' ')}>
           {notification && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded shadow-lg flex items-center space-x-4 bg-slate-800 border border-slate-700/50">
               <span>{notification.message}</span>
@@ -1006,6 +1063,7 @@ export const Layout: React.FC = () => {
         <div
           className="hidden lg:block w-1 cursor-col-resize bg-slate-800/60 hover:bg-slate-600/80 transition-colors"
           onMouseDown={() => setIsResizingRight(true)}
+          onDoubleClick={handleToggleSidebar}
         />
       )}
 
