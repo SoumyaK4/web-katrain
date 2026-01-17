@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
 
 export function rgba(color: readonly [number, number, number, number], alphaOverride?: number): string {
   const a = typeof alphaOverride === 'number' ? alphaOverride : color[3];
@@ -168,3 +169,22 @@ export function formatMoveLabel(x: number, y: number): string {
 export function playerToShort(p: 'black' | 'white'): string {
   return p === 'black' ? 'B' : 'W';
 }
+
+export const SectionHeader: React.FC<{
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  actions?: React.ReactNode;
+}> = ({ title, open, onToggle, actions }) => (
+  <div className="flex items-center justify-between">
+    <button
+      type="button"
+      className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2"
+      onClick={onToggle}
+    >
+      {open ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+      {title}
+    </button>
+    {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+  </div>
+);

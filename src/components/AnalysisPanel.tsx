@@ -1,12 +1,14 @@
 import React from 'react';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import type { UiMode, UiState } from './layout/types';
-import { PanelHeaderButton } from './layout/ui';
+import { PanelHeaderButton, SectionHeader } from './layout/ui';
 
 interface AnalysisPanelProps {
   mode: UiMode;
   modePanels: UiState['panels'][UiMode];
-  updatePanels: (partial: Partial<UiState['panels'][UiMode]>) => void;
+  updatePanels: (
+    partial: Partial<UiState['panels'][UiMode]> | ((current: UiState['panels'][UiMode]) => Partial<UiState['panels'][UiMode]>)
+  ) => void;
   statusText: string;
   engineDot: string;
   engineMeta: string;
@@ -118,32 +120,31 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       </div>
 
       <div>
-        <div className="flex items-center justify-between">
-          <button
-            className="text-sm font-semibold text-slate-200 hover:text-white"
-            onClick={() => updatePanels({ graphOpen: !modePanels.graphOpen })}
-          >
-            Score / Winrate Graph
-          </button>
-          <div className="flex gap-1">
-            <PanelHeaderButton
-              label="Score"
-              colorClass="bg-blue-600/30"
-              active={modePanels.graph.score}
-              onClick={() =>
-                updatePanels({ graph: { ...modePanels.graph, score: !modePanels.graph.score } })
-              }
-            />
-            <PanelHeaderButton
-              label="Win%"
-              colorClass="bg-green-600/30"
-              active={modePanels.graph.winrate}
-              onClick={() =>
-                updatePanels({ graph: { ...modePanels.graph, winrate: !modePanels.graph.winrate } })
-              }
-            />
-          </div>
-        </div>
+        <SectionHeader
+          title="Score / Winrate Graph"
+          open={modePanels.graphOpen}
+          onToggle={() => updatePanels((current) => ({ graphOpen: !current.graphOpen }))}
+          actions={
+            <div className="flex gap-1">
+              <PanelHeaderButton
+                label="Score"
+                colorClass="bg-blue-600/30"
+                active={modePanels.graph.score}
+                onClick={() =>
+                  updatePanels((current) => ({ graph: { ...current.graph, score: !current.graph.score } }))
+                }
+              />
+              <PanelHeaderButton
+                label="Win%"
+                colorClass="bg-green-600/30"
+                active={modePanels.graph.winrate}
+                onClick={() =>
+                  updatePanels((current) => ({ graph: { ...current.graph, winrate: !current.graph.winrate } }))
+                }
+              />
+            </div>
+          }
+        />
         {modePanels.graphOpen && (
           <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-2">
             {modePanels.graph.score || modePanels.graph.winrate ? (
@@ -158,40 +159,39 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       </div>
 
       <div>
-        <div className="flex items-center justify-between">
-          <button
-            className="text-sm font-semibold text-slate-200 hover:text-white"
-            onClick={() => updatePanels({ statsOpen: !modePanels.statsOpen })}
-          >
-            Move Stats
-          </button>
-          <div className="flex gap-1">
-            <PanelHeaderButton
-              label="Score"
-              colorClass="bg-blue-600/30"
-              active={modePanels.stats.score}
-              onClick={() =>
-                updatePanels({ stats: { ...modePanels.stats, score: !modePanels.stats.score } })
-              }
-            />
-            <PanelHeaderButton
-              label="Win%"
-              colorClass="bg-green-600/30"
-              active={modePanels.stats.winrate}
-              onClick={() =>
-                updatePanels({ stats: { ...modePanels.stats, winrate: !modePanels.stats.winrate } })
-              }
-            />
-            <PanelHeaderButton
-              label="Pts"
-              colorClass="bg-red-600/30"
-              active={modePanels.stats.points}
-              onClick={() =>
-                updatePanels({ stats: { ...modePanels.stats, points: !modePanels.stats.points } })
-              }
-            />
-          </div>
-        </div>
+        <SectionHeader
+          title="Move Stats"
+          open={modePanels.statsOpen}
+          onToggle={() => updatePanels((current) => ({ statsOpen: !current.statsOpen }))}
+          actions={
+            <div className="flex gap-1">
+              <PanelHeaderButton
+                label="Score"
+                colorClass="bg-blue-600/30"
+                active={modePanels.stats.score}
+                onClick={() =>
+                  updatePanels((current) => ({ stats: { ...current.stats, score: !current.stats.score } }))
+                }
+              />
+              <PanelHeaderButton
+                label="Win%"
+                colorClass="bg-green-600/30"
+                active={modePanels.stats.winrate}
+                onClick={() =>
+                  updatePanels((current) => ({ stats: { ...current.stats, winrate: !current.stats.winrate } }))
+                }
+              />
+              <PanelHeaderButton
+                label="Pts"
+                colorClass="bg-red-600/30"
+                active={modePanels.stats.points}
+                onClick={() =>
+                  updatePanels((current) => ({ stats: { ...current.stats, points: !current.stats.points } }))
+                }
+              />
+            </div>
+          }
+        />
         {modePanels.statsOpen && (
           <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden">
             {modePanels.stats.winrate && (

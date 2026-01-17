@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaChevronDown, FaChevronRight, FaTimes, FaFastBackward, FaFastForward, FaArrowUp, FaArrowDown, FaLevelUpAlt, FaSitemap } from 'react-icons/fa';
+import { FaTimes, FaFastBackward, FaFastForward, FaArrowUp, FaArrowDown, FaLevelUpAlt, FaSitemap } from 'react-icons/fa';
 import type { Player, GameNode, Move } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { AnalysisPanel } from '../AnalysisPanel';
@@ -8,7 +8,7 @@ import { NotesPanel } from '../NotesPanel';
 import { Timer } from '../Timer';
 import type { UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
-import { IconButton, PanelHeaderButton, formatMoveLabel, playerToShort } from './ui';
+import { IconButton, PanelHeaderButton, SectionHeader, formatMoveLabel, playerToShort } from './ui';
 
 interface RightPanelProps {
   open: boolean;
@@ -21,7 +21,9 @@ interface RightPanelProps {
   mode: UiMode;
   setMode: (m: UiMode) => void;
   modePanels: UiState['panels'][UiMode];
-  updatePanels: (partial: Partial<UiState['panels'][UiMode]>) => void;
+  updatePanels: (
+    partial: Partial<UiState['panels'][UiMode]> | ((current: UiState['panels'][UiMode]) => Partial<UiState['panels'][UiMode]>)
+  ) => void;
   rootNode: GameNode;
   treeVersion: number;
   // Game analysis actions
@@ -246,25 +248,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     };
   }, [isResizingTree]);
 
-  const SectionHeader: React.FC<{
-    title: string;
-    open: boolean;
-    onToggle: () => void;
-    actions?: React.ReactNode;
-  }> = ({ title, open, onToggle, actions }) => (
-    <div className="flex items-center justify-between">
-      <button
-        type="button"
-        className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2"
-        onClick={onToggle}
-      >
-        {open ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
-        {title}
-      </button>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-    </div>
-  );
-
   const renderPlayerInfo = (player: Player) => {
     const isTurn = currentPlayer === player;
     const isAi = isAiPlaying && aiColor === player;
@@ -367,7 +350,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <SectionHeader
                   title="Game Tree"
                   open={modePanels.treeOpen}
-                  onToggle={() => updatePanels({ treeOpen: !modePanels.treeOpen })}
+                  onToggle={() => updatePanels((current) => ({ treeOpen: !current.treeOpen }))}
                   actions={
                     <div className="flex items-center gap-2">
                       <button
@@ -522,7 +505,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <SectionHeader
                   title="Game Info"
                   open={modePanels.infoOpen}
-                  onToggle={() => updatePanels({ infoOpen: !modePanels.infoOpen })}
+                  onToggle={() => updatePanels((current) => ({ infoOpen: !current.infoOpen }))}
                 />
                 {modePanels.infoOpen && (
                   <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
@@ -697,7 +680,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <SectionHeader
                   title="Analysis"
                   open={modePanels.analysisOpen}
-                  onToggle={() => updatePanels({ analysisOpen: !modePanels.analysisOpen })}
+                  onToggle={() => updatePanels((current) => ({ analysisOpen: !current.analysisOpen }))}
                   actions={
                     <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
                       <span className={['inline-block h-2.5 w-2.5 rounded-full', engineDot].join(' ')} />
@@ -739,7 +722,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <SectionHeader
                   title="Comment"
                   open={modePanels.notesOpen}
-                  onToggle={() => updatePanels({ notesOpen: !modePanels.notesOpen })}
+                  onToggle={() => updatePanels((current) => ({ notesOpen: !current.notesOpen }))}
                   actions={
                     <div className="flex gap-1">
                       <PanelHeaderButton
@@ -752,21 +735,21 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         label="Info"
                         colorClass="bg-slate-700"
                         active={modePanels.notes.info}
-                        onClick={() => updatePanels({ notes: { ...modePanels.notes, info: !modePanels.notes.info } })}
+                        onClick={() => updatePanels((current) => ({ notes: { ...current.notes, info: !current.notes.info } }))}
                       />
                       <PanelHeaderButton
                         label="Details"
                         colorClass="bg-slate-700"
                         active={modePanels.notes.infoDetails}
                         onClick={() =>
-                          updatePanels({ notes: { ...modePanels.notes, infoDetails: !modePanels.notes.infoDetails } })
+                          updatePanels((current) => ({ notes: { ...current.notes, infoDetails: !current.notes.infoDetails } }))
                         }
                       />
                       <PanelHeaderButton
                         label="Notes"
                         colorClass="bg-purple-600/30"
                         active={modePanels.notes.notes}
-                        onClick={() => updatePanels({ notes: { ...modePanels.notes, notes: !modePanels.notes.notes } })}
+                        onClick={() => updatePanels((current) => ({ notes: { ...current.notes, notes: !current.notes.notes } }))}
                       />
                     </div>
                   }
