@@ -569,7 +569,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     const stoneRadius = cellSize * STONE_SIZE;
     const stoneDiameter = 2 * stoneRadius;
 
-    const drawGhost = (x: number, y: number, player: typeof currentPlayer) => {
+    const drawGhost = (x: number, y: number, player: typeof currentPlayer, alpha = 0.6) => {
       const d = toDisplay(x, y);
       const stoneConfig = player === 'black' ? boardTheme.stones.black : boardTheme.stones.white;
       const scale = parsePercent(stoneConfig.size, 1);
@@ -580,7 +580,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       const left = originX + d.x * cellSize - radius + offsetX;
       const top = originY + d.y * cellSize - radius + offsetY;
       ctx.save();
-      ctx.globalAlpha = 0.6;
+      ctx.globalAlpha = alpha;
       const imageList = player === 'black' ? blackImages : whiteImages;
       const img = imageList[0];
       if (img && img.complete && img.naturalWidth > 0) {
@@ -595,12 +595,19 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     };
 
     if (cursorPt && !board[cursorPt.y]?.[cursorPt.x]) {
-      drawGhost(cursorPt.x, cursorPt.y, currentPlayer);
+      drawGhost(cursorPt.x, cursorPt.y, currentPlayer, 0.6);
     }
 
     if (isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0)) {
       if (hoveredMove.x >= 0 && hoveredMove.y >= 0) {
-        drawGhost(hoveredMove.x, hoveredMove.y, currentPlayer);
+        drawGhost(hoveredMove.x, hoveredMove.y, currentPlayer, 0.6);
+      }
+    }
+
+    if (settings.showNextMovePreview) {
+      const nextMove = currentNode.children[0]?.move;
+      if (nextMove && nextMove.x >= 0 && nextMove.y >= 0 && !board[nextMove.y]?.[nextMove.x]) {
+        drawGhost(nextMove.x, nextMove.y, nextMove.player, 0.35);
       }
     }
   }, [
@@ -617,6 +624,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     stoneTextureVersion,
     toDisplay,
     boardTheme,
+    currentNode,
+    settings.showNextMovePreview,
   ]);
 
   useEffect(() => {

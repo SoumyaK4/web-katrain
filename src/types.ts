@@ -87,6 +87,7 @@ export interface GameSettings {
   showCoordinates: boolean;
   showMoveNumbers: boolean;
   showBoardControls: boolean;
+  showNextMovePreview: boolean;
   boardTheme: BoardThemeId;
   timerSound: boolean; // KaTrain timer/sound
   timerMainTimeMinutes: number; // KaTrain timer/main_time (minutes)

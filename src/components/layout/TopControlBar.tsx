@@ -228,6 +228,13 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               </button>
               <button
                 className="w-full px-3 py-2 text-left hover:bg-slate-700 flex items-center justify-between"
+                onClick={() => updateSettings({ showNextMovePreview: !settings.showNextMovePreview })}
+              >
+                <span>Next move preview</span>
+                <span className="text-xs text-slate-400">{settings.showNextMovePreview ? 'on' : 'off'}</span>
+              </button>
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-slate-700 flex items-center justify-between"
                 onClick={() => updateSettings({ showMoveNumbers: !settings.showMoveNumbers })}
               >
                 <span>Move numbers</span>

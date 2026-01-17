@@ -177,6 +177,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         />
                     </div>
 
+                    {/* Next Move Preview */}
+                    <div className="flex items-center justify-between">
+                        <label className="text-slate-300">Next Move Preview</label>
+                        <input
+                            type="checkbox"
+                            checked={settings.showNextMovePreview}
+                            onChange={(e) => updateSettings({ showNextMovePreview: e.target.checked })}
+                            className="toggle"
+                        />
+                    </div>
+
                     {/* Move Numbers */}
                     <div className="flex items-center justify-between">
                         <label className="text-slate-300">Show Move Numbers</label>

@@ -312,6 +312,7 @@ const defaultSettings: GameSettings = {
   showCoordinates: true,
   showMoveNumbers: false,
   showBoardControls: true,
+  showNextMovePreview: true,
   boardTheme: 'hikaru',
   timerSound: true,
   timerMainTimeMinutes: 0,
