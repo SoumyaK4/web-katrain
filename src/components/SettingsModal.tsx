@@ -38,6 +38,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const KATRAIN_DEFAULT_MODEL_URL = publicUrl('models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz');
     const SMALL_MODEL_URL = publicUrl('models/katago-small.bin.gz');
     const isUploadedModel = settings.katagoModelUrl.startsWith('blob:');
+    const sectionClass =
+        'rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4 sm:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.45)]';
+    const sectionTitleClass = 'text-xs font-semibold text-slate-300 tracking-[0.12em] uppercase';
+    const rowClass = 'flex items-center justify-between gap-4 min-h-11';
+    const labelClass = 'text-slate-200 text-sm sm:text-base';
+    const inputClass =
+        'w-full bg-slate-950/60 text-white rounded-lg px-3 py-2 border border-slate-700/60 focus:border-emerald-400/80 outline-none text-sm font-mono';
+    const selectClass =
+        'w-full bg-slate-950/60 text-white rounded-lg px-3 py-2 border border-slate-700/60 focus:border-emerald-400/80 outline-none text-sm';
+    const subtextClass = 'text-xs text-slate-400 leading-relaxed';
+    const pillButtonClass =
+        'px-3 py-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 text-xs font-mono text-white border border-slate-700/60 transition-colors';
 
     const TOP_MOVE_OPTIONS: Array<{ value: GameSettings['trainerTopMovesShow']; label: string }> = [
         { value: 'top_move_delta_score', label: 'Δ Score (points lost)' },
@@ -78,418 +90,436 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-slate-800 rounded-lg shadow-xl w-96 max-h-[90vh] overflow-hidden flex flex-col">
-                <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
-                    <h2 className="text-lg font-semibold text-white">Settings</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6">
+            <div className="w-full max-w-[960px] h-[92vh] sm:h-auto sm:max-h-[92vh] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 rounded-2xl shadow-2xl border border-slate-700/40 overflow-hidden flex flex-col">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur">
+                    <h2 className="text-lg sm:text-xl font-semibold text-white">Settings</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                         <FaTimes />
                     </button>
                 </div>
-                <div className="p-4 space-y-4 overflow-y-auto">
-                    {/* Sound */}
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Sound Effects</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.soundEnabled}
-                            onChange={(e) => updateSettings({ soundEnabled: e.target.checked })}
-                            className="toggle"
-                        />
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-700/50">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-3">Timer</h3>
-
+                <div className="px-4 sm:px-6 py-5 space-y-6 overflow-y-auto">
+                    <div className={sectionClass}>
                         <div className="flex items-center justify-between">
-                            <label className="text-slate-300">Timer Sound</label>
-                            <input
-                                type="checkbox"
-                                checked={settings.timerSound}
-                                onChange={(e) => updateSettings({ timerSound: e.target.checked })}
-                                className="toggle"
-                            />
+                            <h3 className={sectionTitleClass}>Timer</h3>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3 mt-3">
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Main Time (min)</label>
+                        <div className="mt-4 space-y-4">
+                            <div className={rowClass}>
+                                <label className={labelClass}>Sound Effects</label>
                                 <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={settings.timerMainTimeMinutes}
-                                    onChange={(e) => updateSettings({ timerMainTimeMinutes: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    type="checkbox"
+                                    checked={settings.soundEnabled}
+                                    onChange={(e) => updateSettings({ soundEnabled: e.target.checked })}
+                                    className="toggle"
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Byo Length (sec)</label>
+                            <div className={rowClass}>
+                                <label className={labelClass}>Timer Sound</label>
                                 <input
-                                    type="number"
-                                    min={1}
-                                    step={1}
-                                    value={settings.timerByoLengthSeconds}
-                                    onChange={(e) => updateSettings({ timerByoLengthSeconds: Math.max(1, parseInt(e.target.value || '1', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    type="checkbox"
+                                    checked={settings.timerSound}
+                                    onChange={(e) => updateSettings({ timerSound: e.target.checked })}
+                                    className="toggle"
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Byo Periods</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-slate-300 block text-sm">Main Time (min)</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.timerMainTimeMinutes}
+                                        onChange={(e) => updateSettings({ timerMainTimeMinutes: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-slate-300 block text-sm">Byo Length (sec)</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        value={settings.timerByoLengthSeconds}
+                                        onChange={(e) => updateSettings({ timerByoLengthSeconds: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-slate-300 block text-sm">Byo Periods</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        value={settings.timerByoPeriods}
+                                        onChange={(e) => updateSettings({ timerByoPeriods: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-slate-300 block text-sm">Minimal Use (sec)</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={settings.timerMinimalUseSeconds}
+                                        onChange={(e) => updateSettings({ timerMinimalUseSeconds: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                            </div>
+
+                            <p className={subtextClass}>
+                                KaTrain-style clock (main time, then byo-yomi periods). Timer runs only in Play mode and only for human turns.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>Board Theme</h3>
+                        <div className="mt-4 space-y-4">
+                            <div className={rowClass}>
+                                <label className={labelClass}>Show Coordinates</label>
                                 <input
-                                    type="number"
-                                    min={1}
-                                    step={1}
-                                    value={settings.timerByoPeriods}
-                                    onChange={(e) => updateSettings({ timerByoPeriods: Math.max(1, parseInt(e.target.value || '1', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    type="checkbox"
+                                    checked={settings.showCoordinates}
+                                    onChange={(e) => updateSettings({ showCoordinates: e.target.checked })}
+                                    className="toggle"
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Minimal Use (sec)</label>
+                            <div className={rowClass}>
+                                <label className={labelClass}>Next Move Preview</label>
                                 <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={settings.timerMinimalUseSeconds}
-                                    onChange={(e) => updateSettings({ timerMinimalUseSeconds: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    type="checkbox"
+                                    checked={settings.showNextMovePreview}
+                                    onChange={(e) => updateSettings({ showNextMovePreview: e.target.checked })}
+                                    className="toggle"
                                 />
                             </div>
-                        </div>
 
-                        <p className="text-xs text-slate-500 mt-2">
-                            KaTrain-style clock (main time, then byo-yomi periods). Timer runs only in Play mode and only for human turns.
-                        </p>
-                    </div>
+                            <div className={rowClass}>
+                                <label className={labelClass}>Show Move Numbers</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.showMoveNumbers}
+                                    onChange={(e) => updateSettings({ showMoveNumbers: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
 
-                    {/* Coordinates */}
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Show Coordinates</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.showCoordinates}
-                            onChange={(e) => updateSettings({ showCoordinates: e.target.checked })}
-                            className="toggle"
-                        />
-                    </div>
+                            <div className={rowClass}>
+                                <label className={labelClass}>Show Board Controls</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.showBoardControls}
+                                    onChange={(e) => updateSettings({ showBoardControls: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
 
-                    {/* Next Move Preview */}
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Next Move Preview</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.showNextMovePreview}
-                            onChange={(e) => updateSettings({ showNextMovePreview: e.target.checked })}
-                            className="toggle"
-                        />
-                    </div>
-
-                    {/* Move Numbers */}
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Show Move Numbers</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.showMoveNumbers}
-                            onChange={(e) => updateSettings({ showMoveNumbers: e.target.checked })}
-                            className="toggle"
-                        />
-                    </div>
-
-                    {/* SGF Load */}
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Load SGF Rewind</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.loadSgfRewind}
-                            onChange={(e) => updateSettings({ loadSgfRewind: e.target.checked })}
-                            className="toggle"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Load SGF Fast Analysis</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.loadSgfFastAnalysis}
-                            onChange={(e) => updateSettings({ loadSgfFastAnalysis: e.target.checked })}
-                            className="toggle"
-                        />
-                    </div>
-                    <p className="text-xs text-slate-500">
-                        KaTrain-style: runs fast MCTS analysis on load (uses “Fast Visits”) so graphs/points lost fill in quickly.
-                    </p>
-
-                    <div className="space-y-1">
-                        <label className="text-slate-300 block text-sm">PV Animation Time (sec)</label>
-                        <input
-                            type="number"
-                            min={0}
-                            step={0.05}
-                            value={settings.animPvTimeSeconds ?? DEFAULT_ANIM_PV_TIME}
-                            onChange={(e) =>
-                                updateSettings({
-                                    animPvTimeSeconds: Math.max(0, parseFloat(e.target.value || String(DEFAULT_ANIM_PV_TIME))),
-                                })
-                            }
-                            className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
-                        />
-                        <p className="text-xs text-slate-500">KaTrain-style PV animation speed (0 disables animation).</p>
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-slate-300 block text-sm">Rules</label>
-                        <select
-                            value={settings.gameRules}
-                            onChange={(e) => updateSettings({ gameRules: e.target.value as GameSettings['gameRules'] })}
-                            className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm"
-                        >
-                            <option value="japanese">Japanese (KaTrain default)</option>
-                            <option value="chinese">Chinese</option>
-                            <option value="korean">Korean</option>
-                        </select>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-700/50">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-3">Analysis Overlays</h3>
-
-                        <div className="flex items-center justify-between">
-                            <label className="text-slate-300">Show Children (Q)</label>
-                            <input
-                                type="checkbox"
-                                checked={settings.analysisShowChildren}
-                                onChange={(e) => updateSettings({ analysisShowChildren: e.target.checked })}
-                                className="toggle"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <label className="text-slate-300">Evaluation Dots (W)</label>
-                            <input
-                                type="checkbox"
-                                checked={settings.analysisShowEval}
-                                onChange={(e) => updateSettings({ analysisShowEval: e.target.checked })}
-                                className="toggle"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <label className="text-slate-300">Top Moves (Hints) (E)</label>
-                            <input
-                                type="checkbox"
-                                checked={settings.analysisShowHints}
-                                onChange={(e) => updateSettings({ analysisShowHints: e.target.checked })}
-                                className="toggle"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <label className="text-slate-300">Policy (R)</label>
-                            <input
-                                type="checkbox"
-                                checked={settings.analysisShowPolicy}
-                                onChange={(e) => updateSettings({ analysisShowPolicy: e.target.checked })}
-                                className="toggle"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <label className="text-slate-300">Ownership (Territory) (T)</label>
-                            <input
-                                type="checkbox"
-                                checked={settings.analysisShowOwnership}
-                                onChange={(e) => updateSettings({ analysisShowOwnership: e.target.checked })}
-                                className="toggle"
-                            />
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-700/50 space-y-3">
-                            <h4 className="text-xs font-semibold text-slate-300 tracking-wide">KaTrain Hint Labels</h4>
-
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Evaluation Theme</label>
+                            <div className="space-y-2">
+                                <label className="text-slate-300 block">Board Theme</label>
                                 <select
-                                    value={settings.trainerTheme ?? 'theme:normal'}
-                                    onChange={(e) => updateSettings({ trainerTheme: e.target.value as GameSettings['trainerTheme'] })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm"
+                                    value={settings.boardTheme}
+                                    onChange={(e) => updateSettings({ boardTheme: e.target.value as GameSettings['boardTheme'] })}
+                                    className={selectClass}
                                 >
-                                    <option value="theme:normal">Normal</option>
-                                    <option value="theme:red-green-colourblind">Red/Green colourblind</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Low Visits Threshold</label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    step={1}
-                                    value={settings.trainerLowVisits}
-                                    onChange={(e) => updateSettings({ trainerLowVisits: Math.max(1, parseInt(e.target.value || '1', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Primary Label</label>
-                                <select
-                                    value={settings.trainerTopMovesShow}
-                                    onChange={(e) => updateSettings({ trainerTopMovesShow: e.target.value as GameSettings['trainerTopMovesShow'] })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm"
-                                >
-                                    {TOP_MOVE_OPTIONS.map((o) => (
-                                        <option key={o.value} value={o.value}>
-                                            {o.label}
+                                    {BOARD_THEME_OPTIONS.map((theme) => (
+                                        <option key={theme.value} value={theme.value}>
+                                            {theme.label}
                                         </option>
                                     ))}
                                 </select>
                             </div>
+                        </div>
+                    </div>
 
-                            <div className="space-y-1">
-                                <label className="text-slate-300 block text-sm">Secondary Label</label>
-                                <select
-                                    value={settings.trainerTopMovesShowSecondary}
-                                    onChange={(e) =>
-                                        updateSettings({ trainerTopMovesShowSecondary: e.target.value as GameSettings['trainerTopMovesShowSecondary'] })
-                                    }
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm"
-                                >
-                                    {TOP_MOVE_OPTIONS.map((o) => (
-                                        <option key={o.value} value={o.value}>
-                                            {o.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <label className="text-slate-300">Extra Precision</label>
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>Rules</h3>
+                        <div className="mt-4 space-y-4">
+                            <div className={rowClass}>
+                                <label className={labelClass}>Load SGF Rewind</label>
                                 <input
                                     type="checkbox"
-                                    checked={settings.trainerExtraPrecision}
-                                    onChange={(e) => updateSettings({ trainerExtraPrecision: e.target.checked })}
+                                    checked={settings.loadSgfRewind}
+                                    onChange={(e) => updateSettings({ loadSgfRewind: e.target.checked })}
                                     className="toggle"
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between">
-                                <label className="text-slate-300">Show AI Dots</label>
+                            <div className={rowClass}>
+                                <label className={labelClass}>Load SGF Fast Analysis</label>
                                 <input
                                     type="checkbox"
-                                    checked={settings.trainerEvalShowAi}
-                                    onChange={(e) => updateSettings({ trainerEvalShowAi: e.target.checked })}
+                                    checked={settings.loadSgfFastAnalysis}
+                                    onChange={(e) => updateSettings({ loadSgfFastAnalysis: e.target.checked })}
                                     className="toggle"
                                 />
                             </div>
+                            <p className={subtextClass}>
+                                KaTrain-style: runs fast MCTS analysis on load (uses “Fast Visits”) so graphs/points lost fill in quickly.
+                            </p>
 
-                            <div className="flex items-center justify-between">
-                                <label className="text-slate-300">Cache analysis to SGF</label>
-                                <input
-                                    type="checkbox"
-                                    checked={settings.trainerSaveAnalysis}
-                                    onChange={(e) => updateSettings({ trainerSaveAnalysis: e.target.checked })}
-                                    className="toggle"
-                                />
-                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-slate-300 block text-sm">PV Animation Time (sec)</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={0.05}
+                                        value={settings.animPvTimeSeconds ?? DEFAULT_ANIM_PV_TIME}
+                                        onChange={(e) =>
+                                            updateSettings({
+                                                animPvTimeSeconds: Math.max(0, parseFloat(e.target.value || String(DEFAULT_ANIM_PV_TIME))),
+                                            })
+                                        }
+                                        className={inputClass}
+                                    />
+                                    <p className={subtextClass}>KaTrain-style PV animation speed (0 disables animation).</p>
+                                </div>
 
-                            <div className="flex items-center justify-between">
-                                <label className="text-slate-300">Save SGF marks (X / square)</label>
-                                <input
-                                    type="checkbox"
-                                    checked={settings.trainerSaveMarks}
-                                    onChange={(e) => updateSettings({ trainerSaveMarks: e.target.checked })}
-                                    className="toggle"
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <label className="text-slate-300">Lock AI details (Play mode)</label>
-                                <input
-                                    type="checkbox"
-                                    checked={settings.trainerLockAi}
-                                    onChange={(e) => updateSettings({ trainerLockAi: e.target.checked })}
-                                    className="toggle"
-                                />
+                                <div className="space-y-1">
+                                    <label className="text-slate-300 block text-sm">Rules</label>
+                                    <select
+                                        value={settings.gameRules}
+                                        onChange={(e) => updateSettings({ gameRules: e.target.value as GameSettings['gameRules'] })}
+                                        className={selectClass}
+                                    >
+                                        <option value="japanese">Japanese (KaTrain default)</option>
+                                        <option value="chinese">Chinese</option>
+                                        <option value="korean">Korean</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Board Theme */}
-                    <div className="space-y-2">
-                        <label className="text-slate-300 block">Board Theme</label>
-                        <select
-                            value={settings.boardTheme}
-                            onChange={(e) => updateSettings({ boardTheme: e.target.value as GameSettings['boardTheme'] })}
-                            className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none"
-                        >
-                            {BOARD_THEME_OPTIONS.map((theme) => (
-                                <option key={theme.value} value={theme.value}>
-                                    {theme.label}
-                                </option>
-                            ))}
-                        </select>
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>Analysis Overlays</h3>
+
+                        <div className="mt-4 space-y-4">
+                            <div className={rowClass}>
+                                <label className={labelClass}>Show Children (Q)</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.analysisShowChildren}
+                                    onChange={(e) => updateSettings({ analysisShowChildren: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
+
+                            <div className={rowClass}>
+                                <label className={labelClass}>Evaluation Dots (W)</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.analysisShowEval}
+                                    onChange={(e) => updateSettings({ analysisShowEval: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
+
+                            <div className={rowClass}>
+                                <label className={labelClass}>Top Moves (Hints) (E)</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.analysisShowHints}
+                                    onChange={(e) => updateSettings({ analysisShowHints: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
+
+                            <div className={rowClass}>
+                                <label className={labelClass}>Policy (R)</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.analysisShowPolicy}
+                                    onChange={(e) => updateSettings({ analysisShowPolicy: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
+
+                            <div className={rowClass}>
+                                <label className={labelClass}>Ownership (Territory) (T)</label>
+                                <input
+                                    type="checkbox"
+                                    checked={settings.analysisShowOwnership}
+                                    onChange={(e) => updateSettings({ analysisShowOwnership: e.target.checked })}
+                                    className="toggle"
+                                />
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-700/50 space-y-4">
+                                <h4 className={sectionTitleClass}>KaTrain Hint Labels</h4>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-slate-300 block text-sm">Evaluation Theme</label>
+                                        <select
+                                            value={settings.trainerTheme ?? 'theme:normal'}
+                                            onChange={(e) => updateSettings({ trainerTheme: e.target.value as GameSettings['trainerTheme'] })}
+                                            className={selectClass}
+                                        >
+                                            <option value="theme:normal">Normal</option>
+                                            <option value="theme:red-green-colourblind">Red/Green colourblind</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-slate-300 block text-sm">Low Visits Threshold</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            step={1}
+                                            value={settings.trainerLowVisits}
+                                            onChange={(e) => updateSettings({ trainerLowVisits: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                                            className={inputClass}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-slate-300 block text-sm">Primary Label</label>
+                                        <select
+                                            value={settings.trainerTopMovesShow}
+                                            onChange={(e) => updateSettings({ trainerTopMovesShow: e.target.value as GameSettings['trainerTopMovesShow'] })}
+                                            className={selectClass}
+                                        >
+                                            {TOP_MOVE_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-slate-300 block text-sm">Secondary Label</label>
+                                        <select
+                                            value={settings.trainerTopMovesShowSecondary}
+                                            onChange={(e) =>
+                                                updateSettings({ trainerTopMovesShowSecondary: e.target.value as GameSettings['trainerTopMovesShowSecondary'] })
+                                            }
+                                            className={selectClass}
+                                        >
+                                            {TOP_MOVE_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className={rowClass}>
+                                        <label className={labelClass}>Extra Precision</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.trainerExtraPrecision}
+                                            onChange={(e) => updateSettings({ trainerExtraPrecision: e.target.checked })}
+                                            className="toggle"
+                                        />
+                                    </div>
+
+                                    <div className={rowClass}>
+                                        <label className={labelClass}>Show AI Dots</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.trainerEvalShowAi}
+                                            onChange={(e) => updateSettings({ trainerEvalShowAi: e.target.checked })}
+                                            className="toggle"
+                                        />
+                                    </div>
+
+                                    <div className={rowClass}>
+                                        <label className={labelClass}>Cache analysis to SGF</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.trainerSaveAnalysis}
+                                            onChange={(e) => updateSettings({ trainerSaveAnalysis: e.target.checked })}
+                                            className="toggle"
+                                        />
+                                    </div>
+
+                                    <div className={rowClass}>
+                                        <label className={labelClass}>Save SGF marks (X / square)</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.trainerSaveMarks}
+                                            onChange={(e) => updateSettings({ trainerSaveMarks: e.target.checked })}
+                                            className="toggle"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className={rowClass}>
+                                    <label className={labelClass}>Lock AI details (Play mode)</label>
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.trainerLockAi}
+                                        onChange={(e) => updateSettings({ trainerLockAi: e.target.checked })}
+                                        className="toggle"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <label className="text-slate-300">Show Board Controls</label>
-                        <input
-                            type="checkbox"
-                            checked={settings.showBoardControls}
-                            onChange={(e) => updateSettings({ showBoardControls: e.target.checked })}
-                            className="toggle"
-                        />
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>Show Last N Eval Dots</h3>
+                        <div className="mt-4 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-slate-300 block">Show Last N Eval Dots</label>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="10"
+                                        value={settings.showLastNMistakes}
+                                        onChange={(e) => updateSettings({ showLastNMistakes: parseInt(e.target.value, 10) })}
+                                        className="flex-1"
+                                    />
+                                    <span className="text-white font-mono w-8 text-right">{settings.showLastNMistakes}</span>
+                                </div>
+                                <p className={subtextClass}>
+                                    Shows KaTrain-style colored dots on the last {settings.showLastNMistakes} moves.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-slate-300 block">Mistake Threshold (Points)</label>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <input
+                                        type="range"
+                                        min="0.5"
+                                        max="10"
+                                        step="0.5"
+                                        value={settings.mistakeThreshold ?? 3.0}
+                                        onChange={(e) => updateSettings({ mistakeThreshold: parseFloat(e.target.value) })}
+                                        className="flex-1"
+                                    />
+                                    <span className="text-white font-mono w-10 text-right">{(settings.mistakeThreshold ?? 3.0).toFixed(1)}</span>
+                                </div>
+                                <p className={subtextClass}>
+                                    Minimum points lost to consider a move a mistake for navigation.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Show Last N Mistakes */}
-                    <div className="space-y-2">
-                         <label className="text-slate-300 block">Show Last N Eval Dots</label>
-                         <div className="flex items-center space-x-2">
-                             <input
-                                 type="range"
-                                 min="0"
-                                 max="10"
-                                 value={settings.showLastNMistakes}
-                                 onChange={(e) => updateSettings({ showLastNMistakes: parseInt(e.target.value) })}
-                                 className="flex-grow"
-                             />
-                             <span className="text-white font-mono w-6 text-right">{settings.showLastNMistakes}</span>
-                         </div>
-                         <p className="text-xs text-slate-500">
-                             Shows KaTrain-style colored dots on the last {settings.showLastNMistakes} moves.
-                         </p>
-                    </div>
-
-                    {/* Mistake Threshold */}
-                    <div className="space-y-2">
-                         <label className="text-slate-300 block">Mistake Threshold (Points)</label>
-                         <div className="flex items-center space-x-2">
-                             <input
-                                 type="range"
-                                 min="0.5"
-                                 max="10"
-                                 step="0.5"
-                                 value={settings.mistakeThreshold ?? 3.0}
-                                 onChange={(e) => updateSettings({ mistakeThreshold: parseFloat(e.target.value) })}
-                                 className="flex-grow"
-                             />
-                             <span className="text-white font-mono w-8 text-right">{(settings.mistakeThreshold ?? 3.0).toFixed(1)}</span>
-                         </div>
-                         <p className="text-xs text-slate-500">
-                             Minimum points lost to consider a move a mistake for navigation.
-                         </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-700/50">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-2">Teach Mode</h3>
-                        <p className="text-xs text-slate-500 mb-3">
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>Teach Mode</h3>
+                        <p className={`${subtextClass} mt-2`}>
                             KaTrain-style auto-undo after analysis based on points lost. Values &lt; 1 are treated as a probability; values ≥ 1 are
                             treated as a max variation count.
                         </p>
 
-                        <div className="space-y-2">
+                        <div className="mt-4 space-y-3">
                             {DEFAULT_EVAL_THRESHOLDS.map((fallbackThr, i) => {
                                 const thr = settings.trainerEvalThresholds?.[i] ?? fallbackThr;
                                 const undo = settings.teachNumUndoPrompts?.[i] ?? 0;
@@ -497,7 +527,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 const saveFeedback = settings.trainerSaveFeedback?.[i] ?? false;
 
                                 return (
-                                    <div key={`teach-${i}`} className="grid grid-cols-4 gap-2 items-center">
+                                    <div key={`teach-${i}`} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
                                         <div className="space-y-1">
                                             <label className="text-slate-300 block text-xs">≥ Threshold</label>
                                             <input
@@ -510,7 +540,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                     next[i] = v;
                                                     updateSettings({ trainerEvalThresholds: next });
                                                 }}
-                                                className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                                className={inputClass}
                                             />
                                         </div>
                                         <div className="space-y-1">
@@ -526,10 +556,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                     next[i] = v;
                                                     updateSettings({ teachNumUndoPrompts: next });
                                                 }}
-                                                className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                                className={inputClass}
                                             />
                                         </div>
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between gap-3">
                                             <label className="text-slate-300 text-xs">Show dots</label>
                                             <input
                                                 type="checkbox"
@@ -544,7 +574,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 className="toggle"
                                             />
                                         </div>
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between gap-3">
                                             <label className="text-slate-300 text-xs">Save SGF</label>
                                             <input
                                                 type="checkbox"
@@ -563,21 +593,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 );
                             })}
 
-                            <p className="text-xs text-slate-500">
+                            <p className={subtextClass}>
                                 Matches KaTrain’s teacher config: thresholds define dot color classes; “Save SGF” controls auto-feedback comments.
                             </p>
                         </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-700/50">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-3">AI</h3>
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>AI</h3>
 
-                        <div className="space-y-2">
+                        <div className="mt-4 space-y-2">
                             <label className="text-slate-300 block">Strategy</label>
                             <select
                                 value={settings.aiStrategy}
                                 onChange={(e) => updateSettings({ aiStrategy: e.target.value as GameSettings['aiStrategy'] })}
-                                className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm"
+                                className={selectClass}
                             >
                                 <option value="default">Default (engine top move)</option>
                                 <option value="rank">Rank (KaTrain)</option>
@@ -603,9 +633,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     step={0.5}
                                     value={settings.aiRankKyu}
                                     onChange={(e) => updateSettings({ aiRankKyu: parseFloat(e.target.value || '0') })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">
+                                <p className={subtextClass}>
                                     KaTrain’s calibrated rank-based policy picking (e.g. 4 = 4k, 0 = 1d, -3 = 4d).
                                 </p>
                             </div>
@@ -620,9 +650,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     step={0.05}
                                     value={settings.aiScoreLossStrength}
                                     onChange={(e) => updateSettings({ aiScoreLossStrength: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">
+                                <p className={subtextClass}>
                                     Higher = plays closer to best move; lower = more random among worse moves.
                                 </p>
                             </div>
@@ -636,16 +666,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     step={0.1}
                                     value={settings.aiJigoTargetScore}
                                     onChange={(e) => updateSettings({ aiJigoTargetScore: parseFloat(e.target.value || '0') })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">
+                                <p className={subtextClass}>
                                     Chooses the move whose <span className="font-mono">scoreLead</span> is closest to this (for the side to play).
                                 </p>
                             </div>
                         )}
 
                         {(settings.aiStrategy === 'simple' || settings.aiStrategy === 'settle') && (
-                            <div className="mt-3 grid grid-cols-3 gap-3">
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-slate-300 block text-sm">Max Pt Lost</label>
                                     <input
@@ -654,7 +684,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.25}
                                         value={settings.aiOwnershipMaxPointsLost}
                                         onChange={(e) => updateSettings({ aiOwnershipMaxPointsLost: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -665,7 +695,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.25}
                                         value={settings.aiOwnershipSettledWeight}
                                         onChange={(e) => updateSettings({ aiOwnershipSettledWeight: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -676,7 +706,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.1}
                                         value={settings.aiOwnershipOpponentFac}
                                         onChange={(e) => updateSettings({ aiOwnershipOpponentFac: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -687,7 +717,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={1}
                                         value={settings.aiOwnershipMinVisits}
                                         onChange={(e) => updateSettings({ aiOwnershipMinVisits: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -698,7 +728,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.25}
                                         value={settings.aiOwnershipAttachPenalty}
                                         onChange={(e) => updateSettings({ aiOwnershipAttachPenalty: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -709,10 +739,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.25}
                                         value={settings.aiOwnershipTenukiPenalty}
                                         onChange={(e) => updateSettings({ aiOwnershipTenukiPenalty: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
-                                <div className="col-span-3 text-xs text-slate-500">
+                                <div className={`col-span-1 sm:col-span-2 lg:col-span-3 ${subtextClass}`}>
                                     KaTrain {settings.aiStrategy}: uses per-move ownership (slower) to favor “settled” outcomes.
                                 </div>
                             </div>
@@ -727,16 +757,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     step={1}
                                     value={settings.aiPolicyOpeningMoves}
                                     onChange={(e) => updateSettings({ aiPolicyOpeningMoves: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">
+                                <p className={subtextClass}>
                                     For the first N moves, uses weighted policy sampling (KaTrain-like).
                                 </p>
                             </div>
                         )}
 
                         {settings.aiStrategy === 'weighted' && (
-                            <div className="mt-3 grid grid-cols-3 gap-3">
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-slate-300 block text-sm">Override</label>
                                     <input
@@ -746,7 +776,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.01}
                                         value={settings.aiWeightedPickOverride}
                                         onChange={(e) => updateSettings({ aiWeightedPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -757,7 +787,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.05}
                                         value={settings.aiWeightedWeakenFac}
                                         onChange={(e) => updateSettings({ aiWeightedWeakenFac: Math.max(0.01, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -768,17 +798,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.001}
                                         value={settings.aiWeightedLowerBound}
                                         onChange={(e) => updateSettings({ aiWeightedLowerBound: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
-                                <div className="col-span-3 text-xs text-slate-500">
+                                <div className={`col-span-1 sm:col-span-2 lg:col-span-3 ${subtextClass}`}>
                                     Samples moves with probability proportional to <span className="font-mono">policy^(1/weaken)</span> above <span className="font-mono">lower</span>, unless the top policy move exceeds <span className="font-mono">override</span>.
                                 </div>
                             </div>
                         )}
 
                         {settings.aiStrategy === 'pick' && (
-                            <div className="mt-3 grid grid-cols-3 gap-3">
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-slate-300 block text-sm">Override</label>
                                     <input
@@ -788,7 +818,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.01}
                                         value={settings.aiPickPickOverride}
                                         onChange={(e) => updateSettings({ aiPickPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -799,7 +829,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={1}
                                         value={settings.aiPickPickN}
                                         onChange={(e) => updateSettings({ aiPickPickN: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -811,17 +841,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.05}
                                         value={settings.aiPickPickFrac}
                                         onChange={(e) => updateSettings({ aiPickPickFrac: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
-                                <div className="col-span-3 text-xs text-slate-500">
+                                <div className={`col-span-1 sm:col-span-2 lg:col-span-3 ${subtextClass}`}>
                                     KaTrain pick-based policy: sample <span className="font-mono">pick_frac*legal + pick_n</span> moves uniformly, then play the best policy among them.
                                 </div>
                             </div>
                         )}
 
                         {settings.aiStrategy === 'local' && (
-                            <div className="mt-3 grid grid-cols-3 gap-3">
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-slate-300 block text-sm">Override</label>
                                     <input
@@ -831,7 +861,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.01}
                                         value={settings.aiLocalPickOverride}
                                         onChange={(e) => updateSettings({ aiLocalPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -842,7 +872,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.5}
                                         value={settings.aiLocalStddev}
                                         onChange={(e) => updateSettings({ aiLocalStddev: Math.max(0.1, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -854,7 +884,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.05}
                                         value={settings.aiLocalEndgame}
                                         onChange={(e) => updateSettings({ aiLocalEndgame: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -865,7 +895,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={1}
                                         value={settings.aiLocalPickN}
                                         onChange={(e) => updateSettings({ aiLocalPickN: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -877,17 +907,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.05}
                                         value={settings.aiLocalPickFrac}
                                         onChange={(e) => updateSettings({ aiLocalPickFrac: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
-                                <div className="col-span-3 text-xs text-slate-500">
+                                <div className={`col-span-1 sm:col-span-2 lg:col-span-3 ${subtextClass}`}>
                                     KaTrain local: weights sampling by a Gaussian around the previous move (then picks the best policy among sampled moves).
                                 </div>
                             </div>
                         )}
 
                         {settings.aiStrategy === 'tenuki' && (
-                            <div className="mt-3 grid grid-cols-3 gap-3">
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-slate-300 block text-sm">Override</label>
                                     <input
@@ -897,7 +927,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.01}
                                         value={settings.aiTenukiPickOverride}
                                         onChange={(e) => updateSettings({ aiTenukiPickOverride: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -908,7 +938,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.5}
                                         value={settings.aiTenukiStddev}
                                         onChange={(e) => updateSettings({ aiTenukiStddev: Math.max(0.1, parseFloat(e.target.value || '0')) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -920,7 +950,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.05}
                                         value={settings.aiTenukiEndgame}
                                         onChange={(e) => updateSettings({ aiTenukiEndgame: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -931,7 +961,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={1}
                                         value={settings.aiTenukiPickN}
                                         onChange={(e) => updateSettings({ aiTenukiPickN: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -943,17 +973,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step={0.05}
                                         value={settings.aiTenukiPickFrac}
                                         onChange={(e) => updateSettings({ aiTenukiPickFrac: Math.max(0, Math.min(1, parseFloat(e.target.value || '0'))) })}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
-                                <div className="col-span-3 text-xs text-slate-500">
+                                <div className={`col-span-1 sm:col-span-2 lg:col-span-3 ${subtextClass}`}>
                                     KaTrain tenuki: weights sampling by <span className="font-mono">1 - Gaussian</span> around the previous move (prefers far away).
                                 </div>
                             </div>
                         )}
 
                         {(settings.aiStrategy === 'influence' || settings.aiStrategy === 'territory') && (
-                            <div className="mt-3 grid grid-cols-3 gap-3">
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-slate-300 block text-sm">Override</label>
                                     <input
@@ -966,7 +996,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             const v = Math.max(0, Math.min(1, parseFloat(e.target.value || '0')));
                                             updateSettings(settings.aiStrategy === 'influence' ? { aiInfluencePickOverride: v } : { aiTerritoryPickOverride: v });
                                         }}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -980,7 +1010,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             const v = Math.max(0, parseFloat(e.target.value || '0'));
                                             updateSettings(settings.aiStrategy === 'influence' ? { aiInfluenceThreshold: v } : { aiTerritoryThreshold: v });
                                         }}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -994,7 +1024,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             const v = Math.max(0, parseInt(e.target.value || '0', 10));
                                             updateSettings(settings.aiStrategy === 'influence' ? { aiInfluenceLineWeight: v } : { aiTerritoryLineWeight: v });
                                         }}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -1008,7 +1038,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             const v = Math.max(0, parseInt(e.target.value || '0', 10));
                                             updateSettings(settings.aiStrategy === 'influence' ? { aiInfluencePickN: v } : { aiTerritoryPickN: v });
                                         }}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -1023,7 +1053,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             const v = Math.max(0, Math.min(1, parseFloat(e.target.value || '0')));
                                             updateSettings(settings.aiStrategy === 'influence' ? { aiInfluencePickFrac: v } : { aiTerritoryPickFrac: v });
                                         }}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -1038,25 +1068,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             const v = Math.max(0, Math.min(1, parseFloat(e.target.value || '0')));
                                             updateSettings(settings.aiStrategy === 'influence' ? { aiInfluenceEndgame: v } : { aiTerritoryEndgame: v });
                                         }}
-                                        className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                        className={inputClass}
                                     />
                                 </div>
-                                <div className="col-span-3 text-xs text-slate-500">
+                                <div className={`col-span-1 sm:col-span-2 lg:col-span-3 ${subtextClass}`}>
                                     KaTrain {settings.aiStrategy}: distance-from-edge weights with <span className="font-mono">threshold</span> and <span className="font-mono">line_weight</span>.
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    <div className="pt-2 border-t border-slate-700/50">
-                        <h3 className="text-sm font-semibold text-slate-200 mb-3">KataGo</h3>
+                    <div className={sectionClass}>
+                        <h3 className={sectionTitleClass}>KataGo</h3>
 
-                        <div className="space-y-2">
+                        <div className="mt-4 space-y-2">
                             <label className="text-slate-300 block">Model URL</label>
                             <div className="flex flex-wrap gap-2">
                                 <button
                                     type="button"
-                                    className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white border border-slate-600"
+                                    className={pillButtonClass}
                                     onClick={() => updateSettings({ katagoModelUrl: KATRAIN_DEFAULT_MODEL_URL })}
                                     title="KaTrain default weights"
                                 >
@@ -1064,7 +1094,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 </button>
                                 <button
                                     type="button"
-                                    className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white border border-slate-600"
+                                    className={pillButtonClass}
                                     onClick={() => updateSettings({ katagoModelUrl: SMALL_MODEL_URL })}
                                     title="Small KataGo test model"
                                 >
@@ -1076,7 +1106,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <div className="flex flex-wrap gap-2">
                                     <button
                                         type="button"
-                                        className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white border border-slate-600"
+                                        className={pillButtonClass}
                                         onClick={() => modelUploadInputRef.current?.click()}
                                     >
                                         Upload Weights
@@ -1084,7 +1114,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {isUploadedModel ? (
                                         <button
                                             type="button"
-                                            className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono text-white border border-slate-600"
+                                            className={pillButtonClass}
                                             onClick={handleClearUpload}
                                         >
                                             Clear Upload
@@ -1099,7 +1129,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     className="hidden"
                                 />
                                 {isUploadedModel ? (
-                                    <p className="text-xs text-slate-500">
+                                    <p className={subtextClass}>
                                         Uploaded weights stay in memory for this session only.
                                     </p>
                                 ) : null}
@@ -1108,13 +1138,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 type="text"
                                 value={settings.katagoModelUrl}
                                 onChange={(e) => updateSettings({ katagoModelUrl: e.target.value })}
-                                className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-xs font-mono"
+                                className={`${inputClass} text-xs`}
                                 placeholder={KATRAIN_DEFAULT_MODEL_URL}
                             />
-                            <p className="text-xs text-slate-500">
+                            <p className={subtextClass}>
                                 Use a local path under <span className="font-mono">{publicUrl('models/')}</span> or a full URL (must allow CORS).
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className={subtextClass}>
                                 Engine: <span className="font-mono">{engineBackend ?? 'not loaded'}</span>
                                 {engineModelName ? (
                                     <>
@@ -1125,7 +1155,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                             <div className="space-y-1">
                                 <label className="text-slate-300 block text-sm">Visits</label>
                                 <input
@@ -1134,7 +1164,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     max={ENGINE_MAX_VISITS}
                                     value={settings.katagoVisits}
                                     onChange={(e) => updateSettings({ katagoVisits: Math.max(16, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
                             </div>
                             <div className="space-y-1">
@@ -1145,9 +1175,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     max={ENGINE_MAX_VISITS}
                                     value={settings.katagoFastVisits}
                                     onChange={(e) => updateSettings({ katagoFastVisits: Math.max(16, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">KaTrain fast_visits: initial visits for Space-ponder.</p>
+                                <p className={subtextClass}>KaTrain fast_visits: initial visits for Space-ponder.</p>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-slate-300 block text-sm">Max Time (ms)</label>
@@ -1157,7 +1187,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     max={ENGINE_MAX_TIME_MS}
                                     value={settings.katagoMaxTimeMs}
                                     onChange={(e) => updateSettings({ katagoMaxTimeMs: Math.max(25, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
                             </div>
                             <div className="space-y-1">
@@ -1168,7 +1198,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     max={64}
                                     value={settings.katagoBatchSize}
                                     onChange={(e) => updateSettings({ katagoBatchSize: Math.max(1, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
                             </div>
                             <div className="space-y-1">
@@ -1179,7 +1209,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     max={361}
                                     value={settings.katagoMaxChildren}
                                     onChange={(e) => updateSettings({ katagoMaxChildren: Math.max(4, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
                             </div>
                         </div>
@@ -1192,11 +1222,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 max={50}
                                 value={settings.katagoTopK}
                                 onChange={(e) => updateSettings({ katagoTopK: Math.max(1, parseInt(e.target.value || '0', 10)) })}
-                                className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                className={inputClass}
                             />
                         </div>
 
-                        <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className="text-slate-300 block text-sm">Wide Root Noise</label>
                                 <input
@@ -1205,9 +1235,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     step={0.01}
                                     value={settings.katagoWideRootNoise}
                                     onChange={(e) => updateSettings({ katagoWideRootNoise: Math.max(0, parseFloat(e.target.value || '0')) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">KaTrain default is 0.04; set 0 for strongest/most stable.</p>
+                                <p className={subtextClass}>KaTrain default is 0.04; set 0 for strongest/most stable.</p>
                             </div>
                             <div className="space-y-1">
                                 <label className="text-slate-300 block text-sm">PV Len</label>
@@ -1218,24 +1248,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     step={1}
                                     value={settings.katagoAnalysisPvLen}
                                     onChange={(e) => updateSettings({ katagoAnalysisPvLen: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm font-mono"
+                                    className={inputClass}
                                 />
-                                <p className="text-xs text-slate-500">KataGo analysisPVLen (moves after the first).</p>
+                                <p className={subtextClass}>KataGo analysisPVLen (moves after the first).</p>
                             </div>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className="text-slate-300 block text-sm">Ownership</label>
                                 <select
                                     value={settings.katagoOwnershipMode}
                                     onChange={(e) => updateSettings({ katagoOwnershipMode: e.target.value as 'root' | 'tree' })}
-                                    className="w-full bg-slate-700 text-white rounded p-2 border border-slate-600 focus:border-green-500 outline-none text-sm"
+                                    className={selectClass}
                                 >
                                     <option value="tree">Tree-averaged (KaTrain)</option>
                                     <option value="root">Root-only (faster)</option>
                                 </select>
-                                <p className="text-xs text-slate-500">
+                                <p className={subtextClass}>
                                     KaTrain uses tree-averaged ownership; root-only disables per-move ownership for speed.
                                 </p>
                             </div>
@@ -1250,7 +1280,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     />
                                     <span>Enable (faster)</span>
                                 </label>
-                                <p className="text-xs text-slate-500">
+                                <p className={subtextClass}>
                                     Speeds up continuous analysis by continuing from previous visits.
                                 </p>
                             </div>
@@ -1267,7 +1297,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 />
                                 <span>Enable (nnRandomize)</span>
                             </label>
-                            <p className="text-xs text-slate-500">
+                            <p className={subtextClass}>
                                 Matches KataGo defaults; disable for deterministic/stable analysis.
                             </p>
                         </div>
@@ -1283,16 +1313,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 />
                                 <span>Enable (conservativePass)</span>
                             </label>
-                            <p className="text-xs text-slate-500">
+                            <p className={subtextClass}>
                                 KaTrain default: suppresses “pass ends game” features at the root.
                             </p>
                         </div>
                     </div>
                 </div>
-                <div className="p-4 bg-slate-900 flex justify-end">
+                <div className="sticky bottom-0 z-10 flex justify-end px-4 sm:px-6 py-4 bg-slate-950/80 border-t border-slate-800/60 backdrop-blur">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-medium"
+                        className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-900/30 transition-colors"
                     >
                         Done
                     </button>
