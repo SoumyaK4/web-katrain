@@ -178,13 +178,13 @@ export const SectionHeader: React.FC<{
   onToggle: () => void;
   actions?: React.ReactNode;
 }> = ({ title, open, onToggle, actions }) => (
-  <div className="flex items-center justify-between py-2.5">
+  <div className="flex items-center justify-between py-2">
     <button
       type="button"
-      className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2 transition-colors"
+      className="text-sm font-semibold text-slate-200 hover:text-white flex items-center gap-2 transition-colors py-1 -ml-1 pl-1 pr-2 rounded hover:bg-slate-700/30"
       onClick={onToggle}
     >
-      {open ? <FaChevronDown size={11} className="text-slate-400" /> : <FaChevronRight size={11} className="text-slate-400" />}
+      {open ? <FaChevronDown size={12} className="text-slate-400" /> : <FaChevronRight size={12} className="text-slate-400" />}
       {title}
     </button>
     {actions ? <div className="flex items-center gap-1.5">{actions}</div> : null}
