@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaChevronDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronDown, FaChevronLeft, FaChevronRight, FaChevronUp } from 'react-icons/fa';
 
 export function rgba(color: readonly [number, number, number, number], alphaOverride?: number): string {
   const a = typeof alphaOverride === 'number' ? alphaOverride : color[3];
@@ -233,20 +233,33 @@ export const SectionHeader: React.FC<{
 );
 
 export const PanelEdgeToggle: React.FC<{
-  side: 'left' | 'right';
+  side: 'left' | 'right' | 'top' | 'bottom';
   state: 'open' | 'closed';
   title: string;
   onClick: () => void;
   className?: string;
 }> = ({ side, state, title, onClick, className }) => {
   const isLeft = side === 'left';
+  const isRight = side === 'right';
+  const isTop = side === 'top';
+  const isBottom = side === 'bottom';
+  const isVertical = isLeft || isRight;
   const isOpen = state === 'open';
   const icon = isLeft
     ? (isOpen ? <FaChevronLeft size={14} /> : <FaChevronRight size={14} />)
-    : (isOpen ? <FaChevronRight size={14} /> : <FaChevronLeft size={14} />);
+    : isRight
+      ? (isOpen ? <FaChevronRight size={14} /> : <FaChevronLeft size={14} />)
+      : isTop
+        ? (isOpen ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />)
+        : (isOpen ? <FaChevronDown size={14} /> : <FaChevronUp size={14} />);
   const edgeClasses = isLeft
     ? 'border-r border-slate-700/50 rounded-r-lg'
-    : 'border-l border-slate-700/50 rounded-l-lg';
+    : isRight
+      ? 'border-l border-slate-700/50 rounded-l-lg'
+      : isTop
+        ? 'border-b border-slate-700/50 rounded-b-lg'
+        : 'border-t border-slate-700/50 rounded-t-lg';
+  const sizeClasses = isVertical ? 'h-20 w-8' : 'w-20 h-8';
 
   return (
     <button
@@ -255,7 +268,8 @@ export const PanelEdgeToggle: React.FC<{
       title={title}
       aria-label={title}
       className={[
-        'h-20 w-8 bg-slate-800/90 hover:bg-slate-700/90 flex items-center justify-center text-slate-300 hover:text-white transition-all shadow-lg',
+        sizeClasses,
+        'bg-slate-800/90 hover:bg-slate-700/90 flex items-center justify-center text-slate-300 hover:text-white transition-all shadow-lg',
         edgeClasses,
         className ?? '',
       ].join(' ')}

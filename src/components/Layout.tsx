@@ -210,6 +210,14 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:sidebar_open:v1') !== 'false';
   });
+  const [topBarOpen, setTopBarOpen] = useState(() => {
+    if (typeof localStorage === 'undefined') return true;
+    return localStorage.getItem('web-katrain:top_bar_open:v1') !== 'false';
+  });
+  const [bottomBarOpen, setBottomBarOpen] = useState(() => {
+    if (typeof localStorage === 'undefined') return true;
+    return localStorage.getItem('web-katrain:bottom_bar_open:v1') !== 'false';
+  });
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return true;
     return window.matchMedia('(min-width: 1024px)').matches;
@@ -327,6 +335,16 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:sidebar_open:v1', String(showSidebar));
   }, [showSidebar]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:top_bar_open:v1', String(topBarOpen));
+  }, [topBarOpen]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:bottom_bar_open:v1', String(bottomBarOpen));
+  }, [bottomBarOpen]);
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -987,55 +1005,55 @@ export const Layout: React.FC = () => {
 
       {/* Main board column */}
       <div className={['flex flex-col flex-1 min-w-0 relative', isMobile ? 'pb-[68px]' : ''].join(' ')}>
-        <TopControlBar
-          settings={settings}
-          updateControls={updateControls}
-          updateSettings={updateSettings}
-          regionOfInterest={regionOfInterest}
-          setRegionOfInterest={setRegionOfInterest}
-          isInsertMode={isInsertMode}
-          isAnalysisMode={isAnalysisMode}
-          toggleAnalysisMode={toggleAnalysisMode}
-          engineDot={engineDot}
-          analysisMenuOpen={analysisMenuOpen}
-          setAnalysisMenuOpen={setAnalysisMenuOpen}
-          viewMenuOpen={viewMenuOpen}
-          setViewMenuOpen={setViewMenuOpen}
-          analyzeExtra={analyzeExtra}
-          startSelectRegionOfInterest={startSelectRegionOfInterest}
-          resetCurrentAnalysis={resetCurrentAnalysis}
-          toggleInsertMode={toggleInsertMode}
-          selfplayToEnd={selfplayToEnd}
-          toggleContinuousAnalysis={toggleContinuousAnalysis}
-          makeAiMove={makeAiMove}
-          rotateBoard={rotateBoard}
-          toggleTeachMode={toggleTeachMode}
-          isTeachMode={isTeachMode}
-          isGameAnalysisRunning={isGameAnalysisRunning}
-          gameAnalysisType={gameAnalysisType}
-          gameAnalysisDone={gameAnalysisDone}
-          gameAnalysisTotal={gameAnalysisTotal}
-          startQuickGameAnalysis={startQuickGameAnalysis}
-          startFastGameAnalysis={startFastGameAnalysis}
-          stopGameAnalysis={stopGameAnalysis}
-          setIsGameAnalysisOpen={setIsGameAnalysisOpen}
-          setIsGameReportOpen={setIsGameReportOpen}
-          onOpenMenu={() => setMenuOpen(true)}
-          onNewGame={() => setIsNewGameOpen(true)}
-          onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
-          onLoad={handleLoadClick}
-          onOpenSidePanel={handleOpenSidePanel}
-          onCopySgf={handleCopySgf}
-          onPasteSgf={handlePasteSgf}
-          onSettings={() => setIsSettingsOpen(true)}
-          onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
-          winRateLabel={winRateLabel}
-          scoreLeadLabel={scoreLeadLabel}
-          pointsLostLabel={pointsLostLabel}
-          engineMeta={engineMeta}
-          engineMetaTitle={engineMetaTitle}
-          engineError={engineError}
-        />
+        {topBarOpen && (
+          <TopControlBar
+            settings={settings}
+            updateControls={updateControls}
+            updateSettings={updateSettings}
+            regionOfInterest={regionOfInterest}
+            setRegionOfInterest={setRegionOfInterest}
+            isInsertMode={isInsertMode}
+            isAnalysisMode={isAnalysisMode}
+            toggleAnalysisMode={toggleAnalysisMode}
+            engineDot={engineDot}
+            analysisMenuOpen={analysisMenuOpen}
+            setAnalysisMenuOpen={setAnalysisMenuOpen}
+            viewMenuOpen={viewMenuOpen}
+            setViewMenuOpen={setViewMenuOpen}
+            analyzeExtra={analyzeExtra}
+            startSelectRegionOfInterest={startSelectRegionOfInterest}
+            resetCurrentAnalysis={resetCurrentAnalysis}
+            toggleInsertMode={toggleInsertMode}
+            selfplayToEnd={selfplayToEnd}
+            toggleContinuousAnalysis={toggleContinuousAnalysis}
+            makeAiMove={makeAiMove}
+            rotateBoard={rotateBoard}
+            toggleTeachMode={toggleTeachMode}
+            isTeachMode={isTeachMode}
+            isGameAnalysisRunning={isGameAnalysisRunning}
+            gameAnalysisType={gameAnalysisType}
+            gameAnalysisDone={gameAnalysisDone}
+            gameAnalysisTotal={gameAnalysisTotal}
+            startQuickGameAnalysis={startQuickGameAnalysis}
+            startFastGameAnalysis={startFastGameAnalysis}
+            stopGameAnalysis={stopGameAnalysis}
+            setIsGameAnalysisOpen={setIsGameAnalysisOpen}
+            setIsGameReportOpen={setIsGameReportOpen}
+            onOpenMenu={() => setMenuOpen(true)}
+            onNewGame={() => setIsNewGameOpen(true)}
+            onOpenSidePanel={handleOpenSidePanel}
+            onCopySgf={handleCopySgf}
+            onPasteSgf={handlePasteSgf}
+            onSettings={() => setIsSettingsOpen(true)}
+            onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
+            winRateLabel={winRateLabel}
+            scoreLeadLabel={scoreLeadLabel}
+            pointsLostLabel={pointsLostLabel}
+            engineMeta={engineMeta}
+            engineMetaTitle={engineMetaTitle}
+            engineError={engineError}
+          />
+        )}
 
         {/* Board */}
         <div className={['flex-1 flex items-center justify-center bg-slate-900 overflow-auto relative', isMobile ? 'p-3 md:p-4' : 'p-4 xl:p-6'].join(' ')}>
@@ -1050,7 +1068,7 @@ export const Layout: React.FC = () => {
           <GoBoard hoveredMove={hoveredMove} onHoverMove={setHoveredMove} pvUpToMove={pvUpToMove} uiMode={mode} />
         </div>
 
-        {settings.showBoardControls && (
+        {settings.showBoardControls && bottomBarOpen && (
           <BottomControlBar
             passTurn={passTurn}
             navigateBack={navigateBack}
@@ -1167,6 +1185,25 @@ export const Layout: React.FC = () => {
             />
           </div>
         </>
+      )}
+
+      <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30">
+        <PanelEdgeToggle
+          side="top"
+          state={topBarOpen ? 'open' : 'closed'}
+          title={topBarOpen ? 'Hide top bar' : 'Show top bar'}
+          onClick={() => setTopBarOpen((prev) => !prev)}
+        />
+      </div>
+      {settings.showBoardControls && (
+        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 z-30">
+          <PanelEdgeToggle
+            side="bottom"
+            state={bottomBarOpen ? 'open' : 'closed'}
+            title={bottomBarOpen ? 'Hide bottom bar' : 'Show bottom bar'}
+            onClick={() => setBottomBarOpen((prev) => !prev)}
+          />
+        </div>
       )}
 
       {isMobile && (
