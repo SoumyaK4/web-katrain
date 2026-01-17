@@ -8,6 +8,7 @@ import { GameReportModal } from './GameReportModal';
 import { KeyboardHelpModal } from './KeyboardHelpModal';
 import { FaTimes } from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
+import { loadSgfOrOgs } from '../utils/ogs';
 import { BOARD_SIZE, type CandidateMove, type GameNode, type Player } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundToHalf } from '../utils/manualScore';
@@ -662,6 +663,52 @@ export const Layout: React.FC = () => {
     }
   };
 
+  const handleCopySgf = async () => {
+    const sgf = generateSgfFromTree(rootNode, sgfExportOptions);
+    try {
+      await navigator.clipboard.writeText(sgf);
+      toast('Copied SGF to clipboard.', 'success');
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = sgf;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('Copied SGF to clipboard.', 'success');
+      } catch {
+        toast('Copy failed (clipboard unavailable).', 'error');
+      }
+    }
+  };
+
+  const handlePasteSgf = async () => {
+    let text: string | null = null;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      text = window.prompt('Paste SGF here:') ?? null;
+    }
+    if (!text) return;
+    try {
+      const result = await loadSgfOrOgs(text);
+      if (!result.sgf.trim()) return;
+      if (result.source === 'ogs') {
+        toast(`Downloaded OGS game ${result.gameId ?? ''}.`, 'success');
+      }
+      const parsed = parseSgf(result.sgf);
+      loadGame(parsed);
+      navigateEnd();
+      toast('Loaded SGF from clipboard.', 'success');
+    } catch {
+      toast('Failed to load SGF or OGS URL.', 'error');
+    }
+  };
+
   const jumpBack = (n: number) => {
     for (let i = 0; i < n; i++) navigateBack();
   };
@@ -688,6 +735,8 @@ export const Layout: React.FC = () => {
         onNewGame={resetGame}
         onSave={() => downloadSgfFromTree(rootNode, sgfExportOptions)}
         onLoad={handleLoadClick}
+        onCopy={handleCopySgf}
+        onPaste={handlePasteSgf}
         onToggleLibrary={handleToggleLibrary}
         isLibraryOpen={libraryOpen}
         onToggleSidebar={handleToggleSidebar}
@@ -757,6 +806,8 @@ export const Layout: React.FC = () => {
           isLibraryOpen={libraryOpen}
           onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={sidebarOpen}
+          onCopySgf={handleCopySgf}
+          onPasteSgf={handlePasteSgf}
         />
 
         {/* Board */}

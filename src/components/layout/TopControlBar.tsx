@@ -5,6 +5,8 @@ import {
   FaChevronDown,
   FaChevronLeft,
   FaColumns,
+  FaCopy,
+  FaPaste,
   FaSlidersH,
   FaRobot,
   FaPlay,
@@ -58,6 +60,8 @@ interface TopControlBarProps {
   isLibraryOpen: boolean;
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
+  onCopySgf: () => void;
+  onPasteSgf: () => void;
 }
 
 export const TopControlBar: React.FC<TopControlBarProps> = ({
@@ -99,6 +103,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   isLibraryOpen,
   onToggleSidebar,
   isSidebarOpen,
+  onCopySgf,
+  onPasteSgf,
 }) => {
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
     if (typeof document === 'undefined') return false;
@@ -131,6 +137,14 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
       >
         <FaColumns />
       </IconButton>
+      <div className="hidden md:flex items-center gap-2">
+        <IconButton title="Copy SGF (Ctrl+C)" onClick={onCopySgf}>
+          <FaCopy />
+        </IconButton>
+        <IconButton title="Paste SGF / OGS (Ctrl+V)" onClick={onPasteSgf}>
+          <FaPaste />
+        </IconButton>
+      </div>
 
       <div className="flex items-center gap-2 overflow-x-auto">
         <TogglePill

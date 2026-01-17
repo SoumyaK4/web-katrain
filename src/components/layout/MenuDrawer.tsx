@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaBook, FaColumns } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaBook, FaColumns, FaCopy, FaPaste } from 'react-icons/fa';
 
 interface MenuDrawerProps {
   open: boolean;
@@ -7,6 +7,8 @@ interface MenuDrawerProps {
   onNewGame: () => void;
   onSave: () => void;
   onLoad: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
   onToggleLibrary: () => void;
   isLibraryOpen: boolean;
   onToggleSidebar: () => void;
@@ -23,6 +25,8 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onNewGame,
   onSave,
   onLoad,
+  onCopy,
+  onPaste,
   onToggleLibrary,
   isLibraryOpen,
   onToggleSidebar,
@@ -75,6 +79,32 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               <FaSave aria-hidden="true" /> Save SGF
             </span>
             <kbd className="text-xs text-slate-400">Ctrl+S</kbd>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"
+            onClick={() => {
+              onCopy();
+              onClose();
+            }}
+            aria-label="Copy SGF, keyboard shortcut Control plus C"
+          >
+            <span className="flex items-center gap-2">
+              <FaCopy aria-hidden="true" /> Copy SGF
+            </span>
+            <kbd className="text-xs text-slate-400">Ctrl+C</kbd>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"
+            onClick={() => {
+              onPaste();
+              onClose();
+            }}
+            aria-label="Paste SGF or OGS URL, keyboard shortcut Control plus V"
+          >
+            <span className="flex items-center gap-2">
+              <FaPaste aria-hidden="true" /> Paste SGF / OGS
+            </span>
+            <kbd className="text-xs text-slate-400">Ctrl+V</kbd>
           </button>
           <button
             className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"
