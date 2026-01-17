@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch } from 'react-icons/fa';
+import { FaTimes, FaFolderOpen, FaSave, FaTrash, FaPen, FaSearch, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { createLibraryItem, deleteLibraryItem, loadLibrary, saveLibrary, updateLibraryItem, type LibraryItem } from '../utils/library';
+import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 
 interface LibraryPanelProps {
   open: boolean;
@@ -26,8 +27,70 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [graphOpen, setGraphOpen] = useState(() => {
+    if (typeof localStorage === 'undefined') return true;
+    return localStorage.getItem('web-katrain:library_graph_open:v1') !== 'false';
+  });
+  const [graphHeight, setGraphHeight] = useState(() => {
+    if (typeof localStorage === 'undefined') return 180;
+    const raw = localStorage.getItem('web-katrain:library_graph_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 180;
+  });
+  const [graphOptions, setGraphOptions] = useState(() => {
+    if (typeof localStorage === 'undefined') return { score: true, winrate: true };
+    try {
+      const raw = localStorage.getItem('web-katrain:library_graph_opts:v1');
+      if (!raw) return { score: true, winrate: true };
+      const parsed = JSON.parse(raw) as { score?: boolean; winrate?: boolean };
+      return { score: parsed.score !== false, winrate: parsed.winrate !== false };
+    } catch {
+      return { score: true, winrate: true };
+    }
+  });
+  const [isResizingGraph, setIsResizingGraph] = useState(false);
 
   useEffect(() => saveLibrary(items), [items]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_graph_open:v1', String(graphOpen));
+  }, [graphOpen]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_graph_height:v1', String(graphHeight));
+  }, [graphHeight]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_graph_opts:v1', JSON.stringify(graphOptions));
+  }, [graphOptions]);
+
+  useEffect(() => {
+    if (!isResizingGraph) return;
+    const minGraph = 120;
+    const minList = 180;
+    const onMove = (e: MouseEvent) => {
+      const panel = panelRef.current;
+      if (!panel) return;
+      const rect = panel.getBoundingClientRect();
+      const available = rect.height - 140;
+      const maxGraph = Math.max(minGraph, available - minList);
+      const next = Math.min(maxGraph, Math.max(minGraph, rect.bottom - e.clientY));
+      setGraphHeight(next);
+    };
+    const onUp = () => setIsResizingGraph(false);
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingGraph]);
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -114,6 +177,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     <>
       <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={onClose} />
       <div
+        ref={panelRef}
         className={[
           'bg-slate-900 border-r border-slate-700/50 flex flex-col',
           'fixed inset-y-0 left-0 z-40 w-full max-w-sm',
@@ -180,54 +244,108 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {filteredItems.length === 0 ? (
-            <div className="p-6 text-sm text-slate-500">
-              <div className="font-semibold text-slate-300 mb-2">Library is empty</div>
-              <div>Save the current game or drag SGF files here to build your library.</div>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-800">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={[
-                    'px-3 py-2 flex items-center gap-2 hover:bg-slate-800/60 cursor-pointer',
-                    activeId === item.id ? 'bg-slate-800/80' : '',
-                  ].join(' ')}
-                  onClick={() => handleLoad(item)}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-slate-100 truncate">{item.name}</div>
-                    <div className="text-xs text-slate-500">
-                      {item.moveCount} moves · {(item.size / 1024).toFixed(1)} KB
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {filteredItems.length === 0 ? (
+              <div className="p-6 text-sm text-slate-500">
+                <div className="font-semibold text-slate-300 mb-2">Library is empty</div>
+                <div>Save the current game or drag SGF files here to build your library.</div>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {filteredItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={[
+                      'px-3 py-2 flex items-center gap-2 hover:bg-slate-800/60 cursor-pointer',
+                      activeId === item.id ? 'bg-slate-800/80' : '',
+                    ].join(' ')}
+                    onClick={() => handleLoad(item)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-slate-100 truncate">{item.name}</div>
+                      <div className="text-xs text-slate-500">
+                        {item.moveCount} moves · {(item.size / 1024).toFixed(1)} KB
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      className="text-slate-400 hover:text-slate-200 p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRename(item);
+                      }}
+                      title="Rename"
+                    >
+                      <FaPen />
+                    </button>
+                    <button
+                      type="button"
+                      className="text-slate-400 hover:text-rose-300 p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item);
+                      }}
+                      title="Delete"
+                    >
+                      <FaTrash />
+                    </button>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {docked && (
+            <>
+              <div
+                className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors"
+                onMouseDown={() => setIsResizingGraph(true)}
+              />
+              <div className="border-t border-slate-800 px-3 py-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-sm text-slate-200 font-semibold"
+                  onClick={() => setGraphOpen((prev) => !prev)}
+                >
+                  {graphOpen ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+                  Analysis Graph
+                </button>
+                <div className="mt-2 flex gap-2">
                   <button
                     type="button"
-                    className="text-slate-400 hover:text-slate-200 p-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRename(item);
-                    }}
-                    title="Rename"
+                    className={[
+                      'px-2 py-1 rounded text-xs font-medium',
+                      graphOptions.score ? 'bg-blue-600/30 text-blue-200 border border-blue-500/50' : 'bg-slate-800/60 text-slate-400 border border-slate-700/50',
+                    ].join(' ')}
+                    onClick={() => setGraphOptions((prev) => ({ ...prev, score: !prev.score }))}
                   >
-                    <FaPen />
+                    Score
                   </button>
                   <button
                     type="button"
-                    className="text-slate-400 hover:text-rose-300 p-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(item);
-                    }}
-                    title="Delete"
+                    className={[
+                      'px-2 py-1 rounded text-xs font-medium',
+                      graphOptions.winrate ? 'bg-emerald-600/30 text-emerald-200 border border-emerald-500/50' : 'bg-slate-800/60 text-slate-400 border border-slate-700/50',
+                    ].join(' ')}
+                    onClick={() => setGraphOptions((prev) => ({ ...prev, winrate: !prev.winrate }))}
                   >
-                    <FaTrash />
+                    Win%
                   </button>
                 </div>
-              ))}
-            </div>
+                {graphOpen && (
+                  <div className="mt-2" style={{ height: graphHeight }}>
+                    {graphOptions.score || graphOptions.winrate ? (
+                      <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-slate-500 border border-slate-800 rounded">
+                        Graph hidden
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -183,6 +183,10 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('web-katrain:library_open:v1') === 'true';
   });
+  const [showSidebar, setShowSidebar] = useState(() => {
+    if (typeof localStorage === 'undefined') return true;
+    return localStorage.getItem('web-katrain:sidebar_open:v1') !== 'false';
+  });
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return true;
     return window.matchMedia('(min-width: 1024px)').matches;
@@ -288,6 +292,11 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:library_open:v1', String(libraryOpen));
   }, [libraryOpen]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:sidebar_open:v1', String(showSidebar));
+  }, [showSidebar]);
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -461,6 +470,7 @@ export const Layout: React.FC = () => {
     setIsKeyboardHelpOpen,
     toggleLibrary: () => setLibraryOpen((prev) => !prev),
     closeLibrary: () => setLibraryOpen(false),
+    toggleSidebar: () => setShowSidebar((prev) => !prev),
     toast,
   });
 
@@ -595,6 +605,8 @@ export const Layout: React.FC = () => {
         onLoad={handleLoadClick}
         onToggleLibrary={() => setLibraryOpen((prev) => !prev)}
         isLibraryOpen={libraryOpen}
+        onToggleSidebar={() => setShowSidebar((prev) => !prev)}
+        isSidebarOpen={showSidebar}
         onSettings={() => setIsSettingsOpen(true)}
         isAiWhite={isAiWhite}
         isAiBlack={isAiBlack}
@@ -654,6 +666,8 @@ export const Layout: React.FC = () => {
           onOpenSidePanel={() => setRightPanelOpen(true)}
           onToggleLibrary={() => setLibraryOpen((prev) => !prev)}
           isLibraryOpen={libraryOpen}
+          onToggleSidebar={() => setShowSidebar((prev) => !prev)}
+          isSidebarOpen={showSidebar}
         />
 
         {/* Board */}
@@ -690,7 +704,7 @@ export const Layout: React.FC = () => {
         )}
       </div>
 
-      {isDesktop && (
+      {isDesktop && showSidebar && (
         <div
           className="hidden lg:block w-1 cursor-col-resize bg-slate-800/60 hover:bg-slate-600/80 transition-colors"
           onMouseDown={() => setIsResizingRight(true)}
@@ -701,6 +715,7 @@ export const Layout: React.FC = () => {
         open={rightPanelOpen}
         onClose={() => setRightPanelOpen(false)}
         width={isDesktop ? rightPanelWidth : undefined}
+        showOnDesktop={showSidebar}
         mode={mode}
         setMode={setMode}
         modePanels={modePanels}

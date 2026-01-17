@@ -65,6 +65,7 @@ const SHORTCUT_CATEGORIES = [
       { key: 'Ctrl+S', description: 'Save SGF' },
       { key: 'Ctrl+L', description: 'Load SGF' },
       { key: 'Ctrl+Shift+L', description: 'Toggle library' },
+      { key: 'Ctrl+B', description: 'Toggle sidebar' },
       { key: 'Ctrl+C', description: 'Copy SGF' },
       { key: 'Ctrl+V', description: 'Paste SGF' },
     ],

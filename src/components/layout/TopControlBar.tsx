@@ -4,6 +4,7 @@ import {
   FaBook,
   FaChevronDown,
   FaChevronLeft,
+  FaColumns,
   FaRobot,
   FaPlay,
   FaStop,
@@ -51,6 +52,8 @@ interface TopControlBarProps {
   onOpenSidePanel: () => void;
   onToggleLibrary: () => void;
   isLibraryOpen: boolean;
+  onToggleSidebar: () => void;
+  isSidebarOpen: boolean;
 }
 
 export const TopControlBar: React.FC<TopControlBarProps> = ({
@@ -87,6 +90,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onOpenSidePanel,
   onToggleLibrary,
   isLibraryOpen,
+  onToggleSidebar,
+  isSidebarOpen,
 }) => {
   return (
     <div className="h-14 bg-slate-800 border-b border-slate-700/50 flex items-center px-3 gap-3 select-none">
@@ -99,6 +104,13 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         className={isLibraryOpen ? 'text-emerald-300' : undefined}
       >
         <FaBook />
+      </IconButton>
+      <IconButton
+        title={isSidebarOpen ? 'Hide sidebar (Ctrl+B)' : 'Show sidebar (Ctrl+B)'}
+        onClick={onToggleSidebar}
+        className={isSidebarOpen ? 'text-emerald-300' : undefined}
+      >
+        <FaColumns />
       </IconButton>
 
       <div className="flex items-center gap-2 overflow-x-auto">

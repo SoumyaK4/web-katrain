@@ -53,7 +53,7 @@ export function defaultUiState(): UiState {
     },
     panels: {
       play: {
-        graphOpen: true,
+        graphOpen: false,
         graph: { score: true, winrate: false },
         statsOpen: true,
         stats: { score: true, winrate: true, points: true },
@@ -61,7 +61,7 @@ export function defaultUiState(): UiState {
         notes: { info: true, infoDetails: false, notes: false },
       },
       analyze: {
-        graphOpen: true,
+        graphOpen: false,
         graph: { score: true, winrate: true },
         statsOpen: true,
         stats: { score: true, winrate: true, points: true },

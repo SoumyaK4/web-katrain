@@ -16,6 +16,7 @@ interface UseKeyboardShortcutsOptions {
   setIsKeyboardHelpOpen: (v: boolean) => void;
   toggleLibrary: () => void;
   closeLibrary: () => void;
+  toggleSidebar: () => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
 }
 
@@ -31,6 +32,7 @@ export function useKeyboardShortcuts({
   setIsKeyboardHelpOpen,
   toggleLibrary,
   closeLibrary,
+  toggleSidebar,
   toast,
 }: UseKeyboardShortcutsOptions): void {
   const {
@@ -172,6 +174,11 @@ export function useKeyboardShortcuts({
       if (ctrl && keyLower === 'l') {
         e.preventDefault();
         fileInputRef.current?.click();
+        return;
+      }
+      if (ctrl && keyLower === 'b') {
+        e.preventDefault();
+        toggleSidebar();
         return;
       }
       if (ctrl && keyLower === 'c') {

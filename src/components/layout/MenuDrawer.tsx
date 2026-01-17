@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaBook } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaBook, FaColumns } from 'react-icons/fa';
 
 interface MenuDrawerProps {
   open: boolean;
@@ -9,6 +9,8 @@ interface MenuDrawerProps {
   onLoad: () => void;
   onToggleLibrary: () => void;
   isLibraryOpen: boolean;
+  onToggleSidebar: () => void;
+  isSidebarOpen: boolean;
   onSettings: () => void;
   isAiWhite: boolean;
   isAiBlack: boolean;
@@ -23,6 +25,8 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onLoad,
   onToggleLibrary,
   isLibraryOpen,
+  onToggleSidebar,
+  isSidebarOpen,
   onSettings,
   isAiWhite,
   isAiBlack,
@@ -97,6 +101,19 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               <FaBook aria-hidden="true" /> {isLibraryOpen ? 'Hide Library' : 'Show Library'}
             </span>
             <kbd className="text-xs text-slate-400">Ctrl+Shift+L</kbd>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"
+            onClick={() => {
+              onToggleSidebar();
+              onClose();
+            }}
+            aria-label="Toggle sidebar"
+          >
+            <span className="flex items-center gap-2">
+              <FaColumns aria-hidden="true" /> {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
+            </span>
+            <kbd className="text-xs text-slate-400">Ctrl+B</kbd>
           </button>
           <button
             className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-slate-700"
