@@ -78,6 +78,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const headerActionClass = 'px-2 py-1 rounded bg-slate-800/70 text-xs text-slate-200 hover:bg-slate-700';
   const headerDangerActionClass = 'px-2 py-1 rounded bg-rose-900/40 text-xs text-rose-200 hover:bg-rose-800/50';
+  const bulkActionClass = 'px-2 py-1 rounded bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/60';
+  const bulkDangerActionClass = 'px-2 py-1 rounded bg-rose-900/40 border border-rose-700/50 text-rose-200 hover:bg-rose-800/50';
   const [sortKey, setSortKey] = useState(() => {
     if (typeof localStorage === 'undefined') return 'recent';
     return localStorage.getItem('web-katrain:library_sort:v1') ?? 'recent';
@@ -884,14 +886,14 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 text-xs text-slate-300">
               <button
                 type="button"
-                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/60"
+                className={bulkActionClass}
                 onClick={handleBulkExport}
               >
                 Export
               </button>
               <button
                 type="button"
-                className="px-2 py-1 rounded bg-rose-900/40 border border-rose-700/50 text-rose-200 hover:bg-rose-800/50"
+                className={bulkDangerActionClass}
                 onClick={handleBulkDelete}
               >
                 Delete
@@ -911,7 +913,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </select>
               <button
                 type="button"
-                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/60 disabled:opacity-40"
+                className={`${bulkActionClass} disabled:opacity-40`}
                 onClick={handleBulkMove}
                 disabled={!bulkMoveTarget}
               >
@@ -919,7 +921,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </button>
               <button
                 type="button"
-                className="ml-auto px-2 py-1 rounded bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/60"
+                className={`ml-auto ${bulkActionClass}`}
                 onClick={handleClearSelection}
               >
                 Clear

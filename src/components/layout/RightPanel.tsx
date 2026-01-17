@@ -135,6 +135,20 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const showAnalysis = !isMobile || activeMobileTab === 'analysis';
   const showNotes = !isMobile || activeMobileTab === 'info';
 
+  const modeTabClass = (active: boolean) => [
+    'flex-1 h-10 rounded-lg font-semibold border transition-all',
+    active
+      ? 'bg-blue-600/30 border-blue-500/60 text-white shadow-sm'
+      : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700/80 hover:text-white',
+  ].join(' ');
+
+  const treeViewTabClass = (active: boolean) => [
+    'px-2 py-1 rounded text-xs font-semibold border',
+    active
+      ? 'bg-slate-700 text-white border-slate-600'
+      : 'bg-slate-900 text-slate-400 border-slate-700/50 hover:bg-slate-700 hover:text-white',
+  ].join(' ');
+
   const guardInsertMode = (action: () => void) => {
     if (isInsertMode) {
       toast('Finish inserting before navigating.', 'error');
@@ -335,23 +349,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </button>
           <div className="flex flex-1 gap-2">
             <button
-              className={[
-                'flex-1 h-10 rounded-lg font-semibold border transition-all',
-                mode === 'play'
-                  ? 'bg-blue-600/30 border-blue-500/60 text-white shadow-sm'
-                  : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700/80 hover:text-white',
-              ].join(' ')}
+              className={modeTabClass(mode === 'play')}
               onClick={() => setMode('play')}
             >
               Play
             </button>
             <button
-              className={[
-                'flex-1 h-10 rounded-lg font-semibold border transition-all',
-                mode === 'analyze'
-                  ? 'bg-blue-600/30 border-blue-500/60 text-white shadow-sm'
-                  : 'bg-slate-900 border-slate-700/50 text-slate-400 hover:bg-slate-700/80 hover:text-white',
-              ].join(' ')}
+              className={modeTabClass(mode === 'analyze')}
               onClick={() => setMode('analyze')}
             >
               Analysis
@@ -371,24 +375,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className={[
-                      'px-2 py-1 rounded text-xs font-semibold border',
-                      treeView === 'tree'
-                        ? 'bg-slate-700 text-white border-slate-600'
-                        : 'bg-slate-900 text-slate-400 border-slate-700/50 hover:bg-slate-700 hover:text-white',
-                    ].join(' ')}
+                    className={treeViewTabClass(treeView === 'tree')}
                     onClick={() => setTreeView('tree')}
                   >
                     Tree
                   </button>
                   <button
                     type="button"
-                    className={[
-                      'px-2 py-1 rounded text-xs font-semibold border',
-                      treeView === 'list'
-                        ? 'bg-slate-700 text-white border-slate-600'
-                        : 'bg-slate-900 text-slate-400 border-slate-700/50 hover:bg-slate-700 hover:text-white',
-                    ].join(' ')}
+                    className={treeViewTabClass(treeView === 'list')}
                     onClick={() => setTreeView('list')}
                   >
                     List
