@@ -1187,23 +1187,27 @@ export const Layout: React.FC = () => {
         </>
       )}
 
-      <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30">
-        <PanelEdgeToggle
-          side="top"
-          state={topBarOpen ? 'open' : 'closed'}
-          title={topBarOpen ? 'Hide top bar' : 'Show top bar'}
-          onClick={() => setTopBarOpen((prev) => !prev)}
-        />
-      </div>
-      {settings.showBoardControls && (
-        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 z-30">
-          <PanelEdgeToggle
-            side="bottom"
-            state={bottomBarOpen ? 'open' : 'closed'}
-            title={bottomBarOpen ? 'Hide bottom bar' : 'Show bottom bar'}
-            onClick={() => setBottomBarOpen((prev) => !prev)}
-          />
-        </div>
+      {!isMobile && (
+        <>
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30">
+            <PanelEdgeToggle
+              side="top"
+              state={topBarOpen ? 'open' : 'closed'}
+              title={topBarOpen ? 'Hide top bar' : 'Show top bar'}
+              onClick={() => setTopBarOpen((prev) => !prev)}
+            />
+          </div>
+          {settings.showBoardControls && (
+            <div className="absolute left-1/2 bottom-0 -translate-x-1/2 z-30">
+              <PanelEdgeToggle
+                side="bottom"
+                state={bottomBarOpen ? 'open' : 'closed'}
+                title={bottomBarOpen ? 'Hide bottom bar' : 'Show bottom bar'}
+                onClick={() => setBottomBarOpen((prev) => !prev)}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {isMobile && (
