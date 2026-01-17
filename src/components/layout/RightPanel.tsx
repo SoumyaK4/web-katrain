@@ -101,6 +101,44 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     return { analyzed, total };
   }, [rootNode, treeVersion]);
 
+  const [treeHeight, setTreeHeight] = React.useState(() => {
+    if (typeof localStorage === 'undefined') return 180;
+    const raw = localStorage.getItem('web-katrain:tree_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 180;
+  });
+  const treeResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
+  const [isResizingTree, setIsResizingTree] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:tree_height:v1', String(treeHeight));
+  }, [treeHeight]);
+
+  React.useEffect(() => {
+    if (!isResizingTree) return;
+    const minHeight = 120;
+    const maxHeight = 360;
+    const onMove = (e: MouseEvent) => {
+      if (!treeResizeRef.current) return;
+      const delta = e.clientY - treeResizeRef.current.startY;
+      const next = Math.min(maxHeight, Math.max(minHeight, treeResizeRef.current.startHeight + delta));
+      setTreeHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingTree(false);
+      treeResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingTree]);
+
   const SectionHeader: React.FC<{
     title: string;
     open: boolean;
@@ -208,8 +246,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             onToggle={() => updatePanels({ treeOpen: !modePanels.treeOpen })}
           />
           {modePanels.treeOpen && (
-            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden h-44">
-              <MoveTree />
+            <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded overflow-hidden">
+              <div style={{ height: treeHeight }}>
+                <MoveTree />
+              </div>
+              <div
+                className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors"
+                onMouseDown={(e) => {
+                  treeResizeRef.current = { startY: e.clientY, startHeight: treeHeight };
+                  setIsResizingTree(true);
+                }}
+              />
             </div>
           )}
         </div>
