@@ -11,6 +11,30 @@ import { getEngineModelLabel } from '../utils/engineLabel';
 let uploadedModelUrl: string | null = null;
 let lastManualModelUrl: string | null = null;
 
+const OFFICIAL_MODELS: Array<{ label: string; name: string; url: string; badge?: string; uploaded: string }> = [
+    {
+        label: 'Latest (b28)',
+        name: 'kata1-b28c512nbt-s12253653760-d5671874532',
+        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b28c512nbt-s12253653760-d5671874532.bin.gz',
+        badge: 'Latest',
+        uploaded: '2026-01-16',
+    },
+    {
+        label: 'Strongest (b28)',
+        name: 'kata1-b28c512nbt-s12192929536-d5655876072',
+        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b28c512nbt-s12192929536-d5655876072.bin.gz',
+        badge: 'Strongest',
+        uploaded: '2026-01-06',
+    },
+    {
+        label: 'Adam (b28)',
+        name: 'kata1-b28c512nbt-adam-s11387M-d5458M',
+        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b28c512nbt-adam-s11387M-d5458M.bin.gz',
+        badge: 'Adam',
+        uploaded: '2025-10-12',
+    },
+];
+
 const revokeUploadedModelUrl = () => {
     if (!uploadedModelUrl) return;
     URL.revokeObjectURL(uploadedModelUrl);
@@ -1135,6 +1159,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         Uploaded weights stay in memory for this session only.
                                     </p>
                                 ) : null}
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs text-slate-400 block">Official KataGo models (download links)</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {OFFICIAL_MODELS.map((model) => (
+                                        <a
+                                            key={model.url}
+                                            href={model.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-full text-left rounded-lg border px-3 py-2 transition-colors bg-slate-900/60 border-slate-700/50 text-slate-200 hover:bg-slate-800/70"
+                                            title={`Download ${model.name}`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold">{model.label}</span>
+                                                {model.badge ? (
+                                                    <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-800/70 text-slate-300 border border-slate-700/50">
+                                                        {model.badge}
+                                                    </span>
+                                                ) : null}
+                                                <span className="ml-auto text-[10px] text-slate-400">Download</span>
+                                            </div>
+                                            <div className="text-[11px] text-slate-400 font-mono truncate">
+                                                {model.name}
+                                            </div>
+                                            <div className="text-[10px] text-slate-500">
+                                                Uploaded {model.uploaded}
+                                            </div>
+                                        </a>
+                                    ))}
+                                </div>
+                                <p className={subtextClass}>
+                                    Download then use “Upload Weights” above to load the model.
+                                </p>
                             </div>
                             <input
                                 type="text"
