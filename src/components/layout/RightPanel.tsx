@@ -397,6 +397,19 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           {modePanels.analysisOpen && (
             <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
               <div className="text-xs text-slate-400">{statusText}</div>
+              {isGameAnalysisRunning && gameAnalysisTotal > 0 && (
+                <div>
+                  <div className="h-2 rounded bg-slate-800/80 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500/70"
+                      style={{ width: `${Math.min(100, Math.round((gameAnalysisDone / gameAnalysisTotal) * 100))}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-400">
+                    {gameAnalysisDone}/{gameAnalysisTotal} analyzed
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button
                   className={[
