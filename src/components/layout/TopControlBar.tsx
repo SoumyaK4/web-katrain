@@ -160,7 +160,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   };
 
   return (
-    <div className="h-14 bg-slate-800 border-b border-slate-700/50 flex items-center px-3 gap-3 select-none">
+    <div className="h-14 bg-slate-800 border-b border-slate-700/50 flex items-center px-2 sm:px-3 gap-2 sm:gap-3 select-none">
       <div className="md:hidden">
         <IconButton title="Menu" onClick={onOpenMenu}>
           <FaBars />
@@ -211,7 +211,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </IconButton>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
         <TogglePill
           label="Children"
           shortcut="Q"
@@ -263,19 +263,19 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </div>
       )}
 
-      <div className="hidden xl:flex items-center gap-2 text-xs text-slate-300">
+      <div className="hidden xl:flex items-center gap-1.5 text-xs text-slate-300">
         {winRateLabel && (
-          <div className="px-2 py-1 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-200">
+          <div className="px-2 py-1 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-200 font-medium">
             Win {winRateLabel}
           </div>
         )}
         {scoreLeadLabel && (
-          <div className="px-2 py-1 rounded bg-blue-600/20 border border-blue-500/40 text-blue-200">
+          <div className="px-2 py-1 rounded bg-blue-600/20 border border-blue-500/40 text-blue-200 font-medium">
             Score {scoreLeadLabel}
           </div>
         )}
         {pointsLostLabel && (
-          <div className="px-2 py-1 rounded bg-amber-600/20 border border-amber-500/40 text-amber-200">
+          <div className="px-2 py-1 rounded bg-amber-600/20 border border-amber-500/40 text-amber-200 font-medium">
             Δ {pointsLostLabel}
           </div>
         )}

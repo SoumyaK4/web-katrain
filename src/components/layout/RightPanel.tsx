@@ -258,25 +258,25 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     return (
       <div
         className={[
-          'flex-1 rounded-lg px-3 py-2 flex items-center gap-3 shadow-lg shadow-black/20',
-          isTurn ? 'bg-slate-700/90 border border-slate-500/50' : 'bg-slate-800/50 border border-slate-700/30',
+          'flex-1 rounded-lg px-3 py-2.5 flex items-center gap-3 shadow-md transition-all',
+          isTurn ? 'bg-slate-700/90 border-2 border-emerald-500/50 shadow-emerald-500/10' : 'bg-slate-800/50 border border-slate-700/30',
         ].join(' ')}
       >
         <div
           className={[
-            'h-10 w-10 rounded-full flex items-center justify-center font-bold shadow-md',
-            player === 'black' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900',
+            'h-10 w-10 rounded-full flex items-center justify-center font-bold shadow-md text-sm',
+            player === 'black' ? 'bg-slate-950 text-white border-2 border-slate-700' : 'bg-slate-100 text-slate-900 border-2 border-slate-300',
           ].join(' ')}
           title={player === 'black' ? blackName : whiteName}
         >
           {caps}
         </div>
-        <div className="flex flex-col leading-tight">
-          <div className="text-xs text-slate-300">{name}</div>
-          <div className="text-[11px] text-slate-500">{rank || (player === 'black' ? 'Black' : 'White')}</div>
-          <div className="text-[11px] text-slate-400">{isAi ? 'AI' : 'Human'}</div>
+        <div className="flex flex-col leading-tight min-w-0 flex-1">
+          <div className="text-xs font-medium text-slate-200 truncate">{name}</div>
+          <div className="text-[11px] text-slate-400">{rank || (player === 'black' ? 'Black' : 'White')}</div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide">{isAi ? 'AI' : 'Human'}</div>
         </div>
-        {isTurn && <div className="ml-auto text-xs font-mono text-emerald-400">to play</div>}
+        {isTurn && <div className="ml-auto text-xs font-semibold text-emerald-400 whitespace-nowrap">to play</div>}
       </div>
     );
   };
@@ -296,12 +296,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           open ? 'flex' : 'hidden',
           'lg:static lg:max-w-none lg:z-auto',
           showOnDesktop ? 'lg:flex' : 'lg:hidden',
-          isMobile ? 'pb-16' : '',
+          isMobile ? 'pb-[68px]' : '',
         ].join(' ')}
         style={width ? { width } : undefined}
       >
         {/* Play / Analyze tabs */}
-        <div className="h-14 border-b border-slate-700/50 flex items-center p-2 gap-2">
+        <div className="h-14 border-b border-slate-700/50 flex items-center px-3 py-2 gap-2">
           <button
             type="button"
             className="lg:hidden h-10 w-10 flex items-center justify-center rounded hover:bg-slate-700 text-slate-300 hover:text-white"
@@ -508,7 +508,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   onToggle={() => updatePanels((current) => ({ infoOpen: !current.infoOpen }))}
                 />
                 {modePanels.infoOpen && (
-                  <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3">
+                  <div className="mt-2 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-4">
                     <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
                     <Timer />
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
@@ -625,7 +625,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
                     <div className="flex gap-2">
                       <button
-                        className="flex-1 px-3 py-2 rounded-lg bg-slate-700/80 hover:bg-slate-600/80 text-sm font-medium text-slate-200"
+                        className="flex-1 px-3 py-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600/80 text-sm font-medium text-slate-200 transition-colors border border-slate-600/40"
                         onClick={() => {
                           const st = useGameStore.getState();
                           const lastMover = st.currentNode.move?.player ?? null;
@@ -638,7 +638,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         Undo
                       </button>
                       <button
-                        className="flex-1 px-3 py-2 rounded-lg bg-rose-900/40 hover:bg-rose-800/50 text-sm font-medium text-rose-200"
+                        className="flex-1 px-3 py-2.5 rounded-lg bg-rose-900/40 hover:bg-rose-800/50 text-sm font-medium text-rose-200 transition-colors border border-rose-700/40"
                         onClick={() => {
                           const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
                           resign();
@@ -652,8 +652,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <div className="flex gap-2">
                       <button
                         className={[
-                          'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
-                          isAiWhite ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30',
+                          'flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                          isAiWhite ? 'bg-emerald-600/30 text-emerald-200 border-2 border-emerald-500/50 shadow-sm shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30 hover:text-slate-300',
                         ].join(' ')}
                         onClick={() => toggleAi('white')}
                       >
@@ -661,8 +661,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       </button>
                       <button
                         className={[
-                          'flex-1 px-3 py-2 rounded-lg text-sm font-medium',
-                          isAiBlack ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30',
+                          'flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                          isAiBlack ? 'bg-emerald-600/30 text-emerald-200 border-2 border-emerald-500/50 shadow-sm shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 border border-slate-700/30 hover:text-slate-300',
                         ].join(' ')}
                         onClick={() => toggleAi('black')}
                       >

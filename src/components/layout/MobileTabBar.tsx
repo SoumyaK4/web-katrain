@@ -64,7 +64,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-700/60 backdrop-blur"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/98 border-t border-slate-700/60 backdrop-blur-sm shadow-lg shadow-black/20"
       role="tablist"
     >
       <div
@@ -79,10 +79,10 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={[
-                'py-2 px-1 flex flex-col items-center justify-center gap-1 text-xs font-medium',
+                'py-3 px-2 flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors',
                 isActive
-                  ? 'text-emerald-200 bg-emerald-500/10'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60',
+                  ? 'text-emerald-200 bg-emerald-500/10 border-t-2 border-emerald-400'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60 border-t-2 border-transparent',
               ].join(' ')}
               role="tab"
               aria-selected={isActive}
@@ -91,12 +91,12 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
               <span className="relative">
                 {tab.icon}
                 {tab.id === 'info' && commentBadge && commentBadge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[16px] px-1 h-4 rounded-full text-[10px] flex items-center justify-center bg-rose-500 text-white">
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] px-1 h-4 rounded-full text-[10px] flex items-center justify-center bg-rose-500 text-white font-semibold shadow-sm">
                     {commentBadge > 9 ? '9+' : commentBadge}
                   </span>
                 )}
               </span>
-              <span>{tab.label}</span>
+              <span className="truncate max-w-full">{tab.label}</span>
             </button>
           );
         })}

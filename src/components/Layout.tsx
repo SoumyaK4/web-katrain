@@ -970,7 +970,7 @@ export const Layout: React.FC = () => {
       )}
 
       {/* Main board column */}
-      <div className={['flex flex-col flex-1 min-w-0', isMobile ? 'pb-16' : ''].join(' ')}>
+      <div className={['flex flex-col flex-1 min-w-0', isMobile ? 'pb-[68px]' : ''].join(' ')}>
         <TopControlBar
           settings={settings}
           updateControls={updateControls}
@@ -1026,7 +1026,7 @@ export const Layout: React.FC = () => {
         />
 
         {/* Board */}
-        <div className={['flex-1 flex items-center justify-center bg-slate-900 overflow-auto relative', isMobile ? 'p-2' : 'p-4'].join(' ')}>
+        <div className={['flex-1 flex items-center justify-center bg-slate-900 overflow-auto relative', isMobile ? 'p-3 md:p-4' : 'p-4 xl:p-6'].join(' ')}>
           {notification && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded shadow-lg flex items-center space-x-4 bg-slate-800 border border-slate-700/50">
               <span>{notification.message}</span>
