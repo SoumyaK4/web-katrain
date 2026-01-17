@@ -4,13 +4,23 @@ import { createLibraryItem, deleteLibraryItem, loadLibrary, saveLibrary, updateL
 
 interface LibraryPanelProps {
   open: boolean;
+  docked?: boolean;
+  width?: number;
   onClose: () => void;
   getCurrentSgf: () => string;
   onLoadSgf: (sgf: string) => void;
   onToast: (msg: string, type: 'info' | 'error' | 'success') => void;
 }
 
-export const LibraryPanel: React.FC<LibraryPanelProps> = ({ open, onClose, getCurrentSgf, onLoadSgf, onToast }) => {
+export const LibraryPanel: React.FC<LibraryPanelProps> = ({
+  open,
+  docked = false,
+  width,
+  onClose,
+  getCurrentSgf,
+  onLoadSgf,
+  onToast,
+}) => {
   const [items, setItems] = useState<LibraryItem[]>(() => loadLibrary());
   const [query, setQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -107,8 +117,10 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({ open, onClose, getCu
         className={[
           'bg-slate-900 border-r border-slate-700/50 flex flex-col',
           'fixed inset-y-0 left-0 z-40 w-full max-w-sm',
-          'lg:static lg:w-80 lg:max-w-none lg:z-auto',
+          'lg:static lg:z-auto',
+          docked ? 'lg:max-w-none' : 'lg:w-80',
         ].join(' ')}
+        style={docked && width ? { width } : undefined}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

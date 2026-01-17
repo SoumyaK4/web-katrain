@@ -12,6 +12,7 @@ import { PanelHeaderButton, formatMoveLabel, playerToShort } from './ui';
 interface RightPanelProps {
   open: boolean;
   onClose: () => void;
+  width?: number;
   mode: UiMode;
   setMode: (m: UiMode) => void;
   modePanels: UiState['panels'][UiMode];
@@ -49,6 +50,7 @@ interface RightPanelProps {
 export const RightPanel: React.FC<RightPanelProps> = ({
   open,
   onClose,
+  width,
   mode,
   setMode,
   modePanels,
@@ -122,8 +124,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           'bg-slate-800 border-l border-slate-700/50 flex flex-col',
           'fixed inset-y-0 right-0 z-40 w-full max-w-md',
           open ? 'flex' : 'hidden',
-          'lg:static lg:flex lg:w-96 lg:max-w-none lg:z-auto',
+          'lg:static lg:flex lg:max-w-none lg:z-auto',
         ].join(' ')}
+        style={width ? { width } : undefined}
       >
         {/* Play / Analyze tabs */}
         <div className="h-14 border-b border-slate-700/50 flex items-center p-2 gap-2">

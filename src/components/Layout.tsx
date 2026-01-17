@@ -183,6 +183,24 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('web-katrain:library_open:v1') === 'true';
   });
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(min-width: 1024px)').matches;
+  });
+  const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
+    if (typeof localStorage === 'undefined') return 300;
+    const raw = localStorage.getItem('web-katrain:left_panel_width:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 300;
+  });
+  const [rightPanelWidth, setRightPanelWidth] = useState(() => {
+    if (typeof localStorage === 'undefined') return 360;
+    const raw = localStorage.getItem('web-katrain:right_panel_width:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 360;
+  });
+  const [isResizingLeft, setIsResizingLeft] = useState(false);
+  const [isResizingRight, setIsResizingRight] = useState(false);
 
   const mode = uiState.mode;
   const modeControls = uiState.analysisControls[mode];
@@ -270,6 +288,55 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:library_open:v1', String(libraryOpen));
   }, [libraryOpen]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:left_panel_width:v1', String(leftPanelWidth));
+  }, [leftPanelWidth]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:right_panel_width:v1', String(rightPanelWidth));
+  }, [rightPanelWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizingLeft && !isResizingRight) return;
+    const minLeft = 220;
+    const maxLeft = 520;
+    const minRight = 280;
+    const maxRight = 520;
+    const onMove = (e: MouseEvent) => {
+      if (isResizingLeft) {
+        const next = Math.min(maxLeft, Math.max(minLeft, e.clientX));
+        setLeftPanelWidth(next);
+      }
+      if (isResizingRight) {
+        const next = Math.min(maxRight, Math.max(minRight, window.innerWidth - e.clientX));
+        setRightPanelWidth(next);
+      }
+    };
+    const onUp = () => {
+      setIsResizingLeft(false);
+      setIsResizingRight(false);
+    };
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingLeft, isResizingRight]);
 
   // Apply per-mode analysis controls to settings on mode changes
   useEffect(() => {
@@ -537,10 +604,19 @@ export const Layout: React.FC = () => {
       <LibraryPanel
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}
+        docked={isDesktop}
+        width={leftPanelWidth}
         getCurrentSgf={() => generateSgfFromTree(rootNode, sgfExportOptions)}
         onLoadSgf={handleLoadFromLibrary}
         onToast={toast}
       />
+
+      {isDesktop && libraryOpen && (
+        <div
+          className="hidden lg:block w-1 cursor-col-resize bg-slate-800/60 hover:bg-slate-600/80 transition-colors"
+          onMouseDown={() => setIsResizingLeft(true)}
+        />
+      )}
 
       {/* Main board column */}
       <div className="flex flex-col flex-1 min-w-0">
@@ -614,9 +690,17 @@ export const Layout: React.FC = () => {
         )}
       </div>
 
+      {isDesktop && (
+        <div
+          className="hidden lg:block w-1 cursor-col-resize bg-slate-800/60 hover:bg-slate-600/80 transition-colors"
+          onMouseDown={() => setIsResizingRight(true)}
+        />
+      )}
+
       <RightPanel
         open={rightPanelOpen}
         onClose={() => setRightPanelOpen(false)}
+        width={isDesktop ? rightPanelWidth : undefined}
         mode={mode}
         setMode={setMode}
         modePanels={modePanels}
