@@ -35,6 +35,10 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
   );
   const [depthFilter, setDepthFilter] = useState<[number, number] | null>(null);
   const [reportGraph, setReportGraph] = useState({ score: true, winrate: true });
+  const sectionClass =
+    'rounded-xl border border-slate-700/60 bg-slate-900/70 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.35)]';
+  const sectionTitleClass = 'text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400';
+  const labelClass = 'text-slate-300';
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -100,16 +104,19 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-[52rem] max-h-[90vh] overflow-hidden flex flex-col report-print">
-        <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
-          <h2 className="text-lg font-semibold text-white">Game Report (KaTrain)</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white" title="Close">
+      <div className="bg-slate-900/90 rounded-2xl shadow-2xl w-[56rem] max-h-[90vh] overflow-hidden flex flex-col report-print border border-slate-700/60">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50 bg-slate-900/90">
+          <div>
+            <div className="text-xs uppercase tracking-[0.2em] text-slate-400">KaTrain Report</div>
+            <h2 className="text-lg font-semibold text-white">Game Analysis Summary</h2>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white print:hidden" title="Close">
             <FaTimes />
           </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto">
-          <div className="grid grid-cols-4 gap-2">
+        <div className="px-5 py-4 space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { key: 'all', label: 'Entire Game', filter: null },
               { key: 'opening', label: 'Opening', filter: [0, 0.14] as [number, number] },
@@ -125,8 +132,10 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
                   type="button"
                   onClick={() => setDepthFilter(b.filter)}
                   className={[
-                    'px-3 py-2 rounded border text-sm font-medium',
-                    active ? 'bg-green-600 border-green-500 text-white' : 'bg-slate-900 border-slate-700/50 text-slate-200 hover:bg-slate-700',
+                    'px-3 py-2 rounded-lg border text-sm font-semibold transition-colors',
+                    active
+                      ? 'bg-emerald-600/80 border-emerald-500/60 text-white'
+                      : 'bg-slate-900/80 border-slate-700/50 text-slate-200 hover:bg-slate-800/70',
                   ].join(' ')}
                 >
                   {b.label}
@@ -135,20 +144,37 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
             })}
           </div>
 
-          <div className="bg-slate-900 border border-slate-700/50 rounded p-3 flex flex-wrap items-center gap-3 text-sm">
-            <div className="text-slate-300 font-semibold">{phaseLabel}</div>
-            <div className="text-slate-400">Analyzed moves</div>
-            <div className="font-mono text-slate-100">{analyzedMoves}/{totalMoves || 0}</div>
-            <div className="text-slate-400">Coverage</div>
-            <div className="font-mono text-slate-100">{fmtPct(coverage)}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className={sectionClass}>
+              <div className={sectionTitleClass}>Phase</div>
+              <div className="mt-2 text-lg font-semibold text-slate-100">{phaseLabel}</div>
+              <div className="mt-1 text-xs text-slate-400">Filter applies to report metrics.</div>
+            </div>
+            <div className={sectionClass}>
+              <div className={sectionTitleClass}>Analyzed Moves</div>
+              <div className="mt-2 text-lg font-semibold text-slate-100">
+                {analyzedMoves}/{totalMoves || 0}
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-slate-800/70 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500/70"
+                  style={{ width: `${Math.round(coverage * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className={sectionClass}>
+              <div className={sectionTitleClass}>Coverage</div>
+              <div className="mt-2 text-lg font-semibold text-slate-100">{fmtPct(coverage)}</div>
+              <div className="mt-1 text-xs text-slate-400">Based on moves with analysis data.</div>
+            </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-700/50 rounded p-3">
-            <div className="text-sm font-semibold text-slate-200 mb-2">Key Stats</div>
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              <div className="text-slate-400" />
-              <div className="text-center font-mono text-slate-200">Black</div>
-              <div className="text-center font-mono text-slate-200">White</div>
+          <div className={sectionClass}>
+            <div className={sectionTitleClass}>Key Stats</div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+              <div className="text-slate-500 text-xs uppercase tracking-wide">Metric</div>
+              <div className="text-center text-xs uppercase tracking-wide text-slate-500">Black</div>
+              <div className="text-center text-xs uppercase tracking-wide text-slate-500">White</div>
 
               {(
                 [
@@ -164,7 +190,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
                 ] as Array<[string, (p: Player) => string]>
               ).map(([label, valueFn]) => (
                 <React.Fragment key={label}>
-                  <div className="text-slate-300">{label}</div>
+                  <div className={labelClass}>{label}</div>
                   <div className="text-center font-mono text-slate-200">{valueFn('black')}</div>
                   <div className="text-center font-mono text-slate-200">{valueFn('white')}</div>
                 </React.Fragment>
@@ -175,9 +201,9 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
             </p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-700/50 rounded p-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="text-sm font-semibold text-slate-200">Analysis Graph</div>
+          <div className={sectionClass}>
+            <div className="flex items-center justify-between gap-2">
+              <div className={sectionTitleClass}>Analysis Graph</div>
               <div className="flex items-center gap-1">
                 <PanelHeaderButton
                   label="Score"
@@ -193,7 +219,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
                 />
               </div>
             </div>
-            <div className="bg-slate-900 border border-slate-700/50 rounded p-2">
+            <div className="mt-3 bg-slate-950/40 border border-slate-700/50 rounded-lg p-2">
               {reportGraph.score || reportGraph.winrate ? (
                 <div style={{ height: 160 }}>
                   <ScoreWinrateGraph showScore={reportGraph.score} showWinrate={reportGraph.winrate} />
@@ -204,18 +230,18 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-700/50 rounded p-3">
-            <div className="text-sm font-semibold text-slate-200 mb-2">Biggest Mistakes</div>
+          <div className={sectionClass}>
+            <div className={sectionTitleClass}>Biggest Mistakes</div>
             {topMistakes.length === 0 ? (
-              <div className="text-sm text-slate-500">No analyzed moves in this range.</div>
+              <div className="mt-2 text-sm text-slate-500">No analyzed moves in this range.</div>
             ) : (
-              <div className="grid grid-cols-12 gap-2 text-xs text-slate-400">
-                <div className="col-span-2">Move</div>
-                <div className="col-span-1 text-center">P</div>
-                <div className="col-span-2">Played</div>
-                <div className="col-span-2">Top</div>
-                <div className="col-span-2 text-right">Loss</div>
-                <div className="col-span-3 text-right">Jump</div>
+              <div className="mt-3 grid grid-cols-12 gap-2 text-xs text-slate-400">
+                <div className="col-span-2 uppercase tracking-wide text-[10px]">Move</div>
+                <div className="col-span-1 text-center uppercase tracking-wide text-[10px]">P</div>
+                <div className="col-span-2 uppercase tracking-wide text-[10px]">Played</div>
+                <div className="col-span-2 uppercase tracking-wide text-[10px]">Top</div>
+                <div className="col-span-2 text-right uppercase tracking-wide text-[10px]">Loss</div>
+                <div className="col-span-3 text-right uppercase tracking-wide text-[10px]">Jump</div>
                 {topMistakes.map((entry) => (
                   <React.Fragment key={`${entry.node.id}-${entry.moveNumber}`}>
                     <div className="col-span-2 text-slate-200 font-mono">#{entry.moveNumber}</div>
@@ -244,13 +270,19 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
             )}
           </div>
 
-          <div className="bg-slate-900 border border-slate-700/50 rounded p-3">
-            <div className="text-sm font-semibold text-slate-200 mb-2">Point Loss Histogram</div>
-            <div className="grid grid-cols-12 gap-2 text-xs">
-              <div className="col-span-3 text-slate-400">Threshold</div>
-              <div className="col-span-5 text-slate-400">Distribution</div>
-              <div className="col-span-2 text-center font-mono text-slate-400">B</div>
-              <div className="col-span-2 text-center font-mono text-slate-400">W</div>
+          <div className={sectionClass}>
+            <div className="flex items-center justify-between">
+              <div className={sectionTitleClass}>Point Loss Histogram</div>
+              <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-200/80" />Black</span>
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-400/80" />White</span>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-12 gap-2 text-xs">
+              <div className="col-span-3 uppercase tracking-wide text-[10px] text-slate-500">Threshold</div>
+              <div className="col-span-5 uppercase tracking-wide text-[10px] text-slate-500">Distribution</div>
+              <div className="col-span-2 text-center uppercase tracking-wide text-[10px] text-slate-500">B</div>
+              <div className="col-span-2 text-center uppercase tracking-wide text-[10px] text-slate-500">W</div>
 
               {report.labels
                 .map((label, idx) => ({ label, idx }))
@@ -263,9 +295,9 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
                     <React.Fragment key={label}>
                       <div className="col-span-3 text-slate-300">{label}</div>
                       <div className="col-span-5">
-                        <div className="h-2 rounded bg-slate-800/70 overflow-hidden flex">
-                          <div className="h-full bg-slate-200/70" style={{ width: blackWidth }} />
-                          <div className="h-full bg-slate-400/70" style={{ width: whiteWidth }} />
+                        <div className="h-2 rounded-full bg-slate-800/70 overflow-hidden flex">
+                          <div className="h-full bg-slate-200/80" style={{ width: blackWidth }} />
+                          <div className="h-full bg-slate-400/80" style={{ width: whiteWidth }} />
                         </div>
                       </div>
                       <div className="col-span-2 text-center font-mono text-slate-200">{row.black}</div>
@@ -277,18 +309,18 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
           </div>
         </div>
 
-        <div className="p-4 bg-slate-900 flex items-center justify-between">
+        <div className="px-5 py-4 bg-slate-900/90 border-t border-slate-700/50 flex items-center justify-between print:hidden">
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded font-medium"
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold"
           >
             Download PDF
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-medium"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold"
           >
             Done
           </button>
