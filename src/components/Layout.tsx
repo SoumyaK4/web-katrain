@@ -187,6 +187,7 @@ export const Layout: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
+  const [reportHoverMove, setReportHoverMove] = useState<CandidateMove | null>(null);
   const [pvAnim, setPvAnim] = useState<{ key: string; startMs: number } | null>(null);
   const [pvAnimNowMs, setPvAnimNowMs] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -244,6 +245,7 @@ export const Layout: React.FC = () => {
   });
 
   const mode = uiState.mode;
+  const boardUiMode = reportHoverMove ? 'analyze' : mode;
   const modeControls = uiState.analysisControls[mode];
   const modePanels = uiState.panels[mode];
   const lockAiDetails = mode === 'play' && settings.trainerLockAi;
@@ -482,17 +484,20 @@ export const Layout: React.FC = () => {
   }, [currentNode.id, isAnalysisMode, runAnalysis]);
 
   // PV animation
+  const activeHoverMove = reportHoverMove ?? hoveredMove;
+  const pvOverlayEnabled = isAnalysisMode || !!reportHoverMove;
   const pvKey = useMemo(() => {
-    const pv = hoveredMove?.pv;
-    if (!isAnalysisMode || !pv || pv.length === 0) return null;
+    const pv = activeHoverMove?.pv;
+    if (!pvOverlayEnabled || !pv || pv.length === 0) return null;
     return `${currentNode.id}|${pv.join(' ')}`;
-  }, [currentNode.id, hoveredMove, isAnalysisMode]);
+  }, [currentNode.id, activeHoverMove, pvOverlayEnabled]);
 
   const evalColors = useMemo(() => getKaTrainEvalColors(settings.trainerTheme), [settings.trainerTheme]);
   const pvAnimTimeS = useMemo(() => {
+    if (reportHoverMove) return 0;
     const t = settings.animPvTimeSeconds;
     return typeof t === 'number' && Number.isFinite(t) ? t : 0.5;
-  }, [settings.animPvTimeSeconds]);
+  }, [reportHoverMove, settings.animPvTimeSeconds]);
 
   useEffect(() => {
     if (!pvKey || pvAnimTimeS <= 0) {
@@ -503,7 +508,7 @@ export const Layout: React.FC = () => {
     setPvAnimNowMs(performance.now());
   }, [pvKey, pvAnimTimeS]);
 
-  const pvLen = hoveredMove?.pv?.length ?? 0;
+  const pvLen = activeHoverMove?.pv?.length ?? 0;
   useEffect(() => {
     if (!pvAnim) return;
     if (!pvKey || pvKey !== pvAnim.key) return;
@@ -522,17 +527,17 @@ export const Layout: React.FC = () => {
   }, [pvAnim, pvAnimTimeS, pvKey, pvLen]);
 
   const pvUpToMove = useMemo(() => {
-    const pv = hoveredMove?.pv;
-    if (!isAnalysisMode || !pv || pv.length === 0) return null;
+    const pv = activeHoverMove?.pv;
+    if (!pvOverlayEnabled || !pv || pv.length === 0) return null;
     if (pvAnimTimeS <= 0) return pv.length;
     if (!pvAnim || pvAnim.key !== pvKey) return pv.length;
     const delayMs = Math.max(pvAnimTimeS, 0.1) * 1000;
     return Math.min(pv.length, (pvAnimNowMs - pvAnim.startMs) / delayMs);
-  }, [hoveredMove, isAnalysisMode, pvAnim, pvAnimNowMs, pvAnimTimeS, pvKey]);
+  }, [activeHoverMove, pvOverlayEnabled, pvAnim, pvAnimNowMs, pvAnimTimeS, pvKey]);
 
   const passPv = useMemo(() => {
-    const pv = hoveredMove?.pv;
-    if (!isAnalysisMode || !pv || pv.length === 0) return null;
+    const pv = activeHoverMove?.pv;
+    if (!pvOverlayEnabled || !pv || pv.length === 0) return null;
     const upToMove = typeof pvUpToMove === 'number' ? pvUpToMove : pv.length;
     const opp: Player = currentPlayer === 'black' ? 'white' : 'black';
     let last: { idx: number; player: Player } | null = null;
@@ -542,7 +547,7 @@ export const Layout: React.FC = () => {
       if (m?.kind === 'pass') last = { idx: i + 1, player: i % 2 === 0 ? currentPlayer : opp };
     }
     return last;
-  }, [currentPlayer, hoveredMove, isAnalysisMode, pvUpToMove]);
+  }, [currentPlayer, activeHoverMove, pvOverlayEnabled, pvUpToMove]);
 
   const noteCount = useMemo(() => {
     void treeVersion;
@@ -907,7 +912,7 @@ export const Layout: React.FC = () => {
 
   return (
     <div
-      className="relative flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden"
+      className="relative flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden app-root"
       onDragEnter={handleAppDragEnter}
       onDragLeave={handleAppDragLeave}
       onDragOver={handleAppDragOver}
@@ -915,7 +920,15 @@ export const Layout: React.FC = () => {
     >
       {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} />}
       {isGameAnalysisOpen && <GameAnalysisModal onClose={() => setIsGameAnalysisOpen(false)} />}
-      {isGameReportOpen && <GameReportModal onClose={() => setIsGameReportOpen(false)} />}
+      {isGameReportOpen && (
+        <GameReportModal
+          onClose={() => {
+            setIsGameReportOpen(false);
+            setReportHoverMove(null);
+          }}
+          setReportHoverMove={setReportHoverMove}
+        />
+      )}
       {isKeyboardHelpOpen && <KeyboardHelpModal onClose={() => setIsKeyboardHelpOpen(false)} />}
       {isNewGameOpen && (
         <NewGameModal
@@ -1064,7 +1077,13 @@ export const Layout: React.FC = () => {
               </button>
             </div>
           )}
-          <GoBoard hoveredMove={hoveredMove} onHoverMove={setHoveredMove} pvUpToMove={pvUpToMove} uiMode={mode} />
+          <GoBoard
+            hoveredMove={activeHoverMove}
+            onHoverMove={setHoveredMove}
+            pvUpToMove={pvUpToMove}
+            uiMode={boardUiMode}
+            forcePvOverlay={!!reportHoverMove}
+          />
         </div>
 
         {settings.showBoardControls && bottomBarOpen && (

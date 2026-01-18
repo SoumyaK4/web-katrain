@@ -112,9 +112,10 @@ interface GoBoardProps {
     onHoverMove: (move: CandidateMove | null) => void;
     pvUpToMove: number | null;
     uiMode: 'play' | 'analyze';
+    forcePvOverlay?: boolean;
 }
 
-export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUpToMove, uiMode }) => {
+export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUpToMove, uiMode, forcePvOverlay = false }) => {
   const {
     board,
     playMove,
@@ -151,6 +152,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     }),
     shallow
   );
+  const pvOverlayEnabled = isAnalysisMode || forcePvOverlay;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const gridCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -598,7 +600,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       drawGhost(cursorPt.x, cursorPt.y, currentPlayer, 0.6);
     }
 
-    if (isAnalysisMode && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0)) {
+    if (pvOverlayEnabled && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0)) {
       if (hoveredMove.x >= 0 && hoveredMove.y >= 0) {
         drawGhost(hoveredMove.x, hoveredMove.y, currentPlayer, 0.6);
       }
@@ -1227,7 +1229,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 
   const pvMoves = useMemo(() => {
       const pv = hoveredMove?.pv;
-      if (!isAnalysisMode || !pv || pv.length === 0) return [];
+      if (!pvOverlayEnabled || !pv || pv.length === 0) return [];
 
 	      const upToMove = typeof pvUpToMove === 'number' ? pvUpToMove : pv.length;
 	      const opp: typeof currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
@@ -1240,14 +1242,14 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 	          moves.push({ x: d.x, y: d.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
 	      }
 	      return moves;
-	  }, [hoveredMove, isAnalysisMode, pvUpToMove, currentPlayer, toDisplay]);
+  }, [hoveredMove, pvOverlayEnabled, pvUpToMove, currentPlayer, toDisplay]);
 
   useEffect(() => {
     const canvas = pvCanvasRef.current;
     if (!canvas) return;
     const ctx = setupOverlayCanvas(canvas);
     if (!ctx) return;
-    if (!isAnalysisMode || pvMoves.length === 0) return;
+    if (!pvOverlayEnabled || pvMoves.length === 0) return;
 
     const blackImages = stoneImagesRef.current.black;
     const whiteImages = stoneImagesRef.current.white;
@@ -1277,7 +1279,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     }
   }, [
     cellSize,
-    isAnalysisMode,
+    pvOverlayEnabled,
     originX,
     originY,
     pvMoves,

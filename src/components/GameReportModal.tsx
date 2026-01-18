@@ -3,13 +3,15 @@ import { FaTimes } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { computeGameReport, type MoveReportEntry } from '../utils/gameReport';
-import { BOARD_SIZE, type Player } from '../types';
+import { BOARD_SIZE, type CandidateMove, type Player } from '../types';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { PanelHeaderButton } from './layout/ui';
 import { captureBoardSnapshot } from '../utils/boardSnapshot';
+import { parseGtpMove } from '../lib/gtp';
 
 interface GameReportModalProps {
   onClose: () => void;
+  setReportHoverMove: (move: CandidateMove | null) => void;
 }
 
 const DEFAULT_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0];
@@ -24,8 +26,16 @@ function fmtNum(x: number | undefined, digits = 2): string {
   return x.toFixed(digits);
 }
 
-export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => {
-  const { currentNode, trainerEvalThresholds, treeVersion, jumpToNode, gameAnalysisDone, gameAnalysisTotal } = useGameStore(
+export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setReportHoverMove }) => {
+  const {
+    currentNode,
+    trainerEvalThresholds,
+    treeVersion,
+    jumpToNode,
+    gameAnalysisDone,
+    gameAnalysisTotal,
+    isGameAnalysisRunning,
+  } = useGameStore(
     (state) => ({
       currentNode: state.currentNode,
       trainerEvalThresholds: state.settings.trainerEvalThresholds,
@@ -33,6 +43,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
       jumpToNode: state.jumpToNode,
       gameAnalysisDone: state.gameAnalysisDone,
       gameAnalysisTotal: state.gameAnalysisTotal,
+      isGameAnalysisRunning: state.isGameAnalysisRunning,
     }),
     shallow
   );
@@ -41,6 +52,10 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
   const [playerFilter, setPlayerFilter] = useState<'all' | Player>('all');
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [isPreparingPdf, setIsPreparingPdf] = useState(false);
+  const [pdfSnapshots, setPdfSnapshots] = useState<Array<{ id: string; dataUrl: string | null; entry: MoveReportEntry }>>([]);
+  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
+  const [graphTick, setGraphTick] = useState(0);
   const snapshotTimerRef = useRef<number | null>(null);
   const sectionClass =
     'rounded-xl border border-slate-700/60 bg-slate-900/70 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.35)] print-surface';
@@ -56,6 +71,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
           size: A4 landscape;
           margin: 12mm;
         }
+        html,
+        body,
+        #root {
+          height: auto !important;
+          overflow: visible !important;
+        }
         body > * {
           visibility: hidden !important;
         }
@@ -63,12 +84,34 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
         .report-print * {
           visibility: visible !important;
         }
+        .report-overlay {
+          position: static !important;
+          inset: auto !important;
+          height: auto !important;
+          min-height: auto !important;
+          overflow: visible !important;
+          background: transparent !important;
+        }
+        .app-root {
+          height: auto !important;
+          min-height: auto !important;
+          overflow: visible !important;
+        }
         .report-print {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
+          position: static !important;
+          left: auto !important;
+          top: auto !important;
+          width: auto !important;
+          max-height: none !important;
+          height: auto !important;
+          overflow: visible !important;
           background: #ffffff !important;
+          font-family: 'Source Serif 4', 'Times New Roman', serif !important;
+        }
+        .report-print .report-scroll {
+          overflow: visible !important;
+          max-height: none !important;
+          height: auto !important;
         }
         .report-print * {
           color: #0f172a !important;
@@ -80,6 +123,61 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
         }
         .report-print .print-muted {
           color: #475569 !important;
+        }
+        .report-print .print-break-avoid {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        .report-print .pdf-title {
+          font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.08em !important;
+          text-transform: uppercase !important;
+        }
+        .report-print .pdf-meta {
+          font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.12em !important;
+          font-size: 10px !important;
+          color: #64748b !important;
+        }
+        .report-print .pdf-page {
+          break-after: page !important;
+          page-break-after: always !important;
+          padding: 8mm !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 6px !important;
+          background: #ffffff !important;
+        }
+        .report-print .pdf-page:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
+        }
+        .report-print .pdf-board {
+          width: 100% !important;
+          max-height: 62vh !important;
+          height: auto !important;
+          object-fit: contain !important;
+        }
+        .report-print .pdf-tree-line {
+          border-left: 1px solid #cbd5e1 !important;
+          padding-left: 12px !important;
+          margin-left: 6px !important;
+        }
+        .report-print .pdf-tree-node {
+          position: relative !important;
+          padding-left: 6px !important;
+        }
+        .report-print .pdf-tree-node::before {
+          content: '' !important;
+          position: absolute !important;
+          left: -14px !important;
+          top: 6px !important;
+          width: 8px !important;
+          height: 8px !important;
+          border-radius: 999px !important;
+          background: #0f172a !important;
+          border: 1px solid #cbd5e1 !important;
         }
         .print-hide {
           display: none !important;
@@ -112,6 +210,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
     return entries;
   }, [playerFilter, report.moveEntries]);
   const topMistakes = useMemo(() => allMistakes.slice(0, 10), [allMistakes]);
+  const pdfMistakes = topMistakes;
   const maxHist = Math.max(
     1,
     ...report.histogram.map((row) => Math.max(row.black, row.white))
@@ -139,13 +238,94 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
     return { start, end };
   }, [depthFilter]);
 
-  const handleDownloadPdf = () => {
+  const waitForBoardRender = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.setTimeout(() => resolve(), 200);
+        });
+      });
+    });
+
+  const buildReportHoverMove = (entry: MoveReportEntry): CandidateMove | null => {
+    const parentMoves = entry.node.parent?.analysis?.moves ?? [];
+    const best =
+      parentMoves.find((m) => m.order === 0) ??
+      parentMoves.reduce<CandidateMove | null>((acc, m) => {
+        if (!acc) return m;
+        return m.pointsLost < acc.pointsLost ? m : acc;
+      }, null);
+    if (best) {
+      const pvLine =
+        best.pv && best.pv.length > 0
+          ? best.pv
+          : entry.topMove
+            ? [entry.topMove, ...(entry.pv ?? [])]
+            : entry.pv ?? [];
+      return {
+        ...best,
+        pv: pvLine,
+      };
+    }
+    if (!entry.topMove) return null;
+    const parsed = parseGtpMove(entry.topMove);
+    if (!parsed || parsed.kind !== 'move') return null;
+    const pvLine =
+      entry.pv && entry.pv.length > 0 && entry.pv[0] === entry.topMove
+        ? entry.pv
+        : [entry.topMove, ...(entry.pv ?? [])];
+    return {
+      x: parsed.x,
+      y: parsed.y,
+      winRate: 0.5,
+      scoreLead: 0,
+      visits: 0,
+      pointsLost: entry.pointsLost,
+      order: 0,
+      pv: pvLine,
+    };
+  };
+
+  const preparePdf = async () => {
+    if (isPreparingPdf) return;
+    setIsPreparingPdf(true);
+    setPdfProgress({ done: 0, total: pdfMistakes.length });
+    const originalNode = currentNode;
+    const snapshots: Array<{ id: string; dataUrl: string | null; entry: MoveReportEntry }> = [];
+    try {
+      for (let i = 0; i < pdfMistakes.length; i++) {
+        const entry = pdfMistakes[i]!;
+        const targetNode = entry.node.parent ?? entry.node;
+        jumpToNode(targetNode);
+        setReportHoverMove(buildReportHoverMove(entry));
+        await waitForBoardRender();
+        const dataUrl = await captureBoardSnapshot();
+        snapshots.push({ id: entry.node.id, dataUrl, entry });
+        setPdfProgress({ done: i + 1, total: pdfMistakes.length });
+      }
+    } finally {
+      setReportHoverMove(null);
+      if (originalNode) {
+        jumpToNode(originalNode);
+      }
+    }
+    setPdfSnapshots(snapshots);
+    setIsPreparingPdf(false);
+    setPdfProgress(null);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     window.print();
   };
 
-  const formatPv = (pv?: string[]) => {
+  const handleDownloadPdf = () => {
+    if (pdfMistakes.length === 0) {
+      window.print();
+      return;
+    }
+    void preparePdf();
+  };
+
+  const formatPv = (pv?: string[], max = 12) => {
     if (!pv || pv.length === 0) return '-';
-    const max = 12;
     const sliced = pv.slice(0, max);
     return `${sliced.join(' ')}${pv.length > max ? ' ...' : ''}`;
   };
@@ -184,6 +364,29 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
     ));
   };
 
+  const renderPvTree = (entry: MoveReportEntry) => {
+    const pv = entry.pv ?? [];
+    const line =
+      entry.topMove && (pv.length === 0 || pv[0] !== entry.topMove)
+        ? [entry.topMove, ...pv]
+        : pv;
+    if (line.length === 0) {
+      return <div className="text-xs text-slate-500">PV unavailable.</div>;
+    }
+    const max = 24;
+    const nodes = line.slice(0, max);
+    return (
+      <div className="space-y-1 pdf-tree-line">
+        {nodes.map((move, idx) => (
+          <div key={`${move}-${idx}`} className="text-xs font-mono text-slate-700 pdf-tree-node">
+            {idx + 1}. {move}
+          </div>
+        ))}
+        {line.length > max && <div className="text-[10px] text-slate-500">... {line.length - max} more</div>}
+      </div>
+    );
+  };
+
   const refreshSnapshot = async () => {
     setSnapshotError(null);
     try {
@@ -199,6 +402,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
   };
 
   useEffect(() => {
+    if (!isGameAnalysisRunning) return;
+    const id = window.setInterval(() => {
+      setGraphTick((tick) => tick + 1);
+    }, 900);
+    return () => window.clearInterval(id);
+  }, [isGameAnalysisRunning]);
+
+  useEffect(() => {
     if (snapshotTimerRef.current) {
       window.clearTimeout(snapshotTimerRef.current);
     }
@@ -210,10 +421,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
         window.clearTimeout(snapshotTimerRef.current);
       }
     };
-  }, [treeVersion]);
+  }, [treeVersion, currentNode?.id]);
+
+  useEffect(() => {
+    setPdfSnapshots([]);
+  }, [playerFilter, depthFilter, treeVersion]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 report-overlay">
       <div className="bg-slate-900/90 rounded-2xl shadow-2xl w-[56rem] max-h-[90vh] overflow-hidden flex flex-col report-print border border-slate-700/60">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50 bg-slate-900/90">
           <div>
@@ -225,23 +440,9 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-4 overflow-y-auto">
-          <div className="print-only hidden border border-slate-200 rounded-lg p-3">
-            <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Generated</div>
-            <div className="text-sm font-semibold text-slate-900">
-              {generatedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-              {' - '}
-              {generatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          </div>
-          <div className="print-only hidden border border-slate-200 rounded-lg p-3">
-            <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Filters</div>
-            <div className="text-sm font-semibold text-slate-900">
-              {phaseLabel} - {playerFilterLabel}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 print-hide">
+        <div className="px-5 py-4 space-y-4 overflow-y-auto report-scroll">
+          <div className="space-y-4 print-hide">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 print-hide">
             {[
               { key: 'all', label: 'Entire Game', filter: null },
               { key: 'opening', label: 'Opening', filter: [0, 0.14] as [number, number] },
@@ -411,7 +612,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
               {reportGraph.score || reportGraph.winrate ? (
                 <div style={{ height: 160 }}>
                   <ScoreWinrateGraph
-                    key={`${graphRange?.start ?? 0}-${graphRange?.end ?? 'all'}-${treeVersion}-${gameAnalysisDone}-${reportGraph.score ? 's' : ''}${reportGraph.winrate ? 'w' : ''}`}
+                    key={`${graphRange?.start ?? 0}-${graphRange?.end ?? 'all'}-${treeVersion}-${gameAnalysisDone}-${graphTick}-${reportGraph.score ? 's' : ''}${reportGraph.winrate ? 'w' : ''}`}
                     showScore={reportGraph.score}
                     showWinrate={reportGraph.winrate}
                     range={graphRange}
@@ -439,23 +640,6 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
                 <div className="col-span-2 text-right uppercase tracking-wide text-[10px]">Loss</div>
                 <div className="col-span-3 text-right uppercase tracking-wide text-[10px]">Jump</div>
                 {renderMistakeRows(topMistakes, true)}
-              </div>
-            )}
-          </div>
-
-          <div className={`${sectionClass} print-only hidden`}>
-            <div className={sectionTitleClass}>All Mistakes</div>
-            {allMistakes.length === 0 ? (
-              <div className="mt-2 text-sm text-slate-500">No analyzed moves in this range.</div>
-            ) : (
-              <div className="mt-3 grid grid-cols-12 gap-2 text-xs text-slate-400">
-                <div className="col-span-2 uppercase tracking-wide text-[10px]">Move</div>
-                <div className="col-span-1 text-center uppercase tracking-wide text-[10px]">P</div>
-                <div className="col-span-2 uppercase tracking-wide text-[10px]">Played</div>
-                <div className="col-span-2 uppercase tracking-wide text-[10px]">Top</div>
-                <div className="col-span-2 text-right uppercase tracking-wide text-[10px]">Loss</div>
-                <div className="col-span-3 text-right uppercase tracking-wide text-[10px]">Jump</div>
-                {renderMistakeRows(allMistakes, false)}
               </div>
             )}
           </div>
@@ -526,15 +710,95 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
                 })}
             </div>
           </div>
+          </div>
+
+          <div className="hidden print-only space-y-6">
+            <div className="pdf-page">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div className="pdf-meta">KaTrain Report</div>
+                  <div className="pdf-title text-lg">Game Analysis Summary</div>
+                </div>
+                <div className="text-xs text-slate-600">
+                  {generatedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {' - '}
+                  {generatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="pdf-meta">Phase</div>
+                  <div className="text-base font-semibold text-slate-900">{phaseLabel}</div>
+                </div>
+                <div>
+                  <div className="pdf-meta">Coverage</div>
+                  <div className="text-base font-semibold text-slate-900">{fmtPct(coverage)}</div>
+                </div>
+                <div>
+                  <div className="pdf-meta">Analyzed Moves</div>
+                  <div className="text-base font-semibold text-slate-900">
+                    {analyzedMoves}/{totalMoves || 0}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 text-xs text-slate-600">
+                Filters: {phaseLabel} - {playerFilterLabel} • Showing top {pdfMistakes.length} mistakes
+              </div>
+            </div>
+
+            {pdfMistakes.length === 0 ? (
+              <div className="pdf-page">
+                <div className="text-sm text-slate-600">No analyzed moves in this range.</div>
+              </div>
+            ) : (
+              (pdfSnapshots.length > 0
+                ? pdfSnapshots
+                : pdfMistakes.map((entry) => ({ id: entry.node.id, dataUrl: null, entry }))
+              ).map(({ id, dataUrl, entry }, idx) => (
+                <div key={id} className="pdf-page">
+                  <div className="flex items-start justify-between gap-6">
+                    <div>
+                      <div className="pdf-meta">
+                        Mistake {idx + 1} of {pdfMistakes.length}
+                      </div>
+                      <div className="text-lg font-semibold text-slate-900">
+                        Move {entry.moveNumber} - {entry.player === 'black' ? 'Black' : 'White'}
+                      </div>
+                      <div className="text-sm text-slate-700">
+                        Played {entry.move} • Best {entry.topMove ?? '-'} • Loss {fmtNum(entry.pointsLost, 2)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-600">
+                      Phase: {phaseLabel}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-center border border-slate-200 rounded-md bg-white p-3">
+                    {dataUrl ? (
+                      <img src={dataUrl} alt={`Move ${entry.moveNumber} snapshot`} className="pdf-board" />
+                    ) : (
+                      <div className="text-[10px] text-slate-500">Snapshot missing</div>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <div className="pdf-meta">Correct Move Tree</div>
+                    <div className="mt-2">{renderPvTree(entry)}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="px-5 py-4 bg-slate-900/90 border-t border-slate-700/50 flex items-center justify-between print:hidden">
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold"
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold disabled:opacity-60"
+            disabled={isPreparingPdf}
           >
-            Download PDF
+            {isPreparingPdf
+              ? `Preparing (${pdfProgress?.done ?? 0}/${pdfProgress?.total ?? pdfMistakes.length})`
+              : 'Download PDF'}
           </button>
           <button
             type="button"
