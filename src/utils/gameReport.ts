@@ -24,6 +24,13 @@ function bestCandidateMove(moves: CandidateMove[] | undefined): CandidateMove | 
   return moves.find((m) => m.order === 0) ?? moves[0] ?? null;
 }
 
+function xyToGtp(x: number, y: number): string {
+  if (x < 0 || y < 0) return 'pass';
+  const col = x >= 8 ? x + 1 : x;
+  const letter = String.fromCharCode(65 + col);
+  return `${letter}${BOARD_SIZE - y}`;
+}
+
 function nodesForCurrentBranch(currentNode: GameNode): GameNode[] {
   const path: GameNode[] = [];
   let cursor: GameNode | null = currentNode;
@@ -47,8 +54,20 @@ export type PlayerReportStats = {
   complexity?: number;
   meanPtLoss?: number;
   weightedPtLoss?: number;
+  totalPtLoss?: number;
+  maxPtLoss?: number;
   aiTopMove?: number;
   aiTop5Move?: number;
+};
+
+export type MoveReportEntry = {
+  node: GameNode;
+  moveNumber: number;
+  player: Player;
+  move: string;
+  pointsLost: number;
+  topMove?: string;
+  isTopMove?: boolean;
 };
 
 export type GameReport = {
@@ -56,6 +75,8 @@ export type GameReport = {
   labels: string[];
   histogram: Array<Record<Player, number>>;
   stats: Record<Player, PlayerReportStats>;
+  moveEntries: MoveReportEntry[];
+  movesInFilter: number;
 };
 
 export function computeGameReport(args: {
@@ -80,6 +101,8 @@ export function computeGameReport(args: {
   const aiApprovedMoveCount: Record<Player, number> = { black: 0, white: 0 };
   const playerPtLoss: Record<Player, number[]> = { black: [], white: [] };
   const weights: Record<Player, Array<{ weight: number; adj: number }>> = { black: [], white: [] };
+  const moveEntries: MoveReportEntry[] = [];
+  let movesInFilter = 0;
 
   const seq = nodesForCurrentBranch(args.currentNode);
   for (let depth = 0; depth < seq.length; depth++) {
@@ -87,6 +110,7 @@ export function computeGameReport(args: {
     const move = n.move;
     if (!move || !n.parent) continue;
     if (depth < fromDepth || depth >= toDepth) continue;
+    movesInFilter += 1;
     const pointsLostRaw = computePointsLostStrict(n);
     if (pointsLostRaw == null) continue;
     const pointsLost = Math.max(0, pointsLostRaw);
@@ -101,6 +125,13 @@ export function computeGameReport(args: {
     const cands = parent?.analysis?.moves;
     if (!parent || !cands || cands.length === 0) {
       weights[player].push({ weight: 0, adj: Math.max(0.05, Math.min(1.0, pointsLost / 4)) });
+      moveEntries.push({
+        node: n,
+        moveNumber: n.gameState.moveHistory.length,
+        player,
+        move: xyToGtp(move.x, move.y),
+        pointsLost,
+      });
       continue;
     }
 
@@ -123,6 +154,16 @@ export function computeGameReport(args: {
       (d) => (d.order === 0 || (d.pointsLost < 0.5 && d.order < 5)) && d.x === move.x && d.y === move.y
     );
     if (approved) aiApprovedMoveCount[player] += 1;
+
+    moveEntries.push({
+      node: n,
+      moveNumber: n.gameState.moveHistory.length,
+      player,
+      move: xyToGtp(move.x, move.y),
+      pointsLost,
+      topMove: top ? xyToGtp(top.x, top.y) : undefined,
+      isTopMove: top ? top.x === move.x && top.y === move.y : undefined,
+    });
   }
 
   const stats = (['black', 'white'] as const).reduce<Record<Player, PlayerReportStats>>((acc, player) => {
@@ -136,7 +177,8 @@ export function computeGameReport(args: {
     const sumAdj = ws.reduce((a, w) => a + w.adj, 0) || 1e-6;
     const weightedPtLoss = pts.reduce((a, pt, i) => a + pt * (ws[i]?.adj ?? 0), 0) / sumAdj;
     const complexity = ws.reduce((a, w) => a + w.weight, 0) / pts.length;
-    const meanPtLoss = pts.reduce((a, pt) => a + pt, 0) / pts.length;
+    const totalPtLoss = pts.reduce((a, pt) => a + pt, 0);
+    const meanPtLoss = totalPtLoss / pts.length;
     const accuracy = 100 * Math.pow(0.75, weightedPtLoss);
     acc[player] = {
       numMoves: pts.length,
@@ -144,11 +186,13 @@ export function computeGameReport(args: {
       complexity,
       meanPtLoss,
       weightedPtLoss,
+      totalPtLoss,
+      maxPtLoss: Math.max(...pts),
       aiTopMove: aiTopMoveCount[player] / pts.length,
       aiTop5Move: aiApprovedMoveCount[player] / pts.length,
     };
     return acc;
   }, { black: { numMoves: 0 }, white: { numMoves: 0 } });
 
-  return { thresholds, labels, histogram, stats };
+  return { thresholds, labels, histogram, stats, moveEntries, movesInFilter };
 }
