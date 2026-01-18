@@ -16,6 +16,7 @@ dist-ssr
 public/models/*.bin.gz
 public/models/*.txt.gz
 !public/models/katago-small.bin.gz
+!public/models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
 public/tfjs/*.wasm
 
 # Editor directories and files
