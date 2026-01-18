@@ -213,6 +213,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     actions?: React.ReactNode;
     wrapperClassName?: string;
     contentClassName?: string;
+    contentStyle?: React.CSSProperties;
+    onResize?: (e: React.MouseEvent<HTMLDivElement>) => void;
     children: React.ReactNode;
   }) => {
     if (!args.show) return null;
@@ -227,7 +229,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         ].join(' ')}
       >
         <SectionHeader title={args.title} open={args.open} onToggle={args.onToggle} actions={args.actions} />
-        {args.open ? <div className={args.contentClassName ?? 'mt-1'}>{args.children}</div> : null}
+        {args.open ? (
+          <div className={args.contentClassName ?? 'mt-1'} style={args.contentStyle}>
+            {args.children}
+          </div>
+        ) : null}
+        {args.open && args.onResize ? (
+          <div
+            className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors"
+            onMouseDown={args.onResize}
+          />
+        ) : null}
       </div>
     );
   };
@@ -247,6 +259,30 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('web-katrain:notes_list_open:v1') === 'true';
   });
+  const infoResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
+  const analysisResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
+  const notesResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
+  const [infoHeight, setInfoHeight] = React.useState(() => {
+    if (typeof localStorage === 'undefined') return 260;
+    const raw = localStorage.getItem('web-katrain:info_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 260;
+  });
+  const [analysisHeight, setAnalysisHeight] = React.useState(() => {
+    if (typeof localStorage === 'undefined') return 260;
+    const raw = localStorage.getItem('web-katrain:analysis_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 260;
+  });
+  const [notesHeight, setNotesHeight] = React.useState(() => {
+    if (typeof localStorage === 'undefined') return 320;
+    const raw = localStorage.getItem('web-katrain:notes_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 320;
+  });
+  const [isResizingInfo, setIsResizingInfo] = React.useState(false);
+  const [isResizingAnalysis, setIsResizingAnalysis] = React.useState(false);
+  const [isResizingNotes, setIsResizingNotes] = React.useState(false);
   const treeResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
   const [isResizingTree, setIsResizingTree] = React.useState(false);
 
@@ -264,6 +300,21 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:notes_list_open:v1', String(notesListOpen));
   }, [notesListOpen]);
+
+  React.useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:info_height:v1', String(infoHeight));
+  }, [infoHeight]);
+
+  React.useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:analysis_height:v1', String(analysisHeight));
+  }, [analysisHeight]);
+
+  React.useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:notes_height:v1', String(notesHeight));
+  }, [notesHeight]);
 
   React.useEffect(() => {
     if (!isResizingTree) return;
@@ -288,6 +339,78 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       window.removeEventListener('mouseup', onUp);
     };
   }, [isResizingTree]);
+
+  React.useEffect(() => {
+    if (!isResizingInfo) return;
+    const minHeight = 200;
+    const maxHeight = 520;
+    const onMove = (e: MouseEvent) => {
+      if (!infoResizeRef.current) return;
+      const delta = e.clientY - infoResizeRef.current.startY;
+      const next = Math.min(maxHeight, Math.max(minHeight, infoResizeRef.current.startHeight + delta));
+      setInfoHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingInfo(false);
+      infoResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingInfo]);
+
+  React.useEffect(() => {
+    if (!isResizingAnalysis) return;
+    const minHeight = 200;
+    const maxHeight = 520;
+    const onMove = (e: MouseEvent) => {
+      if (!analysisResizeRef.current) return;
+      const delta = e.clientY - analysisResizeRef.current.startY;
+      const next = Math.min(maxHeight, Math.max(minHeight, analysisResizeRef.current.startHeight + delta));
+      setAnalysisHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingAnalysis(false);
+      analysisResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingAnalysis]);
+
+  React.useEffect(() => {
+    if (!isResizingNotes) return;
+    const minHeight = 240;
+    const maxHeight = 640;
+    const onMove = (e: MouseEvent) => {
+      if (!notesResizeRef.current) return;
+      const delta = e.clientY - notesResizeRef.current.startY;
+      const next = Math.min(maxHeight, Math.max(minHeight, notesResizeRef.current.startHeight + delta));
+      setNotesHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingNotes(false);
+      notesResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingNotes]);
 
   const renderPlayerInfo = (player: Player) => {
     const isTurn = currentPlayer === player;
@@ -522,7 +645,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               title: 'Game Info',
               open: modePanels.infoOpen,
               onToggle: () => updatePanels((current) => ({ infoOpen: !current.infoOpen })),
-              contentClassName: 'mt-1 bg-slate-900 border border-slate-700/50 rounded p-3 space-y-3',
+              contentClassName: 'mt-1 space-y-3 overflow-y-auto pr-1',
+              contentStyle: { height: infoHeight },
+              onResize: (e) => {
+                infoResizeRef.current = { startY: e.clientY, startHeight: infoHeight };
+                setIsResizingInfo(true);
+              },
               children: (
                 <>
                   <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
@@ -552,7 +680,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </div>
                   )}
 
-                  <div className="rounded border border-slate-700/50 bg-slate-900/70 p-2">
+                  <div className="border-t border-slate-700/50 pt-2">
                     <div className="text-xs text-slate-400 mb-2">Metadata</div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="flex flex-col gap-1">
@@ -695,7 +823,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               title: 'Analysis',
               open: modePanels.analysisOpen,
               onToggle: () => updatePanels((current) => ({ analysisOpen: !current.analysisOpen })),
-              contentClassName: 'mt-1',
+              contentClassName: 'mt-1 overflow-y-auto pr-1',
+              contentStyle: { height: analysisHeight },
+              onResize: (e) => {
+                analysisResizeRef.current = { startY: e.clientY, startHeight: analysisHeight };
+                setIsResizingAnalysis(true);
+              },
               children: (
                 <AnalysisPanel
                   mode={mode}
@@ -757,8 +890,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   />
                 </div>
               ),
-              wrapperClassName: 'pb-3 flex-1 flex flex-col min-h-[280px]',
-              contentClassName: 'mt-1 bg-slate-900 border border-slate-700/50 rounded flex-1 min-h-0 overflow-hidden flex flex-col',
+              wrapperClassName: 'pb-2',
+              contentClassName: 'mt-1 bg-slate-900/40 rounded-lg min-h-0 overflow-hidden flex flex-col',
+              contentStyle: { height: notesHeight },
+              onResize: (e) => {
+                notesResizeRef.current = { startY: e.clientY, startHeight: notesHeight };
+                setIsResizingNotes(true);
+              },
               children: (
                 <>
                   <div className="px-3 py-2 border-b border-slate-800 text-xs text-slate-300 flex items-center justify-between">

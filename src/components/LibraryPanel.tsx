@@ -113,6 +113,22 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
     return Number.isFinite(parsed) ? parsed : 180;
   });
+  const [searchHeight, setSearchHeight] = useState(() => {
+    if (typeof localStorage === 'undefined') return 180;
+    const raw = localStorage.getItem('web-katrain:library_search_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 180;
+  });
+  const [listHeight, setListHeight] = useState(() => {
+    if (typeof localStorage === 'undefined') return 420;
+    const raw = localStorage.getItem('web-katrain:library_list_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : 420;
+  });
+  const searchResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const listResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const [isResizingSearch, setIsResizingSearch] = useState(false);
+  const [isResizingList, setIsResizingList] = useState(false);
   const [graphOptions] = useState(() => {
     if (typeof localStorage === 'undefined') return { score: true, winrate: true };
     try {
@@ -176,6 +192,64 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:library_search_open:v1', String(searchOpen));
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_search_height:v1', String(searchHeight));
+  }, [searchHeight]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_list_height:v1', String(listHeight));
+  }, [listHeight]);
+
+  useEffect(() => {
+    if (!isResizingSearch) return;
+    const minHeight = 140;
+    const maxHeight = 420;
+    const onMove = (e: MouseEvent) => {
+      if (!searchResizeRef.current) return;
+      const delta = e.clientY - searchResizeRef.current.startY;
+      const next = Math.min(maxHeight, Math.max(minHeight, searchResizeRef.current.startHeight + delta));
+      setSearchHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingSearch(false);
+      searchResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingSearch]);
+
+  useEffect(() => {
+    if (!isResizingList) return;
+    const minHeight = 220;
+    const maxHeight = 700;
+    const onMove = (e: MouseEvent) => {
+      if (!listResizeRef.current) return;
+      const delta = e.clientY - listResizeRef.current.startY;
+      const next = Math.min(maxHeight, Math.max(minHeight, listResizeRef.current.startHeight + delta));
+      setListHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingList(false);
+      listResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingList]);
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -807,83 +881,94 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             'mx-3 mt-3',
             panelCardBase,
             searchOpen ? `${panelCardOpen} bg-slate-950/40` : panelCardClosed,
+            searchOpen ? 'flex flex-col' : '',
           ].join(' ')}
+          style={searchOpen ? { height: searchHeight } : undefined}
         >
           <SectionHeader title="Search & Filters" open={searchOpen} onToggle={() => setSearchOpen((prev) => !prev)} />
           {searchOpen ? (
             <>
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search library…"
-                  className="w-full bg-slate-800/80 border border-slate-700/50 rounded pl-8 pr-3 py-2 text-sm text-slate-200 focus:border-emerald-500"
-                />
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-                <span>Sort</span>
-                <select
-                  value={sortKey}
-                  onChange={(e) => setSortKey(e.target.value)}
-                  className="bg-slate-800/80 border border-slate-700/50 rounded px-2 py-1 text-xs text-slate-200"
-                >
-                  <option value="recent">Recent</option>
-                  <option value="name">Name</option>
-                  <option value="moves">Moves</option>
-                  <option value="size">Size</option>
-                </select>
-              </div>
-              <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
-                <span>Save to: {currentFolderName}</span>
-                {currentFolderId && (
-                  <button
-                    type="button"
-                    className="text-xs text-slate-400 hover:text-slate-200"
-                    onClick={() => setCurrentFolderId(null)}
+              <div className="flex-1 overflow-y-auto pr-1">
+                <div className="relative">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search library…"
+                    className="w-full bg-slate-800/80 border border-slate-700/50 rounded pl-8 pr-3 py-2 text-sm text-slate-200 focus:border-emerald-500"
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
+                  <span>Sort</span>
+                  <select
+                    value={sortKey}
+                    onChange={(e) => setSortKey(e.target.value)}
+                    className="bg-slate-800/80 border border-slate-700/50 rounded px-2 py-1 text-xs text-slate-200"
                   >
-                    Root
-                  </button>
-                )}
-              </div>
-              {!isSearching && (
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <button
-                    type="button"
-                    className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/60 disabled:opacity-40"
-                    onClick={handleGoUp}
-                    disabled={!currentFolderId}
-                  >
-                    <FaArrowUp className="inline-block mr-1" /> Up
-                  </button>
-                  <button
-                    type="button"
-                    className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/60"
-                    onClick={() => setCurrentFolderId(null)}
-                  >
-                    Root
-                  </button>
-                  {breadcrumbs.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1 text-slate-500">
-                      {breadcrumbs.map((crumb, index) => (
-                        <button
-                          key={crumb.id}
-                          type="button"
-                          className="px-1.5 py-0.5 rounded hover:bg-slate-800/60 text-slate-400"
-                          onClick={() => setCurrentFolderId(crumb.id)}
-                        >
-                          {index === 0 ? crumb.name : `/${crumb.name}`}
-                        </button>
-                      ))}
-                    </div>
+                    <option value="recent">Recent</option>
+                    <option value="name">Name</option>
+                    <option value="moves">Moves</option>
+                    <option value="size">Size</option>
+                  </select>
+                </div>
+                <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
+                  <span>Save to: {currentFolderName}</span>
+                  {currentFolderId && (
+                    <button
+                      type="button"
+                      className="text-xs text-slate-400 hover:text-slate-200"
+                      onClick={() => setCurrentFolderId(null)}
+                    >
+                      Root
+                    </button>
                   )}
                 </div>
-              )}
-              {isDragging && (
-                <div className="mt-3 text-xs text-emerald-300 border border-emerald-500/40 rounded px-2 py-1 bg-emerald-900/20">
-                  Drop SGF files to import
-                </div>
-              )}
+                {!isSearching && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <button
+                      type="button"
+                      className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/60 disabled:opacity-40"
+                      onClick={handleGoUp}
+                      disabled={!currentFolderId}
+                    >
+                      <FaArrowUp className="inline-block mr-1" /> Up
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/60"
+                      onClick={() => setCurrentFolderId(null)}
+                    >
+                      Root
+                    </button>
+                    {breadcrumbs.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1 text-slate-500">
+                        {breadcrumbs.map((crumb, index) => (
+                          <button
+                            key={crumb.id}
+                            type="button"
+                            className="px-1.5 py-0.5 rounded hover:bg-slate-800/60 text-slate-400"
+                            onClick={() => setCurrentFolderId(crumb.id)}
+                          >
+                            {index === 0 ? crumb.name : `/${crumb.name}`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {isDragging && (
+                  <div className="mt-3 text-xs text-emerald-300 border border-emerald-500/40 rounded px-2 py-1 bg-emerald-900/20">
+                    Drop SGF files to import
+                  </div>
+                )}
+              </div>
+              <div
+                className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors mt-2"
+                onMouseDown={(e) => {
+                  searchResizeRef.current = { startY: e.clientY, startHeight: searchHeight };
+                  setIsResizingSearch(true);
+                }}
+              />
             </>
           ) : null}
         </div>
@@ -892,8 +977,9 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           className={[
             'flex flex-col mx-3 mb-3 mt-3 overflow-hidden',
             panelCardBase,
-            listOpen ? `${panelCardOpen} flex-1 min-h-0 bg-slate-950/40` : `flex-none ${panelCardClosed}`,
+            listOpen ? `${panelCardOpen} min-h-0 bg-slate-950/40` : `flex-none ${panelCardClosed}`,
           ].join(' ')}
+          style={listOpen ? { height: listHeight } : undefined}
         >
           <div
             className={[
@@ -1035,57 +1121,70 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </>
             )}
           </div>
-
-          {docked && (
-            <>
-              <div
-                className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors"
-                onMouseDown={() => setIsResizingGraph(true)}
-              />
-              <div className="border-t border-slate-800/70 bg-slate-950/30 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 text-sm text-slate-200 font-semibold"
-                    onClick={() => setGraphOpen((prev) => !prev)}
-                  >
-                    <ToggleLabel open={graphOpen}>Analysis</ToggleLabel>
-                  </button>
-                  {onStopAnalysis ? (
-                    <button
-                      type="button"
-                      className={[
-                        analysisActionClass,
-                        isAnalysisRunning
-                          ? 'ml-auto bg-rose-600/30 text-rose-200 border-rose-500/50 hover:bg-rose-500/40'
-                          : 'ml-auto bg-slate-800/60 text-slate-400 border-slate-700/60',
-                      ].join(' ')}
-                      onClick={onStopAnalysis}
-                      disabled={!isAnalysisRunning}
-                    >
-                      Stop analysis
-                    </button>
-                  ) : null}
-                </div>
-                {graphOpen && (
-                  <div className="mt-2" style={{ height: graphHeight }}>
-                    <div className="h-full overflow-y-auto">
-                      {analysisContent ? (
-                        analysisContent
-                      ) : graphOptions.score || graphOptions.winrate ? (
-                        <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-xs text-slate-500 border border-slate-800 rounded">
-                          Graph hidden
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
+          {listOpen && (
+            <div
+              className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors mt-2"
+              onMouseDown={(e) => {
+                listResizeRef.current = { startY: e.clientY, startHeight: listHeight };
+                setIsResizingList(true);
+              }}
+            />
           )}
         </div>
+
+        {docked && (
+          <div
+            className={[
+              'mx-3 mb-3',
+              panelCardBase,
+              graphOpen ? `${panelCardOpen} bg-slate-950/40` : panelCardClosed,
+            ].join(' ')}
+          >
+            <SectionHeader
+              title="Analysis"
+              open={graphOpen}
+              onToggle={() => setGraphOpen((prev) => !prev)}
+              actions={
+                onStopAnalysis ? (
+                  <button
+                    type="button"
+                    className={[
+                      analysisActionClass,
+                      isAnalysisRunning
+                        ? 'bg-rose-600/30 text-rose-200 border-rose-500/50 hover:bg-rose-500/40'
+                        : 'bg-slate-800/60 text-slate-400 border-slate-700/60',
+                    ].join(' ')}
+                    onClick={onStopAnalysis}
+                    disabled={!isAnalysisRunning}
+                  >
+                    Stop analysis
+                  </button>
+                ) : null
+              }
+            />
+            {graphOpen ? (
+              <>
+                <div className="mt-2" style={{ height: graphHeight }}>
+                  <div className="h-full overflow-y-auto">
+                    {analysisContent ? (
+                      analysisContent
+                    ) : graphOptions.score || graphOptions.winrate ? (
+                      <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-slate-500 border border-slate-800 rounded">
+                        Graph hidden
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="hidden lg:block h-1 cursor-row-resize bg-slate-800/70 hover:bg-slate-600/80 transition-colors mt-2"
+                  onMouseDown={() => setIsResizingGraph(true)}
+                />
+              </>
+            ) : null}
+          </div>
+        )}
       </div>
     </>
   );
