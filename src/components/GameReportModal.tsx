@@ -148,6 +148,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
           border: 1px solid #e2e8f0 !important;
           border-radius: 6px !important;
           background: #ffffff !important;
+          width: 100% !important;
+          max-width: none !important;
+          box-sizing: border-box !important;
+          min-height: calc(100vh - 24mm) !important;
+          display: flex !important;
+          flex-direction: column !important;
         }
         .report-print .pdf-page:last-child {
           break-after: auto !important;
@@ -155,9 +161,37 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
         }
         .report-print .pdf-board {
           width: 100% !important;
-          max-height: 62vh !important;
+          max-height: 70vh !important;
           height: auto !important;
           object-fit: contain !important;
+        }
+        .report-print .pdf-board-wrap {
+          flex: 1 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          padding: 8px !important;
+          background: #f8fafc !important;
+        }
+        .report-print .pdf-cover-title {
+          font-size: 26px !important;
+          letter-spacing: 0.18em !important;
+        }
+        .report-print .pdf-cover-subtitle {
+          font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif !important;
+          font-size: 14px !important;
+          letter-spacing: 0.12em !important;
+          text-transform: uppercase !important;
+          color: #64748b !important;
+        }
+        .report-print .pdf-section-title {
+          font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif !important;
+          font-size: 11px !important;
+          letter-spacing: 0.2em !important;
+          text-transform: uppercase !important;
+          color: #64748b !important;
         }
         .report-print .pdf-tree-line {
           border-left: 1px solid #cbd5e1 !important;
@@ -502,8 +536,8 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
         </div>
 
         <div className="px-5 py-4 space-y-4 overflow-y-auto report-scroll">
-          <div className="space-y-4 print-hide">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 print-hide">
+          <div className="print-hide space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { key: 'all', label: 'Entire Game', filter: null },
               { key: 'opening', label: 'Opening', filter: [0, 0.14] as [number, number] },
@@ -771,38 +805,37 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 })}
             </div>
           </div>
-          </div>
 
           <div className="hidden print-only space-y-6">
             <div className="pdf-page">
               <div className="flex items-start justify-between gap-6">
                 <div>
-                  <div className="pdf-meta">KaTrain Report</div>
-                  <div className="pdf-title text-lg">Game Analysis Summary</div>
+                  <div className="pdf-cover-subtitle">KaTrain Official Report</div>
+                  <div className="pdf-cover-title pdf-title">Game Analysis Summary</div>
                 </div>
                 <div className="text-xs text-slate-600">
                   {generatedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  {' - '}
+                  {' • '}
                   {generatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+              <div className="mt-5 grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <div className="pdf-meta">Phase</div>
+                  <div className="pdf-section-title">Phase</div>
                   <div className="text-base font-semibold text-slate-900">{phaseLabel}</div>
                 </div>
                 <div>
-                  <div className="pdf-meta">Coverage</div>
+                  <div className="pdf-section-title">Coverage</div>
                   <div className="text-base font-semibold text-slate-900">{fmtPct(coverage)}</div>
                 </div>
                 <div>
-                  <div className="pdf-meta">Analyzed Moves</div>
+                  <div className="pdf-section-title">Analyzed Moves</div>
                   <div className="text-base font-semibold text-slate-900">
                     {analyzedMoves}/{totalMoves || 0}
                   </div>
                 </div>
               </div>
-              <div className="mt-4 text-xs text-slate-600">
+              <div className="mt-6 text-sm text-slate-700">
                 Filters: {phaseLabel} - {playerFilterLabel} • Showing top {pdfMistakes.length} mistakes
               </div>
             </div>
@@ -819,7 +852,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 <div key={id} className="pdf-page">
                   <div className="flex items-start justify-between gap-6">
                     <div>
-                      <div className="pdf-meta">
+                      <div className="pdf-section-title">
                         Mistake {idx + 1} of {pdfMistakes.length}
                       </div>
                       <div className="text-lg font-semibold text-slate-900">
@@ -833,7 +866,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                       Phase: {phaseLabel}
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-center border border-slate-200 rounded-md bg-white p-3">
+                  <div className="mt-4 pdf-board-wrap">
                     {dataUrl ? (
                       <img src={dataUrl} alt={`Move ${entry.moveNumber} snapshot`} className="pdf-board" />
                     ) : (
@@ -841,13 +874,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                     )}
                   </div>
                   <div className="mt-4">
-                    <div className="pdf-meta">Correct Move Tree</div>
+                    <div className="pdf-section-title">Correct Move Tree</div>
                     <div className="mt-2">{renderPvTree(entry)}</div>
                   </div>
                 </div>
               ))
             )}
           </div>
+        </div>
         </div>
 
         <div className="px-5 py-4 bg-slate-900/90 border-t border-slate-700/50 flex items-center justify-between print:hidden">
