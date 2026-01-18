@@ -802,7 +802,12 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           </div>
         </div>
 
-        <div className="mx-3 mt-3 rounded-xl border border-slate-800/60 bg-slate-950/40 p-3">
+        <div
+          className={[
+            'mx-3 mt-3 rounded-xl border transition-colors',
+            searchOpen ? 'border-slate-800/60 bg-slate-950/40 p-3' : 'border-transparent bg-transparent p-2',
+          ].join(' ')}
+        >
           <SectionHeader title="Search & Filters" open={searchOpen} onToggle={() => setSearchOpen((prev) => !prev)} />
           {searchOpen ? (
             <>
@@ -882,8 +887,18 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           ) : null}
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col mx-3 mb-3 mt-3 rounded-xl border border-slate-800/60 bg-slate-950/40 overflow-hidden">
-          <div className="px-3 py-2 border-b border-slate-800/70 flex items-center justify-between">
+        <div
+          className={[
+            'flex flex-col mx-3 mb-3 mt-3 rounded-xl border transition-colors overflow-hidden',
+            listOpen ? 'flex-1 min-h-0 border-slate-800/60 bg-slate-950/40' : 'flex-none border-transparent bg-transparent',
+          ].join(' ')}
+        >
+          <div
+            className={[
+              'px-3 py-2 flex items-center justify-between',
+              listOpen ? 'border-b border-slate-800/70' : '',
+            ].join(' ')}
+          >
             <button
               type="button"
               className="flex items-center gap-2 text-sm text-slate-200 font-semibold"

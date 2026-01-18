@@ -216,10 +216,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     children: React.ReactNode;
   }) => {
     if (!args.show) return null;
+    const wrapperTone = args.open
+      ? 'border-slate-700/50 bg-slate-900/60 p-2 shadow-sm'
+      : 'border-transparent bg-transparent p-1';
     return (
       <div
         className={[
-          'mx-3 mt-3 rounded-xl border border-slate-700/50 bg-slate-900/60 p-2 shadow-sm',
+          'mx-3 mt-3 rounded-xl border transition-colors',
+          wrapperTone,
           args.wrapperClassName ?? '',
         ].join(' ')}
       >
