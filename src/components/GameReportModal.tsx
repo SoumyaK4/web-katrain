@@ -3,7 +3,7 @@ import { FaTimes } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { computeGameReport } from '../utils/gameReport';
-import type { Player } from '../types';
+import { BOARD_SIZE, type Player } from '../types';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { PanelHeaderButton } from './layout/ui';
 import { captureBoardSnapshot } from '../utils/boardSnapshot';
@@ -25,12 +25,14 @@ function fmtNum(x: number | undefined, digits = 2): string {
 }
 
 export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => {
-  const { currentNode, trainerEvalThresholds, treeVersion, jumpToNode } = useGameStore(
+  const { currentNode, trainerEvalThresholds, treeVersion, jumpToNode, gameAnalysisDone, gameAnalysisTotal } = useGameStore(
     (state) => ({
       currentNode: state.currentNode,
       trainerEvalThresholds: state.settings.trainerEvalThresholds,
       treeVersion: state.treeVersion,
       jumpToNode: state.jumpToNode,
+      gameAnalysisDone: state.gameAnalysisDone,
+      gameAnalysisTotal: state.gameAnalysisTotal,
     }),
     shallow
   );
@@ -97,11 +99,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
     void treeVersion;
     const thresholds = trainerEvalThresholds?.length ? trainerEvalThresholds : DEFAULT_EVAL_THRESHOLDS;
     return computeGameReport({ currentNode, thresholds, depthFilter });
-  }, [currentNode, depthFilter, trainerEvalThresholds, treeVersion]);
+  }, [currentNode, depthFilter, trainerEvalThresholds, treeVersion, gameAnalysisDone, gameAnalysisTotal]);
 
   const analyzedMoves = report.stats.black.numMoves + report.stats.white.numMoves;
   const totalMoves = report.movesInFilter;
   const coverage = totalMoves > 0 ? analyzedMoves / totalMoves : 0;
+  const playerFilterLabel = playerFilter === 'all' ? 'All players' : playerFilter === 'black' ? 'Black' : 'White';
   const statsPlayers: Array<Player> = playerFilter === 'all' ? ['black', 'white'] : [playerFilter];
   const topMistakes = useMemo(() => {
     const entries = report.moveEntries.filter((entry) => playerFilter === 'all' || entry.player === playerFilter);
@@ -125,6 +128,15 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
         ? 'Midgame'
         : 'Endgame'
     : 'Entire Game';
+
+  const graphRange = useMemo(() => {
+    if (!depthFilter) return null;
+    const [fromFrac, toFrac] = depthFilter;
+    const boardSquares = BOARD_SIZE * BOARD_SIZE;
+    const start = Math.ceil(fromFrac * boardSquares);
+    const end = Math.max(start, Math.ceil(toFrac * boardSquares) - 1);
+    return { start, end };
+  }, [depthFilter]);
 
   const handleDownloadPdf = () => {
     window.print();
@@ -180,8 +192,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
               {generatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
+          <div className="print-only hidden border border-slate-200 rounded-lg p-3">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Filters</div>
+            <div className="text-sm font-semibold text-slate-900">
+              {phaseLabel} - {playerFilterLabel}
+            </div>
+          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 print-hide">
             {[
               { key: 'all', label: 'Entire Game', filter: null },
               { key: 'opening', label: 'Opening', filter: [0, 0.14] as [number, number] },
@@ -209,7 +227,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 print-hide">
             {[
               { key: 'all', label: 'All players' },
               { key: 'black', label: 'Black' },
@@ -326,7 +344,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
 
           <div className={sectionClass}>
             <div className="flex items-center justify-between gap-2">
-              <div className={sectionTitleClass}>Analysis Graph</div>
+              <div className="flex items-center gap-2">
+                <div className={sectionTitleClass}>Analysis Graph</div>
+                <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/40 print-hide">
+                  Live
+                </span>
+              </div>
               <div className="flex items-center gap-1">
                 <PanelHeaderButton
                   label="Score"
@@ -345,7 +368,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
             <div className="mt-3 bg-slate-950/40 border border-slate-700/50 rounded-lg p-2">
               {reportGraph.score || reportGraph.winrate ? (
                 <div style={{ height: 160 }}>
-                  <ScoreWinrateGraph showScore={reportGraph.score} showWinrate={reportGraph.winrate} />
+                  <ScoreWinrateGraph
+                    key={`${graphRange?.start ?? 0}-${graphRange?.end ?? 'all'}-${treeVersion}-${gameAnalysisDone}-${reportGraph.score ? 's' : ''}${reportGraph.winrate ? 'w' : ''}`}
+                    showScore={reportGraph.score}
+                    showWinrate={reportGraph.winrate}
+                    range={graphRange}
+                  />
                 </div>
               ) : (
                 <div className="h-20 flex items-center justify-center text-slate-500 text-sm">Graph hidden</div>

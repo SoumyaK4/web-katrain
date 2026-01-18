@@ -52,7 +52,11 @@ function lastFinite(values: number[]): number {
   return 0;
 }
 
-export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: boolean }> = ({ showScore, showWinrate }) => {
+export const ScoreWinrateGraph: React.FC<{
+  showScore: boolean;
+  showWinrate: boolean;
+  range?: { start: number; end: number } | null;
+}> = ({ showScore, showWinrate, range = null }) => {
   const { currentNode, jumpToNode, treeVersion } = useGameStore(
     (state) => ({
       currentNode: state.currentNode,
@@ -85,6 +89,16 @@ export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: bool
     return { nodes: out, highlightedIndex: Math.max(0, path.length - 1) };
   }, [currentNode, treeVersion]);
 
+  const { displayNodes, highlighted } = useMemo(() => {
+    if (nodes.length === 0) return { displayNodes: nodes, highlighted: 0 };
+    if (!range) return { displayNodes: nodes, highlighted: Math.max(0, highlightedIndex) };
+    const start = Math.max(0, Math.min(range.start, nodes.length - 1));
+    const end = Math.max(start, Math.min(range.end, nodes.length - 1));
+    const sliced = nodes.slice(start, end + 1);
+    const adjusted = Math.min(Math.max(0, highlightedIndex - start), Math.max(0, sliced.length - 1));
+    return { displayNodes: sliced, highlighted: adjusted };
+  }, [highlightedIndex, nodes, range]);
+
   const width = 300;
   const height = 100;
 
@@ -92,18 +106,18 @@ export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: bool
     void treeVersion;
     const scores: number[] = [];
     const winrates: number[] = [];
-    for (const node of nodes) {
+    for (const node of displayNodes) {
       scores.push(node.analysis?.rootScoreLead ?? Number.NaN);
       const rawWin = node.analysis?.rootWinRate;
       winrates.push(typeof rawWin === 'number' ? (rawWin - 0.5) * 100 : Number.NaN);
     }
     return { scoreValues: scores, winrateValues: winrates };
-  }, [nodes, treeVersion]);
+  }, [displayNodes, treeVersion]);
 
   const scoreScale = useMemo(() => computeSymmetricScale(scoreValues, SCORE_GRANULARITY), [scoreValues]);
   const winrateScale = useMemo(() => computeSymmetricScale(winrateValues, WINRATE_GRANULARITY), [winrateValues]);
 
-  const count = nodes.length;
+  const count = displayNodes.length;
   const xScale = width / Math.max(count - 1, 15);
 
   const yScore = (v: number): number => height / 2 - (v / scoreScale) * (height / 2);
@@ -139,10 +153,10 @@ export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: bool
   const handleMouseLeave = () => setHoverIndex(null);
 
   const handleClick = () => {
-    if (hoverIndex !== null && nodes[hoverIndex]) jumpToNode(nodes[hoverIndex]);
+    if (hoverIndex !== null && displayNodes[hoverIndex]) jumpToNode(displayNodes[hoverIndex]);
   };
 
-  const clampedHighlighted = Math.min(Math.max(0, highlightedIndex), Math.max(0, count - 1));
+  const clampedHighlighted = Math.min(Math.max(0, highlighted), Math.max(0, count - 1));
   const currentX = clampedHighlighted * xScale;
 
   const currentScore = Number.isFinite(scoreValues[clampedHighlighted]!)
@@ -161,9 +175,10 @@ export const ScoreWinrateGraph: React.FC<{ showScore: boolean; showWinrate: bool
   const hoverScoreY = yScore(hoverScore);
   const hoverWinY = yWin(hoverWin);
 
+  const hoverMoveIndex = hoverIndex !== null ? hoverIndex + (range?.start ?? 0) : null;
   const hoverTooltip =
-    hoverIndex !== null
-      ? `Move ${hoverIndex}: ${showWinrate ? `${(50 + hoverWin).toFixed(1)}%` : ''}${showScore && showWinrate ? ' · ' : ''}${showScore ? `${hoverScore >= 0 ? 'B' : 'W'}+${Math.abs(hoverScore).toFixed(1)}` : ''}`
+    hoverMoveIndex !== null
+      ? `Move ${hoverMoveIndex}: ${showWinrate ? `${(50 + hoverWin).toFixed(1)}%` : ''}${showScore && showWinrate ? ' - ' : ''}${showScore ? `${hoverScore >= 0 ? 'B' : 'W'}+${Math.abs(hoverScore).toFixed(1)}` : ''}`
       : '';
 
   return (
