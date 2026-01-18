@@ -1,3 +1,5 @@
+import { PRELOADED_GAMES } from '../data/preloadedGames';
+
 export type LibraryBase = {
   id: string;
   name: string;
@@ -21,6 +23,9 @@ export type LibraryFolder = LibraryBase & {
 export type LibraryItem = LibraryFile | LibraryFolder;
 
 const STORAGE_KEY = 'web-katrain:library:v1';
+const PRELOADED_VERSION_KEY = 'web-katrain:library_preloaded_version:v1';
+const PRELOADED_VERSION = 3;
+const PRELOADED_FOLDER_NAME = 'Famous Games';
 
 const safeParse = (raw: string | null): LibraryItem[] => {
   if (!raw) return [];
@@ -76,9 +81,127 @@ const countMoves = (sgf: string): number => {
   return matches ? matches.length : 0;
 };
 
+const getPreloadedVersion = (): number => {
+  if (typeof localStorage === 'undefined') return 0;
+  const raw = localStorage.getItem(PRELOADED_VERSION_KEY);
+  const parsed = raw ? Number.parseInt(raw, 10) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const setPreloadedVersion = (version: number): void => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(PRELOADED_VERSION_KEY, String(version));
+  } catch {
+    // Ignore quota/permission errors.
+  }
+};
+
+const createPreloadedLibrary = (): LibraryItem[] => {
+  if (!PRELOADED_GAMES.length) return [];
+  const now = Date.now();
+  const folderId = createId();
+  const folder: LibraryFolder = {
+    id: folderId,
+    name: PRELOADED_FOLDER_NAME,
+    createdAt: now,
+    updatedAt: now,
+    parentId: null,
+    type: 'folder',
+  };
+  const items: LibraryItem[] = [folder];
+  for (const game of PRELOADED_GAMES) {
+    items.push({
+      id: createId(),
+      name: game.name,
+      sgf: game.sgf,
+      createdAt: now,
+      updatedAt: now,
+      parentId: folderId,
+      type: 'file',
+      moveCount: countMoves(game.sgf),
+      size: game.sgf.length,
+    });
+  }
+  return items;
+};
+
+const ensurePreloadedLibrary = (items: LibraryItem[]): { items: LibraryItem[]; changed: boolean } => {
+  if (getPreloadedVersion() >= PRELOADED_VERSION || PRELOADED_GAMES.length === 0) {
+    return { items, changed: false };
+  }
+  const now = Date.now();
+  let changed = false;
+  let nextItems = [...items];
+  let folder = nextItems.find(
+    (item): item is LibraryFolder =>
+      item.type === 'folder' && item.parentId === null && item.name === PRELOADED_FOLDER_NAME
+  );
+
+  if (!folder) {
+    folder = {
+      id: createId(),
+      name: PRELOADED_FOLDER_NAME,
+      createdAt: now,
+      updatedAt: now,
+      parentId: null,
+      type: 'folder',
+    };
+    nextItems = [folder, ...nextItems];
+    changed = true;
+  }
+
+  const existingNames = new Set(
+    nextItems
+      .filter((item): item is LibraryFile => item.type === 'file' && item.parentId === folder!.id)
+      .map((item) => item.name)
+  );
+
+  for (const game of PRELOADED_GAMES) {
+    if (existingNames.has(game.name)) continue;
+    nextItems.push({
+      id: createId(),
+      name: game.name,
+      sgf: game.sgf,
+      createdAt: now,
+      updatedAt: now,
+      parentId: folder.id,
+      type: 'file',
+      moveCount: countMoves(game.sgf),
+      size: game.sgf.length,
+    });
+    changed = true;
+  }
+
+  setPreloadedVersion(PRELOADED_VERSION);
+  return { items: nextItems, changed };
+};
+
 export const loadLibrary = (): LibraryItem[] => {
   if (typeof localStorage === 'undefined') return [];
-  return safeParse(localStorage.getItem(STORAGE_KEY));
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw === null) {
+    const seeded = createPreloadedLibrary();
+    if (seeded.length) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+      } catch {
+        // Ignore quota/permission errors.
+      }
+    }
+    setPreloadedVersion(PRELOADED_VERSION);
+    return seeded;
+  }
+  const parsed = safeParse(raw);
+  const { items, changed } = ensurePreloadedLibrary(parsed);
+  if (changed) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // Ignore quota/permission errors.
+    }
+  }
+  return items;
 };
 
 export const saveLibrary = (items: LibraryItem[]): void => {
