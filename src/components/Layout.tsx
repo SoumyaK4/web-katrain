@@ -7,7 +7,7 @@ import { GameAnalysisModal } from './GameAnalysisModal';
 import { GameReportModal } from './GameReportModal';
 import { KeyboardHelpModal } from './KeyboardHelpModal';
 import { AnalysisPanel } from './AnalysisPanel';
-import { NewGameModal } from './NewGameModal';
+import { NewGameModal, type GameInfoValues, type AiConfigValues } from './NewGameModal';
 import { FaTimes } from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
 import type { LibraryFile } from '../utils/library';
@@ -60,7 +60,6 @@ export const Layout: React.FC = () => {
     passTurn,
     resign,
     makeAiMove,
-    toggleAi,
     isAiPlaying,
     aiColor,
     navigateBack,
@@ -124,7 +123,6 @@ export const Layout: React.FC = () => {
       passTurn: state.passTurn,
       resign: state.resign,
       makeAiMove: state.makeAiMove,
-      toggleAi: state.toggleAi,
       isAiPlaying: state.isAiPlaying,
       aiColor: state.aiColor,
       navigateBack: state.navigateBack,
@@ -321,6 +319,62 @@ export const Layout: React.FC = () => {
     }
     return null;
   }, [board, capturedBlack, capturedWhite, currentNode, komi, rootNode, settings.gameRules]);
+
+  const rootProps = rootNode.properties ?? {};
+  const getRootProp = (key: string) => rootProps[key]?.[0] ?? '';
+  const defaultGameInfo: GameInfoValues = {
+    blackName: getRootProp('PB'),
+    whiteName: getRootProp('PW'),
+    blackRank: getRootProp('BR'),
+    whiteRank: getRootProp('WR'),
+    event: getRootProp('EV'),
+    date: getRootProp('DT'),
+    place: getRootProp('PC'),
+    gameName: getRootProp('GN'),
+  };
+
+  const defaultAiConfig: AiConfigValues = {
+    opponent: isAiPlaying && aiColor ? aiColor : 'none',
+    aiStrategy: settings.aiStrategy,
+    aiRankKyu: settings.aiRankKyu,
+    aiScoreLossStrength: settings.aiScoreLossStrength,
+    aiPolicyOpeningMoves: settings.aiPolicyOpeningMoves,
+    aiWeightedPickOverride: settings.aiWeightedPickOverride,
+    aiWeightedWeakenFac: settings.aiWeightedWeakenFac,
+    aiWeightedLowerBound: settings.aiWeightedLowerBound,
+    aiPickPickOverride: settings.aiPickPickOverride,
+    aiPickPickN: settings.aiPickPickN,
+    aiPickPickFrac: settings.aiPickPickFrac,
+    aiLocalPickOverride: settings.aiLocalPickOverride,
+    aiLocalStddev: settings.aiLocalStddev,
+    aiLocalPickN: settings.aiLocalPickN,
+    aiLocalPickFrac: settings.aiLocalPickFrac,
+    aiLocalEndgame: settings.aiLocalEndgame,
+    aiTenukiPickOverride: settings.aiTenukiPickOverride,
+    aiTenukiStddev: settings.aiTenukiStddev,
+    aiTenukiPickN: settings.aiTenukiPickN,
+    aiTenukiPickFrac: settings.aiTenukiPickFrac,
+    aiTenukiEndgame: settings.aiTenukiEndgame,
+    aiInfluencePickOverride: settings.aiInfluencePickOverride,
+    aiInfluencePickN: settings.aiInfluencePickN,
+    aiInfluencePickFrac: settings.aiInfluencePickFrac,
+    aiInfluenceThreshold: settings.aiInfluenceThreshold,
+    aiInfluenceLineWeight: settings.aiInfluenceLineWeight,
+    aiInfluenceEndgame: settings.aiInfluenceEndgame,
+    aiTerritoryPickOverride: settings.aiTerritoryPickOverride,
+    aiTerritoryPickN: settings.aiTerritoryPickN,
+    aiTerritoryPickFrac: settings.aiTerritoryPickFrac,
+    aiTerritoryThreshold: settings.aiTerritoryThreshold,
+    aiTerritoryLineWeight: settings.aiTerritoryLineWeight,
+    aiTerritoryEndgame: settings.aiTerritoryEndgame,
+    aiJigoTargetScore: settings.aiJigoTargetScore,
+    aiOwnershipMaxPointsLost: settings.aiOwnershipMaxPointsLost,
+    aiOwnershipSettledWeight: settings.aiOwnershipSettledWeight,
+    aiOwnershipOpponentFac: settings.aiOwnershipOpponentFac,
+    aiOwnershipMinVisits: settings.aiOwnershipMinVisits,
+    aiOwnershipAttachPenalty: settings.aiOwnershipAttachPenalty,
+    aiOwnershipTenukiPenalty: settings.aiOwnershipTenukiPenalty,
+  };
 
   // Toast helper
   const toast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -927,12 +981,69 @@ export const Layout: React.FC = () => {
       {isNewGameOpen && (
         <NewGameModal
           onClose={() => setIsNewGameOpen(false)}
-          onStart={({ komi: nextKomi, rules }) => {
+          onStart={({ komi: nextKomi, rules, info, aiConfig }) => {
             startNewGame({ komi: nextKomi, rules });
+            setRootProperty('PB', info.blackName);
+            setRootProperty('PW', info.whiteName);
+            setRootProperty('BR', info.blackRank);
+            setRootProperty('WR', info.whiteRank);
+            setRootProperty('EV', info.event);
+            setRootProperty('DT', info.date);
+            setRootProperty('PC', info.place);
+            setRootProperty('GN', info.gameName);
+            updateSettings({
+              aiStrategy: aiConfig.aiStrategy,
+              aiRankKyu: aiConfig.aiRankKyu,
+              aiScoreLossStrength: aiConfig.aiScoreLossStrength,
+              aiPolicyOpeningMoves: aiConfig.aiPolicyOpeningMoves,
+              aiWeightedPickOverride: aiConfig.aiWeightedPickOverride,
+              aiWeightedWeakenFac: aiConfig.aiWeightedWeakenFac,
+              aiWeightedLowerBound: aiConfig.aiWeightedLowerBound,
+              aiPickPickOverride: aiConfig.aiPickPickOverride,
+              aiPickPickN: aiConfig.aiPickPickN,
+              aiPickPickFrac: aiConfig.aiPickPickFrac,
+              aiLocalPickOverride: aiConfig.aiLocalPickOverride,
+              aiLocalStddev: aiConfig.aiLocalStddev,
+              aiLocalPickN: aiConfig.aiLocalPickN,
+              aiLocalPickFrac: aiConfig.aiLocalPickFrac,
+              aiLocalEndgame: aiConfig.aiLocalEndgame,
+              aiTenukiPickOverride: aiConfig.aiTenukiPickOverride,
+              aiTenukiStddev: aiConfig.aiTenukiStddev,
+              aiTenukiPickN: aiConfig.aiTenukiPickN,
+              aiTenukiPickFrac: aiConfig.aiTenukiPickFrac,
+              aiTenukiEndgame: aiConfig.aiTenukiEndgame,
+              aiInfluencePickOverride: aiConfig.aiInfluencePickOverride,
+              aiInfluencePickN: aiConfig.aiInfluencePickN,
+              aiInfluencePickFrac: aiConfig.aiInfluencePickFrac,
+              aiInfluenceThreshold: aiConfig.aiInfluenceThreshold,
+              aiInfluenceLineWeight: aiConfig.aiInfluenceLineWeight,
+              aiInfluenceEndgame: aiConfig.aiInfluenceEndgame,
+              aiTerritoryPickOverride: aiConfig.aiTerritoryPickOverride,
+              aiTerritoryPickN: aiConfig.aiTerritoryPickN,
+              aiTerritoryPickFrac: aiConfig.aiTerritoryPickFrac,
+              aiTerritoryThreshold: aiConfig.aiTerritoryThreshold,
+              aiTerritoryLineWeight: aiConfig.aiTerritoryLineWeight,
+              aiTerritoryEndgame: aiConfig.aiTerritoryEndgame,
+              aiJigoTargetScore: aiConfig.aiJigoTargetScore,
+              aiOwnershipMaxPointsLost: aiConfig.aiOwnershipMaxPointsLost,
+              aiOwnershipSettledWeight: aiConfig.aiOwnershipSettledWeight,
+              aiOwnershipOpponentFac: aiConfig.aiOwnershipOpponentFac,
+              aiOwnershipMinVisits: aiConfig.aiOwnershipMinVisits,
+              aiOwnershipAttachPenalty: aiConfig.aiOwnershipAttachPenalty,
+              aiOwnershipTenukiPenalty: aiConfig.aiOwnershipTenukiPenalty,
+            });
+            const opponent = aiConfig.opponent === 'none' ? null : aiConfig.opponent;
+            useGameStore.setState({ isAiPlaying: !!opponent, aiColor: opponent });
+            const after = useGameStore.getState();
+            if (after.isAiPlaying && after.aiColor === after.currentPlayer) {
+              window.setTimeout(() => after.makeAiMove(), 0);
+            }
             setIsNewGameOpen(false);
           }}
           defaultKomi={komi}
           defaultRules={settings.gameRules}
+          defaultInfo={defaultGameInfo}
+          defaultAiConfig={defaultAiConfig}
         />
       )}
 
@@ -1130,8 +1241,6 @@ export const Layout: React.FC = () => {
         onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
         onOpenGameReport={() => setIsGameReportOpen(true)}
         currentPlayer={currentPlayer}
-        isAiPlaying={isAiPlaying}
-        aiColor={aiColor}
         capturedBlack={capturedBlack}
         capturedWhite={capturedWhite}
         komi={komi}
@@ -1144,9 +1253,7 @@ export const Layout: React.FC = () => {
         undoToMainBranch={undoToMainBranch}
         makeCurrentNodeMainBranch={makeCurrentNodeMainBranch}
         isInsertMode={isInsertMode}
-        setRootProperty={setRootProperty}
         resign={resign}
-        toggleAi={toggleAi}
         toast={toast}
         winRate={winRate ?? null}
         scoreLead={scoreLead ?? null}

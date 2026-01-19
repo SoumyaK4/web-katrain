@@ -38,8 +38,6 @@ interface RightPanelProps {
   onOpenGameReport: () => void;
   // Player info
   currentPlayer: Player;
-  isAiPlaying: boolean;
-  aiColor: Player | null;
   capturedBlack: number;
   capturedWhite: number;
   // Timer/game
@@ -54,9 +52,7 @@ interface RightPanelProps {
   undoToMainBranch: () => void;
   makeCurrentNodeMainBranch: () => void;
   isInsertMode: boolean;
-  setRootProperty: (key: string, value: string) => void;
   resign: () => void;
-  toggleAi: (color: Player) => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
   // Analysis
   winRate: number | null;
@@ -98,8 +94,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   onOpenGameAnalysis,
   onOpenGameReport,
   currentPlayer,
-  isAiPlaying,
-  aiColor,
   capturedBlack,
   capturedWhite,
   komi,
@@ -112,9 +106,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   undoToMainBranch,
   makeCurrentNodeMainBranch,
   isInsertMode,
-  setRootProperty,
   resign,
-  toggleAi,
   toast,
   winRate,
   scoreLead,
@@ -128,10 +120,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   currentNode,
   moveHistory,
 }) => {
-  const isAiBlack = isAiPlaying && aiColor === 'black';
-  const isAiWhite = isAiPlaying && aiColor === 'white';
   const showTree = !isMobile || activeMobileTab === 'tree';
-  const showInfo = !isMobile || activeMobileTab === 'info';
   const showAnalysis = !isMobile || activeMobileTab === 'analysis';
   const showNotes = !isMobile || activeMobileTab === 'info';
 
@@ -157,26 +146,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     action();
   };
 
-  const analysisCounts = React.useMemo(() => {
-    void treeVersion;
-    let analyzed = 0;
-    let total = 0;
-    const stack: GameNode[] = [rootNode];
-    while (stack.length > 0) {
-      const node = stack.pop()!;
-      if (node.move) total += 1;
-      if (node.analysis) analyzed += 1;
-      for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]!);
-    }
-    return { analyzed, total };
-  }, [rootNode, treeVersion]);
-
   const rootProps = rootNode.properties ?? {};
   const getProp = (key: string) => rootProps[key]?.[0] ?? '';
   const blackName = getProp('PB') || 'Black';
   const whiteName = getProp('PW') || 'White';
-  const blackRank = getProp('BR');
-  const whiteRank = getProp('WR');
 
   const pathNodes = React.useMemo(() => {
     const nodes: GameNode[] = [];
@@ -259,15 +232,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('web-katrain:notes_list_open:v1') === 'true';
   });
-  const infoResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
   const analysisResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
   const notesResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
-  const [infoHeight, setInfoHeight] = React.useState(() => {
-    if (typeof localStorage === 'undefined') return 260;
-    const raw = localStorage.getItem('web-katrain:info_height:v1');
-    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-    return Number.isFinite(parsed) ? parsed : 260;
-  });
   const [analysisHeight, setAnalysisHeight] = React.useState(() => {
     if (typeof localStorage === 'undefined') return 260;
     const raw = localStorage.getItem('web-katrain:analysis_height:v1');
@@ -280,7 +246,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
     return Number.isFinite(parsed) ? parsed : 320;
   });
-  const [isResizingInfo, setIsResizingInfo] = React.useState(false);
   const [isResizingAnalysis, setIsResizingAnalysis] = React.useState(false);
   const [isResizingNotes, setIsResizingNotes] = React.useState(false);
   const treeResizeRef = React.useRef<{ startY: number; startHeight: number } | null>(null);
@@ -300,11 +265,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:notes_list_open:v1', String(notesListOpen));
   }, [notesListOpen]);
-
-  React.useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:info_height:v1', String(infoHeight));
-  }, [infoHeight]);
 
   React.useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -339,30 +299,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       window.removeEventListener('mouseup', onUp);
     };
   }, [isResizingTree]);
-
-  React.useEffect(() => {
-    if (!isResizingInfo) return;
-    const minHeight = 200;
-    const maxHeight = 520;
-    const onMove = (e: MouseEvent) => {
-      if (!infoResizeRef.current) return;
-      const delta = e.clientY - infoResizeRef.current.startY;
-      const next = Math.min(maxHeight, Math.max(minHeight, infoResizeRef.current.startHeight + delta));
-      setInfoHeight(next);
-    };
-    const onUp = () => {
-      setIsResizingInfo(false);
-      infoResizeRef.current = null;
-    };
-    document.body.style.cursor = 'row-resize';
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      document.body.style.cursor = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [isResizingInfo]);
 
   React.useEffect(() => {
     if (!isResizingAnalysis) return;
@@ -412,41 +348,18 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     };
   }, [isResizingNotes]);
 
-  const renderPlayerInfo = (player: Player) => {
-    const isTurn = currentPlayer === player;
-    const isAi = isAiPlaying && aiColor === player;
-    const caps = player === 'black' ? capturedWhite : capturedBlack;
-    const name = player === 'black' ? blackName : whiteName;
-    const rank = player === 'black' ? blackRank : whiteRank;
+  const handleUndo = () => {
+    const st = useGameStore.getState();
+    const lastMover = st.currentNode.move?.player ?? null;
+    const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
+    navigateBack();
+    if (shouldUndoTwice) navigateBack();
+  };
 
-    return (
-      <div
-        className={[
-          'flex-1 rounded-lg px-2.5 py-2 flex items-center gap-2.5 shadow-sm transition-all',
-          isTurn
-            ? 'bg-[var(--ui-surface-2)] border-2 border-[var(--ui-accent)] shadow-sm shadow-black/20'
-            : 'bg-[var(--ui-surface)] border border-[var(--ui-border)]',
-        ].join(' ')}
-      >
-        <div
-          className={[
-            'h-9 w-9 rounded-full flex items-center justify-center font-bold shadow-sm text-sm',
-            player === 'black'
-              ? 'bg-slate-950 text-white border-2 border-slate-700'
-              : 'bg-slate-100 text-slate-900 border-2 border-slate-300',
-          ].join(' ')}
-          title={player === 'black' ? blackName : whiteName}
-        >
-          {caps}
-        </div>
-        <div className="flex flex-col leading-tight min-w-0 flex-1">
-          <div className="text-xs font-medium text-[var(--ui-text)] truncate">{name}</div>
-          <div className="text-[11px] ui-text-faint">{rank || (player === 'black' ? 'Black' : 'White')}</div>
-          <div className="text-[10px] ui-text-faint uppercase tracking-wide">{isAi ? 'AI' : 'Human'}</div>
-        </div>
-        {isTurn && <div className="ml-auto text-xs font-semibold text-[var(--ui-accent)] whitespace-nowrap">to play</div>}
-      </div>
-    );
+  const handleResign = () => {
+    const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
+    resign();
+    toast(`Result: ${result}`, 'info');
   };
 
   return (
@@ -639,184 +552,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               ),
             })}
 
-            {/* Game Info */}
-            {renderSection({
-              show: showInfo,
-              title: 'Game Info',
-              open: modePanels.infoOpen,
-              onToggle: () => updatePanels((current) => ({ infoOpen: !current.infoOpen })),
-              contentClassName: 'mt-1 space-y-3 overflow-y-auto pr-1',
-              contentStyle: { height: infoHeight },
-              onResize: (e) => {
-                infoResizeRef.current = { startY: e.clientY, startHeight: infoHeight };
-                setIsResizingInfo(true);
-              },
-              children: (
-                <>
-                  <div className="flex gap-2">{renderPlayerInfo('black')}{renderPlayerInfo('white')}</div>
-                  <Timer />
-                  <div className="grid grid-cols-2 gap-2 text-xs text-[var(--ui-text-muted)]">
-                    <div className="flex items-center justify-between">
-                      <span className="ui-text-faint">Komi</span>
-                      <span className="font-mono text-[var(--ui-text)]">{komi}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="ui-text-faint">Moves</span>
-                      <span className="font-mono text-[var(--ui-text)]">{moveHistory.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="ui-text-faint">Captured</span>
-                      <span className="font-mono text-[var(--ui-text)]">B:{capturedWhite} · W:{capturedBlack}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="ui-text-faint">Analyzed</span>
-                      <span className="font-mono text-[var(--ui-text)]">{analysisCounts.analyzed}/{analysisCounts.total}</span>
-                    </div>
-                  </div>
-                  {endResult && (
-                    <div className="flex items-center justify-between text-xs text-[var(--ui-text-muted)]">
-                      <span className="ui-text-faint">Result</span>
-                      <span className="font-mono text-[var(--ui-text)]">{endResult}</span>
-                    </div>
-                  )}
-
-                  <div className="border-t border-[var(--ui-border)] pt-2">
-                    <div className="text-xs ui-text-faint mb-2">Metadata</div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">Black</label>
-                        <input
-                          value={getProp('PB')}
-                          onChange={(e) => setRootProperty('PB', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Name"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">White</label>
-                        <input
-                          value={getProp('PW')}
-                          onChange={(e) => setRootProperty('PW', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Name"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">B Rank</label>
-                        <input
-                          value={getProp('BR')}
-                          onChange={(e) => setRootProperty('BR', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Rank"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">W Rank</label>
-                        <input
-                          value={getProp('WR')}
-                          onChange={(e) => setRootProperty('WR', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Rank"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">Event</label>
-                        <input
-                          value={getProp('EV')}
-                          onChange={(e) => setRootProperty('EV', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Event"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">Date</label>
-                        <input
-                          value={getProp('DT')}
-                          onChange={(e) => setRootProperty('DT', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="YYYY-MM-DD"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">Result</label>
-                        <input
-                          value={getProp('RE')}
-                          onChange={(e) => setRootProperty('RE', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="B+R / W+0.5"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">Place</label>
-                        <input
-                          value={getProp('PC')}
-                          onChange={(e) => setRootProperty('PC', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Location"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="ui-text-faint">Game</label>
-                        <input
-                          value={getProp('GN')}
-                          onChange={(e) => setRootProperty('GN', e.target.value)}
-                          className="ui-input border rounded px-2 py-1 text-[var(--ui-text)]"
-                          placeholder="Game name"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--ui-surface-2)] hover:brightness-110 text-sm font-medium text-[var(--ui-text)] transition-colors border border-[var(--ui-border)]"
-                      onClick={() => {
-                        const st = useGameStore.getState();
-                        const lastMover = st.currentNode.move?.player ?? null;
-                        const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
-                        navigateBack();
-                        if (shouldUndoTwice) navigateBack();
-                      }}
-                      title="Undo (←)"
-                    >
-                      Undo
-                    </button>
-                    <button
-                      className="flex-1 px-3 py-2.5 rounded-lg ui-danger-soft text-sm font-medium transition-colors border hover:brightness-110"
-                      onClick={() => {
-                        const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
-                        resign();
-                        toast(`Result: ${result}`, 'info');
-                      }}
-                    >
-                      Resign
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      className={[
-                        'flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                        isAiWhite ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border-2 border-[var(--ui-accent)] shadow-sm shadow-black/20' : 'bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] border border-[var(--ui-border)] hover:text-white',
-                      ].join(' ')}
-                      onClick={() => toggleAi('white')}
-                    >
-                      White AI
-                    </button>
-                    <button
-                      className={[
-                        'flex-1 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                        isAiBlack ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border-2 border-[var(--ui-accent)] shadow-sm shadow-black/20' : 'bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] border border-[var(--ui-border)] hover:text-white',
-                      ].join(' ')}
-                      onClick={() => toggleAi('black')}
-                    >
-                      Black AI
-                    </button>
-                  </div>
-                </>
-              ),
-            })}
-
             {/* Analysis */}
             {renderSection({
               show: showAnalysis && showAnalysisSection,
@@ -950,6 +685,37 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               ),
             })}
           </div>
+        </div>
+        <div className="border-t border-[var(--ui-border)] ui-panel px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs ui-text-faint">
+            <span className="font-semibold text-[var(--ui-text)] truncate">{blackName} vs {whiteName}</span>
+            <span>Komi {komi}</span>
+            <span>Moves {moveHistory.length}</span>
+            <span>Capt B:{capturedWhite} W:{capturedBlack}</span>
+            {endResult && <span>Result {endResult}</span>}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="px-2 py-1 rounded text-xs font-medium bg-[var(--ui-surface-2)] text-[var(--ui-text)] border border-[var(--ui-border)] hover:brightness-110"
+              onClick={handleUndo}
+              title="Undo (left arrow)"
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="px-2 py-1 rounded text-xs font-medium ui-danger-soft border hover:brightness-110"
+              onClick={handleResign}
+            >
+              Resign
+            </button>
+          </div>
+          {mode === 'play' && (
+            <div className="mt-2">
+              <Timer />
+            </div>
+          )}
         </div>
       </div>
     </>
