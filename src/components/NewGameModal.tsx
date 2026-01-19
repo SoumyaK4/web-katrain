@@ -122,38 +122,6 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           <button onClick={onClose} className="ui-text-faint hover:text-white">✕</button>
         </div>
         <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[var(--ui-text-muted)] text-sm">Board Size</label>
-              <input
-                value="19"
-                disabled
-                className="w-full ui-input text-[var(--ui-text-muted)] rounded px-2 py-2 text-sm border"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[var(--ui-text-muted)] text-sm">Rules</label>
-              <select
-                value={rules}
-                onChange={(e) => setRules(e.target.value as GameRules)}
-                className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-              >
-                <option value="japanese">Japanese</option>
-                <option value="chinese">Chinese</option>
-                <option value="korean">Korean</option>
-              </select>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[var(--ui-text-muted)] text-sm">Komi</label>
-            <input
-              type="number"
-              step="0.5"
-              value={komi}
-              onChange={(e) => setKomi(Number(e.target.value))}
-              className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-            />
-          </div>
           <div className="space-y-3">
             <div className="text-xs uppercase tracking-wide ui-text-faint">Game Info</div>
             {showAiOptions && humanColor ? (
@@ -286,6 +254,38 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                 </div>
               </div>
             </details>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[var(--ui-text-muted)] text-sm">Board Size</label>
+              <input
+                value="19"
+                disabled
+                className="w-full ui-input text-[var(--ui-text-muted)] rounded px-2 py-2 text-sm border"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[var(--ui-text-muted)] text-sm">Rules</label>
+              <select
+                value={rules}
+                onChange={(e) => setRules(e.target.value as GameRules)}
+                className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+              >
+                <option value="japanese">Japanese</option>
+                <option value="chinese">Chinese</option>
+                <option value="korean">Korean</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[var(--ui-text-muted)] text-sm">Komi</label>
+            <input
+              type="number"
+              step="0.5"
+              value={komi}
+              onChange={(e) => setKomi(Number(e.target.value))}
+              className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+            />
           </div>
           <div className="space-y-3">
             <div className="text-xs uppercase tracking-wide ui-text-faint">Clock</div>
