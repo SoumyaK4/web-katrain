@@ -3,7 +3,7 @@ import type { UiThemeId } from '../types';
 export const UI_THEME_OPTIONS: Array<{ value: UiThemeId; label: string; description: string }> = [
   {
     value: 'noir',
-    label: 'Noir',
+    label: 'Dark',
     description: 'Deep slate with emerald accents.',
   },
   {
@@ -15,5 +15,10 @@ export const UI_THEME_OPTIONS: Array<{ value: UiThemeId; label: string; descript
     value: 'studio',
     label: 'Studio',
     description: 'Cool graphite with sky accents.',
+  },
+  {
+    value: 'light',
+    label: 'Light',
+    description: 'Clean paper tones with ocean accents.',
   },
 ];

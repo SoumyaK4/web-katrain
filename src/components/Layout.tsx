@@ -7,7 +7,7 @@ import { GameAnalysisModal } from './GameAnalysisModal';
 import { GameReportModal } from './GameReportModal';
 import { KeyboardHelpModal } from './KeyboardHelpModal';
 import { AnalysisPanel } from './AnalysisPanel';
-import { NewGameModal, type GameInfoValues, type AiConfigValues } from './NewGameModal';
+import { NewGameModal, type GameInfoValues, type AiConfigValues, type TimerConfigValues } from './NewGameModal';
 import { FaTimes } from 'react-icons/fa';
 import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
 import type { LibraryFile } from '../utils/library';
@@ -374,6 +374,12 @@ export const Layout: React.FC = () => {
     aiOwnershipMinVisits: settings.aiOwnershipMinVisits,
     aiOwnershipAttachPenalty: settings.aiOwnershipAttachPenalty,
     aiOwnershipTenukiPenalty: settings.aiOwnershipTenukiPenalty,
+  };
+  const defaultTimerConfig: TimerConfigValues = {
+    mode: settings.timerMainTimeMinutes > 0 || settings.timerByoPeriods > 0 ? 'byo-yomi' : 'none',
+    mainTimeMinutes: settings.timerMainTimeMinutes,
+    byoLengthSeconds: settings.timerByoLengthSeconds,
+    byoPeriods: settings.timerByoPeriods,
   };
 
   // Toast helper
@@ -981,7 +987,7 @@ export const Layout: React.FC = () => {
       {isNewGameOpen && (
         <NewGameModal
           onClose={() => setIsNewGameOpen(false)}
-          onStart={({ komi: nextKomi, rules, info, aiConfig }) => {
+          onStart={({ komi: nextKomi, rules, info, aiConfig, timerConfig }) => {
             startNewGame({ komi: nextKomi, rules });
             setRootProperty('PB', info.blackName);
             setRootProperty('PW', info.whiteName);
@@ -991,6 +997,28 @@ export const Layout: React.FC = () => {
             setRootProperty('DT', info.date);
             setRootProperty('PC', info.place);
             setRootProperty('GN', info.gameName);
+            const timerEnabled = timerConfig.mode === 'byo-yomi';
+            const safeMainTimeMinutes = Number.isFinite(timerConfig.mainTimeMinutes)
+              ? Math.max(0, timerConfig.mainTimeMinutes)
+              : 0;
+            const safeByoLengthSeconds = Number.isFinite(timerConfig.byoLengthSeconds)
+              ? Math.max(1, Math.floor(timerConfig.byoLengthSeconds))
+              : 1;
+            const safeByoPeriods = Number.isFinite(timerConfig.byoPeriods)
+              ? Math.max(1, Math.floor(timerConfig.byoPeriods))
+              : 1;
+            const timerSettings = timerEnabled
+              ? {
+                  timerMainTimeMinutes: safeMainTimeMinutes,
+                  timerByoLengthSeconds: safeByoLengthSeconds,
+                  timerByoPeriods: safeByoPeriods,
+                }
+              : {
+                  timerMainTimeMinutes: 0,
+                  timerByoLengthSeconds: 0,
+                  timerByoPeriods: 0,
+                  timerMinimalUseSeconds: 0,
+                };
             updateSettings({
               aiStrategy: aiConfig.aiStrategy,
               aiRankKyu: aiConfig.aiRankKyu,
@@ -1031,6 +1059,7 @@ export const Layout: React.FC = () => {
               aiOwnershipMinVisits: aiConfig.aiOwnershipMinVisits,
               aiOwnershipAttachPenalty: aiConfig.aiOwnershipAttachPenalty,
               aiOwnershipTenukiPenalty: aiConfig.aiOwnershipTenukiPenalty,
+              ...timerSettings,
             });
             const opponent = aiConfig.opponent === 'none' ? null : aiConfig.opponent;
             useGameStore.setState({ isAiPlaying: !!opponent, aiColor: opponent });
@@ -1044,6 +1073,7 @@ export const Layout: React.FC = () => {
           defaultRules={settings.gameRules}
           defaultInfo={defaultGameInfo}
           defaultAiConfig={defaultAiConfig}
+          defaultTimerConfig={defaultTimerConfig}
         />
       )}
 

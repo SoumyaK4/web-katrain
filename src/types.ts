@@ -82,7 +82,7 @@ export type BoardThemeId =
   | 'kifu'
   | 'baduktv';
 
-export type UiThemeId = 'noir' | 'kaya' | 'studio';
+export type UiThemeId = 'noir' | 'kaya' | 'studio' | 'light';
 export type UiDensityId = 'compact' | 'comfortable' | 'large';
 
 export interface GameSettings {

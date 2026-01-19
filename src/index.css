@@ -84,6 +84,30 @@
     color-scheme: dark;
   }
 
+  :root[data-ui-theme='light'] {
+    --ui-bg: #f5f7fb;
+    --ui-bar: #f0f3f8;
+    --ui-panel: #ffffff;
+    --ui-surface: #f8fafc;
+    --ui-surface-2: #eef2f7;
+    --ui-input: #ffffff;
+    --ui-border: #d6dde8;
+    --ui-border-strong: #c1cbd9;
+    --ui-text: #1e293b;
+    --ui-text-muted: #64748b;
+    --ui-text-faint: #94a3b8;
+    --ui-accent: #0284c7;
+    --ui-accent-soft: #e0f2fe;
+    --ui-accent-contrast: #ffffff;
+    --ui-danger: #e11d48;
+    --ui-danger-soft: #ffe4e6;
+    --ui-warning: #d97706;
+    --ui-warning-soft: #fef3c7;
+    --ui-success: #16a34a;
+    --ui-success-soft: #dcfce7;
+    color-scheme: light;
+  }
+
   :root[data-ui-density='compact'] {
     --ui-font-size: 14px;
     --ui-bar-height: 52px;

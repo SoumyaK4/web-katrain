@@ -21,6 +21,7 @@ import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
 import { EngineStatusBadge, IconButton, TogglePill } from './ui';
 import { BOARD_THEME_OPTIONS } from '../../utils/boardThemes';
+import { UI_THEME_OPTIONS } from '../../utils/uiThemes';
 
 interface TopControlBarProps {
   settings: GameSettings;
@@ -338,6 +339,18 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 </span>
                 <span className="text-xs ui-text-faint">{settings.soundEnabled ? 'on' : 'off'}</span>
               </button>
+              <div className="border-t border-[var(--ui-border)] px-3 py-2">
+                <div className="text-xs ui-text-faint mb-1">UI theme</div>
+                <select
+                  value={settings.uiTheme}
+                  onChange={(e) => updateSettings({ uiTheme: e.target.value as GameSettings['uiTheme'] })}
+                  className="w-full ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
+                >
+                  {UI_THEME_OPTIONS.map((theme) => (
+                    <option key={theme.value} value={theme.value}>{theme.label}</option>
+                  ))}
+                </select>
+              </div>
               <div className="border-t border-[var(--ui-border)] px-3 py-2">
                 <div className="text-xs ui-text-faint mb-1">Board theme</div>
                 <select

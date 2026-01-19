@@ -6,6 +6,11 @@ import { formatKaTrainClockSeconds, stepKaTrainTimer, type KaTrainTimerDisplay }
 export const Timer: React.FC = () => {
   const timerPaused = useGameStore((s) => s.timerPaused);
   const toggleTimerPaused = useGameStore((s) => s.toggleTimerPaused);
+  const timerSettings = useGameStore((s) => ({
+    mainTimeMinutes: s.settings.timerMainTimeMinutes,
+    byoLengthSeconds: s.settings.timerByoLengthSeconds,
+    byoPeriods: s.settings.timerByoPeriods,
+  }));
 
   const [display, setDisplay] = useState<KaTrainTimerDisplay>(() => ({
     timeSeconds: 0,
@@ -18,6 +23,19 @@ export const Timer: React.FC = () => {
   const lastUpdateNodeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const isDisabled = timerSettings.mainTimeMinutes <= 0 && timerSettings.byoPeriods <= 0;
+    if (isDisabled) {
+      lastUpdateMsRef.current = 0;
+      lastUpdateNodeIdRef.current = null;
+      setDisplay({
+        timeSeconds: 0,
+        periodsRemaining: null,
+        timeout: false,
+        isAiTurn: false,
+      });
+      return;
+    }
+
     const tick = () => {
       const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
       const s = useGameStore.getState();
@@ -58,13 +76,19 @@ export const Timer: React.FC = () => {
       setDisplay(result.display);
     };
 
+    lastUpdateMsRef.current = 0;
+    lastUpdateNodeIdRef.current = null;
     tick();
     const id = window.setInterval(tick, 70);
     return () => window.clearInterval(id);
-  }, []);
+  }, [timerSettings.mainTimeMinutes, timerSettings.byoLengthSeconds, timerSettings.byoPeriods]);
 
-  const timeText = useMemo(() => formatKaTrainClockSeconds(display.timeSeconds), [display.timeSeconds]);
-  const timeoutClass = display.timeout ? 'text-red-300' : 'text-slate-100';
+  const isTimerDisabled = timerSettings.mainTimeMinutes <= 0 && timerSettings.byoPeriods <= 0;
+  const timeText = useMemo(
+    () => (isTimerDisabled ? 'Off' : formatKaTrainClockSeconds(display.timeSeconds)),
+    [display.timeSeconds, isTimerDisabled]
+  );
+  const timeoutClass = isTimerDisabled ? 'text-slate-400' : display.timeout ? 'text-red-300' : 'text-slate-100';
 
   return (
     <div className="bg-slate-900 border border-slate-700/50 rounded px-4 py-3 flex items-center gap-3">
@@ -72,26 +96,28 @@ export const Timer: React.FC = () => {
         <div className={['text-2xl leading-none', timeoutClass].join(' ')} title={display.isAiTurn ? 'AI to play' : undefined}>
           {timeText}
         </div>
-        {display.periodsRemaining !== null && (
+        {!isTimerDisabled && display.periodsRemaining !== null && (
           <div className={['text-sm leading-none', timeoutClass].join(' ')}>
             × {display.periodsRemaining}
           </div>
         )}
       </div>
 
-      <div className="ml-auto">
-        <button
-          type="button"
-          className={[
-            'h-10 w-10 flex items-center justify-center rounded border',
-            'bg-slate-800 border-slate-700/50 text-slate-200 hover:bg-slate-700',
-          ].join(' ')}
-          onClick={() => toggleTimerPaused()}
-          title={timerPaused ? 'Resume timer' : 'Pause timer'}
-        >
-          {timerPaused ? <FaPlay /> : <FaPause />}
-        </button>
-      </div>
+      {!isTimerDisabled && (
+        <div className="ml-auto">
+          <button
+            type="button"
+            className={[
+              'h-10 w-10 flex items-center justify-center rounded border',
+              'bg-slate-800 border-slate-700/50 text-slate-200 hover:bg-slate-700',
+            ].join(' ')}
+            onClick={() => toggleTimerPaused()}
+            title={timerPaused ? 'Resume timer' : 'Pause timer'}
+          >
+            {timerPaused ? <FaPlay /> : <FaPause />}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

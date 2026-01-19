@@ -59,13 +59,27 @@ export type AiConfigValues = {
   | 'aiOwnershipTenukiPenalty'
 >;
 
+export type TimerConfigValues = {
+  mode: 'none' | 'byo-yomi';
+  mainTimeMinutes: number;
+  byoLengthSeconds: number;
+  byoPeriods: number;
+};
+
 interface NewGameModalProps {
   onClose: () => void;
-  onStart: (opts: { komi: number; rules: GameRules; info: GameInfoValues; aiConfig: AiConfigValues }) => void;
+  onStart: (opts: {
+    komi: number;
+    rules: GameRules;
+    info: GameInfoValues;
+    aiConfig: AiConfigValues;
+    timerConfig: TimerConfigValues;
+  }) => void;
   defaultKomi: number;
   defaultRules: GameRules;
   defaultInfo: GameInfoValues;
   defaultAiConfig: AiConfigValues;
+  defaultTimerConfig: TimerConfigValues;
 }
 
 export const NewGameModal: React.FC<NewGameModalProps> = ({
@@ -75,15 +89,19 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   defaultRules,
   defaultInfo,
   defaultAiConfig,
+  defaultTimerConfig,
 }) => {
   const [komi, setKomi] = React.useState(() => defaultKomi);
   const [rules, setRules] = React.useState<GameRules>(() => defaultRules);
   const [gameInfo, setGameInfo] = React.useState<GameInfoValues>(() => defaultInfo);
   const [aiConfig, setAiConfig] = React.useState<AiConfigValues>(() => defaultAiConfig);
+  const [timerConfig, setTimerConfig] = React.useState<TimerConfigValues>(() => defaultTimerConfig);
 
   const showAiOptions = aiConfig.opponent !== 'none';
   const updateAiConfig = (patch: Partial<AiConfigValues>) =>
     setAiConfig((prev) => ({ ...prev, ...patch }));
+  const updateTimerConfig = (patch: Partial<TimerConfigValues>) =>
+    setTimerConfig((prev) => ({ ...prev, ...patch }));
   const aiColor = aiConfig.opponent === 'none' ? null : aiConfig.opponent;
   const humanColor = aiColor === 'black' ? 'white' : aiColor === 'white' ? 'black' : null;
 
@@ -135,6 +153,219 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               onChange={(e) => setKomi(Number(e.target.value))}
               className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
             />
+          </div>
+          <div className="space-y-3">
+            <div className="text-xs uppercase tracking-wide ui-text-faint">Game Info</div>
+            {showAiOptions && humanColor ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[var(--ui-text-muted)] text-sm">Your name ({humanColor === 'black' ? 'Black' : 'White'})</label>
+                    <input
+                      value={humanColor === 'black' ? gameInfo.blackName : gameInfo.whiteName}
+                      onChange={(e) =>
+                        setGameInfo((prev) => ({
+                          ...prev,
+                          [humanColor === 'black' ? 'blackName' : 'whiteName']: e.target.value,
+                        }))
+                      }
+                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[var(--ui-text-muted)] text-sm">AI name ({aiColor === 'black' ? 'Black' : 'White'})</label>
+                    <input
+                      value={aiColor === 'black' ? gameInfo.blackName : gameInfo.whiteName}
+                      onChange={(e) =>
+                        setGameInfo((prev) => ({
+                          ...prev,
+                          [aiColor === 'black' ? 'blackName' : 'whiteName']: e.target.value,
+                        }))
+                      }
+                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                      placeholder="KataGo"
+                    />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-[var(--ui-text-muted)] text-sm">Your rank (optional)</label>
+                    <input
+                      value={humanColor === 'black' ? gameInfo.blackRank : gameInfo.whiteRank}
+                      onChange={(e) =>
+                        setGameInfo((prev) => ({
+                          ...prev,
+                          [humanColor === 'black' ? 'blackRank' : 'whiteRank']: e.target.value,
+                        }))
+                      }
+                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                      placeholder="Rank"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">Black</label>
+                  <input
+                    value={gameInfo.blackName}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, blackName: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="Black player"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">White</label>
+                  <input
+                    value={gameInfo.whiteName}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, whiteName: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="White player"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">Black Rank</label>
+                  <input
+                    value={gameInfo.blackRank}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, blackRank: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="Rank"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">White Rank</label>
+                  <input
+                    value={gameInfo.whiteRank}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, whiteRank: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="Rank"
+                  />
+                </div>
+              </div>
+            )}
+            <details className="rounded-lg border border-[var(--ui-border)] ui-panel px-3 py-2">
+              <summary className="text-sm text-[var(--ui-text)] cursor-pointer select-none">
+                Event details (optional)
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">Event</label>
+                  <input
+                    value={gameInfo.event}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, event: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="Event"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">Date</label>
+                  <input
+                    value={gameInfo.date}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, date: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="YYYY-MM-DD"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">Place</label>
+                  <input
+                    value={gameInfo.place}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, place: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="Location"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[var(--ui-text-muted)] text-sm">Game Name</label>
+                  <input
+                    value={gameInfo.gameName}
+                    onChange={(e) => setGameInfo((prev) => ({ ...prev, gameName: e.target.value }))}
+                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    placeholder="Game name"
+                  />
+                </div>
+              </div>
+            </details>
+          </div>
+          <div className="space-y-3">
+            <div className="text-xs uppercase tracking-wide ui-text-faint">Clock</div>
+            <div className="space-y-1">
+              <label className="text-[var(--ui-text-muted)] text-sm">Time system</label>
+              <select
+                value={timerConfig.mode}
+                onChange={(e) => {
+                  const mode = e.target.value as TimerConfigValues['mode'];
+                  setTimerConfig((prev) => {
+                    if (mode !== 'byo-yomi') return { ...prev, mode };
+                    return {
+                      ...prev,
+                      mode,
+                      mainTimeMinutes: Math.max(0, prev.mainTimeMinutes),
+                      byoLengthSeconds: prev.byoLengthSeconds > 0 ? prev.byoLengthSeconds : 30,
+                      byoPeriods: prev.byoPeriods > 0 ? prev.byoPeriods : 5,
+                    };
+                  });
+                }}
+                className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+              >
+                <option value="none">No timer</option>
+                <option value="byo-yomi">Byo-yomi (Japanese)</option>
+              </select>
+            </div>
+            {timerConfig.mode === 'byo-yomi' && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[var(--ui-text-muted)] text-sm">Main time (min)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={timerConfig.mainTimeMinutes}
+                      onChange={(e) =>
+                        updateTimerConfig({
+                          mainTimeMinutes: Math.max(0, parseFloat(e.target.value || '0')),
+                        })
+                      }
+                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[var(--ui-text-muted)] text-sm">Byo-yomi (sec)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={timerConfig.byoLengthSeconds}
+                      onChange={(e) =>
+                        updateTimerConfig({
+                          byoLengthSeconds: Math.max(1, parseInt(e.target.value || '1', 10)),
+                        })
+                      }
+                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[var(--ui-text-muted)] text-sm">Periods</label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={timerConfig.byoPeriods}
+                      onChange={(e) =>
+                        updateTimerConfig({
+                          byoPeriods: Math.max(1, parseInt(e.target.value || '1', 10)),
+                        })
+                      }
+                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+                    />
+                  </div>
+                </div>
+                <div className="text-xs ui-text-faint">
+                  Main time then {timerConfig.byoPeriods} periods of {timerConfig.byoLengthSeconds} seconds.
+                </div>
+              </>
+            )}
           </div>
           <div className="space-y-3">
             <div className="text-xs uppercase tracking-wide ui-text-faint">Opponent</div>
@@ -656,139 +887,6 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               </>
             )}
           </div>
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-wide ui-text-faint">Game Info</div>
-            {showAiOptions && humanColor ? (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[var(--ui-text-muted)] text-sm">Your name ({humanColor === 'black' ? 'Black' : 'White'})</label>
-                    <input
-                      value={humanColor === 'black' ? gameInfo.blackName : gameInfo.whiteName}
-                      onChange={(e) =>
-                        setGameInfo((prev) => ({
-                          ...prev,
-                          [humanColor === 'black' ? 'blackName' : 'whiteName']: e.target.value,
-                        }))
-                      }
-                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                      placeholder="Your name"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[var(--ui-text-muted)] text-sm">AI name ({aiColor === 'black' ? 'Black' : 'White'})</label>
-                    <input
-                      value={aiColor === 'black' ? gameInfo.blackName : gameInfo.whiteName}
-                      onChange={(e) =>
-                        setGameInfo((prev) => ({
-                          ...prev,
-                          [aiColor === 'black' ? 'blackName' : 'whiteName']: e.target.value,
-                        }))
-                      }
-                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                      placeholder="KataGo"
-                    />
-                  </div>
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-[var(--ui-text-muted)] text-sm">Your rank (optional)</label>
-                    <input
-                      value={humanColor === 'black' ? gameInfo.blackRank : gameInfo.whiteRank}
-                      onChange={(e) =>
-                        setGameInfo((prev) => ({
-                          ...prev,
-                          [humanColor === 'black' ? 'blackRank' : 'whiteRank']: e.target.value,
-                        }))
-                      }
-                      className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                      placeholder="Rank"
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">Black</label>
-                  <input
-                    value={gameInfo.blackName}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, blackName: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="Black player"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">White</label>
-                  <input
-                    value={gameInfo.whiteName}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, whiteName: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="White player"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">Black Rank</label>
-                  <input
-                    value={gameInfo.blackRank}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, blackRank: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="Rank"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">White Rank</label>
-                  <input
-                    value={gameInfo.whiteRank}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, whiteRank: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="Rank"
-                  />
-                </div>
-              </div>
-            )}
-            <details className="rounded-lg border border-[var(--ui-border)] ui-panel px-3 py-2">
-              <summary className="text-sm text-[var(--ui-text)] cursor-pointer select-none">
-                Event details (optional)
-              </summary>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">Event</label>
-                  <input
-                    value={gameInfo.event}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, event: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="Event"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">Date</label>
-                  <input
-                    value={gameInfo.date}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, date: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="YYYY-MM-DD"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">Place</label>
-                  <input
-                    value={gameInfo.place}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, place: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="Location"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[var(--ui-text-muted)] text-sm">Game Name</label>
-                  <input
-                    value={gameInfo.gameName}
-                    onChange={(e) => setGameInfo((prev) => ({ ...prev, gameName: e.target.value }))}
-                    className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-                    placeholder="Game name"
-                  />
-                </div>
-              </div>
-            </details>
-          </div>
           <div className="text-xs ui-text-faint">
             Start a new 19×19 game with the selected rules and optional game info.
           </div>
@@ -808,6 +906,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                 rules,
                 info: gameInfo,
                 aiConfig,
+                timerConfig,
               })
             }
           >
