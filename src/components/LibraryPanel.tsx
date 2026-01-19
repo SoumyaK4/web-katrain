@@ -14,7 +14,10 @@ import {
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { SectionHeader, panelCardBase, panelCardClosed, panelCardOpen } from './layout/ui';
 
-const GRAPH_HEIGHT = 200;
+const SECTION_MAX_RATIO = 0.7;
+const MIN_SEARCH_HEIGHT = 160;
+const MIN_LIST_HEIGHT = 220;
+const MIN_ANALYSIS_HEIGHT = 200;
 
 interface LibraryPanelProps {
   open: boolean;
@@ -49,12 +52,6 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 }) => {
   const isFolder = (item: LibraryItem): item is LibraryFolder => item.type === 'folder';
   const isFile = (item: LibraryItem): item is LibraryFile => item.type === 'file';
-  const ToggleLabel: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => (
-    <span className="flex items-center gap-2">
-      {open ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
-      {children}
-    </span>
-  );
   const [items, setItems] = useState<LibraryItem[]>(() => loadLibrary());
   const [query, setQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -101,13 +98,18 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:library_search_open:v1') !== 'false';
   });
+  const [searchHeight, setSearchHeight] = useState(() => {
+    if (typeof localStorage === 'undefined') {
+      return typeof window === 'undefined' ? 220 : Math.min(260, Math.round(window.innerHeight * 0.3));
+    }
+    const raw = localStorage.getItem('web-katrain:library_search_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    if (Number.isFinite(parsed)) return parsed;
+    return typeof window === 'undefined' ? 220 : Math.min(260, Math.round(window.innerHeight * 0.3));
+  });
   const [listOpen, setListOpen] = useState(() => {
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:library_list_open:v1') !== 'false';
-  });
-  const [recentOpen, setRecentOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:library_recent_open:v1') !== 'false';
   });
   const [listHeight, setListHeight] = useState(() => {
     if (typeof localStorage === 'undefined') {
@@ -118,10 +120,24 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     if (Number.isFinite(parsed)) return parsed;
     return typeof window === 'undefined' ? 360 : Math.min(420, Math.round(window.innerHeight * 0.45));
   });
+  const [analysisHeight, setAnalysisHeight] = useState(() => {
+    if (typeof localStorage === 'undefined') {
+      return typeof window === 'undefined' ? 240 : Math.min(280, Math.round(window.innerHeight * 0.28));
+    }
+    const raw = localStorage.getItem('web-katrain:library_analysis_height:v1');
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    if (Number.isFinite(parsed)) return parsed;
+    return typeof window === 'undefined' ? 240 : Math.min(280, Math.round(window.innerHeight * 0.28));
+  });
+  const searchSectionRef = useRef<HTMLDivElement>(null);
   const listSectionRef = useRef<HTMLDivElement>(null);
   const graphSectionRef = useRef<HTMLDivElement>(null);
+  const searchResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const listResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const analysisResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const [isResizingSearch, setIsResizingSearch] = useState(false);
   const [isResizingList, setIsResizingList] = useState(false);
+  const [isResizingAnalysis, setIsResizingAnalysis] = useState(false);
   const [graphOptions] = useState(() => {
     if (typeof localStorage === 'undefined') return { score: true, winrate: true };
     try {
@@ -187,6 +203,11 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('web-katrain:library_search_height:v1', String(searchHeight));
+  }, [searchHeight]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:library_sort:v1', String(sortKey));
   }, [sortKey]);
 
@@ -202,8 +223,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_recent_open:v1', String(recentOpen));
-  }, [recentOpen]);
+    localStorage.setItem('web-katrain:library_analysis_height:v1', String(analysisHeight));
+  }, [analysisHeight]);
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -214,46 +235,99 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     onLibraryUpdated?.();
   }, [items, onLibraryUpdated]);
 
-  const getListBounds = () => {
+  const getSectionBounds = (sectionRef: React.RefObject<HTMLDivElement>, minHeight: number) => {
     const panel = panelRef.current;
-    const listEl = listSectionRef.current;
-    if (!panel || !listEl) return null;
+    const section = sectionRef.current;
+    if (!panel || !section) return null;
     const panelRect = panel.getBoundingClientRect();
-    const listRect = listEl.getBoundingClientRect();
-    const minHeight = 220;
-    const graphOffset = graphOpen && graphSectionRef.current
-      ? graphSectionRef.current.getBoundingClientRect().height + 16
-      : 16;
-    const available = panelRect.bottom - listRect.top - graphOffset;
-    const softMax = Math.round(panelRect.height * 0.65);
-    const maxHeight = Math.max(minHeight, Math.min(available, softMax));
+    const sectionRect = section.getBoundingClientRect();
+    const bottomSection = (docked && graphSectionRef.current)
+      ? graphSectionRef.current
+      : listSectionRef.current ?? section;
+    const bottomRect = bottomSection.getBoundingClientRect();
+    const slack = panelRect.bottom - bottomRect.bottom;
+    const maxFromSlack = sectionRect.height + slack;
+    const maxFromRatio = panelRect.height * SECTION_MAX_RATIO;
+    const maxHeight = Math.max(minHeight, Math.min(maxFromSlack, maxFromRatio));
     return { minHeight, maxHeight };
   };
 
+  const clampSearchHeight = () => {
+    const bounds = getSectionBounds(searchSectionRef, MIN_SEARCH_HEIGHT);
+    if (!bounds) return;
+    setSearchHeight((current) => Math.min(bounds.maxHeight, Math.max(bounds.minHeight, current)));
+  };
+
   const clampListHeight = () => {
-    const bounds = getListBounds();
+    const bounds = getSectionBounds(listSectionRef, MIN_LIST_HEIGHT);
     if (!bounds) return;
     setListHeight((current) => Math.min(bounds.maxHeight, Math.max(bounds.minHeight, current)));
   };
+
+  const clampAnalysisHeight = () => {
+    const bounds = getSectionBounds(graphSectionRef, MIN_ANALYSIS_HEIGHT);
+    if (!bounds) return;
+    setAnalysisHeight((current) => Math.min(bounds.maxHeight, Math.max(bounds.minHeight, current)));
+  };
+
+  useEffect(() => {
+    if (!open || !searchOpen) return;
+    const frame = window.requestAnimationFrame(() => clampSearchHeight());
+    return () => window.cancelAnimationFrame(frame);
+  }, [graphOpen, listOpen, open, searchOpen, docked]);
 
   useEffect(() => {
     if (!open || !listOpen) return;
     const frame = window.requestAnimationFrame(() => clampListHeight());
     return () => window.cancelAnimationFrame(frame);
-  }, [graphOpen, listOpen, open, searchOpen]);
+  }, [graphOpen, listOpen, open, searchOpen, docked]);
+
+  useEffect(() => {
+    if (!open || !graphOpen || !docked) return;
+    const frame = window.requestAnimationFrame(() => clampAnalysisHeight());
+    return () => window.cancelAnimationFrame(frame);
+  }, [graphOpen, listOpen, open, searchOpen, docked]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onResize = () => clampListHeight();
+    const onResize = () => {
+      if (open && searchOpen) clampSearchHeight();
+      if (open && listOpen) clampListHeight();
+      if (open && graphOpen && docked) clampAnalysisHeight();
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [graphOpen, listOpen, open, searchOpen]);
+  }, [graphOpen, listOpen, open, searchOpen, docked]);
+
+  useEffect(() => {
+    if (!isResizingSearch) return;
+    const onMove = (e: MouseEvent) => {
+      if (!searchResizeRef.current) return;
+      const bounds = getSectionBounds(searchSectionRef, MIN_SEARCH_HEIGHT);
+      if (!bounds) return;
+      const delta = e.clientY - searchResizeRef.current.startY;
+      const next = Math.min(bounds.maxHeight, Math.max(bounds.minHeight, searchResizeRef.current.startHeight + delta));
+      setSearchHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingSearch(false);
+      searchResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingSearch, docked]);
 
   useEffect(() => {
     if (!isResizingList) return;
     const onMove = (e: MouseEvent) => {
       if (!listResizeRef.current) return;
-      const bounds = getListBounds();
+      const bounds = getSectionBounds(listSectionRef, MIN_LIST_HEIGHT);
       if (!bounds) return;
       const delta = e.clientY - listResizeRef.current.startY;
       const next = Math.min(bounds.maxHeight, Math.max(bounds.minHeight, listResizeRef.current.startHeight + delta));
@@ -271,7 +345,31 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [graphOpen, isResizingList]);
+  }, [isResizingList, docked]);
+
+  useEffect(() => {
+    if (!isResizingAnalysis) return;
+    const onMove = (e: MouseEvent) => {
+      if (!analysisResizeRef.current) return;
+      const bounds = getSectionBounds(graphSectionRef, MIN_ANALYSIS_HEIGHT);
+      if (!bounds) return;
+      const delta = e.clientY - analysisResizeRef.current.startY;
+      const next = Math.min(bounds.maxHeight, Math.max(bounds.minHeight, analysisResizeRef.current.startHeight + delta));
+      setAnalysisHeight(next);
+    };
+    const onUp = () => {
+      setIsResizingAnalysis(false);
+      analysisResizeRef.current = null;
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizingAnalysis, docked]);
 
 
   const filteredItems = useMemo(() => {
@@ -847,12 +945,14 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         </div>
 
         <div
+          ref={searchSectionRef}
           className={[
             'mx-3 mt-3',
             panelCardBase,
             searchOpen ? panelCardOpen : panelCardClosed,
-            searchOpen ? 'flex flex-col' : '',
+            searchOpen ? 'flex flex-col min-h-0' : '',
           ].join(' ')}
+          style={searchOpen ? { height: searchHeight } : undefined}
         >
           <SectionHeader title="Search & Filters" open={searchOpen} onToggle={() => setSearchOpen((prev) => !prev)} />
           {searchOpen ? (
@@ -931,6 +1031,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   </div>
                 )}
               </div>
+              {!isMobile && (
+                <div
+                  className="mt-2 h-3 cursor-row-resize bg-[var(--ui-surface-2)] hover:bg-[var(--ui-border-strong)] transition-colors"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    searchResizeRef.current = { startY: e.clientY, startHeight: searchHeight };
+                    setIsResizingSearch(true);
+                  }}
+                  title="Drag to resize search"
+                />
+              )}
             </>
           ) : null}
         </div>
@@ -1042,33 +1153,22 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </div>
             ) : (
               <>
-                <div className="border-b border-[var(--ui-border)]">
-                  <button
-                    type="button"
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-[var(--ui-text)] font-semibold"
-                    onClick={() => setRecentOpen((prev) => !prev)}
-                  >
-                    <ToggleLabel open={recentOpen}>Recent</ToggleLabel>
-                    <span className="text-xs ui-text-faint">{recentFiles.length}</span>
-                  </button>
-                  {recentOpen && (
+                {recentFiles.length > 0 && (
+                  <div className="border-b border-[var(--ui-border)]">
+                    <div className="px-3 py-2 text-xs font-semibold text-[var(--ui-text-muted)]">Recent</div>
                     <div className="divide-y divide-[var(--ui-border)]">
-                      {recentFiles.length === 0 ? (
-                        <div className="px-3 py-2 text-xs ui-text-faint">No recent files.</div>
-                      ) : (
-                        recentFiles.map((item) =>
-                          onOpenRecent ? (
-                            <div key={item.id} onClick={() => onOpenRecent(item.sgf)}>
-                              {renderFileRow(item, 0)}
-                            </div>
-                          ) : (
-                            renderFileRow(item, 0)
-                          )
+                      {recentFiles.map((item) =>
+                        onOpenRecent ? (
+                          <div key={item.id} onClick={() => onOpenRecent(item.sgf)}>
+                            {renderFileRow(item, 0)}
+                          </div>
+                        ) : (
+                          renderFileRow(item, 0)
                         )
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="divide-y divide-[var(--ui-border)]">
                   {(childrenMap.get(null) ?? []).map((item) =>
                     isFolder(item) ? renderFolderRow(item, 0) : renderFileRow(item, 0)
@@ -1096,8 +1196,9 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             className={[
               'mx-3 mb-3',
               panelCardBase,
-              graphOpen ? panelCardOpen : panelCardClosed,
+              graphOpen ? `${panelCardOpen} flex flex-col min-h-0` : panelCardClosed,
             ].join(' ')}
+            style={graphOpen ? { height: analysisHeight } : undefined}
           >
             <SectionHeader
               title="Analysis"
@@ -1123,7 +1224,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             />
             {graphOpen ? (
               <>
-                <div className="mt-2" style={{ height: GRAPH_HEIGHT }}>
+                <div className="mt-2 flex-1 min-h-0">
                   <div className="h-full overflow-y-auto">
                     {analysisContent ? (
                       analysisContent
@@ -1136,6 +1237,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                     )}
                   </div>
                 </div>
+                {!isMobile && (
+                  <div
+                    className="mt-2 h-3 cursor-row-resize bg-[var(--ui-surface-2)] hover:bg-[var(--ui-border-strong)] transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      analysisResizeRef.current = { startY: e.clientY, startHeight: analysisHeight };
+                      setIsResizingAnalysis(true);
+                    }}
+                    title="Drag to resize analysis"
+                  />
+                )}
               </>
             ) : null}
           </div>
