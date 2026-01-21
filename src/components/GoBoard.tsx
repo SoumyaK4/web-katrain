@@ -372,10 +372,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     return best ? { x: best.x, y: best.y } : null;
   }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
 
+  const showOwnership = isAnalysisMode && settings.analysisShowOwnership;
   const analysisTerritory =
-    analysisData && (analysisData.ownershipMode ?? 'root') !== 'none' ? analysisData.territory : null;
+    showOwnership && analysisData && (analysisData.ownershipMode ?? 'root') !== 'none' ? analysisData.territory : null;
   const parentTerritory =
-    currentNode.parent?.analysis && (currentNode.parent.analysis.ownershipMode ?? 'root') !== 'none'
+    showOwnership && currentNode.parent?.analysis && (currentNode.parent.analysis.ownershipMode ?? 'root') !== 'none'
       ? currentNode.parent.analysis.territory
       : null;
   const territory = analysisTerritory ?? parentTerritory ?? null;
@@ -748,6 +749,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     return null;
   };
 
+  const samePoint = (
+    a: { x: number; y: number } | null,
+    b: { x: number; y: number } | null
+  ): boolean => (a?.x === b?.x && a?.y === b?.y);
+
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isSelectingRegionOfInterest) return;
     const pt = eventToInternal(e);
@@ -794,7 +800,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
         pt = internal;
       }
     }
-    setCursorPt(pt);
+    setCursorPt((prev) => (samePoint(prev, pt) ? prev : pt));
     if (!isSelectingRegionOfInterest) {
       if (shouldShowHints && hintMoveMap && pt) {
         const move = hintMoveMap.get(`${pt.x},${pt.y}`) ?? null;
@@ -825,7 +831,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     }
     if (!roiDrag) return;
     if (!pt) return;
-    setRoiDrag((prev) => (prev ? { ...prev, end: pt } : prev));
+    setRoiDrag((prev) => {
+      if (!prev) return prev;
+      if (samePoint(prev.end, pt)) return prev;
+      return { ...prev, end: pt };
+    });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
