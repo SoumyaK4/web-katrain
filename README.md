@@ -34,3 +34,4 @@ Scripts like `scripts/fetch-katago-small-model.mjs` will copy KaTrain’s defaul
 For threaded WASM (XNNPACK), serve with COOP/COEP headers to enable `SharedArrayBuffer`:
 `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
 Vite dev/preview already sends these headers.
+The production build includes a `public/_headers` file for static hosts that honor it (Netlify/Cloudflare Pages); other hosts should set equivalent headers.

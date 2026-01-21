@@ -34,6 +34,7 @@ class KataGoEngineClient {
   private pendingEvalBatch = new Map<number, { resolve: (e: EvalBatchResult) => void; reject: (e: Error) => void }>();
   private backend: string | null = null;
   private modelName: string | null = null;
+  private lastLoggedEngineLabel: string | null = null;
 
   constructor() {
     this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
@@ -44,8 +45,7 @@ class KataGoEngineClient {
         if (!pendingInit) return;
         this.pendingInit = null;
         if (msg.ok) {
-          if (typeof msg.backend === 'string') this.backend = msg.backend;
-          if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+          this.syncEngineInfo(msg);
         }
         if (!msg.ok) pendingInit.reject(new Error(msg.error ?? 'Init failed'));
         else pendingInit.resolve();
@@ -55,8 +55,7 @@ class KataGoEngineClient {
         const pending = this.pending.get(msg.id);
         if (!pending) return;
         if (msg.canceled || msg.error === 'canceled') return;
-        if (typeof msg.backend === 'string') this.backend = msg.backend;
-        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+        this.syncEngineInfo(msg);
         if (!msg.ok || !msg.analysis) return;
         pending.onProgress?.(msg.analysis);
         return;
@@ -69,8 +68,7 @@ class KataGoEngineClient {
           pending.reject(new KataGoCanceledError());
           return;
         }
-        if (typeof msg.backend === 'string') this.backend = msg.backend;
-        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+        this.syncEngineInfo(msg);
         if (!msg.ok || !msg.analysis) pending.reject(new Error(msg.error ?? 'Analysis failed'));
         else pending.resolve(msg.analysis);
         return;
@@ -79,8 +77,7 @@ class KataGoEngineClient {
         const pending = this.pendingEval.get(msg.id);
         if (!pending) return;
         this.pendingEval.delete(msg.id);
-        if (typeof msg.backend === 'string') this.backend = msg.backend;
-        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+        this.syncEngineInfo(msg);
         if (!msg.ok || !msg.eval) pending.reject(new Error(msg.error ?? 'Eval failed'));
         else pending.resolve(msg.eval);
         return;
@@ -89,12 +86,32 @@ class KataGoEngineClient {
         const pending = this.pendingEvalBatch.get(msg.id);
         if (!pending) return;
         this.pendingEvalBatch.delete(msg.id);
-        if (typeof msg.backend === 'string') this.backend = msg.backend;
-        if (typeof msg.modelName === 'string') this.modelName = msg.modelName;
+        this.syncEngineInfo(msg);
         if (!msg.ok || !msg.evals) pending.reject(new Error(msg.error ?? 'Eval batch failed'));
         else pending.resolve(msg.evals);
       }
     };
+  }
+
+  private syncEngineInfo(msg: { backend?: string; modelName?: string }): void {
+    let changed = false;
+    if (typeof msg.backend === 'string' && msg.backend !== this.backend) {
+      this.backend = msg.backend;
+      changed = true;
+    }
+    if (typeof msg.modelName === 'string' && msg.modelName !== this.modelName) {
+      this.modelName = msg.modelName;
+      changed = true;
+    }
+    if (!changed) return;
+
+    const parts: string[] = [];
+    if (this.backend) parts.push(this.backend);
+    if (this.modelName) parts.push(this.modelName);
+    const label = parts.join(' / ');
+    if (!label || label === this.lastLoggedEngineLabel) return;
+    this.lastLoggedEngineLabel = label;
+    console.info(`[katago] engine: ${label}`);
   }
 
   getEngineInfo(): { backend: string | null; modelName: string | null } {
