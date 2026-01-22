@@ -147,32 +147,62 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         </div>
       )}
 
-      <div className="panel-tab-strip">
-        <button
-          type="button"
-          className={['panel-tab', activeTab === 'graph' ? 'active' : ''].join(' ')}
-          onClick={() => {
-            setActiveTab('graph');
-            updatePanels({ graphOpen: true, statsOpen: false });
-          }}
-        >
-          <FaChartLine size={12} />
-          <span>Graph</span>
-        </button>
-        <button
-          type="button"
-          className={['panel-tab', activeTab === 'stats' ? 'active' : ''].join(' ')}
-          onClick={() => {
-            setActiveTab('stats');
-            updatePanels({ graphOpen: false, statsOpen: true });
-          }}
-        >
-          <FaChartBar size={12} />
-          <span>Stats</span>
-        </button>
-      </div>
+      {!compact && (
+        <div className="panel-tab-strip">
+          <button
+            type="button"
+            className={['panel-tab', activeTab === 'graph' ? 'active' : ''].join(' ')}
+            onClick={() => {
+              setActiveTab('graph');
+              updatePanels({ graphOpen: true, statsOpen: false });
+            }}
+          >
+            <FaChartLine size={12} />
+            <span>Graph</span>
+          </button>
+          <button
+            type="button"
+            className={['panel-tab', activeTab === 'stats' ? 'active' : ''].join(' ')}
+            onClick={() => {
+              setActiveTab('stats');
+              updatePanels({ graphOpen: false, statsOpen: true });
+            }}
+          >
+            <FaChartBar size={12} />
+            <span>Stats</span>
+          </button>
+        </div>
+      )}
       <div className="panel-section-content flex-1 min-h-0">
-        {activeTab === 'graph' ? (
+        {compact ? (
+          <div className="space-y-2">
+            <div style={{ height: 140 }}>
+              <ScoreWinrateGraph showScore showWinrate />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="px-2 py-1.5">
+                <div className="text-[11px] ui-text-faint">Winrate</div>
+                <div className="font-mono text-sm text-[var(--ui-success)]">
+                  {typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : '-'}
+                </div>
+              </div>
+              <div className="px-2 py-1.5">
+                <div className="text-[11px] ui-text-faint">Score</div>
+                <div className="font-mono text-sm text-[var(--ui-warning)]">
+                  {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+                </div>
+              </div>
+              <div className="px-2 py-1.5">
+                <div className="text-[11px] ui-text-faint">
+                  {pointsLost != null && pointsLost < 0 ? 'Gained' : 'Lost'}
+                </div>
+                <div className="font-mono text-sm text-[var(--ui-danger)]">
+                  {pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'graph' ? (
           <div style={{ height: 130 }}>
             <ScoreWinrateGraph showScore showWinrate />
           </div>

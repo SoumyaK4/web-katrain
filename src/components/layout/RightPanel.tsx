@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  FaTimes,
   FaFastBackward,
   FaFastForward,
   FaArrowUp,
@@ -14,6 +13,7 @@ import {
   FaInfoCircle,
   FaAlignLeft,
   FaStickyNote,
+  FaChevronLeft,
 } from 'react-icons/fa';
 import type { Player, GameNode, Move } from '../../types';
 import { useGameStore } from '../../store/gameStore';
@@ -369,14 +369,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       >
         {/* Play / Analyze tabs */}
         <div className="ui-bar ui-bar-height ui-bar-pad border-b border-[var(--ui-border)] flex items-center gap-2">
-          <button
-            type="button"
-            className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-white transition-colors"
-            onClick={onClose}
-            title="Close side panel"
-          >
-            <FaTimes />
-          </button>
+          {isMobile && (
+            <button
+              type="button"
+              className="lg:hidden h-10 px-3 flex items-center gap-2 rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-white transition-colors"
+              onClick={onClose}
+              title="Back to board"
+            >
+              <FaChevronLeft size={12} />
+              <span className="text-sm font-medium">Board</span>
+            </button>
+          )}
           {isMobile ? (
             <div className="flex-1 text-sm font-semibold text-[var(--ui-text)]">
               {activeMobileTab === 'tree' ? 'Game Tree' : 'Review'}
