@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaChevronDown, FaChevronLeft, FaChevronRight, FaChevronUp } from 'react-icons/fa';
+import { FaChevronRight, FaChevronLeft, FaChevronUp, FaChevronDown } from 'react-icons/fa';
 
 export function rgba(color: readonly [number, number, number, number], alphaOverride?: number): string {
   const a = typeof alphaOverride === 'number' ? alphaOverride : color[3];
@@ -236,7 +236,9 @@ export const SectionHeader: React.FC<{
       ].join(' ')}
       onClick={onToggle}
     >
-      {open ? <FaChevronDown size={12} className="text-[var(--ui-text-faint)]" /> : <FaChevronRight size={12} className="text-[var(--ui-text-faint)]" />}
+      <span className={['panel-collapse-icon', open ? 'open' : ''].join(' ')}>
+        <FaChevronRight size={12} />
+      </span>
       {icon ? <span className="opacity-70">{icon}</span> : null}
       {title}
     </button>

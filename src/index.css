@@ -249,7 +249,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 10px 12px;
+    padding: 12px 16px;
     background: var(--ui-panel);
     border-bottom: 1px solid var(--ui-border);
     transition: background 0.2s ease;
@@ -279,6 +279,18 @@
 
   .panel-section-title:hover {
     color: var(--ui-text);
+  }
+
+  .panel-collapse-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ui-text-muted);
+    transition: transform 0.2s ease, color 0.15s ease;
+  }
+
+  .panel-collapse-icon.open {
+    transform: rotate(90deg);
   }
 
   .panel-section-actions {
@@ -319,7 +331,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 6px 8px;
     background: var(--ui-surface-2);
     border-bottom: 1px solid var(--ui-border);
     min-height: 34px;
@@ -417,12 +429,12 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 3px 8px;
     border-radius: 4px;
     border: 1px solid var(--ui-border);
     background: transparent;
     color: var(--ui-text-muted);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     line-height: 1;
     transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
@@ -638,6 +650,7 @@
     align-items: center;
     gap: 16px;
     min-height: 28px;
+    z-index: 5;
   }
 
   @media (max-width: 1024px) {
@@ -666,7 +679,7 @@
   .status-bar-text {
     font-size: 12px;
     color: var(--ui-text);
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .status-bar-item {
