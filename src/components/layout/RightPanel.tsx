@@ -8,7 +8,7 @@ import { NotesPanel } from '../NotesPanel';
 import { Timer } from '../Timer';
 import type { UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
-import { IconButton, PanelHeaderButton, SectionHeader, formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui';
+import { IconButton, SectionHeader, formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui';
 
 interface RightPanelProps {
   open: boolean;
@@ -195,7 +195,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     return (
       <div
         className={[
-          'mx-3 mt-3',
+          'mx-2 mt-2',
           panelCardBase,
           wrapperTone,
           args.wrapperClassName ?? '',
@@ -407,7 +407,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-3">
           <div className="flex flex-col">
             {/* Game Tree */}
             {renderSection({
@@ -433,7 +433,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   </button>
                 </div>
               ),
-              contentClassName: 'mt-2 ui-surface border rounded-lg overflow-hidden',
+              contentClassName: 'mt-1 ui-surface border rounded-lg overflow-hidden',
               children: (
                 <>
                   <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--ui-border)] bg-[var(--ui-surface)]">
@@ -441,7 +441,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       title="To start (Home)"
                       onClick={() => guardInsertMode(navigateStart)}
                       disabled={isInsertMode}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                     >
                       <FaFastBackward size={12} />
                     </IconButton>
@@ -449,7 +449,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       title="To end (End)"
                       onClick={() => guardInsertMode(navigateEnd)}
                       disabled={isInsertMode}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                     >
                       <FaFastForward size={12} />
                     </IconButton>
@@ -458,7 +458,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       title="Previous branch (↑)"
                       onClick={() => guardInsertMode(() => switchBranch(-1))}
                       disabled={isInsertMode}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                     >
                       <FaArrowUp size={12} />
                     </IconButton>
@@ -466,7 +466,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       title="Next branch (↓)"
                       onClick={() => guardInsertMode(() => switchBranch(1))}
                       disabled={isInsertMode}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                     >
                       <FaArrowDown size={12} />
                     </IconButton>
@@ -475,7 +475,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       title="Back to branch point (B)"
                       onClick={() => guardInsertMode(undoToBranchPoint)}
                       disabled={isInsertMode}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                     >
                       <FaLevelUpAlt size={12} />
                     </IconButton>
@@ -483,14 +483,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       title="Back to main branch (Shift+B)"
                       onClick={() => guardInsertMode(undoToMainBranch)}
                       disabled={isInsertMode}
-                      className="h-8 w-8"
+                      className="h-7 w-7"
                     >
                       <FaSitemap size={12} />
                     </IconButton>
                     <div className="flex-1" />
                     <button
                       type="button"
-                      className="px-2 py-1 rounded text-xs font-semibold bg-[var(--ui-surface-2)] text-[var(--ui-text)] hover:brightness-110 border border-[var(--ui-border)] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="px-2 py-1 rounded text-[11px] font-semibold bg-[var(--ui-surface-2)] text-[var(--ui-text)] hover:brightness-110 border border-[var(--ui-border)] disabled:opacity-40 disabled:cursor-not-allowed"
                       onClick={() => guardInsertMode(makeCurrentNodeMainBranch)}
                       disabled={isInsertMode || !currentNode.parent}
                     >
@@ -513,7 +513,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               key={node.id}
                               type="button"
                               className={[
-                                'w-full px-3 py-2 flex items-center gap-3 text-left',
+                                'w-full px-2.5 py-1.5 flex items-center gap-2 text-left',
                                 isCurrent ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
                               ].join(' ')}
                               onClick={() => guardInsertMode(() => useGameStore.getState().jumpToNode(node))}
@@ -595,36 +595,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               title: 'Comment',
               open: modePanels.notesOpen,
               onToggle: () => updatePanels((current) => ({ notesOpen: !current.notesOpen })),
-              actions: (
-                <div className="flex gap-1">
-                  <PanelHeaderButton
-                    label="List"
-                    colorClass="bg-amber-600/30"
-                    active={notesListOpen}
-                    onClick={() => setNotesListOpen((prev) => !prev)}
-                  />
-                  <PanelHeaderButton
-                    label="Info"
-                    colorClass="bg-[var(--ui-surface-2)]"
-                    active={modePanels.notes.info}
-                    onClick={() => updatePanels((current) => ({ notes: { ...current.notes, info: !current.notes.info } }))}
-                  />
-                  <PanelHeaderButton
-                    label="Details"
-                    colorClass="bg-[var(--ui-surface-2)]"
-                    active={modePanels.notes.infoDetails}
-                    onClick={() =>
-                      updatePanels((current) => ({ notes: { ...current.notes, infoDetails: !current.notes.infoDetails } }))
-                    }
-                  />
-                  <PanelHeaderButton
-                    label="Notes"
-                    colorClass="bg-purple-600/30"
-                    active={modePanels.notes.notes}
-                    onClick={() => updatePanels((current) => ({ notes: { ...current.notes, notes: !current.notes.notes } }))}
-                  />
-                </div>
-              ),
               wrapperClassName: 'pb-2',
               contentClassName: 'mt-1 ui-surface rounded-lg min-h-0 overflow-hidden flex flex-col',
               contentStyle: { height: notesHeight },
@@ -634,16 +604,58 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               },
               children: (
                 <>
-                  <div className="px-3 py-2 border-b border-[var(--ui-border)] text-xs text-[var(--ui-text)] flex items-center justify-between">
-                    <div className="truncate">
+                  <div className="px-3 py-2 border-b border-[var(--ui-border)] text-[11px] text-[var(--ui-text)] flex items-center gap-2">
+                    <div className="truncate text-xs">
                       <span className="font-mono">{playerToShort(currentPlayer)}</span> ·{' '}
                       <span className="font-mono">{moveHistory.length}</span> ·{' '}
                       <span className="font-mono">{currentNode.move ? formatMoveLabel(currentNode.move.x, currentNode.move.y) : 'Root'}</span>
                     </div>
+                    <div className="ml-auto truncate ui-text-faint">{statusText}</div>
                     {engineError && <span className="text-[var(--ui-danger)]">error</span>}
                   </div>
-                  <div className="px-3 py-2 border-b border-[var(--ui-border)] text-xs ui-text-faint">
-                    {statusText}
+                  <div className="px-3 py-2 border-b border-[var(--ui-border)] flex flex-wrap items-center gap-2 text-[11px] ui-text-faint">
+                    <button
+                      type="button"
+                      className={[
+                        'px-2 py-1 rounded border',
+                        notesListOpen ? 'bg-amber-600/30 border-[var(--ui-border-strong)] text-white' : 'bg-[var(--ui-surface-2)] border-[var(--ui-border)] hover:text-white',
+                      ].join(' ')}
+                      onClick={() => setNotesListOpen((prev) => !prev)}
+                    >
+                      List
+                    </button>
+                    <button
+                      type="button"
+                      className={[
+                        'px-2 py-1 rounded border',
+                        modePanels.notes.info ? 'bg-[var(--ui-surface-2)] border-[var(--ui-border-strong)] text-white' : 'bg-[var(--ui-surface)] border-[var(--ui-border)] hover:text-white',
+                      ].join(' ')}
+                      onClick={() => updatePanels((current) => ({ notes: { ...current.notes, info: !current.notes.info } }))}
+                    >
+                      Info
+                    </button>
+                    <button
+                      type="button"
+                      className={[
+                        'px-2 py-1 rounded border',
+                        modePanels.notes.infoDetails ? 'bg-[var(--ui-surface-2)] border-[var(--ui-border-strong)] text-white' : 'bg-[var(--ui-surface)] border-[var(--ui-border)] hover:text-white',
+                      ].join(' ')}
+                      onClick={() =>
+                        updatePanels((current) => ({ notes: { ...current.notes, infoDetails: !current.notes.infoDetails } }))
+                      }
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
+                      className={[
+                        'px-2 py-1 rounded border',
+                        modePanels.notes.notes ? 'bg-purple-600/30 border-[var(--ui-border-strong)] text-white' : 'bg-[var(--ui-surface)] border-[var(--ui-border)] hover:text-white',
+                      ].join(' ')}
+                      onClick={() => updatePanels((current) => ({ notes: { ...current.notes, notes: !current.notes.notes } }))}
+                    >
+                      Notes
+                    </button>
                   </div>
                   {notesListOpen && (
                     <div className="border-b border-[var(--ui-border)] max-h-40 overflow-y-auto">
@@ -657,7 +669,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               key={node.id}
                               type="button"
                               className={[
-                                'w-full px-3 py-2 text-left text-xs',
+                                'w-full px-3 py-1.5 text-left text-xs',
                                 isCurrent ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
                               ].join(' ')}
                               onClick={() => guardInsertMode(() => useGameStore.getState().jumpToNode(node))}
@@ -686,8 +698,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             })}
           </div>
         </div>
-        <div className="border-t border-[var(--ui-border)] ui-panel px-3 py-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs ui-text-faint">
+        <div className="border-t border-[var(--ui-border)] ui-panel px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] ui-text-faint">
             <span className="font-semibold text-[var(--ui-text)] truncate">{blackName} vs {whiteName}</span>
             <span>Komi {komi}</span>
             <span>Moves {moveHistory.length}</span>

@@ -15,7 +15,6 @@ import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { SectionHeader, panelCardBase, panelCardClosed, panelCardOpen } from './layout/ui';
 
 const SECTION_MAX_RATIO = 0.7;
-const MIN_SEARCH_HEIGHT = 160;
 const MIN_LIST_HEIGHT = 220;
 const MIN_ANALYSIS_HEIGHT = 200;
 
@@ -94,19 +93,6 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:library_graph_open:v1') !== 'false';
   });
-  const [searchOpen, setSearchOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:library_search_open:v1') !== 'false';
-  });
-  const [searchHeight, setSearchHeight] = useState(() => {
-    if (typeof localStorage === 'undefined') {
-      return typeof window === 'undefined' ? 220 : Math.min(260, Math.round(window.innerHeight * 0.3));
-    }
-    const raw = localStorage.getItem('web-katrain:library_search_height:v1');
-    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-    if (Number.isFinite(parsed)) return parsed;
-    return typeof window === 'undefined' ? 220 : Math.min(260, Math.round(window.innerHeight * 0.3));
-  });
   const [listOpen, setListOpen] = useState(() => {
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:library_list_open:v1') !== 'false';
@@ -129,13 +115,10 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     if (Number.isFinite(parsed)) return parsed;
     return typeof window === 'undefined' ? 240 : Math.min(280, Math.round(window.innerHeight * 0.28));
   });
-  const searchSectionRef = useRef<HTMLDivElement>(null);
   const listSectionRef = useRef<HTMLDivElement>(null);
   const graphSectionRef = useRef<HTMLDivElement>(null);
-  const searchResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const listResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const analysisResizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
-  const [isResizingSearch, setIsResizingSearch] = useState(false);
   const [isResizingList, setIsResizingList] = useState(false);
   const [isResizingAnalysis, setIsResizingAnalysis] = useState(false);
   const [graphOptions] = useState(() => {
@@ -198,16 +181,6 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_search_open:v1', String(searchOpen));
-  }, [searchOpen]);
-
-  useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_search_height:v1', String(searchHeight));
-  }, [searchHeight]);
-
-  useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
     localStorage.setItem('web-katrain:library_sort:v1', String(sortKey));
   }, [sortKey]);
 
@@ -252,12 +225,6 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     return { minHeight, maxHeight };
   };
 
-  const clampSearchHeight = () => {
-    const bounds = getSectionBounds(searchSectionRef, MIN_SEARCH_HEIGHT);
-    if (!bounds) return;
-    setSearchHeight((current) => Math.min(bounds.maxHeight, Math.max(bounds.minHeight, current)));
-  };
-
   const clampListHeight = () => {
     const bounds = getSectionBounds(listSectionRef, MIN_LIST_HEIGHT);
     if (!bounds) return;
@@ -271,57 +238,26 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   };
 
   useEffect(() => {
-    if (!open || !searchOpen) return;
-    const frame = window.requestAnimationFrame(() => clampSearchHeight());
-    return () => window.cancelAnimationFrame(frame);
-  }, [graphOpen, listOpen, open, searchOpen, docked]);
-
-  useEffect(() => {
     if (!open || !listOpen) return;
     const frame = window.requestAnimationFrame(() => clampListHeight());
     return () => window.cancelAnimationFrame(frame);
-  }, [graphOpen, listOpen, open, searchOpen, docked]);
+  }, [graphOpen, listOpen, open, docked]);
 
   useEffect(() => {
     if (!open || !graphOpen || !docked) return;
     const frame = window.requestAnimationFrame(() => clampAnalysisHeight());
     return () => window.cancelAnimationFrame(frame);
-  }, [graphOpen, listOpen, open, searchOpen, docked]);
+  }, [graphOpen, listOpen, open, docked]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onResize = () => {
-      if (open && searchOpen) clampSearchHeight();
       if (open && listOpen) clampListHeight();
       if (open && graphOpen && docked) clampAnalysisHeight();
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [graphOpen, listOpen, open, searchOpen, docked]);
-
-  useEffect(() => {
-    if (!isResizingSearch) return;
-    const onMove = (e: MouseEvent) => {
-      if (!searchResizeRef.current) return;
-      const bounds = getSectionBounds(searchSectionRef, MIN_SEARCH_HEIGHT);
-      if (!bounds) return;
-      const delta = e.clientY - searchResizeRef.current.startY;
-      const next = Math.min(bounds.maxHeight, Math.max(bounds.minHeight, searchResizeRef.current.startHeight + delta));
-      setSearchHeight(next);
-    };
-    const onUp = () => {
-      setIsResizingSearch(false);
-      searchResizeRef.current = null;
-    };
-    document.body.style.cursor = 'row-resize';
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      document.body.style.cursor = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [isResizingSearch, docked]);
+  }, [graphOpen, listOpen, open, docked]);
 
   useEffect(() => {
     if (!isResizingList) return;
@@ -945,108 +881,6 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         </div>
 
         <div
-          ref={searchSectionRef}
-          className={[
-            'mx-3 mt-3',
-            panelCardBase,
-            searchOpen ? panelCardOpen : panelCardClosed,
-            searchOpen ? 'flex flex-col min-h-0' : '',
-          ].join(' ')}
-          style={searchOpen ? { height: searchHeight } : undefined}
-        >
-          <SectionHeader title="Search & Filters" open={searchOpen} onToggle={() => setSearchOpen((prev) => !prev)} />
-          {searchOpen ? (
-            <>
-              <div className="flex-1 overflow-y-auto pr-1">
-                <div className="relative">
-                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 ui-text-faint text-xs" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search library…"
-                    className="w-full ui-input border rounded pl-8 pr-3 py-2 text-sm text-[var(--ui-text)] focus:border-[var(--ui-accent)]"
-                  />
-                </div>
-                <div className="mt-2 flex items-center justify-between text-xs ui-text-faint">
-                  <span>Sort</span>
-                  <select
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value)}
-                    className="ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
-                  >
-                    <option value="recent">Recent</option>
-                    <option value="name">Name</option>
-                    <option value="moves">Moves</option>
-                    <option value="size">Size</option>
-                  </select>
-                </div>
-                <div className="mt-2 text-xs ui-text-faint flex items-center justify-between">
-                  <span>Save to: {currentFolderName}</span>
-                  {currentFolderId && (
-                    <button
-                      type="button"
-                      className="text-xs ui-text-faint hover:text-white"
-                      onClick={() => setCurrentFolderId(null)}
-                    >
-                      Root
-                    </button>
-                  )}
-                </div>
-                {!isSearching && (
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs ui-text-faint">
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-[var(--ui-surface-2)] border border-[var(--ui-border)] hover:brightness-110 disabled:opacity-40"
-                      onClick={handleGoUp}
-                      disabled={!currentFolderId}
-                    >
-                      <FaArrowUp className="inline-block mr-1" /> Up
-                    </button>
-                    <button
-                      type="button"
-                      className="px-2 py-1 rounded bg-[var(--ui-surface-2)] border border-[var(--ui-border)] hover:brightness-110"
-                      onClick={() => setCurrentFolderId(null)}
-                    >
-                      Root
-                    </button>
-                    {breadcrumbs.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1 ui-text-faint">
-                        {breadcrumbs.map((crumb, index) => (
-                          <button
-                            key={crumb.id}
-                            type="button"
-                            className="px-1.5 py-0.5 rounded hover:bg-[var(--ui-surface-2)] ui-text-faint"
-                            onClick={() => setCurrentFolderId(crumb.id)}
-                          >
-                            {index === 0 ? crumb.name : `/${crumb.name}`}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {isDragging && (
-                  <div className="mt-3 text-xs ui-accent-soft border rounded px-2 py-1">
-                    Drop SGF files to import
-                  </div>
-                )}
-              </div>
-              {!isMobile && (
-                <div
-                  className="mt-2 h-3 cursor-row-resize bg-[var(--ui-surface-2)] hover:bg-[var(--ui-border-strong)] transition-colors"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    searchResizeRef.current = { startY: e.clientY, startHeight: searchHeight };
-                    setIsResizingSearch(true);
-                  }}
-                  title="Drag to resize search"
-                />
-              )}
-            </>
-          ) : null}
-        </div>
-
-        <div
           ref={listSectionRef}
           className={[
             'flex flex-col mx-3 mb-3 mt-3 overflow-hidden',
@@ -1076,6 +910,69 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </div>
             }
           />
+          {listOpen && (
+            <div className="px-3 pb-2 border-b border-[var(--ui-border)] space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[180px]">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 ui-text-faint text-xs" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search library…"
+                    className="w-full ui-input border rounded pl-8 pr-3 py-1.5 text-sm text-[var(--ui-text)] focus:border-[var(--ui-accent)]"
+                  />
+                </div>
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                  className="ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
+                  title="Sort"
+                >
+                  <option value="recent">Recent</option>
+                  <option value="name">Name</option>
+                  <option value="moves">Moves</option>
+                  <option value="size">Size</option>
+                </select>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs ui-text-faint">
+                <span className="mr-auto">Folder: {currentFolderName}</span>
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded bg-[var(--ui-surface-2)] border border-[var(--ui-border)] hover:brightness-110 disabled:opacity-40"
+                  onClick={handleGoUp}
+                  disabled={!currentFolderId}
+                >
+                  <FaArrowUp className="inline-block mr-1" /> Up
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded bg-[var(--ui-surface-2)] border border-[var(--ui-border)] hover:brightness-110"
+                  onClick={() => setCurrentFolderId(null)}
+                >
+                  Root
+                </button>
+              </div>
+              {!isSearching && breadcrumbs.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 text-xs ui-text-faint">
+                  {breadcrumbs.map((crumb, index) => (
+                    <button
+                      key={crumb.id}
+                      type="button"
+                      className="px-1.5 py-0.5 rounded hover:bg-[var(--ui-surface-2)] ui-text-faint"
+                      onClick={() => setCurrentFolderId(crumb.id)}
+                    >
+                      {index === 0 ? crumb.name : `/${crumb.name}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isDragging && (
+                <div className="text-xs ui-accent-soft border rounded px-2 py-1">
+                  Drop SGF files to import
+                </div>
+              )}
+            </div>
+          )}
           {listOpen && selectedIds.size > 0 && (
             <div className="px-3 py-2 border-b border-[var(--ui-border)] flex items-center gap-2 text-xs text-[var(--ui-text-muted)]">
               <button
