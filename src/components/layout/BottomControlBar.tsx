@@ -9,6 +9,9 @@ import {
   FaStepForward,
   FaSyncAlt,
   FaEllipsisH,
+  FaUndo,
+  FaRobot,
+  FaFlag,
 } from 'react-icons/fa';
 import type { Player, Move } from '../../types';
 import { IconButton } from './ui';
@@ -31,6 +34,9 @@ interface BottomControlBarProps {
   jumpBack: (n: number) => void;
   jumpForward: (n: number) => void;
   isMobile?: boolean;
+  onUndo?: () => void;
+  onAiMove?: () => void;
+  onResign?: () => void;
 }
 
 export const BottomControlBar: React.FC<BottomControlBarProps> = ({
@@ -49,6 +55,9 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   jumpBack,
   jumpForward,
   isMobile = false,
+  onUndo,
+  onAiMove,
+  onResign,
 }) => {
   const passBtnRef = useRef<HTMLButtonElement>(null);
   const [passBtnHeight, setPassBtnHeight] = useState(0);
@@ -205,6 +214,49 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 </span>
                 <span className="text-xs ui-text-faint">End</span>
               </button>
+              <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+              {onUndo && (
+                <button
+                  className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                  onClick={() => {
+                    onUndo();
+                    setMoreOpen(false);
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <FaUndo /> Undo
+                  </span>
+                  <span className="text-xs ui-text-faint">←</span>
+                </button>
+              )}
+              {onAiMove && (
+                <button
+                  className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                  onClick={() => {
+                    onAiMove();
+                    setMoreOpen(false);
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <FaRobot /> AI move
+                  </span>
+                  <span className="text-xs ui-text-faint">Enter</span>
+                </button>
+              )}
+              {onResign && (
+                <button
+                  className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between text-[var(--ui-danger)]"
+                  onClick={() => {
+                    onResign();
+                    setMoreOpen(false);
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <FaFlag /> Resign
+                  </span>
+                  <span className="text-xs ui-text-faint">R</span>
+                </button>
+              )}
               <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
               <button
                 className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between text-[var(--ui-danger)]"

@@ -227,6 +227,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     if (storedTreeView === 'list' || storedTreeView === 'tree') return storedTreeView;
     return isMobile ? 'list' : 'tree';
   });
+  const effectiveTreeView = isMobile ? 'list' : treeView;
   const [notesListOpen, setNotesListOpen] = React.useState(() => {
     if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('web-katrain:notes_list_open:v1') === 'true';
@@ -397,7 +398,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             </div>
           )}
         </div>
-        {mode === 'play' && (!isMobile || activeMobileTab === 'tree') && (
+        {mode === 'play' && !isMobile && (
           <div className="panel-toolbar">
             <button
               type="button"
@@ -439,24 +440,26 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               open: modePanels.treeOpen,
               onToggle: () => updatePanels((current) => ({ treeOpen: !current.treeOpen })),
               actions: (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={treeViewTabClass(treeView === 'tree')}
-                    onClick={() => setTreeView('tree')}
-                    title="Tree view"
-                  >
-                    <FaSitemap size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    className={treeViewTabClass(treeView === 'list')}
-                    onClick={() => setTreeView('list')}
-                    title="List view"
-                  >
-                    <FaListUl size={12} />
-                  </button>
-                </div>
+                !isMobile ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className={treeViewTabClass(treeView === 'tree')}
+                      onClick={() => setTreeView('tree')}
+                      title="Tree view"
+                    >
+                      <FaSitemap size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      className={treeViewTabClass(treeView === 'list')}
+                      onClick={() => setTreeView('list')}
+                      title="List view"
+                    >
+                      <FaListUl size={12} />
+                    </button>
+                  </div>
+                ) : null
               ),
               contentClassName: 'panel-section-content',
               children: (
@@ -530,7 +533,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </button>
                   </div>
                   <div style={{ height: treeHeight }} className="overflow-y-auto">
-                    {treeView === 'tree' ? (
+                    {effectiveTreeView === 'tree' ? (
                       <MoveTree onSelectNode={() => {
                         if (isMobile) onClose();
                       }} />
@@ -625,6 +628,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   winRate={winRate}
                   scoreLead={scoreLead}
                   pointsLost={pointsLost}
+                  compact={isMobile}
                 />
               ),
             })}

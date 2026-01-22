@@ -1258,6 +1258,9 @@ export const Layout: React.FC = () => {
             jumpBack={jumpBack}
             jumpForward={jumpForward}
             isMobile={isMobile}
+            onUndo={handleUndo}
+            onAiMove={makeAiMove}
+            onResign={handleResign}
           />
         )}
       </div>

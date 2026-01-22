@@ -26,6 +26,7 @@ interface AnalysisPanelProps {
   winRate: number | null;
   scoreLead: number | null;
   pointsLost: number | null;
+  compact?: boolean;
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
@@ -48,6 +49,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   winRate,
   scoreLead,
   pointsLost,
+  compact = false,
 }) => {
   void mode;
   const [activeTab, setActiveTab] = useState<'graph' | 'stats'>(() => {
@@ -89,59 +91,61 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </div>
         </div>
       )}
-      <div className="panel-toolbar">
-        <button
-          className={[
-            'panel-action-button',
-            isGameAnalysisRunning && gameAnalysisType === 'quick' ? 'danger active' : '',
-          ].join(' ')}
-          onClick={() => {
-            if (isGameAnalysisRunning && gameAnalysisType === 'quick') stopGameAnalysis();
-            else startQuickGameAnalysis();
-          }}
-        >
-          {isGameAnalysisRunning && gameAnalysisType === 'quick'
-            ? `Stop quick (${gameAnalysisDone}/${gameAnalysisTotal})`
-            : 'Quick graph'}
-        </button>
-        <button
-          className={[
-            'panel-action-button',
-            isGameAnalysisRunning && gameAnalysisType === 'fast' ? 'danger active' : '',
-          ].join(' ')}
-          onClick={() => {
-            if (isGameAnalysisRunning && gameAnalysisType === 'fast') stopGameAnalysis();
-            else startFastGameAnalysis();
-          }}
-        >
-          {isGameAnalysisRunning && gameAnalysisType === 'fast'
-            ? `Stop fast (${gameAnalysisDone}/${gameAnalysisTotal})`
-            : 'Fast MCTS'}
-        </button>
-        <button
-          className="panel-action-button danger"
-          onClick={stopGameAnalysis}
-          disabled={!isGameAnalysisRunning}
-        >
-          Stop
-        </button>
-        <div className="ml-auto flex items-center gap-2 text-xs">
+      {!compact && (
+        <div className="panel-toolbar">
           <button
-            className="panel-icon-button"
-            onClick={onOpenGameAnalysis}
-            title="Re-analyze…"
+            className={[
+              'panel-action-button',
+              isGameAnalysisRunning && gameAnalysisType === 'quick' ? 'danger active' : '',
+            ].join(' ')}
+            onClick={() => {
+              if (isGameAnalysisRunning && gameAnalysisType === 'quick') stopGameAnalysis();
+              else startQuickGameAnalysis();
+            }}
           >
-            <FaRedoAlt size={12} />
+            {isGameAnalysisRunning && gameAnalysisType === 'quick'
+              ? `Stop quick (${gameAnalysisDone}/${gameAnalysisTotal})`
+              : 'Quick graph'}
           </button>
           <button
-            className="panel-icon-button"
-            onClick={onOpenGameReport}
-            title="Game report…"
+            className={[
+              'panel-action-button',
+              isGameAnalysisRunning && gameAnalysisType === 'fast' ? 'danger active' : '',
+            ].join(' ')}
+            onClick={() => {
+              if (isGameAnalysisRunning && gameAnalysisType === 'fast') stopGameAnalysis();
+              else startFastGameAnalysis();
+            }}
           >
-            <FaFileAlt size={12} />
+            {isGameAnalysisRunning && gameAnalysisType === 'fast'
+              ? `Stop fast (${gameAnalysisDone}/${gameAnalysisTotal})`
+              : 'Fast MCTS'}
           </button>
+          <button
+            className="panel-action-button danger"
+            onClick={stopGameAnalysis}
+            disabled={!isGameAnalysisRunning}
+          >
+            Stop
+          </button>
+          <div className="ml-auto flex items-center gap-2 text-xs">
+            <button
+              className="panel-icon-button"
+              onClick={onOpenGameAnalysis}
+              title="Re-analyze…"
+            >
+              <FaRedoAlt size={12} />
+            </button>
+            <button
+              className="panel-icon-button"
+              onClick={onOpenGameReport}
+              title="Game report…"
+            >
+              <FaFileAlt size={12} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="panel-tab-strip">
         <button
