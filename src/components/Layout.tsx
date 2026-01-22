@@ -731,11 +731,8 @@ export const Layout: React.FC = () => {
     setLibraryOpen(false);
     setMobileTab(tab);
     if (tab === 'tree') updatePanels({ treeOpen: true });
-    if (tab === 'info') updatePanels({ infoOpen: true, notesOpen: true });
-    if (tab === 'analysis') {
-      updatePanels({ analysisOpen: true, graphOpen: true, statsOpen: true });
-    }
-    if (tab === 'tree' || tab === 'info' || tab === 'analysis') {
+    if (tab === 'info') updatePanels({ infoOpen: true, notesOpen: true, analysisOpen: true, graphOpen: true, statsOpen: true });
+    if (tab === 'tree' || tab === 'info') {
       setLastRightTab(tab);
     }
   };
@@ -1221,6 +1218,7 @@ export const Layout: React.FC = () => {
             engineMeta={engineMeta}
             engineMetaTitle={engineMetaTitle}
             engineError={engineError}
+            isMobile={isMobile}
           />
         )}
 
@@ -1259,6 +1257,7 @@ export const Layout: React.FC = () => {
             passPv={passPv}
             jumpBack={jumpBack}
             jumpForward={jumpForward}
+            isMobile={isMobile}
           />
         )}
       </div>
@@ -1271,7 +1270,7 @@ export const Layout: React.FC = () => {
         />
       )}
 
-      <RightPanel
+        <RightPanel
         open={rightPanelOpen}
         onClose={handleCloseRightPanel}
         width={isDesktop ? rightPanelWidth : undefined}
@@ -1381,7 +1380,6 @@ export const Layout: React.FC = () => {
         <MobileTabBar
           activeTab={mobileTab}
           onTabChange={handleMobileTabChange}
-          showAnalysis
           commentBadge={noteCount}
         />
       )}

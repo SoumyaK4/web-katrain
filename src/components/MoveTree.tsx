@@ -43,7 +43,7 @@ function layoutMoveTree(root: GameNode): Map<GameNode, NodePos> {
   return movePos;
 }
 
-export const MoveTree: React.FC = () => {
+export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = ({ onSelectNode }) => {
   const { rootNode, currentNode, jumpToNode, treeVersion, isInsertMode } = useGameStore(
     (state) => ({
       rootNode: state.rootNode,
@@ -161,7 +161,10 @@ export const MoveTree: React.FC = () => {
                 strokeWidth="1"
                 onClick={() => {
                   if (isInsertMode) return;
-                  if (!isRoot) jumpToNode(node);
+                  if (!isRoot) {
+                    jumpToNode(node);
+                    onSelectNode?.(node);
+                  }
                 }}
               >
                 <title>{moveToLabel(node)}</title>

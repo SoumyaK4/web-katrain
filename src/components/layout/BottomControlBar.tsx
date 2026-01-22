@@ -8,6 +8,7 @@ import {
   FaFastForward,
   FaStepForward,
   FaSyncAlt,
+  FaEllipsisH,
 } from 'react-icons/fa';
 import type { Player, Move } from '../../types';
 import { IconButton } from './ui';
@@ -29,6 +30,7 @@ interface BottomControlBarProps {
   passPv: { idx: number; player: Player } | null;
   jumpBack: (n: number) => void;
   jumpForward: (n: number) => void;
+  isMobile?: boolean;
 }
 
 export const BottomControlBar: React.FC<BottomControlBarProps> = ({
@@ -46,9 +48,11 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   passPv,
   jumpBack,
   jumpForward,
+  isMobile = false,
 }) => {
   const passBtnRef = useRef<HTMLButtonElement>(null);
   const [passBtnHeight, setPassBtnHeight] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const el = passBtnRef.current;
@@ -60,6 +64,193 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[data-bottom-more]')) return;
+      setMoreOpen(false);
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [moreOpen]);
+
+  if (isMobile) {
+    return (
+      <div className="ui-bar ui-bar-height ui-bar-pad border-t flex items-center gap-2 select-none">
+        <div className="relative">
+          {passPolicyColor && (
+            <div
+              className="absolute inset-y-0 left-1/2 -translate-x-1/2 pointer-events-none rounded-full"
+              style={{ height: '100%', aspectRatio: '1 / 1', backgroundColor: passPolicyColor }}
+            />
+          )}
+          <button
+            ref={passBtnRef}
+            className="relative px-3 py-2 bg-[var(--ui-surface-2)] hover:brightness-110 rounded-lg text-xs font-medium text-[var(--ui-text)] transition-colors"
+            onClick={passTurn}
+            aria-label="Pass turn"
+            title="Pass (P)"
+          >
+            Pass
+          </button>
+          {passPv && (
+            <div
+              className="absolute pointer-events-none flex items-center justify-center"
+              style={{
+                left: '100%',
+                top: '50%',
+                width: passBtnHeight > 0 ? passBtnHeight : 32,
+                height: passBtnHeight > 0 ? passBtnHeight : 32,
+                transform: 'translate(0, -50%)',
+                zIndex: 20,
+              }}
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url('${publicUrl(`katrain/${passPv.player === 'black' ? 'B_stone.png' : 'W_stone.png'}`)}')`,
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
+              <div
+                className="font-bold"
+                style={{
+                  color: passPv.player === 'black' ? 'white' : 'black',
+                  fontSize: passBtnHeight > 0 ? passBtnHeight / (2 * STONE_SIZE * 1.55) : 12,
+                  lineHeight: 1,
+                }}
+              >
+                {passPv.idx}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 flex items-center justify-center gap-1">
+          <IconButton title="Back (←)" onClick={navigateBack} disabled={isInsertMode}>
+            <FaChevronLeft />
+          </IconButton>
+          <div className="px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1">
+            <span className={currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'}>B</span>
+            <span className="text-slate-600">·</span>
+            <span className={currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'}>W</span>
+            <span className="text-slate-600 mx-1">|</span>
+            <span className="ui-text-faint">#{moveHistory.length}</span>
+          </div>
+          <IconButton title="Forward (→)" onClick={navigateForward} disabled={isInsertMode}>
+            <FaChevronRight />
+          </IconButton>
+        </div>
+
+        <div className="relative" data-bottom-more>
+          <IconButton title="More controls" onClick={() => setMoreOpen((prev) => !prev)}>
+            <FaEllipsisH />
+          </IconButton>
+          {moreOpen && (
+            <div className="absolute right-0 bottom-full mb-2 w-56 ui-panel border rounded-lg shadow-xl overflow-hidden z-50">
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                onClick={() => {
+                  navigateStart();
+                  setMoreOpen(false);
+                }}
+                disabled={isInsertMode}
+              >
+                <span className="flex items-center gap-2">
+                  <FaStepBackward /> Start
+                </span>
+                <span className="text-xs ui-text-faint">Home</span>
+              </button>
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                onClick={() => {
+                  jumpBack(10);
+                  setMoreOpen(false);
+                }}
+                disabled={isInsertMode}
+              >
+                <span className="flex items-center gap-2">
+                  <FaFastBackward /> Back 10
+                </span>
+                <span className="text-xs ui-text-faint">Shift+←</span>
+              </button>
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                onClick={() => {
+                  jumpForward(10);
+                  setMoreOpen(false);
+                }}
+                disabled={isInsertMode}
+              >
+                <span className="flex items-center gap-2">
+                  <FaFastForward /> Forward 10
+                </span>
+                <span className="text-xs ui-text-faint">Shift+→</span>
+              </button>
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                onClick={() => {
+                  navigateEnd();
+                  setMoreOpen(false);
+                }}
+                disabled={isInsertMode}
+              >
+                <span className="flex items-center gap-2">
+                  <FaStepForward /> End
+                </span>
+                <span className="text-xs ui-text-faint">End</span>
+              </button>
+              <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between text-[var(--ui-danger)]"
+                onClick={() => {
+                  findMistake('undo');
+                  setMoreOpen(false);
+                }}
+                disabled={isInsertMode}
+              >
+                <span className="flex items-center gap-2">
+                  <FaExclamationTriangle /> Prev mistake
+                </span>
+                <span className="text-xs ui-text-faint">N</span>
+              </button>
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between text-[var(--ui-danger)]"
+                onClick={() => {
+                  findMistake('redo');
+                  setMoreOpen(false);
+                }}
+                disabled={isInsertMode}
+              >
+                <span className="flex items-center gap-2">
+                  <FaExclamationTriangle /> Next mistake
+                </span>
+                <span className="text-xs ui-text-faint">Shift+N</span>
+              </button>
+              <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+              <button
+                className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+                onClick={() => {
+                  rotateBoard();
+                  setMoreOpen(false);
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <FaSyncAlt /> Rotate
+                </span>
+                <span className="text-xs ui-text-faint">O</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ui-bar ui-bar-height ui-bar-pad border-t flex items-center gap-3 select-none">

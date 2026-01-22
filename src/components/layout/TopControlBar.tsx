@@ -72,6 +72,7 @@ interface TopControlBarProps {
   engineMeta?: string | null;
   engineMetaTitle?: string;
   engineError?: string | null;
+  isMobile?: boolean;
 }
 
 export const TopControlBar: React.FC<TopControlBarProps> = ({
@@ -120,6 +121,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   engineMeta = null,
   engineMetaTitle,
   engineError,
+  isMobile = false,
 }) => {
   const topIconClass = 'ui-control';
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
@@ -220,13 +222,15 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
 
       {/* Right controls */}
       <div className="flex items-center gap-1.5">
-        <IconButton
-          title="Open side panel"
-          onClick={onOpenSidePanel}
-          className={[topIconClass, 'lg:hidden'].join(' ')}
-        >
-          <FaChevronLeft />
-        </IconButton>
+        {!isMobile && (
+          <IconButton
+            title="Open side panel"
+            onClick={onOpenSidePanel}
+            className={[topIconClass, 'lg:hidden'].join(' ')}
+          >
+            <FaChevronLeft />
+          </IconButton>
+        )}
         <div className="hidden md:flex items-center gap-1.5">
           <IconButton title="Settings (F8)" onClick={onSettings} className={topIconClass}>
             <FaCog />
@@ -236,14 +240,20 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           </IconButton>
         </div>
         <div className="relative" data-menu-popover>
-          <button
-            type="button"
-            className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white flex items-center gap-1.5 text-sm font-medium transition-colors"
-            onClick={() => setViewMenuOpen(!viewMenuOpen)}
-            title="View options"
-          >
-            <FaSlidersH size={14} /> View <FaChevronDown size={10} className="opacity-80" />
-          </button>
+          {isMobile ? (
+            <IconButton title="View options" onClick={() => setViewMenuOpen(!viewMenuOpen)} className={topIconClass}>
+              <FaSlidersH />
+            </IconButton>
+          ) : (
+            <button
+              type="button"
+              className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white flex items-center gap-1.5 text-sm font-medium transition-colors"
+              onClick={() => setViewMenuOpen(!viewMenuOpen)}
+              title="View options"
+            >
+              <FaSlidersH size={14} /> View <FaChevronDown size={10} className="opacity-80" />
+            </button>
+          )}
           {viewMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-56 ui-panel border rounded-lg shadow-xl overflow-hidden z-50">
               <button
@@ -395,14 +405,20 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </button>
 
         <div className="relative" data-menu-popover>
-          <button
-            type="button"
-            className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white flex items-center gap-1.5 text-sm font-medium transition-colors"
-            onClick={() => setAnalysisMenuOpen(!analysisMenuOpen)}
-            title="Analysis actions"
-          >
-            Actions <FaChevronDown size={10} className="opacity-80" />
-          </button>
+          {isMobile ? (
+            <IconButton title="Analysis actions" onClick={() => setAnalysisMenuOpen(!analysisMenuOpen)} className={topIconClass}>
+              <FaRobot />
+            </IconButton>
+          ) : (
+            <button
+              type="button"
+              className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white flex items-center gap-1.5 text-sm font-medium transition-colors"
+              onClick={() => setAnalysisMenuOpen(!analysisMenuOpen)}
+              title="Analysis actions"
+            >
+              Actions <FaChevronDown size={10} className="opacity-80" />
+            </button>
+          )}
           {analysisMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-64 ui-panel border rounded-lg shadow-xl overflow-hidden z-50">
               <button

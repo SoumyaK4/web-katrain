@@ -129,7 +129,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   moveHistory,
 }) => {
   const showTree = !isMobile || activeMobileTab === 'tree';
-  const showAnalysis = !isMobile || activeMobileTab === 'analysis';
+  const showAnalysis = !isMobile || activeMobileTab === 'info';
   const showNotes = !isMobile || activeMobileTab === 'info';
 
   const modeTabClass = (active: boolean) => ['panel-tab', active ? 'active' : ''].join(' ');
@@ -222,10 +222,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
     return Number.isFinite(parsed) ? parsed : 180;
   });
+  const storedTreeView = typeof localStorage === 'undefined' ? null : localStorage.getItem('web-katrain:tree_view:v1');
   const [treeView, setTreeView] = React.useState<'tree' | 'list'>(() => {
-    if (typeof localStorage === 'undefined') return 'tree';
-    const raw = localStorage.getItem('web-katrain:tree_view:v1');
-    return raw === 'list' ? 'list' : 'tree';
+    if (storedTreeView === 'list' || storedTreeView === 'tree') return storedTreeView;
+    return isMobile ? 'list' : 'tree';
   });
   const [notesListOpen, setNotesListOpen] = React.useState(() => {
     if (typeof localStorage === 'undefined') return false;
@@ -376,22 +376,28 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           >
             <FaTimes />
           </button>
-          <div className="panel-tab-strip flex-1">
-            <button
-              className={modeTabClass(mode === 'play')}
-              onClick={() => setMode('play')}
-            >
-              Play
-            </button>
-            <button
-              className={modeTabClass(mode === 'analyze')}
-              onClick={() => setMode('analyze')}
-            >
-              Analysis
-            </button>
-          </div>
+          {isMobile ? (
+            <div className="flex-1 text-sm font-semibold text-[var(--ui-text)]">
+              {activeMobileTab === 'tree' ? 'Game Tree' : 'Review'}
+            </div>
+          ) : (
+            <div className="panel-tab-strip flex-1">
+              <button
+                className={modeTabClass(mode === 'play')}
+                onClick={() => setMode('play')}
+              >
+                Play
+              </button>
+              <button
+                className={modeTabClass(mode === 'analyze')}
+                onClick={() => setMode('analyze')}
+              >
+                Analysis
+              </button>
+            </div>
+          )}
         </div>
-        {mode === 'play' && (
+        {mode === 'play' && (!isMobile || activeMobileTab === 'tree') && (
           <div className="panel-toolbar">
             <button
               type="button"
@@ -525,7 +531,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   </div>
                   <div style={{ height: treeHeight }} className="overflow-y-auto">
                     {treeView === 'tree' ? (
-                      <MoveTree />
+                      <MoveTree onSelectNode={() => {
+                        if (isMobile) onClose();
+                      }} />
                     ) : (
                       <div className="divide-y divide-[var(--ui-border)]">
                         {pathNodes.map((node, idx) => {
@@ -542,7 +550,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                                 'w-full px-2 py-1 flex items-center gap-2 text-left text-xs',
                                 isCurrent ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
                               ].join(' ')}
-                              onClick={() => guardInsertMode(() => useGameStore.getState().jumpToNode(node))}
+                              onClick={() =>
+                                guardInsertMode(() => {
+                                  useGameStore.getState().jumpToNode(node);
+                                  if (isMobile) onClose();
+                                })
+                              }
                               disabled={isInsertMode}
                               title={isInsertMode ? 'Finish inserting before navigating.' : 'Jump to move'}
                             >
@@ -699,7 +712,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                                 'w-full px-2 py-1 text-left text-xs',
                                 isCurrent ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
                               ].join(' ')}
-                              onClick={() => guardInsertMode(() => useGameStore.getState().jumpToNode(node))}
+                              onClick={() =>
+                                guardInsertMode(() => {
+                                  useGameStore.getState().jumpToNode(node);
+                                  if (isMobile) onClose();
+                                })
+                              }
                               disabled={isInsertMode}
                               title={isInsertMode ? 'Finish inserting before navigating.' : 'Jump to noted move'}
                             >

@@ -1,18 +1,16 @@
 import React from 'react';
 import {
   FaBook,
-  FaChartLine,
   FaInfoCircle,
   FaProjectDiagram,
   FaThLarge,
 } from 'react-icons/fa';
 
-export type MobileTab = 'board' | 'tree' | 'info' | 'analysis' | 'library';
+export type MobileTab = 'board' | 'tree' | 'info' | 'library';
 
 interface MobileTabBarProps {
   activeTab: MobileTab;
   onTabChange: (tab: MobileTab) => void;
-  showAnalysis?: boolean;
   commentBadge?: number;
 }
 
@@ -25,7 +23,6 @@ interface TabConfig {
 export const MobileTabBar: React.FC<MobileTabBarProps> = ({
   activeTab,
   onTabChange,
-  showAnalysis = true,
   commentBadge,
 }) => {
   const tabs: TabConfig[] = [
@@ -35,24 +32,16 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
       icon: <FaThLarge size={18} />,
     },
     {
-      id: 'info',
-      label: 'Info',
-      icon: <FaInfoCircle size={18} />,
-    },
-    {
       id: 'tree',
       label: 'Tree',
       icon: <FaProjectDiagram size={18} />,
     },
+    {
+      id: 'info',
+      label: 'Review',
+      icon: <FaInfoCircle size={18} />,
+    },
   ];
-
-  if (showAnalysis) {
-    tabs.push({
-      id: 'analysis',
-      label: 'Analysis',
-      icon: <FaChartLine size={18} />,
-    });
-  }
 
   tabs.push({
     id: 'library',
