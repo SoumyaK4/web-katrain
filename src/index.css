@@ -651,6 +651,8 @@
     gap: 16px;
     min-height: 28px;
     z-index: 5;
+    width: 100%;
+    flex-shrink: 0;
   }
 
   @media (max-width: 1024px) {
@@ -663,12 +665,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
   }
 
   .status-bar-left {
     flex: 0 0 auto;
-    min-width: 120px;
+    min-width: 100px;
   }
 
   .status-bar-right {

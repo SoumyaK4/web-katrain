@@ -20,7 +20,6 @@ import { useGameStore } from '../../store/gameStore';
 import { AnalysisPanel } from '../AnalysisPanel';
 import { MoveTree } from '../MoveTree';
 import { NotesPanel } from '../NotesPanel';
-import { Timer } from '../Timer';
 import type { UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
 import { SectionHeader, formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui';
@@ -53,11 +52,6 @@ interface RightPanelProps {
   onOpenGameReport: () => void;
   // Player info
   currentPlayer: Player;
-  capturedBlack: number;
-  capturedWhite: number;
-  // Timer/game
-  komi: number;
-  endResult: string | null;
   // Navigation
   navigateBack: () => void;
   navigateStart: () => void;
@@ -67,7 +61,6 @@ interface RightPanelProps {
   undoToMainBranch: () => void;
   makeCurrentNodeMainBranch: () => void;
   isInsertMode: boolean;
-  resign: () => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
   // Analysis
   winRate: number | null;
@@ -109,10 +102,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   onOpenGameAnalysis,
   onOpenGameReport,
   currentPlayer,
-  capturedBlack,
-  capturedWhite,
-  komi,
-  endResult,
   navigateBack,
   navigateStart,
   navigateEnd,
@@ -121,7 +110,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   undoToMainBranch,
   makeCurrentNodeMainBranch,
   isInsertMode,
-  resign,
   toast,
   winRate,
   scoreLead,
@@ -358,20 +346,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       window.removeEventListener('mouseup', onUp);
     };
   }, [isResizingNotes]);
-
-  const handleUndo = () => {
-    const st = useGameStore.getState();
-    const lastMover = st.currentNode.move?.player ?? null;
-    const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
-    navigateBack();
-    if (shouldUndoTwice) navigateBack();
-  };
-
-  const handleResign = () => {
-    const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
-    resign();
-    toast(`Result: ${result}`, 'info');
-  };
 
   return (
     <>
@@ -718,46 +692,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 </div>
               ),
             })}
-          </div>
-        </div>
-        <div className="status-bar">
-          <div className="status-bar-section status-bar-left">
-            <span className="status-bar-text truncate">{blackName} vs {whiteName}</span>
-            <span className="status-bar-divider">•</span>
-            <span className="status-bar-item">Komi {komi}</span>
-            <span className="status-bar-divider">•</span>
-            <span className="status-bar-item">Moves {moveHistory.length}</span>
-            <span className="status-bar-divider">•</span>
-            <span className="status-bar-item">Capt B:{capturedWhite} W:{capturedBlack}</span>
-            {endResult && (
-              <>
-                <span className="status-bar-divider">•</span>
-                <span className="status-bar-item">Result {endResult}</span>
-              </>
-            )}
-          </div>
-          <div className="status-bar-section status-bar-right">
-            <button
-              type="button"
-              className="status-bar-button"
-              onClick={handleUndo}
-              title="Undo (left arrow)"
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              className="status-bar-button danger"
-              onClick={handleResign}
-            >
-              Resign
-            </button>
-            {mode === 'play' && (
-              <>
-                <span className="status-bar-divider">•</span>
-                <Timer variant="status" />
-              </>
-            )}
           </div>
         </div>
       </div>

@@ -24,6 +24,8 @@ import { MenuDrawer } from './layout/MenuDrawer';
 import { TopControlBar } from './layout/TopControlBar';
 import { BottomControlBar } from './layout/BottomControlBar';
 import { RightPanel } from './layout/RightPanel';
+import { StatusBar } from './layout/StatusBar';
+import { StatusBar } from './layout/StatusBar';
 import { MobileTabBar, type MobileTab } from './layout/MobileTabBar';
 import { LibraryPanel } from './LibraryPanel';
 import {
@@ -964,9 +966,28 @@ export const Layout: React.FC = () => {
     for (let i = 0; i < n; i++) navigateForward();
   };
 
+  const rootProps = rootNode.properties ?? {};
+  const getProp = (key: string) => rootProps[key]?.[0] ?? '';
+  const blackName = getProp('PB') || 'Black';
+  const whiteName = getProp('PW') || 'White';
+
+  const handleUndo = () => {
+    const st = useGameStore.getState();
+    const lastMover = st.currentNode.move?.player ?? null;
+    const shouldUndoTwice = !!st.isAiPlaying && !!st.aiColor && lastMover === st.aiColor && st.currentPlayer !== st.aiColor;
+    navigateBack();
+    if (shouldUndoTwice) navigateBack();
+  };
+
+  const handleResign = () => {
+    const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
+    resign();
+    toast(`Result: ${result}`, 'info');
+  };
+
   return (
     <div
-      className="relative flex h-screen overflow-hidden app-root ui-root font-sans"
+      className="relative flex flex-col h-screen overflow-hidden app-root ui-root font-sans"
       onDragEnter={handleAppDragEnter}
       onDragLeave={handleAppDragLeave}
       onDragOver={handleAppDragOver}
@@ -1102,6 +1123,7 @@ export const Layout: React.FC = () => {
         onOpenRecent={handleOpenRecent}
       />
 
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       <LibraryPanel
         open={libraryOpen}
         onClose={handleCloseLibrary}
@@ -1271,10 +1293,6 @@ export const Layout: React.FC = () => {
         onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
         onOpenGameReport={() => setIsGameReportOpen(true)}
         currentPlayer={currentPlayer}
-        capturedBlack={capturedBlack}
-        capturedWhite={capturedWhite}
-        komi={komi}
-        endResult={endResult}
         navigateBack={navigateBack}
         navigateStart={navigateStart}
         navigateEnd={navigateEnd}
@@ -1283,7 +1301,6 @@ export const Layout: React.FC = () => {
         undoToMainBranch={undoToMainBranch}
         makeCurrentNodeMainBranch={makeCurrentNodeMainBranch}
         isInsertMode={isInsertMode}
-        resign={resign}
         toast={toast}
         winRate={winRate ?? null}
         scoreLead={scoreLead ?? null}
@@ -1347,7 +1364,7 @@ export const Layout: React.FC = () => {
             />
           </div>
           {settings.showBoardControls && (
-            <div className="absolute left-1/2 bottom-0 -translate-x-1/2 z-30">
+            <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ bottom: 28 }}>
               <PanelEdgeToggle
                 side="bottom"
                 state={bottomBarOpen ? 'open' : 'closed'}
@@ -1367,6 +1384,19 @@ export const Layout: React.FC = () => {
           commentBadge={noteCount}
         />
       )}
+      </div>
+      <StatusBar
+        blackName={blackName}
+        whiteName={whiteName}
+        komi={komi}
+        moveCount={moveHistory.length}
+        capturedBlack={capturedBlack}
+        capturedWhite={capturedWhite}
+        endResult={endResult}
+        onUndo={handleUndo}
+        onResign={handleResign}
+        showTimer={mode === 'play'}
+      />
     </div>
   );
 };
