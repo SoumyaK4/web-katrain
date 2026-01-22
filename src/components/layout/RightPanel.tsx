@@ -144,11 +144,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     action();
   };
 
-  const rootProps = rootNode.properties ?? {};
-  const getProp = (key: string) => rootProps[key]?.[0] ?? '';
-  const blackName = getProp('PB') || 'Black';
-  const whiteName = getProp('PW') || 'White';
-
   const pathNodes = React.useMemo(() => {
     const nodes: GameNode[] = [];
     let node: GameNode | null = currentNode;

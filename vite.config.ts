@@ -4,7 +4,14 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
+const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1];
+const inferredBase = repoName && !repoName.endsWith('.github.io') ? `/${repoName}/` : '/';
+const rawBase = process.env.VITE_BASE_URL ?? process.env.BASE_URL ?? inferredBase;
+const normalizedBase = rawBase.startsWith('/') ? rawBase : `/${rawBase}`;
+const base = normalizedBase.endsWith('/') ? normalizedBase : `${normalizedBase}/`;
+
 export default defineConfig({
+  base,
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

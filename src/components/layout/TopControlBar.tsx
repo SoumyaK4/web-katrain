@@ -19,7 +19,7 @@ import {
 } from 'react-icons/fa';
 import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
-import { EngineStatusBadge, IconButton, TogglePill } from './ui';
+import { EngineStatusBadge, IconButton } from './ui';
 import { BOARD_THEME_OPTIONS } from '../../utils/boardThemes';
 import { UI_THEME_OPTIONS } from '../../utils/uiThemes';
 
