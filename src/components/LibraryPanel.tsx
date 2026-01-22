@@ -6,7 +6,6 @@ import {
   FaTrash,
   FaPen,
   FaSearch,
-  FaChevronDown,
   FaChevronRight,
   FaDownload,
   FaCheckSquare,
@@ -359,6 +358,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     return trail.reverse();
   }, [currentFolderId, items]);
 
+  const activeAncestorIds = useMemo(() => {
+    if (!activeId) return new Set<string>();
+    const ancestors = new Set<string>();
+    let current = items.find((item) => item.id === activeId);
+    while (current?.parentId) {
+      ancestors.add(current.parentId);
+      current = items.find((item) => item.id === current?.parentId);
+    }
+    return ancestors;
+  }, [activeId, items]);
+
   const childrenMap = useMemo(() => {
     const map = new Map<string | null, LibraryItem[]>();
     for (const item of items) {
@@ -642,12 +652,14 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 
   const renderFileRow = (item: LibraryFile, depth: number) => {
     const isSelected = selectedIds.has(item.id);
+    const isLoaded = activeId === item.id;
     return (
       <div
         key={item.id}
         className={[
-          'group px-2 py-1.5 flex items-center gap-2 hover:bg-[var(--ui-surface-2)] cursor-pointer',
-          activeId === item.id ? 'bg-[var(--ui-surface-2)]' : '',
+          'library-tree-node',
+          isSelected ? 'selected' : '',
+          isLoaded ? 'loaded' : '',
         ].join(' ')}
         style={{ paddingLeft: 12 + depth * 16 }}
         onClick={() => handleLoad(item)}
@@ -658,8 +670,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         <button
           type="button"
           className={[
-            'h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] transition-opacity',
-            isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+            'library-tree-node-select',
+            isSelected ? 'is-visible' : '',
           ].join(' ')}
           onClick={(e) => {
             e.stopPropagation();
@@ -669,15 +681,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         >
           {isSelected ? <FaCheckSquare size={12} /> : <FaSquare size={12} />}
         </button>
-        <FaFileAlt className="text-[var(--ui-text-muted)]" size={12} />
-        <div className="flex-1 min-w-0 text-sm text-[var(--ui-text)] truncate">{item.name}</div>
-        <div className="text-[11px] ui-text-faint ml-auto">
+        <span className="library-tree-node-icon">
+          <FaFileAlt size={12} />
+        </span>
+        <div className="library-tree-node-name">{item.name}</div>
+        <div className="library-tree-node-meta">
           {item.moveCount} · {(item.size / 1024).toFixed(1)} KB
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="library-tree-node-actions">
           <button
             type="button"
-            className="h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
+            className="library-tree-node-action"
             onClick={(e) => {
               e.stopPropagation();
               handleDownload(item);
@@ -688,7 +702,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           </button>
           <button
             type="button"
-            className="h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
+            className="library-tree-node-action"
             onClick={(e) => {
               e.stopPropagation();
               handleRename(item);
@@ -699,7 +713,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           </button>
           <button
             type="button"
-            className="h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-surface-2)]"
+            className="library-tree-node-action danger"
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(item);
@@ -717,13 +731,16 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     const isExpanded = expandedFolderIds.has(item.id);
     const children = childrenMap.get(item.id) ?? [];
     const isSelected = selectedIds.has(item.id);
+    const hasLoaded = activeAncestorIds.has(item.id);
     return (
       <div key={item.id}>
         <div
           className={[
-            'group px-2 py-1.5 flex items-center gap-2 hover:bg-[var(--ui-surface-2)] cursor-pointer',
-            currentFolderId === item.id ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : '',
-            dragOverId === item.id ? 'bg-[var(--ui-accent-soft)]' : '',
+            'library-tree-node',
+            isSelected ? 'selected' : '',
+            currentFolderId === item.id ? 'selected' : '',
+            hasLoaded ? 'has-loaded' : '',
+            dragOverId === item.id ? 'drop-target' : '',
           ].join(' ')}
           style={{ paddingLeft: 12 + depth * 16 }}
           onClick={() => {
@@ -743,7 +760,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         >
           <button
             type="button"
-            className="h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+            className={['library-tree-node-arrow', isExpanded ? 'expanded' : ''].join(' ')}
             onClick={(e) => {
               e.stopPropagation();
               setExpandedFolderIds((prev) => {
@@ -755,13 +772,13 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             }}
             title={isExpanded ? 'Collapse folder' : 'Expand folder'}
           >
-            {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+            <FaChevronRight size={12} />
           </button>
           <button
             type="button"
             className={[
-              'h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] transition-opacity',
-              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+              'library-tree-node-select',
+              isSelected ? 'is-visible' : '',
             ].join(' ')}
             onClick={(e) => {
               e.stopPropagation();
@@ -771,13 +788,15 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           >
             {isSelected ? <FaCheckSquare size={12} /> : <FaSquare size={12} />}
           </button>
-          <FaFolderOpen className="text-[var(--ui-text-muted)]" size={12} />
-          <div className="flex-1 min-w-0 text-sm font-semibold text-[var(--ui-text)] truncate">{item.name}</div>
-          <div className="text-[11px] ui-text-faint ml-auto">{children.length}</div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="library-tree-node-icon">
+            <FaFolderOpen size={12} />
+          </span>
+          <div className="library-tree-node-name">{item.name}</div>
+          <div className="library-tree-node-meta">{children.length}</div>
+          <div className="library-tree-node-actions">
             <button
               type="button"
-              className="h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
+              className="library-tree-node-action"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRename(item);
@@ -788,7 +807,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             </button>
             <button
               type="button"
-              className="h-6 w-6 flex items-center justify-center rounded text-[var(--ui-text-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-surface-2)]"
+              className="library-tree-node-action danger"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDelete(item);
@@ -800,7 +819,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           </div>
         </div>
         {allowChildren && isExpanded && children.length > 0 && (
-          <div className="divide-y divide-[var(--ui-border)]">
+          <div>
             {children.map((child) =>
               isFolder(child) ? renderFolderRow(child, depth + 1, allowChildren) : renderFileRow(child, depth + 1)
             )}
@@ -839,8 +858,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           >
             <FaTimes />
           </button>
-          <span className="sr-only">Library</span>
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="text-sm font-semibold text-[var(--ui-text)]">Library</div>
+          <div className="flex flex-wrap items-center gap-1 ml-auto">
             <button
               type="button"
               className={headerActionClass}
@@ -972,7 +991,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             )}
           </div>
           {selectedIds.size > 0 && (
-            <div className="panel-toolbar border-b border-[var(--ui-border)]">
+            <div className="panel-toolbar border-b border-[var(--ui-border)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]">
               <button
                 type="button"
                 className={bulkActionClass}
@@ -1006,7 +1025,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               </select>
               <button
                 type="button"
-                className="px-2 py-1 rounded border border-[var(--ui-border)] text-xs text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] disabled:opacity-40"
+                className="panel-action-button"
                 onClick={handleBulkMove}
                 disabled={!bulkMoveTarget}
               >
@@ -1025,7 +1044,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           )}
           <div
             className={[
-              'flex-1 min-h-0 overflow-y-auto',
+              'library-tree flex-1 min-h-0 overflow-y-auto',
               dragOverRoot ? 'bg-[var(--ui-accent-soft)]' : '',
             ].join(' ')}
             onDragOver={handleRootDragOver}
@@ -1039,7 +1058,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   <div>Try a different search term.</div>
                 </div>
               ) : (
-                <div className="divide-y divide-[var(--ui-border)]">
+                <div>
                   {sortedItems.map((item) =>
                     isFolder(item) ? renderFolderRow(item, 0, false) : renderFileRow(item, 0)
                   )}
@@ -1051,7 +1070,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                 <div>Save the current game or drag SGF files here to build your library.</div>
               </div>
             ) : (
-              <div className="divide-y divide-[var(--ui-border)]">
+              <div>
                 {(childrenMap.get(null) ?? []).map((item) =>
                   isFolder(item) ? renderFolderRow(item, 0) : renderFileRow(item, 0)
                 )}
@@ -1078,7 +1097,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             style={{ height: analysisHeight }}
           >
             <div className="panel-toolbar">
-              <div className="panel-section-title">Analysis</div>
+              <div className="panel-section-title cursor-default">Analysis</div>
               {onStopAnalysis ? (
                 <button
                   type="button"

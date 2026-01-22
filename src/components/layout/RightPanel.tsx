@@ -140,7 +140,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const showNotes = !isMobile || activeMobileTab === 'info';
 
   const modeTabClass = (active: boolean) => ['panel-tab', active ? 'active' : ''].join(' ');
-  const treeViewTabClass = (active: boolean) => ['panel-toggle', active ? 'active' : ''].join(' ');
+  const treeViewTabClass = (active: boolean) => ['panel-icon-button', active ? 'active' : ''].join(' ');
   const noteToggleClass = (active: boolean) => ['panel-icon-button', active ? 'active' : ''].join(' ');
 
   const guardInsertMode = (action: () => void) => {
@@ -212,9 +212,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           open={args.open}
           onToggle={args.onToggle}
           actions={args.actions}
-          className="panel-section-header"
-          buttonClassName="panel-section-title"
-          actionsClassName="panel-section-actions"
         />
         {args.open ? (
           <div className={args.contentClassName ?? 'panel-section-content'} style={args.contentStyle}>
@@ -537,27 +534,27 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               key={node.id}
                               type="button"
                               className={[
-                                'w-full px-2.5 py-1.5 flex items-center gap-2 text-left',
+                                'w-full px-2 py-1 flex items-center gap-2 text-left text-xs',
                                 isCurrent ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
                               ].join(' ')}
                               onClick={() => guardInsertMode(() => useGameStore.getState().jumpToNode(node))}
                               disabled={isInsertMode}
                               title={isInsertMode ? 'Finish inserting before navigating.' : 'Jump to move'}
                             >
-                              <span className="w-12 text-xs font-mono text-slate-500">
+                              <span className="w-10 text-[10px] font-mono text-slate-500">
                                 {idx === 0 ? 'Root' : idx}
                               </span>
                               <span
                                 className={[
-                                  'text-xs font-mono px-1.5 py-0.5 rounded',
+                                  'text-[10px] font-mono px-1.5 py-0.5 rounded',
                                   move?.player === 'black' ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-900',
                                 ].join(' ')}
                               >
                                 {player}
                               </span>
-                              <span className="text-sm font-medium">{label}</span>
+                              <span className="text-xs font-medium">{label}</span>
                               {hasNote && (
-                                <span className="ml-auto text-[10px] uppercase tracking-wide text-[var(--ui-warning)]">note</span>
+                                <span className="ml-auto text-[9px] uppercase tracking-wide text-[var(--ui-warning)]">note</span>
                               )}
                             </button>
                           );
@@ -694,7 +691,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               key={node.id}
                               type="button"
                               className={[
-                                'w-full px-3 py-1.5 text-left text-xs',
+                                'w-full px-2 py-1 text-left text-xs',
                                 isCurrent ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
                               ].join(' ')}
                               onClick={() => guardInsertMode(() => useGameStore.getState().jumpToNode(node))}
@@ -734,7 +731,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="px-2 py-1 rounded text-xs font-medium bg-[var(--ui-surface-2)] text-[var(--ui-text)] border border-[var(--ui-border)] hover:brightness-110"
+              className="panel-action-button"
               onClick={handleUndo}
               title="Undo (left arrow)"
             >
@@ -742,7 +739,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             </button>
             <button
               type="button"
-              className="px-2 py-1 rounded text-xs font-medium ui-danger-soft border hover:brightness-110"
+              className="panel-action-button danger"
               onClick={handleResign}
             >
               Resign

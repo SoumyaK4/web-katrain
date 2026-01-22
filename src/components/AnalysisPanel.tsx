@@ -90,54 +90,41 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         </div>
       )}
       <div className="panel-toolbar">
-        <div className="inline-flex rounded-md border border-[var(--ui-border)] overflow-hidden bg-[var(--ui-panel)]">
-          <button
-            className={[
-              'px-2.5 py-1 text-xs font-semibold transition-colors',
-              isGameAnalysisRunning && gameAnalysisType === 'quick'
-                ? 'bg-[var(--ui-danger-soft)] text-[var(--ui-danger)]'
-                : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
-            ].join(' ')}
-            onClick={() => {
-              if (isGameAnalysisRunning && gameAnalysisType === 'quick') stopGameAnalysis();
-              else startQuickGameAnalysis();
-            }}
-          >
-            {isGameAnalysisRunning && gameAnalysisType === 'quick'
-              ? `Stop quick (${gameAnalysisDone}/${gameAnalysisTotal})`
-              : 'Quick graph'}
-          </button>
-          <div className="w-px bg-[var(--ui-border)]" />
-          <button
-            className={[
-              'px-2.5 py-1 text-xs font-semibold transition-colors',
-              isGameAnalysisRunning && gameAnalysisType === 'fast'
-                ? 'bg-[var(--ui-danger-soft)] text-[var(--ui-danger)]'
-                : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text)]',
-            ].join(' ')}
-            onClick={() => {
-              if (isGameAnalysisRunning && gameAnalysisType === 'fast') stopGameAnalysis();
-              else startFastGameAnalysis();
-            }}
-          >
-            {isGameAnalysisRunning && gameAnalysisType === 'fast'
-              ? `Stop fast (${gameAnalysisDone}/${gameAnalysisTotal})`
-              : 'Fast MCTS'}
-          </button>
-          <div className="w-px bg-[var(--ui-border)]" />
-          <button
-            className={[
-              'px-2.5 py-1 text-xs font-semibold transition-colors',
-              isGameAnalysisRunning
-                ? 'ui-danger-soft'
-                : 'text-[var(--ui-text-muted)] opacity-50 cursor-not-allowed',
-            ].join(' ')}
-            onClick={stopGameAnalysis}
-            disabled={!isGameAnalysisRunning}
-          >
-            Stop
-          </button>
-        </div>
+        <button
+          className={[
+            'panel-action-button',
+            isGameAnalysisRunning && gameAnalysisType === 'quick' ? 'danger active' : '',
+          ].join(' ')}
+          onClick={() => {
+            if (isGameAnalysisRunning && gameAnalysisType === 'quick') stopGameAnalysis();
+            else startQuickGameAnalysis();
+          }}
+        >
+          {isGameAnalysisRunning && gameAnalysisType === 'quick'
+            ? `Stop quick (${gameAnalysisDone}/${gameAnalysisTotal})`
+            : 'Quick graph'}
+        </button>
+        <button
+          className={[
+            'panel-action-button',
+            isGameAnalysisRunning && gameAnalysisType === 'fast' ? 'danger active' : '',
+          ].join(' ')}
+          onClick={() => {
+            if (isGameAnalysisRunning && gameAnalysisType === 'fast') stopGameAnalysis();
+            else startFastGameAnalysis();
+          }}
+        >
+          {isGameAnalysisRunning && gameAnalysisType === 'fast'
+            ? `Stop fast (${gameAnalysisDone}/${gameAnalysisTotal})`
+            : 'Fast MCTS'}
+        </button>
+        <button
+          className="panel-action-button danger"
+          onClick={stopGameAnalysis}
+          disabled={!isGameAnalysisRunning}
+        >
+          Stop
+        </button>
         <div className="ml-auto flex items-center gap-2 text-xs">
           <button
             className="panel-icon-button"
@@ -165,10 +152,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             updatePanels({ graphOpen: true, statsOpen: false });
           }}
         >
-          <span className="inline-flex items-center gap-2">
-            <FaChartLine size={12} />
-            Graph
-          </span>
+          <FaChartLine size={12} />
+          <span>Graph</span>
         </button>
         <button
           type="button"
@@ -178,10 +163,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             updatePanels({ graphOpen: false, statsOpen: true });
           }}
         >
-          <span className="inline-flex items-center gap-2">
-            <FaChartBar size={12} />
-            Stats
-          </span>
+          <FaChartBar size={12} />
+          <span>Stats</span>
         </button>
       </div>
       <div className="panel-section-content flex-1 min-h-0">

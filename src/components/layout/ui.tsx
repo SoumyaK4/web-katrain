@@ -214,8 +214,8 @@ export function playerToShort(p: 'black' | 'white'): string {
 }
 
 export const panelCardBase = 'panel-section';
-export const panelCardOpen = 'bg-transparent';
-export const panelCardClosed = 'border-transparent bg-transparent';
+export const panelCardOpen = '';
+export const panelCardClosed = '';
 
 export const SectionHeader: React.FC<{
   title: string;
@@ -227,11 +227,11 @@ export const SectionHeader: React.FC<{
   buttonClassName?: string;
   actionsClassName?: string;
 }> = ({ title, icon, open, onToggle, actions, className, buttonClassName, actionsClassName }) => (
-  <div className={['flex flex-wrap items-center justify-between gap-2', className ?? ''].join(' ')}>
+  <div className={['panel-section-header', className ?? ''].join(' ')}>
     <button
       type="button"
       className={[
-        'text-[10px] font-semibold uppercase tracking-wide text-[var(--ui-text-muted)] hover:text-white flex items-center gap-2 transition-colors py-1 rounded hover:bg-[var(--ui-surface-2)]',
+        'panel-section-title',
         buttonClassName ?? '',
       ].join(' ')}
       onClick={onToggle}
@@ -240,7 +240,7 @@ export const SectionHeader: React.FC<{
       {icon ? <span className="opacity-70">{icon}</span> : null}
       {title}
     </button>
-    {actions ? <div className={['flex flex-wrap items-center gap-1.5', actionsClassName ?? ''].join(' ')}>{actions}</div> : null}
+    {actions ? <div className={['panel-section-actions', actionsClassName ?? ''].join(' ')}>{actions}</div> : null}
   </div>
 );
 
