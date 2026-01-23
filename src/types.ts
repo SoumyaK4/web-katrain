@@ -100,7 +100,7 @@ export interface GameSettings {
   timerByoPeriods: number; // KaTrain timer/byo_periods
   timerMinimalUseSeconds: number; // KaTrain timer/minimal_use (seconds)
   showLastNMistakes: number; // KaTrain-like eval dots: 0 disables, else show last N moves
-  mistakeThreshold: number; // Points lost to consider a mistake (WinRateGraph + mistake nav)
+  mistakeThreshold: number; // Points lost to consider a mistake for navigation/highlights.
   loadSgfRewind: boolean; // KaTrain general/load_sgf_rewind
   loadSgfFastAnalysis: boolean; // KaTrain general/load_fast_analysis
   animPvTimeSeconds: number; // KaTrain general/anim_pv_time
