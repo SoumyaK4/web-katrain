@@ -16,7 +16,7 @@ import {
   FaTimes,
   FaCog,
   FaKeyboard,
-  FaEllipsisH,
+  FaEllipsisV,
 } from 'react-icons/fa';
 import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
@@ -248,9 +248,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 setViewMenuOpen(!viewMenuOpen);
                 setAnalysisMenuOpen(false);
               }}
-              className={topIconClass}
+              className={[topIconClass, 'bg-[var(--ui-surface)] border border-[var(--ui-border)]'].join(' ')}
             >
-              <FaEllipsisH />
+              <FaEllipsisV size={16} />
             </IconButton>
           ) : (
             <button
