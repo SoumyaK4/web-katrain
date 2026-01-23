@@ -13,6 +13,14 @@ const base = normalizedBase.endsWith('/') ? normalizedBase : `${normalizedBase}/
 export default defineConfig({
   base,
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        notFound: path.resolve(__dirname, '404.html'),
+      },
+    },
+  },
   resolve: {
     alias: {
       'use-sync-external-store/shim/with-selector.js': path.resolve(
