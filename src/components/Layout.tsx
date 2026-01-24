@@ -1226,7 +1226,7 @@ export const Layout: React.FC = () => {
         )}
 
         {/* Board */}
-        <div className={['flex-1 flex items-center justify-center ui-bg overflow-auto relative', isMobile ? 'p-3 md:p-4' : 'p-4 xl:p-6'].join(' ')}>
+        <div className={['flex-1 flex items-center justify-center ui-bg overflow-auto relative', isMobile ? 'p-2 sm:p-3' : 'p-4 xl:p-6'].join(' ')}>
           {notification && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded shadow-lg flex items-center space-x-4 ui-panel border">
               <span>{notification.message}</span>

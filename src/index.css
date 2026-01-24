@@ -139,6 +139,27 @@
     --ui-gap: 10px;
   }
 
+  @media (max-width: 640px) {
+    :root {
+      --ui-font-size: 14px;
+      --ui-bar-height: 50px;
+      --ui-bar-pad-x: 10px;
+      --ui-bar-pad-y: 6px;
+      --ui-control-size: 34px;
+      --ui-panel-pad: 10px;
+      --ui-gap: 6px;
+      --mobile-tabbar-height: 62px;
+    }
+
+    .panel-section-header {
+      padding: 10px 12px;
+    }
+
+    .panel-section-content {
+      padding: 8px 10px;
+    }
+  }
+
   html,
   body,
   #root {
