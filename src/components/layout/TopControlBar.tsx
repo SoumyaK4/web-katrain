@@ -681,7 +681,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                   onClick={() => setViewMenuOpen(false)}
                   aria-label="Close tools"
                 />
-                <div className="absolute inset-0 ui-panel overflow-y-auto">
+                <div className="absolute inset-0 ui-panel overflow-y-auto mobile-safe-inset mobile-safe-area-bottom">
                   <div className="ui-bar ui-bar-height ui-bar-pad border-b flex items-center justify-between">
                     <div className="text-sm font-semibold">Tools</div>
                     <button

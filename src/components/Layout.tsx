@@ -987,7 +987,7 @@ export const Layout: React.FC = () => {
 
   return (
     <div
-      className="relative flex flex-col h-screen overflow-hidden app-root ui-root font-sans"
+      className="relative flex flex-col h-screen h-[100dvh] overflow-hidden app-root ui-root font-sans mobile-safe-inset"
       onDragEnter={handleAppDragEnter}
       onDragLeave={handleAppDragLeave}
       onDragOver={handleAppDragOver}
