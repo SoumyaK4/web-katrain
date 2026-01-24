@@ -1173,7 +1173,7 @@ export const Layout: React.FC = () => {
       )}
 
       {/* Main board column */}
-      <div className={['flex flex-col flex-1 min-w-0 relative', isMobile ? 'pb-[68px]' : ''].join(' ')}>
+      <div className={['flex flex-col flex-1 min-w-0 relative', isMobile ? 'mobile-safe-bottom' : ''].join(' ')}>
         {topBarOpen && (
           <TopControlBar
             settings={settings}

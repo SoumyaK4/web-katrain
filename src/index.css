@@ -13,6 +13,7 @@
     --ui-control-size: 38px;
     --ui-panel-pad: 12px;
     --ui-gap: 8px;
+    --mobile-tabbar-height: 68px;
     --ui-bg: #0b0f16;
     --ui-bar: #0f172a;
     --ui-panel: #111a2e;
@@ -658,6 +659,38 @@
   @media (max-width: 1024px) {
     .status-bar {
       display: none;
+    }
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom));
+  }
+
+  .mobile-tabbar {
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    min-height: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom));
+  }
+
+  .mobile-tabbar-grid {
+    min-height: var(--mobile-tabbar-height);
+  }
+
+  @media (max-width: 420px) {
+    .mobile-tabbar-label {
+      display: none;
+    }
+  }
+
+  @media (max-height: 520px) and (orientation: landscape) {
+    .mobile-tabbar-label {
+      display: none;
+    }
+
+    .mobile-tabbar button {
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
   }
 

@@ -361,7 +361,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           open ? 'flex' : 'hidden',
           'lg:static lg:max-w-none lg:z-auto',
           showOnDesktop ? 'lg:flex' : 'lg:hidden',
-          isMobile ? 'pb-[68px]' : '',
+          isMobile ? 'mobile-safe-bottom' : '',
         ].join(' ')}
         style={width ? { width } : undefined}
       >

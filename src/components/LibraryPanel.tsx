@@ -839,7 +839,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           'fixed inset-y-0 left-0 z-40 w-full max-w-sm',
           'lg:static lg:z-auto',
           docked ? 'lg:max-w-none' : 'lg:w-80',
-          isMobile ? 'pb-16' : '',
+          isMobile ? 'mobile-safe-bottom' : '',
         ].join(' ')}
         style={docked && width ? { width } : undefined}
         onDragOver={handleDragOver}

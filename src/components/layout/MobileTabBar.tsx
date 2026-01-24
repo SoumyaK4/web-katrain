@@ -53,11 +53,11 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 ui-bar border-t backdrop-blur-sm shadow-xl shadow-black/30"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 ui-bar border-t backdrop-blur-sm shadow-xl shadow-black/30 mobile-tabbar"
       role="tablist"
     >
       <div
-        className="grid"
+        className="grid mobile-tabbar-grid"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {tabs.map((tab) => {
@@ -85,7 +85,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
                   </span>
                 )}
               </span>
-              <span className="truncate max-w-full">{tab.label}</span>
+              <span className="truncate max-w-full mobile-tabbar-label">{tab.label}</span>
             </button>
           );
         })}
