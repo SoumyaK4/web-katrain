@@ -537,7 +537,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-4 overflow-y-auto report-scroll">
+        <div className="px-5 py-4 space-y-4 overflow-y-auto overscroll-contain report-scroll">
           <div className="print-hide space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[

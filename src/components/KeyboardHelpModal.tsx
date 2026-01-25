@@ -98,7 +98,7 @@ export const KeyboardHelpModal: React.FC<KeyboardHelpModalProps> = ({ onClose })
             <FaTimes />
           </button>
         </div>
-        <div className="p-4 overflow-y-auto">
+        <div className="p-4 overflow-y-auto overscroll-contain">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {SHORTCUT_CATEGORIES.map((category) => (
               <div key={category.title} className="ui-surface rounded-lg p-3 border">

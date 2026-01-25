@@ -49,6 +49,9 @@ export const IconButton: React.FC<{
   children: React.ReactNode;
 }> = ({ title, onClick, disabled, className, children }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const isCoarsePointer = typeof window !== 'undefined'
+    ? window.matchMedia('(pointer: coarse)').matches
+    : false;
   const { label, shortcut } = parseTitle(title);
 
   return (
@@ -63,14 +66,14 @@ export const IconButton: React.FC<{
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
         className={[
-          'ui-control flex items-center justify-center rounded-lg transition-colors',
+          'ui-control flex items-center justify-center rounded-lg transition-colors touch-manipulation',
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-white active:bg-[var(--ui-surface-2)]',
           className ?? '',
         ].join(' ')}
       >
         {children}
       </button>
-      <Tooltip label={label} shortcut={shortcut} visible={showTooltip && !disabled} />
+      <Tooltip label={label} shortcut={shortcut} visible={showTooltip && !disabled && !isCoarsePointer} />
     </div>
   );
 };
@@ -83,6 +86,9 @@ export const TogglePill: React.FC<{
   onToggle: () => void;
 }> = ({ label, shortcut, active, disabled, onToggle }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const isCoarsePointer = typeof window !== 'undefined'
+    ? window.matchMedia('(pointer: coarse)').matches
+    : false;
 
   return (
     <div className="relative">
@@ -97,7 +103,7 @@ export const TogglePill: React.FC<{
         aria-label={`${active ? 'Hide' : 'Show'} ${label}`}
         aria-pressed={active}
         className={[
-          'px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all border',
+          'px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all border touch-manipulation',
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--ui-surface-2)]',
           active
             ? 'bg-[var(--ui-surface-2)] text-[var(--ui-text)] border-[var(--ui-border-strong)] shadow-sm'
@@ -116,7 +122,7 @@ export const TogglePill: React.FC<{
       <Tooltip
         label={`${active ? 'Hide' : 'Show'} ${label}`}
         shortcut={shortcut}
-        visible={showTooltip && !disabled}
+        visible={showTooltip && !disabled && !isCoarsePointer}
       />
     </div>
   );
@@ -170,6 +176,9 @@ export const PanelHeaderButton: React.FC<{
   onClick: () => void;
 }> = ({ label, colorClass, active, onClick }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const isCoarsePointer = typeof window !== 'undefined'
+    ? window.matchMedia('(pointer: coarse)').matches
+    : false;
 
   return (
     <div className="relative">
@@ -183,7 +192,7 @@ export const PanelHeaderButton: React.FC<{
         aria-label={`${active ? 'Hide' : 'Show'} ${label}`}
         aria-pressed={active}
         className={[
-          'px-2 py-1 rounded text-xs font-semibold border',
+          'px-2 py-1 rounded text-xs font-semibold border touch-manipulation',
           active ? `${colorClass} border-[var(--ui-border-strong)] text-white` : 'bg-[var(--ui-panel)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:text-white hover:bg-[var(--ui-surface-2)]',
         ].join(' ')}
       >
@@ -191,7 +200,7 @@ export const PanelHeaderButton: React.FC<{
       </button>
       <Tooltip
         label={`${active ? 'Hide' : 'Show'} ${label}`}
-        visible={showTooltip}
+        visible={showTooltip && !isCoarsePointer}
       />
     </div>
   );

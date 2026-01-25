@@ -88,7 +88,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
   if (isMobile) {
     return (
-      <div className="ui-bar ui-bar-height ui-bar-pad border-t flex items-center gap-2 select-none">
+      <div className="ui-bar ui-bar-height ui-bar-pad border-t flex items-center gap-1.5 sm:gap-2 select-none">
         <div className="relative">
           {passPolicyColor && (
             <div
@@ -98,7 +98,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           )}
           <button
             ref={passBtnRef}
-            className="relative px-3 py-2 bg-[var(--ui-surface-2)] hover:brightness-110 rounded-lg text-xs font-medium text-[var(--ui-text)] transition-colors"
+            className="relative px-2.5 py-1.5 sm:px-3 sm:py-2 bg-[var(--ui-surface-2)] hover:brightness-110 rounded-lg text-[11px] sm:text-xs font-medium text-[var(--ui-text)] transition-colors"
             onClick={passTurn}
             aria-label="Pass turn"
             title="Pass (P)"
@@ -144,11 +144,11 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           <IconButton title="Back (←)" onClick={navigateBack} disabled={isInsertMode}>
             <FaChevronLeft />
           </IconButton>
-          <div className="px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1">
-            <span className={currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'}>B</span>
-            <span className="text-slate-600">·</span>
-            <span className={currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'}>W</span>
-            <span className="text-slate-600 mx-1">|</span>
+          <div className="mobile-bottom-meta px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[11px] sm:text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1">
+            <span className={['mobile-bottom-meta-player', currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'].join(' ')}>B</span>
+            <span className="mobile-bottom-meta-divider text-slate-600">·</span>
+            <span className={['mobile-bottom-meta-player', currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'].join(' ')}>W</span>
+            <span className="mobile-bottom-meta-divider text-slate-600 mx-1">|</span>
             <span className="ui-text-faint">#{moveHistory.length}</span>
           </div>
           <IconButton title="Forward (→)" onClick={navigateForward} disabled={isInsertMode}>

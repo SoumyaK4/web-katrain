@@ -158,6 +158,41 @@
     .panel-section-content {
       padding: 8px 10px;
     }
+
+    .panel-section-title {
+      font-size: 11px;
+    }
+
+    .panel-tab {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .panel-toolbar {
+      gap: 4px;
+      row-gap: 4px;
+    }
+
+    .panel-action-button {
+      padding: 2px 6px;
+      font-size: 10px;
+    }
+
+    .library-tree-node {
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .mobile-bottom-meta {
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+
+    .mobile-bottom-meta-player,
+    .mobile-bottom-meta-divider {
+      display: none;
+    }
   }
 
   html,

@@ -558,7 +558,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   );
 
   return (
-    <div className="ui-bar ui-bar-height ui-bar-pad border-b flex flex-wrap items-center gap-1.5 sm:gap-2 gap-y-2 select-none">
+    <div className="ui-bar ui-bar-height ui-bar-pad border-b flex flex-wrap items-center gap-1 sm:gap-2 gap-y-1.5 select-none">
       {/* Mobile menu */}
       <div className="md:hidden">
         <IconButton title="Menu" onClick={onOpenMenu} className={topIconClass}>
@@ -681,7 +681,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                   onClick={() => setViewMenuOpen(false)}
                   aria-label="Close tools"
                 />
-                <div className="absolute inset-0 ui-panel overflow-y-auto mobile-safe-inset mobile-safe-area-bottom">
+                <div className="absolute inset-0 ui-panel overflow-y-auto overscroll-contain mobile-safe-inset mobile-safe-area-bottom">
                   <div className="ui-bar ui-bar-height ui-bar-pad border-b flex items-center justify-between">
                     <div className="text-sm font-semibold">Tools</div>
                     <button
@@ -708,7 +708,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <button
           type="button"
           className={[
-            'px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors',
+            'px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors',
             isAnalysisMode
               ? 'bg-[var(--ui-accent-soft)] border border-[var(--ui-accent)] text-[var(--ui-accent)] shadow-sm shadow-black/20'
               : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white',

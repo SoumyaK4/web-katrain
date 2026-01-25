@@ -33,7 +33,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
-      <div className="absolute left-0 top-0 h-full w-[90vw] max-w-sm ui-panel border-r shadow-xl p-3 overflow-y-auto mobile-safe-inset mobile-safe-area-bottom">
+      <div className="absolute left-0 top-0 h-full w-[90vw] max-w-sm ui-panel border-r shadow-xl p-3 overflow-y-auto overscroll-contain mobile-safe-inset mobile-safe-area-bottom">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold" id="menu-title">Menu</h2>
           <button

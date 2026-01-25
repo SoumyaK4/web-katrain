@@ -63,7 +63,7 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
           </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto">
+        <div className="p-4 space-y-4 overflow-y-auto overscroll-contain">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[var(--ui-text-muted)] block text-sm">Max Visits</label>

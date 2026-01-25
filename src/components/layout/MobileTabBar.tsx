@@ -68,7 +68,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={[
-                'py-3 px-2 flex flex-col items-center justify-center gap-1.5 text-xs font-medium transition-all',
+                'py-2.5 sm:py-3 px-2 flex flex-col items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-medium leading-tight transition-all touch-manipulation',
                 isActive
                   ? 'text-[var(--ui-accent)] bg-[var(--ui-accent-soft)] border-t-2 border-[var(--ui-accent)] shadow-inner'
                   : 'text-[var(--ui-text-muted)] hover:text-white hover:bg-[var(--ui-surface-2)] border-t-2 border-transparent',

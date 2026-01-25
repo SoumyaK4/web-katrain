@@ -211,7 +211,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         <FaTimes />
                     </button>
                 </div>
-                <div className="px-4 sm:px-6 py-5 space-y-6 overflow-y-auto">
+                <div className="px-4 sm:px-6 py-5 space-y-6 overflow-y-auto overscroll-contain">
                     <div className={sectionClass}>
                         <div className="flex items-center justify-between">
                             <h3 className={sectionTitleClass}>Timer</h3>

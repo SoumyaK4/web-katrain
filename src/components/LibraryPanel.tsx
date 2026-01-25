@@ -1041,7 +1041,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           )}
           <div
             className={[
-              'library-tree flex-1 min-h-0 overflow-y-auto',
+              'library-tree flex-1 min-h-0 overflow-y-auto overscroll-contain',
               dragOverRoot ? 'bg-[var(--ui-accent-soft)]' : '',
             ].join(' ')}
             onDragOver={handleRootDragOver}

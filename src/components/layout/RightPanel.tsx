@@ -357,7 +357,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       <div
         className={[
           'ui-panel border-l flex flex-col overflow-hidden relative',
-          'fixed inset-y-0 right-0 z-40 w-full max-w-md',
+          'fixed inset-y-0 right-0 z-40 w-full max-w-none sm:max-w-md',
           open ? 'flex' : 'hidden',
           'lg:static lg:max-w-none lg:z-auto',
           showOnDesktop ? 'lg:flex' : 'lg:hidden',
@@ -431,7 +431,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </div>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <div className="flex flex-col">
             {/* Game Tree */}
             {renderSection({
