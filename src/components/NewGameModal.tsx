@@ -269,7 +269,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               </div>
             </details>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[var(--ui-text-muted)] text-sm">Board Size</label>
               <select

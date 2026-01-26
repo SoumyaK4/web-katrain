@@ -28,6 +28,8 @@ interface BottomControlBarProps {
   rotateBoard: () => void;
   currentPlayer: Player;
   moveHistory: Move[];
+  boardSize: number;
+  handicap: number;
   isInsertMode: boolean;
   passPolicyColor: string | null;
   passPv: { idx: number; player: Player } | null;
@@ -49,6 +51,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   rotateBoard,
   currentPlayer,
   moveHistory,
+  boardSize,
+  handicap,
   isInsertMode,
   passPolicyColor,
   passPv,
@@ -144,10 +148,18 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           <IconButton title="Back (←)" onClick={navigateBack} disabled={isInsertMode}>
             <FaChevronLeft />
           </IconButton>
-          <div className="mobile-bottom-meta px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[11px] sm:text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1">
+          <div className="mobile-bottom-meta px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[10px] sm:text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1">
             <span className={['mobile-bottom-meta-player', currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'].join(' ')}>B</span>
             <span className="mobile-bottom-meta-divider text-slate-600">·</span>
             <span className={['mobile-bottom-meta-player', currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'].join(' ')}>W</span>
+            <span className="mobile-bottom-meta-divider text-slate-600 mx-1">|</span>
+            <span className="ui-text-faint">{boardSize}×{boardSize}</span>
+            {handicap > 0 && (
+              <>
+                <span className="mobile-bottom-meta-divider text-slate-600">·</span>
+                <span className="ui-text-faint">H{handicap}</span>
+              </>
+            )}
             <span className="mobile-bottom-meta-divider text-slate-600 mx-1">|</span>
             <span className="ui-text-faint">#{moveHistory.length}</span>
           </div>

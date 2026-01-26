@@ -1267,6 +1267,8 @@ export const Layout: React.FC = () => {
             rotateBoard={rotateBoard}
             currentPlayer={currentPlayer}
             moveHistory={moveHistory}
+            boardSize={boardSize}
+            handicap={handicap}
             isInsertMode={isInsertMode}
             passPolicyColor={passPolicyColor}
             passPv={passPv}
