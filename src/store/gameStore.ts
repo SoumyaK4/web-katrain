@@ -1,5 +1,5 @@
 import { createWithEqualityFn as create } from 'zustand/traditional';
-import { BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest } from '../types';
+import { DEFAULT_BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest, type BoardSize } from '../types';
 import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
@@ -9,6 +9,7 @@ import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katrainSgfAnalysis';
 import { publicUrl } from '../utils/publicUrl';
 import { isBoardThemeId } from '../utils/boardThemes';
+import { createEmptyBoard, getHandicapPoints, getMaxHandicap, normalizeBoardSize } from '../utils/boardSize';
 
 interface GameStore extends GameState {
   // Tree State
@@ -106,14 +107,23 @@ interface GameStore extends GameState {
   setRootProperty: (key: string, value: string) => void;
   setCurrentNodeNote: (note: string) => void;
   rotateBoard: () => void;
-  startNewGame: (opts: { komi: number; rules: GameRules }) => void;
+  startNewGame: (opts: { komi: number; rules: GameRules; boardSize: BoardSize; handicap: number }) => void;
 }
 
-const createEmptyBoard = (): BoardState => {
-  return Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
-};
+const createEmptyTerritory = (boardSize: number): number[][] =>
+  Array.from({ length: boardSize }, () => Array.from({ length: boardSize }, () => 0));
 
-const EMPTY_TERRITORY: number[][] = Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => 0));
+const getBoardSizeFromBoard = (board: BoardState): BoardSize =>
+  normalizeBoardSize(board.length, DEFAULT_BOARD_SIZE);
+
+const applyHandicapStones = (board: BoardState, boardSize: BoardSize, handicap: number): void => {
+  const points = getHandicapPoints(boardSize, handicap);
+  for (const [x, y] of points) {
+    if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+      board[y]![x] = 'black';
+    }
+  }
+};
 
 const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v1';
 const DEFAULT_MODEL_PATH = 'models/katago-small.bin.gz';
@@ -166,6 +176,20 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
         delete (parsed as { boardTheme?: unknown }).boardTheme;
       }
     }
+    if ('defaultBoardSize' in parsed) {
+      const sizeRaw = (parsed as { defaultBoardSize?: unknown }).defaultBoardSize;
+      const sizeNum = typeof sizeRaw === 'number' ? sizeRaw : Number.parseInt(String(sizeRaw ?? ''), 10);
+      (parsed as { defaultBoardSize: BoardSize }).defaultBoardSize = normalizeBoardSize(sizeNum, DEFAULT_BOARD_SIZE);
+    }
+    if ('defaultHandicap' in parsed) {
+      const size = (parsed as { defaultBoardSize?: BoardSize }).defaultBoardSize ?? DEFAULT_BOARD_SIZE;
+      const max = getMaxHandicap(size);
+      const raw = (parsed as { defaultHandicap?: unknown }).defaultHandicap;
+      const num = typeof raw === 'number' ? raw : Number.parseInt(String(raw ?? ''), 10);
+      (parsed as { defaultHandicap: number }).defaultHandicap = Number.isFinite(num)
+        ? Math.max(0, Math.min(Math.floor(num), max))
+        : 0;
+    }
     return parsed as Partial<GameSettings>;
   } catch {
     return null;
@@ -202,13 +226,13 @@ const parseSgfRu = (ru: string | undefined): GameRules | null => {
   return null;
 };
 
-const ownershipToTerritoryGrid = (ownership: ArrayLike<number>): number[][] => {
-  const territory: number[][] = Array(BOARD_SIZE)
+const ownershipToTerritoryGrid = (ownership: ArrayLike<number>, boardSize: number): number[][] => {
+  const territory: number[][] = Array(boardSize)
     .fill(0)
-    .map(() => Array(BOARD_SIZE).fill(0));
-  for (let y = 0; y < BOARD_SIZE; y++) {
-    for (let x = 0; x < BOARD_SIZE; x++) {
-      const v = ownership[y * BOARD_SIZE + x];
+    .map(() => Array(boardSize).fill(0));
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const v = ownership[y * boardSize + x];
       territory[y][x] = typeof v === 'number' ? v : 0;
     }
   }
@@ -244,14 +268,14 @@ const computePointsLostForNode = (node: GameNode): number | null => {
   return null;
 };
 
-const normalizeRegionOfInterest = (roi: RegionOfInterest | null): RegionOfInterest | null => {
+const normalizeRegionOfInterest = (roi: RegionOfInterest | null, boardSize: number): RegionOfInterest | null => {
   if (!roi) return null;
-  const xMin = Math.max(0, Math.min(BOARD_SIZE - 1, Math.min(roi.xMin, roi.xMax)));
-  const xMax = Math.max(0, Math.min(BOARD_SIZE - 1, Math.max(roi.xMin, roi.xMax)));
-  const yMin = Math.max(0, Math.min(BOARD_SIZE - 1, Math.min(roi.yMin, roi.yMax)));
-  const yMax = Math.max(0, Math.min(BOARD_SIZE - 1, Math.max(roi.yMin, roi.yMax)));
+  const xMin = Math.max(0, Math.min(boardSize - 1, Math.min(roi.xMin, roi.xMax)));
+  const xMax = Math.max(0, Math.min(boardSize - 1, Math.max(roi.xMin, roi.xMax)));
+  const yMin = Math.max(0, Math.min(boardSize - 1, Math.min(roi.yMin, roi.yMax)));
+  const yMax = Math.max(0, Math.min(boardSize - 1, Math.max(roi.yMin, roi.yMax)));
   const isSinglePoint = xMin === xMax && yMin === yMax;
-  const isWholeBoard = xMin === 0 && yMin === 0 && xMax === BOARD_SIZE - 1 && yMax === BOARD_SIZE - 1;
+  const isWholeBoard = xMin === 0 && yMin === 0 && xMax === boardSize - 1 && yMax === boardSize - 1;
   if (isSinglePoint || isWholeBoard) return null; // KaTrain semantics.
   return { xMin, xMax, yMin, yMax };
 };
@@ -297,7 +321,7 @@ const findNodeById = (root: GameNode, id: string): GameNode | null => {
 };
 
 // Initial state helpers
-const initialBoard = createEmptyBoard();
+const initialBoard = createEmptyBoard(DEFAULT_BOARD_SIZE);
 const initialGameState: GameState = {
     board: initialBoard,
     currentPlayer: 'black',
@@ -318,6 +342,8 @@ const defaultSettings: GameSettings = {
   boardTheme: 'hikaru',
   uiTheme: 'noir',
   uiDensity: 'comfortable',
+  defaultBoardSize: DEFAULT_BOARD_SIZE,
+  defaultHandicap: 0,
   timerSound: true,
   timerMainTimeMinutes: 0,
   timerByoLengthSeconds: 30,
@@ -351,7 +377,7 @@ const defaultSettings: GameSettings = {
   katagoFastVisits: 25,
   katagoMaxTimeMs: 8000,
   katagoBatchSize: 16,
-  katagoMaxChildren: 361,
+  katagoMaxChildren: DEFAULT_BOARD_SIZE * DEFAULT_BOARD_SIZE,
   katagoTopK: 10,
   katagoReuseTree: true,
   katagoOwnershipMode: 'root',
@@ -577,7 +603,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })),
 
   setRegionOfInterest: (roi) => {
-    const normalized = normalizeRegionOfInterest(roi);
+    const normalized = normalizeRegionOfInterest(roi, getBoardSizeFromBoard(get().board));
     set((state) => ({
       regionOfInterest: normalized,
       isSelectingRegionOfInterest: false,
@@ -637,11 +663,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (mode === 'sweep') {
       const visits = Math.max(16, Math.min(s.settings.katagoFastVisits, ENGINE_MAX_VISITS));
-      toast(`Sweep: ${visits} visits, maxChildren 361`);
+      const boardSize = getBoardSizeFromBoard(s.board);
+      const maxChildren = boardSize * boardSize;
+      toast(`Sweep: ${visits} visits, maxChildren ${maxChildren}`);
       void s.runAnalysis({
         force: true,
         visits,
-        maxChildren: 361,
+        maxChildren,
         topK: Math.max(s.settings.katagoTopK, 20),
         reuseTree: false,
         maxTimeMs: longTimeMs,
@@ -943,13 +971,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
             for (let i = 0; i < toEval.length; i++) {
               const node = toEval[i]!;
               const evaled = evals[i]!;
+              const boardSize = getBoardSizeFromBoard(node.gameState.board);
               node.analysis = {
                 rootWinRate: evaled.rootWinRate,
                 rootScoreLead: evaled.rootScoreLead,
                 rootScoreSelfplay: evaled.rootScoreSelfplay,
                 rootScoreStdev: evaled.rootScoreStdev,
                 moves: [],
-                territory: EMPTY_TERRITORY,
+                territory: createEmptyTerritory(boardSize),
                 policy: undefined,
                 ownershipStdev: undefined,
                 ownershipMode: 'none',
@@ -1007,10 +1036,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ isGameAnalysisRunning: true, gameAnalysisType: 'fast', gameAnalysisDone: 0, gameAnalysisTotal: total });
 
     void (async () => {
+      const boardSize = getBoardSizeFromBoard(state.board);
       const fastVisits = Math.max(16, Math.min(get().settings.katagoFastVisits, ENGINE_MAX_VISITS));
       const maxTimeMs = Math.max(50, Math.min(600, Math.floor(get().settings.katagoMaxTimeMs * 0.15)));
       const batchSize = Math.max(1, Math.min(get().settings.katagoBatchSize, 64));
-      const maxChildren = Math.max(4, Math.min(get().settings.katagoMaxChildren, 361));
+      const maxChildren = Math.max(4, Math.min(get().settings.katagoMaxChildren, boardSize * boardSize));
       const topK = Math.max(1, Math.min(get().settings.katagoTopK, 10));
       const analysisPvLen = Math.max(0, Math.min(get().settings.katagoAnalysisPvLen, 15));
 
@@ -1074,7 +1104,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               rootScoreSelfplay: analysis.rootScoreSelfplay,
               rootScoreStdev: analysis.rootScoreStdev,
               moves: analysis.moves,
-              territory: EMPTY_TERRITORY,
+              territory: createEmptyTerritory(getBoardSizeFromBoard(node.gameState.board)),
               policy: undefined,
               ownershipStdev: undefined,
               ownershipMode: 'none',
@@ -1178,7 +1208,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const grandparentBoard = node.parent?.parent?.gameState.board;
             const maxTimeMs = ENGINE_MAX_TIME_MS;
             const batchSize = Math.max(1, Math.min(s.settings.katagoBatchSize, 64));
-            const maxChildren = Math.max(4, Math.min(s.settings.katagoMaxChildren, 361));
+            const boardSize = getBoardSizeFromBoard(node.gameState.board);
+            const maxChildren = Math.max(4, Math.min(s.settings.katagoMaxChildren, boardSize * boardSize));
             const topK = Math.max(5, Math.min(s.settings.katagoTopK, 50));
             const analysisPvLen = Math.max(0, Math.min(s.settings.katagoAnalysisPvLen, 60));
             const modelUrl = resolveModelUrlForFetch(s.settings.katagoModelUrl);
@@ -1215,6 +1246,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               metaSynced = true;
             }
 
+            const boardSize = getBoardSizeFromBoard(node.gameState.board);
             node.analysis = {
               rootWinRate: analysis.rootWinRate,
               rootScoreLead: analysis.rootScoreLead,
@@ -1222,7 +1254,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               rootScoreStdev: analysis.rootScoreStdev,
               rootVisits: analysis.rootVisits,
               moves: analysis.moves,
-              territory: ownershipToTerritoryGrid(analysis.ownership),
+              territory: ownershipToTerritoryGrid(analysis.ownership, boardSize),
               policy: analysis.policy,
               ownershipStdev: analysis.ownershipStdev,
               ownershipMode: s.settings.katagoOwnershipMode,
@@ -1300,7 +1332,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const visits = Math.max(16, Math.min(opts?.visits ?? state.settings.katagoVisits, ENGINE_MAX_VISITS));
           const maxTimeMs = Math.max(25, Math.min(opts?.maxTimeMs ?? state.settings.katagoMaxTimeMs, ENGINE_MAX_TIME_MS));
           const batchSize = Math.max(1, Math.min(opts?.batchSize ?? state.settings.katagoBatchSize, 64));
-          const maxChildren = Math.max(4, Math.min(opts?.maxChildren ?? state.settings.katagoMaxChildren, 361));
+          const boardSize = getBoardSizeFromBoard(state.board);
+          const maxChildren = Math.max(4, Math.min(opts?.maxChildren ?? state.settings.katagoMaxChildren, boardSize * boardSize));
           const topK = Math.max(1, Math.min(opts?.topK ?? state.settings.katagoTopK, 50));
           const reuseTree = opts?.reuseTree ?? state.settings.katagoReuseTree;
           const ownershipRefreshIntervalMs = opts?.ownershipRefreshIntervalMs;
@@ -1328,7 +1361,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               rootScoreStdev: analysis.rootScoreStdev,
               rootVisits: analysis.rootVisits,
               moves: analysis.moves,
-              territory: opts.includeTerritory ? ownershipToTerritoryGrid(analysis.ownership) : opts.fallbackTerritory,
+              territory: opts.includeTerritory ? ownershipToTerritoryGrid(analysis.ownership, boardSize) : opts.fallbackTerritory,
               policy: analysis.policy,
               ownershipStdev: analysis.ownershipStdev,
               ownershipMode: state.settings.katagoOwnershipMode,
@@ -1342,10 +1375,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 policy: analysisWithTerritory.policy
                   ? (() => {
                       const p = analysisWithTerritory.policy.slice();
-                      for (let y = 0; y < BOARD_SIZE; y++) {
-                        for (let x = 0; x < BOARD_SIZE; x++) {
+                      for (let y = 0; y < boardSize; y++) {
+                        for (let x = 0; x < boardSize; x++) {
                           if (x >= roi.xMin && x <= roi.xMax && y >= roi.yMin && y <= roi.yMax) continue;
-                          p[y * BOARD_SIZE + x] = -1;
+                          p[y * boardSize + x] = -1;
                         }
                       }
                       return p;
@@ -1362,7 +1395,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const shouldUpdateTerritory =
               isFinal || (showOwnership && progressApplyMinMs > 0 && now - lastTerritoryUpdateAt >= progressApplyMinMs);
             if (shouldUpdateTerritory) lastTerritoryUpdateAt = now;
-            const fallbackTerritory = node.analysis?.territory ?? EMPTY_TERRITORY;
+            const fallbackTerritory = node.analysis?.territory ?? createEmptyTerritory(boardSize);
             const analysisWithTerritory = buildAnalysisResult(analysis, {
               includeTerritory: shouldUpdateTerritory,
               fallbackTerritory,
@@ -1486,7 +1519,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const moveLabel =
               move.x < 0 || move.y < 0
                 ? 'Pass'
-                : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${19 - move.y}`;
+                : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${boardSize - move.y}`;
 
             set({
               notification: {
@@ -1722,6 +1755,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (latest.currentPlayer !== playerAtStart) return;
           if (!latest.isAiPlaying || latest.aiColor !== playerAtStart) return;
           const settings = latest.settings;
+          const boardSize = getBoardSizeFromBoard(latest.board);
 
           const analysisWithTerritory: AnalysisResult = {
             rootWinRate: analysis.rootWinRate,
@@ -1730,7 +1764,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             rootScoreStdev: analysis.rootScoreStdev,
             rootVisits: analysis.rootVisits,
             moves: analysis.moves,
-            territory: ownershipToTerritoryGrid(analysis.ownership),
+            territory: ownershipToTerritoryGrid(analysis.ownership, boardSize),
             policy: analysis.policy,
             ownershipStdev: analysis.ownershipStdev,
             ownershipMode: aiOwnershipMode,
@@ -1742,13 +1776,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
           type PolicyMove = { prob: number; x: number; y: number; isPass: boolean };
           const policyRanking = (policy: FloatArray): PolicyMove[] => {
             const out: PolicyMove[] = [];
-            for (let y = 0; y < BOARD_SIZE; y++) {
-              for (let x = 0; x < BOARD_SIZE; x++) {
-                const p = policy[y * BOARD_SIZE + x] ?? -1;
+            for (let y = 0; y < boardSize; y++) {
+              for (let x = 0; x < boardSize; x++) {
+                const p = policy[y * boardSize + x] ?? -1;
                 if (p > 0) out.push({ prob: p, x, y, isPass: false });
               }
             }
-            const pass = policy[BOARD_SIZE * BOARD_SIZE] ?? -1;
+            const pass = policy[boardSize * boardSize] ?? -1;
             if (pass > 0) out.push({ prob: pass, x: -1, y: -1, isPass: true });
             out.sort((a, b) => b.prob - a.prob);
             return out;
@@ -1796,7 +1830,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 ? 'pass'
                 : best.x < 0 || best.y < 0
                   ? 'pass'
-                  : `${String.fromCharCode(65 + (best.x >= 8 ? best.x + 1 : best.x))}${19 - best.y}`;
+                  : `${String.fromCharCode(65 + (best.x >= 8 ? best.x + 1 : best.x))}${boardSize - best.y}`;
 
             if (strategy === 'default') {
               if (!best) return null;
@@ -1819,7 +1853,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const label =
                 picked.x < 0 || picked.y < 0
                   ? 'pass'
-                  : `${String.fromCharCode(65 + (picked.x >= 8 ? picked.x + 1 : picked.x))}${19 - picked.y}`;
+                  : `${String.fromCharCode(65 + (picked.x >= 8 ? picked.x + 1 : picked.x))}${boardSize - picked.y}`;
               return {
                 x: picked.x,
                 y: picked.y,
@@ -1844,7 +1878,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const label =
                 bestCand.x < 0 || bestCand.y < 0
                   ? 'pass'
-                  : `${String.fromCharCode(65 + (bestCand.x >= 8 ? bestCand.x + 1 : bestCand.x))}${19 - bestCand.y}`;
+                  : `${String.fromCharCode(65 + (bestCand.x >= 8 ? bestCand.x + 1 : bestCand.x))}${boardSize - bestCand.y}`;
               return {
                 x: bestCand.x,
                 y: bestCand.y,
@@ -1868,10 +1902,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (x < 0 || y < 0) return 'pass';
                 const col = x >= 8 ? x + 1 : x;
                 const letter = String.fromCharCode(65 + col);
-                return `${letter}${BOARD_SIZE - y}`;
+                return `${letter}${boardSize - y}`;
               };
 
-              const inBounds = (x: number, y: number) => x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+              const inBounds = (x: number, y: number) => x >= 0 && x < boardSize && y >= 0 && y < boardSize;
 
               const isAttachment = (x: number, y: number): boolean => {
                 if (x < 0 || y < 0) return false;
@@ -1933,10 +1967,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                 // settle: sum |ownership| for existing stones of the player
                 let sum = 0;
-                for (let yy = 0; yy < BOARD_SIZE; yy++) {
-                  for (let xx = 0; xx < BOARD_SIZE; xx++) {
+                for (let yy = 0; yy < boardSize; yy++) {
+                  for (let xx = 0; xx < boardSize; xx++) {
                     if (latest.board[yy]?.[xx] !== player) continue;
-                    const v = ownership[yy * BOARD_SIZE + xx] ?? 0;
+                    const v = ownership[yy * boardSize + xx] ?? 0;
                     sum += Math.abs(v);
                   }
                 }
@@ -1962,7 +1996,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
               for (const m of candidates) {
                 if (m.pointsLost >= maxPointsLost) continue;
-                if (!m.ownership || m.ownership.length < BOARD_SIZE * BOARD_SIZE) continue;
+                if (!m.ownership || m.ownership.length < boardSize * boardSize) continue;
                 if (!(m.order <= 1 || m.visits >= minVisits)) continue;
                 const isPass = m.x < 0 || m.y < 0;
                 if (isPass && m.pointsLost > 0.75) continue;
@@ -2028,7 +2062,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               return null;
             };
 
-            const passProb = policy?.[BOARD_SIZE * BOARD_SIZE] ?? -1;
+            const passProb = policy?.[boardSize * boardSize] ?? -1;
             const legalPolicyMoves = policyMoves.filter((m) => !m.isPass && m.prob > 0);
 
             type WeightedCoord = { score: number; weight: number; x: number; y: number };
@@ -2111,7 +2145,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const forced = shouldPlayTopMove(override);
               if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
 
-              const boardSquares = BOARD_SIZE * BOARD_SIZE;
+              const boardSquares = boardSize * boardSize;
               const depth = latest.moveHistory.length;
               const endgame = Math.max(0, strategy === 'local' ? settings.aiLocalEndgame : settings.aiTenukiEndgame);
               const pickFrac = strategy === 'local' ? settings.aiLocalPickFrac : settings.aiTenukiPickFrac;
@@ -2157,7 +2191,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const forced = shouldPlayTopMove(override);
               if (forced) return { x: forced.move.x, y: forced.move.y, thoughts: forced.thoughts };
 
-              const boardSquares = BOARD_SIZE * BOARD_SIZE;
+              const boardSquares = boardSize * boardSize;
               const depth = latest.moveHistory.length;
               const endgame = Math.max(0, strategy === 'influence' ? settings.aiInfluenceEndgame : settings.aiTerritoryEndgame);
               const pickFrac = strategy === 'influence' ? settings.aiInfluencePickFrac : settings.aiTerritoryPickFrac;
@@ -2181,8 +2215,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const thrLine = threshold - 1;
 
               const weightedCoords: WeightedCoord[] = legalPolicyMoves.map((m) => {
-                const distX = Math.min(BOARD_SIZE - 1 - m.x, m.x);
-                const distY = Math.min(BOARD_SIZE - 1 - m.y, m.y);
+                const distX = Math.min(boardSize - 1 - m.x, m.x);
+                const distY = Math.min(boardSize - 1 - m.y, m.y);
 
                 let exponent = 0;
                 if (strategy === 'influence') {
@@ -2207,7 +2241,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
             if (strategy === 'rank') {
               const kyuRank = settings.aiRankKyu;
-              const boardSquares = BOARD_SIZE * BOARD_SIZE;
+              const boardSquares = boardSize * boardSize;
               const legalPolicyMoves = policyMoves.filter((m) => !m.isPass && m.prob > 0);
               const normLegMoves = legalPolicyMoves.length / boardSquares;
 
@@ -2631,26 +2665,43 @@ export const useGameStore = create<GameStore>((set, get) => ({
       get().findMistake('undo');
   },
 
-  startNewGame: ({ komi, rules }) => {
+  startNewGame: ({ komi, rules, boardSize, handicap }) => {
     const state = get();
     get().stopSelfplayToEnd();
     get().stopGameAnalysis();
     if (state.settings.soundEnabled) {
       playNewGameSound();
     }
-    const nextSettings: GameSettings = { ...state.settings, gameRules: rules };
+    const normalizedBoardSize = normalizeBoardSize(boardSize, state.settings.defaultBoardSize ?? DEFAULT_BOARD_SIZE);
+    const maxHandicap = getMaxHandicap(normalizedBoardSize);
+    const safeHandicap = Math.max(0, Math.min(Math.floor(handicap), maxHandicap));
+    const nextSettings: GameSettings = {
+      ...state.settings,
+      gameRules: rules,
+      defaultBoardSize: normalizedBoardSize,
+      defaultHandicap: safeHandicap,
+    };
     saveStoredSettings(nextSettings);
 
+    const board = createEmptyBoard(normalizedBoardSize);
+    if (safeHandicap > 0) {
+      applyHandicapStones(board, normalizedBoardSize, safeHandicap);
+    }
+
     const rootState: GameState = {
-      board: createEmptyBoard(),
-      currentPlayer: 'black',
+      board,
+      currentPlayer: safeHandicap > 0 ? 'white' : 'black',
       moveHistory: [],
       capturedBlack: 0,
       capturedWhite: 0,
       komi,
     };
     const newRoot = createNode(null, null, rootState, 'root');
-    newRoot.properties = { RU: [rulesToSgfRu(rules)] };
+    newRoot.properties = { RU: [rulesToSgfRu(rules)], SZ: [String(normalizedBoardSize)] };
+    if (safeHandicap > 0) {
+      newRoot.properties.HA = [String(safeHandicap)];
+      newRoot.properties.PL = ['W'];
+    }
 
     set({
       settings: nextSettings,
@@ -2687,8 +2738,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.settings.soundEnabled) {
         playNewGameSound();
     }
+    const boardSize = getBoardSizeFromBoard(state.board);
     const rootState: GameState = {
-      board: createEmptyBoard(),
+      board: createEmptyBoard(boardSize),
       currentPlayer: 'black',
       moveHistory: [],
       capturedBlack: 0,
@@ -2696,7 +2748,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       komi: 6.5,
     };
     const newRoot = createNode(null, null, rootState, 'root');
-    newRoot.properties = { RU: [rulesToSgfRu(state.settings.gameRules)] };
+    newRoot.properties = { RU: [rulesToSgfRu(state.settings.gameRules)], SZ: [String(boardSize)] };
     set({
       board: rootState.board,
       currentPlayer: rootState.currentPlayer,
@@ -2729,15 +2781,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Reset first
     get().resetGame();
 
-    const currentBoard = sgf.initialBoard ? sgf.initialBoard : createEmptyBoard();
+    const state = get();
+    const currentBoard = sgf.initialBoard
+      ? sgf.initialBoard
+      : createEmptyBoard(state.settings.defaultBoardSize ?? DEFAULT_BOARD_SIZE);
+    const boardSize = getBoardSizeFromBoard(currentBoard);
 
     const sgfProps = sgf.tree?.props;
     const plRaw = sgfProps?.['PL']?.[0]?.toUpperCase();
     const pl: Player | null = plRaw === 'B' ? 'black' : plRaw === 'W' ? 'white' : null;
     const firstMovePlayer = sgf.moves[0]?.player;
     const ha = parseInt(sgfProps?.['HA']?.[0] ?? '0', 10);
-    const rootPlayer: Player = pl ?? firstMovePlayer ?? (Number.isFinite(ha) && ha >= 2 ? 'white' : 'black');
-    const rules = parseSgfRu(sgfProps?.['RU']?.[0]) ?? get().settings.gameRules;
+    const safeHandicap = Number.isFinite(ha) ? Math.max(0, Math.min(ha, getMaxHandicap(boardSize))) : 0;
+    const rootPlayer: Player = pl ?? firstMovePlayer ?? (safeHandicap >= 2 ? 'white' : 'black');
+    const rules = parseSgfRu(sgfProps?.['RU']?.[0]) ?? state.settings.gameRules;
 
     const rootState: GameState = {
       board: currentBoard,
@@ -2749,12 +2806,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     const newRoot = createNode(null, null, rootState, 'root');
-    newRoot.properties = { RU: [rulesToSgfRu(rules)] };
+    newRoot.properties = { RU: [rulesToSgfRu(rules)], SZ: [String(boardSize)] };
+    if (safeHandicap > 0) {
+      newRoot.properties.HA = [String(safeHandicap)];
+      newRoot.properties.PL = ['W'];
+    }
 
     const applyKtAnalysis = (node: GameNode, kt: string[]) => {
       const decoded = decodeKaTrainKt({ kt });
       if (!decoded) return;
-      const analysis = kaTrainAnalysisToAnalysisResult({ analysis: decoded, currentPlayer: node.gameState.currentPlayer });
+      const analysis = kaTrainAnalysisToAnalysisResult({
+        analysis: decoded,
+        currentPlayer: node.gameState.currentPlayer,
+        boardSize,
+      });
       if (!analysis) return;
       node.analysis = analysis;
       const rootInfo = decoded.root as { visits?: unknown } | null;
@@ -2781,7 +2846,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!coord || coord.length < 2) return { x: -1, y: -1 };
       if (coord === 'tt') return { x: -1, y: -1 };
       const aCode = 'a'.charCodeAt(0);
-      return { x: coord.charCodeAt(0) - aCode, y: coord.charCodeAt(1) - aCode };
+      const x = coord.charCodeAt(0) - aCode;
+      const y = coord.charCodeAt(1) - aCode;
+      if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return { x: -1, y: -1 };
+      return { x, y };
     };
 
     const extractMove = (props: Record<string, string[]>): Move | null => {
@@ -2854,6 +2922,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (rootNote) newRoot.note = rootNote;
       delete rootPropsCopy['C'];
       if (!rootPropsCopy['RU']?.length) rootPropsCopy['RU'] = [rulesToSgfRu(rules)];
+      if (!rootPropsCopy['SZ']?.length) rootPropsCopy['SZ'] = [String(boardSize)];
       newRoot.properties = rootPropsCopy;
       const rootMove = extractMove(sgf.tree.props);
       if (!rootMove && sgf.tree.props['KT'] && !newRoot.analysis) {
@@ -2935,7 +3004,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       boardRotation: 0,
       analysisData: current.analysis || null,
 	      treeVersion: state.treeVersion + 1,
-	      settings: { ...state.settings, gameRules: rules },
+	      settings: { ...state.settings, gameRules: rules, defaultBoardSize: boardSize, defaultHandicap: safeHandicap },
 		    }));
 
 		    // KaTrain-like: start a quick background analysis of the whole mainline so graphs populate fast.
@@ -3026,6 +3095,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 const makeHeuristicMove = (store: GameStore) => {
     const { board, currentPlayer, currentNode } = store;
     const parentBoard = currentNode.parent ? currentNode.parent.gameState.board : undefined;
+    const boardSize = getBoardSizeFromBoard(board);
+    const center = (boardSize - 1) / 2;
+    const line3 = 2;
+    const line4 = 3;
+    const line3Far = boardSize - 3;
+    const line4Far = boardSize - 4;
 
     // 1. Get all legal moves
     const legalMoves = getLegalMoves(board, currentPlayer, parentBoard);
@@ -3080,7 +3155,7 @@ const makeHeuristicMove = (store: GameStore) => {
             {x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1}
         ];
         for (const n of neighbors) {
-            if (n.x >= 0 && n.x < BOARD_SIZE && n.y >= 0 && n.y < BOARD_SIZE) {
+            if (n.x >= 0 && n.x < boardSize && n.y >= 0 && n.y < boardSize) {
                 if (board[n.y][n.x] === currentPlayer) {
                     const groupLiberties = getLiberties(board, n.x, n.y).liberties;
                     if (groupLiberties === 1) {
@@ -3096,14 +3171,23 @@ const makeHeuristicMove = (store: GameStore) => {
 
         // E. Opening Heuristics (Corners > Edges > Center)
         if (store.moveHistory.length < 30) {
-             const distToCenter = Math.abs(x - 9) + Math.abs(y - 9); // Used indirectly
+             const distToCenter = Math.abs(x - center) + Math.abs(y - center); // Used indirectly
              // Prefer lines 3 and 4
-             const onLine3or4 = (x === 2 || x === 3 || x === 15 || x === 16) || (y === 2 || y === 3 || y === 15 || y === 16);
+             const onLine3or4 = (
+               x === line3 ||
+               x === line4 ||
+               x === line3Far ||
+               x === line4Far ||
+               y === line3 ||
+               y === line4 ||
+               y === line3Far ||
+               y === line4Far
+             );
 
              if (onLine3or4) score += 5;
 
              // Avoid 1-1, 2-2 early on
-             if (x <= 1 || x >= 17 || y <= 1 || y >= 17) score -= 5;
+             if (x <= 1 || x >= boardSize - 2 || y <= 1 || y >= boardSize - 2) score -= 5;
 
              // Add small bias for center if not on line 3/4
              if (!onLine3or4 && distToCenter < 6) score += 1;

@@ -1,4 +1,4 @@
-import { BOARD_SIZE, type CandidateMove, type GameNode, type Player } from '../types';
+import type { CandidateMove, GameNode, Player } from '../types';
 
 const ADDITIONAL_MOVE_ORDER = 999; // KaTrain core/constants.py
 
@@ -24,11 +24,11 @@ function bestCandidateMove(moves: CandidateMove[] | undefined): CandidateMove | 
   return moves.find((m) => m.order === 0) ?? moves[0] ?? null;
 }
 
-function xyToGtp(x: number, y: number): string {
+function xyToGtp(x: number, y: number, boardSize: number): string {
   if (x < 0 || y < 0) return 'pass';
   const col = x >= 8 ? x + 1 : x;
   const letter = String.fromCharCode(65 + col);
-  return `${letter}${BOARD_SIZE - y}`;
+  return `${letter}${boardSize - y}`;
 }
 
 function nodesForCurrentBranch(currentNode: GameNode): GameNode[] {
@@ -88,7 +88,8 @@ export function computeGameReport(args: {
   const thresholds = args.thresholds?.length ? args.thresholds : [12, 6, 3, 1.5, 0.5, 0];
   const depthFilter = args.depthFilter ?? null;
   const [fromFrac, toFrac] = depthFilter ?? [0, 1e9]; // KaTrain uses fractions of board area.
-  const boardSquares = BOARD_SIZE * BOARD_SIZE;
+  const boardSize = args.currentNode.gameState.board.length;
+  const boardSquares = boardSize * boardSize;
   const fromDepth = Math.ceil(fromFrac * boardSquares);
   const toDepth = Math.ceil(toFrac * boardSquares);
 
@@ -130,7 +131,7 @@ export function computeGameReport(args: {
         node: n,
         moveNumber: n.gameState.moveHistory.length,
         player,
-        move: xyToGtp(move.x, move.y),
+        move: xyToGtp(move.x, move.y, boardSize),
         pointsLost,
       });
       continue;
@@ -160,9 +161,9 @@ export function computeGameReport(args: {
       node: n,
       moveNumber: n.gameState.moveHistory.length,
       player,
-      move: xyToGtp(move.x, move.y),
+      move: xyToGtp(move.x, move.y, boardSize),
       pointsLost,
-      topMove: top ? xyToGtp(top.x, top.y) : undefined,
+      topMove: top ? xyToGtp(top.x, top.y, boardSize) : undefined,
       isTopMove: top ? top.x === move.x && top.y === move.y : undefined,
       pv: top?.pv,
     });

@@ -13,7 +13,7 @@ import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExpo
 import type { LibraryFile } from '../utils/library';
 import { loadLibrary } from '../utils/library';
 import { loadSgfOrOgs } from '../utils/ogs';
-import { BOARD_SIZE, type CandidateMove, type GameNode, type Player } from '../types';
+import type { CandidateMove, GameNode, Player } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundToHalf } from '../utils/manualScore';
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
@@ -184,6 +184,15 @@ export const Layout: React.FC = () => {
     }),
     shallow
   );
+
+  const boardSize = board.length;
+  const handicap = useMemo(() => {
+    const raw = rootNode.properties?.HA?.[0];
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    if (Number.isFinite(parsed)) return Math.max(0, parsed);
+    const abCount = rootNode.properties?.AB?.length ?? 0;
+    return abCount > 0 ? abCount : 0;
+  }, [rootNode.properties]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
@@ -599,7 +608,7 @@ export const Layout: React.FC = () => {
     let last: { idx: number; player: Player } | null = null;
     for (let i = 0; i < pv.length; i++) {
       if (i > upToMove) break;
-      const m = parseGtpMove(pv[i]!);
+      const m = parseGtpMove(pv[i]!, boardSize);
       if (m?.kind === 'pass') last = { idx: i + 1, player: i % 2 === 0 ? currentPlayer : opp };
     }
     return last;
@@ -683,7 +692,8 @@ export const Layout: React.FC = () => {
     if (!isAnalysisMode || !settings.analysisShowPolicy) return null;
     const policy = analysisData?.policy;
     if (!policy) return null;
-    const passPolicy = policy[BOARD_SIZE * BOARD_SIZE];
+    const boardSize = board.length;
+    const passPolicy = policy[boardSize * boardSize];
     if (!Number.isFinite(passPolicy)) return null;
     const polOrder = 5 - Math.trunc(-Math.log10(Math.max(1e-9, passPolicy - 1e-9)));
     if (polOrder < 0) return null;
@@ -1008,8 +1018,8 @@ export const Layout: React.FC = () => {
       {isNewGameOpen && (
         <NewGameModal
           onClose={() => setIsNewGameOpen(false)}
-          onStart={({ komi: nextKomi, rules, info, aiConfig, timerConfig }) => {
-            startNewGame({ komi: nextKomi, rules });
+          onStart={({ komi: nextKomi, rules, info, aiConfig, timerConfig, boardSize: nextBoardSize, handicap: nextHandicap }) => {
+            startNewGame({ komi: nextKomi, rules, boardSize: nextBoardSize, handicap: nextHandicap });
             setRootProperty('PB', info.blackName);
             setRootProperty('PW', info.whiteName);
             setRootProperty('BR', info.blackRank);
@@ -1092,6 +1102,8 @@ export const Layout: React.FC = () => {
           }}
           defaultKomi={komi}
           defaultRules={settings.gameRules}
+          defaultBoardSize={settings.defaultBoardSize}
+          defaultHandicap={settings.defaultHandicap}
           defaultInfo={defaultGameInfo}
           defaultAiConfig={defaultAiConfig}
           defaultTimerConfig={defaultTimerConfig}
@@ -1395,6 +1407,8 @@ export const Layout: React.FC = () => {
         blackName={blackName}
         whiteName={whiteName}
         komi={komi}
+        boardSize={boardSize}
+        handicap={handicap}
         moveCount={moveHistory.length}
         capturedBlack={capturedBlack}
         capturedWhite={capturedWhite}

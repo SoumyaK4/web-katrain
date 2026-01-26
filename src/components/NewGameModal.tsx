@@ -1,5 +1,6 @@
 import React from 'react';
-import type { GameRules, GameSettings, Player } from '../types';
+import type { BoardSize, GameRules, GameSettings, Player } from '../types';
+import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
 
 export type GameInfoValues = {
   blackName: string;
@@ -71,12 +72,16 @@ interface NewGameModalProps {
   onStart: (opts: {
     komi: number;
     rules: GameRules;
+    boardSize: BoardSize;
+    handicap: number;
     info: GameInfoValues;
     aiConfig: AiConfigValues;
     timerConfig: TimerConfigValues;
   }) => void;
   defaultKomi: number;
   defaultRules: GameRules;
+  defaultBoardSize: BoardSize;
+  defaultHandicap: number;
   defaultInfo: GameInfoValues;
   defaultAiConfig: AiConfigValues;
   defaultTimerConfig: TimerConfigValues;
@@ -87,15 +92,20 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   onStart,
   defaultKomi,
   defaultRules,
+  defaultBoardSize,
+  defaultHandicap,
   defaultInfo,
   defaultAiConfig,
   defaultTimerConfig,
 }) => {
   const [komi, setKomi] = React.useState(() => defaultKomi);
   const [rules, setRules] = React.useState<GameRules>(() => defaultRules);
+  const [boardSize, setBoardSize] = React.useState<BoardSize>(() => defaultBoardSize);
+  const [handicap, setHandicap] = React.useState(() => defaultHandicap);
   const [gameInfo, setGameInfo] = React.useState<GameInfoValues>(() => defaultInfo);
   const [aiConfig, setAiConfig] = React.useState<AiConfigValues>(() => defaultAiConfig);
   const [timerConfig, setTimerConfig] = React.useState<TimerConfigValues>(() => defaultTimerConfig);
+  const maxHandicap = React.useMemo(() => getMaxHandicap(boardSize), [boardSize]);
 
   const showAiOptions = aiConfig.opponent !== 'none';
   const updateAiConfig = (patch: Partial<AiConfigValues>) =>
@@ -104,6 +114,10 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
     setTimerConfig((prev) => ({ ...prev, ...patch }));
   const aiColor = aiConfig.opponent === 'none' ? null : aiConfig.opponent;
   const humanColor = aiColor === 'black' ? 'white' : aiColor === 'white' ? 'black' : null;
+
+  React.useEffect(() => {
+    setHandicap((prev) => Math.max(0, Math.min(prev, maxHandicap)));
+  }, [maxHandicap]);
 
   React.useEffect(() => {
     if (!aiColor) return;
@@ -258,11 +272,15 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[var(--ui-text-muted)] text-sm">Board Size</label>
-              <input
-                value="19"
-                disabled
-                className="w-full ui-input text-[var(--ui-text-muted)] rounded px-2 py-2 text-sm border"
-              />
+              <select
+                value={boardSize}
+                onChange={(e) => setBoardSize(Number(e.target.value) as BoardSize)}
+                className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+              >
+                {BOARD_SIZES.map((size) => (
+                  <option key={size} value={size}>{size}×{size}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               <label className="text-[var(--ui-text-muted)] text-sm">Rules</label>
@@ -277,15 +295,33 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               </select>
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[var(--ui-text-muted)] text-sm">Komi</label>
-            <input
-              type="number"
-              step="0.5"
-              value={komi}
-              onChange={(e) => setKomi(Number(e.target.value))}
-              className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[var(--ui-text-muted)] text-sm">Komi</label>
+              <input
+                type="number"
+                step="0.5"
+                value={komi}
+                onChange={(e) => setKomi(Number(e.target.value))}
+                className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[var(--ui-text-muted)] text-sm">Handicap Stones</label>
+              <input
+                type="number"
+                min={0}
+                max={maxHandicap}
+                step={1}
+                value={handicap}
+                onChange={(e) => {
+                  const next = Number.parseInt(e.target.value || '0', 10);
+                  setHandicap(Math.max(0, Math.min(Number.isFinite(next) ? next : 0, maxHandicap)));
+                }}
+                className="w-full ui-input text-[var(--ui-text)] rounded px-2 py-2 text-sm border"
+              />
+              <div className="text-[11px] ui-text-faint">Placed on star points; White plays first.</div>
+            </div>
           </div>
           <div className="space-y-3">
             <div className="text-xs uppercase tracking-wide ui-text-faint">Clock</div>
@@ -888,7 +924,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
             )}
           </div>
           <div className="text-xs ui-text-faint">
-            Start a new 19×19 game with the selected rules and optional game info.
+            Start a new {boardSize}×{boardSize} game with the selected rules and optional game info.
           </div>
         </div>
         <div className="px-4 py-3 border-t border-[var(--ui-border)] flex justify-end gap-2 ui-bar">
@@ -904,6 +940,8 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               onStart({
                 komi: Number.isFinite(komi) ? komi : defaultKomi,
                 rules,
+                boardSize,
+                handicap,
                 info: gameInfo,
                 aiConfig,
                 timerConfig,

@@ -1,19 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SIZE, type CandidateMove, type GameNode } from '../types';
+import { DEFAULT_BOARD_SIZE, type CandidateMove, type GameNode } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { publicUrl } from '../utils/publicUrl';
 import { getBoardTheme } from '../utils/boardThemes';
+import { getHoshiPoints, normalizeBoardSize } from '../utils/boardSize';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
-const HOSHI_POINTS_19 = [
-  [3, 3], [3, 9], [3, 15],
-  [9, 3], [9, 9], [9, 15],
-  [15, 3], [15, 9], [15, 15],
-] as const;
-
 const OWNERSHIP_COLORS = {
   black: [0.0, 0.0, 0.1, 0.75],
   white: [0.92, 0.92, 1.0, 0.8],
@@ -153,6 +148,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     shallow
   );
   const pvOverlayEnabled = isAnalysisMode || forcePvOverlay;
+  const boardSize = normalizeBoardSize(board.length, DEFAULT_BOARD_SIZE);
+  const hoshiPoints = useMemo(() => getHoshiPoints(boardSize), [boardSize]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const boardSnapshotRef = useRef<HTMLDivElement>(null);
@@ -267,8 +264,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     [settings.showCoordinates]
   );
 
-  const xGridSpaces = (BOARD_SIZE - 1) + gridSpacesMarginX.left + gridSpacesMarginX.right;
-  const yGridSpaces = (BOARD_SIZE - 1) + gridSpacesMarginY.bottom + gridSpacesMarginY.top;
+  const xGridSpaces = (boardSize - 1) + gridSpacesMarginX.left + gridSpacesMarginX.right;
+  const yGridSpaces = (boardSize - 1) + gridSpacesMarginY.bottom + gridSpacesMarginY.top;
 
   const cellSize = useMemo(() => {
     const w = containerSize.width > 0 ? containerSize.width : 640;
@@ -307,34 +304,35 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 
   // KaTrain-style coordinates and rotation behavior.
   const GTP_COORD = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'] as const;
+  const gtpCoord = GTP_COORD.slice(0, boardSize);
   const rotation = boardRotation ?? 0;
   const getXCoordinateText = (i: number): string => {
     if (rotation === 1) return String(i + 1);
-    if (rotation === 2) return GTP_COORD[BOARD_SIZE - i - 1] ?? '';
-    if (rotation === 3) return String(BOARD_SIZE - i);
-    return GTP_COORD[i] ?? '';
+    if (rotation === 2) return gtpCoord[boardSize - i - 1] ?? '';
+    if (rotation === 3) return String(boardSize - i);
+    return gtpCoord[i] ?? '';
   };
   const getYCoordinateText = (displayRowTopToBottom: number): string => {
-    const i = BOARD_SIZE - 1 - displayRowTopToBottom; // KaTrain uses bottom-to-top indexing for y labels.
-    if (rotation === 1) return GTP_COORD[BOARD_SIZE - i - 1] ?? '';
-    if (rotation === 2) return String(BOARD_SIZE - i);
-    if (rotation === 3) return GTP_COORD[i] ?? '';
+    const i = boardSize - 1 - displayRowTopToBottom; // KaTrain uses bottom-to-top indexing for y labels.
+    if (rotation === 1) return gtpCoord[boardSize - i - 1] ?? '';
+    if (rotation === 2) return String(boardSize - i);
+    if (rotation === 3) return gtpCoord[i] ?? '';
     return String(i + 1);
   };
 
   const toDisplay = useCallback((x: number, y: number): { x: number; y: number } => {
-    if (rotation === 1) return { x: BOARD_SIZE - 1 - y, y: x };
-    if (rotation === 2) return { x: BOARD_SIZE - 1 - x, y: BOARD_SIZE - 1 - y };
-    if (rotation === 3) return { x: y, y: BOARD_SIZE - 1 - x };
+    if (rotation === 1) return { x: boardSize - 1 - y, y: x };
+    if (rotation === 2) return { x: boardSize - 1 - x, y: boardSize - 1 - y };
+    if (rotation === 3) return { x: y, y: boardSize - 1 - x };
     return { x, y };
-  }, [rotation]);
+  }, [boardSize, rotation]);
 
   const toInternal = useCallback((x: number, y: number): { x: number; y: number } => {
-    if (rotation === 1) return { x: y, y: BOARD_SIZE - 1 - x };
-    if (rotation === 2) return { x: BOARD_SIZE - 1 - x, y: BOARD_SIZE - 1 - y };
-    if (rotation === 3) return { x: BOARD_SIZE - 1 - y, y: x };
+    if (rotation === 1) return { x: y, y: boardSize - 1 - x };
+    if (rotation === 2) return { x: boardSize - 1 - x, y: boardSize - 1 - y };
+    if (rotation === 3) return { x: boardSize - 1 - y, y: x };
     return { x, y };
-  }, [rotation]);
+  }, [boardSize, rotation]);
 
   // Theme styling
   const boardColor = boardTheme.board.backgroundColor;
@@ -348,8 +346,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 
   const moveNumbers = useMemo(() => {
     if (!settings.showMoveNumbers) return null;
-    const grid: Array<Array<number | null>> = Array.from({ length: BOARD_SIZE }, () =>
-      Array<number | null>(BOARD_SIZE).fill(null)
+    const grid: Array<Array<number | null>> = Array.from({ length: boardSize }, () =>
+      Array<number | null>(boardSize).fill(null)
     );
     for (let i = 0; i < moveHistory.length; i++) {
       const m = moveHistory[i]!;
@@ -357,7 +355,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       grid[m.y]![m.x] = i + 1;
     }
     return grid;
-  }, [moveHistory, settings.showMoveNumbers]);
+  }, [boardSize, moveHistory, settings.showMoveNumbers]);
 
   const childMoveRings = useMemo(() => {
     if (!isAnalysisMode || !settings.analysisShowChildren) return [];
@@ -408,12 +406,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 
     const startX = originX;
     const startY = originY;
-    const endX = originX + cellSize * (BOARD_SIZE - 1);
-    const endY = originY + cellSize * (BOARD_SIZE - 1);
+    const endX = originX + cellSize * (boardSize - 1);
+    const endY = originY + cellSize * (boardSize - 1);
     ctx.lineWidth = 1;
     ctx.strokeStyle = lineColor;
     ctx.beginPath();
-    for (let i = 0; i < BOARD_SIZE; i++) {
+    for (let i = 0; i < boardSize; i++) {
       const x = originX + i * cellSize + 0.5;
       ctx.moveTo(x, startY);
       ctx.lineTo(x, endY);
@@ -425,7 +423,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 
     ctx.fillStyle = lineColor;
     const r = cellSize * 0.1;
-    for (const [hx, hy] of HOSHI_POINTS_19) {
+    for (const [hx, hy] of hoshiPoints) {
       const d = toDisplay(hx, hy);
       const cx = originX + d.x * cellSize;
       const cy = originY + d.y * cellSize;
@@ -433,7 +431,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [cellSize, lineColor, originX, originY, setupOverlayCanvas, toDisplay]);
+  }, [boardSize, cellSize, hoshiPoints, lineColor, originX, originY, setupOverlayCanvas, toDisplay]);
 
   useEffect(() => {
     const canvas = stonesCanvasRef.current;
@@ -454,8 +452,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     ctx.font =
       `bold ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
 
-    for (let y = 0; y < BOARD_SIZE; y++) {
-      for (let x = 0; x < BOARD_SIZE; x++) {
+    for (let y = 0; y < boardSize; y++) {
+      for (let x = 0; x < boardSize; x++) {
         const cell = board[y]?.[x] ?? null;
         if (!cell) continue;
         const d = toDisplay(x, y);
@@ -742,9 +740,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     const displayCol = Math.round((x - originX) / cellSize);
     const displayRow = Math.round((y - originY) / cellSize);
 
-    if (displayCol >= 0 && displayCol < BOARD_SIZE && displayRow >= 0 && displayRow < BOARD_SIZE) {
+    if (displayCol >= 0 && displayCol < boardSize && displayRow >= 0 && displayRow < boardSize) {
       const { x: col, y: row } = toInternal(displayCol, displayRow);
-      if (col < 0 || col >= BOARD_SIZE || row < 0 || row >= BOARD_SIZE) return null;
+      if (col < 0 || col >= boardSize || row < 0 || row >= boardSize) return null;
       return { x: col, y: row };
     }
     return null;
@@ -795,9 +793,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     const displayCol = Math.round((localX - originX) / cellSize);
     const displayRow = Math.round((localY - originY) / cellSize);
     let pt: { x: number; y: number } | null = null;
-    if (displayCol >= 0 && displayCol < BOARD_SIZE && displayRow >= 0 && displayRow < BOARD_SIZE) {
+    if (displayCol >= 0 && displayCol < boardSize && displayRow >= 0 && displayRow < boardSize) {
       const internal = toInternal(displayCol, displayRow);
-      if (internal.x >= 0 && internal.x < BOARD_SIZE && internal.y >= 0 && internal.y < BOARD_SIZE) {
+      if (internal.x >= 0 && internal.x < boardSize && internal.y >= 0 && internal.y < boardSize) {
         pt = internal;
       }
     }
@@ -866,8 +864,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     if (!isAnalysisMode || !settings.analysisShowOwnership) return null;
     if (!territory) return null;
 
-    const width = BOARD_SIZE + 2;
-    const height = BOARD_SIZE + 2;
+    const width = boardSize + 2;
+    const height = boardSize + 2;
     const bytes = new Uint8ClampedArray(width * height * 4);
 
     for (let y = 0; y < height; y++) {
@@ -875,9 +873,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
         const displayX = x - 1;
         const displayY = y - 1;
 
-        const inBoard = displayX >= 0 && displayX < BOARD_SIZE && displayY >= 0 && displayY < BOARD_SIZE;
-        const clampedDisplayX = Math.max(0, Math.min(displayX, BOARD_SIZE - 1));
-        const clampedDisplayY = Math.max(0, Math.min(displayY, BOARD_SIZE - 1));
+        const inBoard = displayX >= 0 && displayX < boardSize && displayY >= 0 && displayY < boardSize;
+        const clampedDisplayX = Math.max(0, Math.min(displayX, boardSize - 1));
+        const clampedDisplayY = Math.max(0, Math.min(displayY, boardSize - 1));
         const internal = toInternal(clampedDisplayX, clampedDisplayY);
 
         const val = territory[internal.y]?.[internal.x] ?? 0;
@@ -896,7 +894,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     }
 
     return { width, height, bytes };
-  }, [isAnalysisMode, settings.analysisShowOwnership, territory, toInternal]);
+  }, [boardSize, isAnalysisMode, settings.analysisShowOwnership, territory, toInternal]);
 
   useEffect(() => {
     const canvas = ownershipCanvasRef.current;
@@ -1045,7 +1043,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     if (!policy) return;
 
     let best = 0;
-    for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+    for (let i = 0; i < boardSize * boardSize; i++) {
       const v = policy[i] ?? -1;
       if (v > best) best = v;
     }
@@ -1059,9 +1057,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     ctx.font =
       `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
 
-    for (let y = 0; y < BOARD_SIZE; y++) {
-      for (let x = 0; x < BOARD_SIZE; x++) {
-        const p = policy[y * BOARD_SIZE + x] ?? -1;
+    for (let y = 0; y < boardSize; y++) {
+      for (let x = 0; x < boardSize; x++) {
+        const p = policy[y * boardSize + x] ?? -1;
         if (p < 0) continue;
         const d = toDisplay(x, y);
         const polOrder = Math.max(0, 5 + Math.trunc(Math.log10(Math.max(1e-9, p - 1e-9))));
@@ -1100,6 +1098,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   }, [
     analysisData,
     approxBoardColor,
+    boardSize,
     cellSize,
     evalColors,
     isAnalysisMode,
@@ -1248,7 +1247,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
 	      const moves: Array<{ x: number; y: number; player: typeof currentPlayer; idx: number }> = [];
 	      for (let i = 0; i < pv.length; i++) {
 	          if (i > upToMove) break;
-	          const m = parseGtpMove(pv[i]!);
+	          const m = parseGtpMove(pv[i]!, boardSize);
 	          if (!m || m.kind !== 'move') continue;
 	          const d = toDisplay(m.x, m.y);
 	          moves.push({ x: d.x, y: d.y, player: i % 2 === 0 ? currentPlayer : opp, idx: i + 1 });
@@ -1338,11 +1337,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   const passCircle = useMemo(() => {
     const m = lastMove;
     if (!m || m.x >= 0 || m.y >= 0) return null;
-    const cx = originX + ((BOARD_SIZE - 1) / 2) * cellSize;
-    const cy = originY + ((BOARD_SIZE - 1) / 2) * cellSize;
+    const cx = originX + ((boardSize - 1) / 2) * cellSize;
+    const cy = originY + ((boardSize - 1) / 2) * cellSize;
     const size = Math.min(boardWidth, boardHeight) * 0.227;
     return { cx, cy, size };
-  }, [boardHeight, boardWidth, cellSize, lastMove, originX, originY]);
+  }, [boardHeight, boardWidth, boardSize, cellSize, lastMove, originX, originY]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center">
@@ -1385,13 +1384,13 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       {settings.showCoordinates && (
           <>
             {/* Bottom Labels (KaTrain draws x coords at the bottom edge) */}
-            {Array.from({ length: BOARD_SIZE }).map((_, i) => (
+            {Array.from({ length: boardSize }).map((_, i) => (
                 <div
                     key={`bottom-${i}`}
                     className="absolute font-bold"
                     style={{
                     left: originX + i * cellSize,
-                    top: originY + (BOARD_SIZE - 1) * cellSize + coordOffset,
+                    top: originY + (boardSize - 1) * cellSize + coordOffset,
                     transform: 'translate(-50%, -50%)',
                     fontSize: cellSize / 1.5,
                     color: labelColor,
@@ -1403,7 +1402,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
                 </div>
             ))}
             {/* Left Labels (KaTrain draws y coords at the left edge) */}
-            {Array.from({ length: BOARD_SIZE }).map((_, i) => (
+            {Array.from({ length: boardSize }).map((_, i) => (
                 <div
                     key={`left-${i}`}
                     className="absolute font-bold"
@@ -1445,8 +1444,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
           style={{
             left: originX - cellSize * 1.5,
             top: originY - cellSize * 1.5,
-            width: cellSize * (BOARD_SIZE + 2),
-            height: cellSize * (BOARD_SIZE + 2),
+            width: cellSize * (boardSize + 2),
+            height: cellSize * (boardSize + 2),
             zIndex: 3,
           }}
         />

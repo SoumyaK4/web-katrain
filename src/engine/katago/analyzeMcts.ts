@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import type { BoardState, FloatArray, GameRules, Move, Player, RegionOfInterest } from '../../types';
 import { postprocessKataGoV8 } from './evalV8';
 import type { KataGoModelV8Tf } from './modelV8';
-import { expectedWhiteScoreValue, SQRT_BOARD_AREA } from './scoreValue';
+import { expectedWhiteScoreValue, getSqrtBoardArea } from './scoreValue';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from './limits';
 import {
   BLACK,
@@ -55,14 +55,21 @@ type ExpandScratch = {
   order: number[];
 };
 
-// Reuse buffers in the tight expansion loop to reduce GC churn.
-const EXPAND_SCRATCH: ExpandScratch = {
-  moves: new Int16Array(BOARD_AREA),
-  logits: new Float32Array(BOARD_AREA),
-  priors: new Float64Array(BOARD_AREA),
-  topMoves: new Int16Array(BOARD_AREA),
-  topPriors: new Float64Array(BOARD_AREA),
-  order: [],
+let expandScratch: ExpandScratch | null = null;
+let expandScratchBoardArea = 0;
+const getExpandScratch = (): ExpandScratch => {
+  if (!expandScratch || expandScratchBoardArea !== BOARD_AREA) {
+    expandScratch = {
+      moves: new Int16Array(BOARD_AREA),
+      logits: new Float32Array(BOARD_AREA),
+      priors: new Float64Array(BOARD_AREA),
+      topMoves: new Int16Array(BOARD_AREA),
+      topPriors: new Float64Array(BOARD_AREA),
+      order: [],
+    };
+    expandScratchBoardArea = BOARD_AREA;
+  }
+  return expandScratch;
 };
 
 class Node {
@@ -196,10 +203,11 @@ function expandNode(args: {
   const opp = opponentOf(pla);
   const sym = args.policyLogitsSymmetry ?? 0;
   const symOff = sym * BOARD_AREA;
+  const symPosMap = sym === 0 ? null : getSymPosMap();
 
   const libs = args.libertyMap ?? computeLibertyMap(stones);
 
-  const scratch = EXPAND_SCRATCH;
+  const scratch = getExpandScratch();
   const movesScratch = scratch.moves;
   const logitsScratch = scratch.logits;
   const priorsScratch = scratch.priors;
@@ -240,7 +248,7 @@ function expandNode(args: {
     }
 
     if (!hasEmptyNeighbor && !captures && !connectsToSafeGroup) continue;
-    const symPos = sym === 0 ? p : SYM_POS_MAP[symOff + p]!;
+    const symPos = sym === 0 ? p : symPosMap![symOff + p]!;
     const logit = policyLogits[symPos]! * policyScale;
     movesScratch[moveCount] = p;
     logitsScratch[moveCount] = logit;
@@ -376,8 +384,9 @@ async function buildRootEval(args: {
     const rootOwnershipSign = args.currentPlayer === 'black' ? 1 : -1;
     const rootSym = rootEval.symmetry;
     const rootSymOff = rootSym * BOARD_AREA;
+    const symPosMap = rootSym === 0 ? null : getSymPosMap();
     for (let i = 0; i < BOARD_AREA; i++) {
-      const symPos = rootSym === 0 ? i : SYM_POS_MAP[rootSymOff + i]!;
+      const symPos = rootSym === 0 ? i : symPosMap![rootSymOff + i]!;
       rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[symPos]! * args.outputScaleMultiplier);
     }
   }
@@ -433,7 +442,7 @@ const NO_RESULT_UTILITY_FOR_WHITE: number = 0.0;
 
 function computeRecentScoreCenter(expectedWhiteScore: number): number {
   let recentScoreCenter = expectedWhiteScore * (1.0 - DYNAMIC_SCORE_CENTER_ZERO_WEIGHT);
-  const cap = SQRT_BOARD_AREA * DYNAMIC_SCORE_CENTER_SCALE;
+  const cap = getSqrtBoardArea() * DYNAMIC_SCORE_CENTER_SCALE;
   if (recentScoreCenter > expectedWhiteScore + cap) recentScoreCenter = expectedWhiteScore + cap;
   if (recentScoreCenter < expectedWhiteScore - cap) recentScoreCenter = expectedWhiteScore - cap;
   return recentScoreCenter;
@@ -446,6 +455,7 @@ function computeBlackUtilityFromEval(args: {
   blackScoreStdev: number;
   recentScoreCenter: number; // white score center
 }): number {
+  const sqrtBoardArea = getSqrtBoardArea();
   const blackLossProb = 1.0 - args.blackWinProb - args.blackNoResultProb;
   const whiteWinLossValue = blackLossProb - args.blackWinProb;
   const whiteScoreMean = -args.blackScoreMean;
@@ -456,7 +466,7 @@ function computeBlackUtilityFromEval(args: {
     whiteScoreStdev,
     center: 0.0,
     scale: 2.0,
-    sqrtBoardArea: SQRT_BOARD_AREA,
+    sqrtBoardArea,
   });
 
   const dynamicScoreValue =
@@ -467,7 +477,7 @@ function computeBlackUtilityFromEval(args: {
           whiteScoreStdev,
           center: args.recentScoreCenter,
           scale: DYNAMIC_SCORE_CENTER_SCALE,
-          sqrtBoardArea: SQRT_BOARD_AREA,
+          sqrtBoardArea,
         });
 
   const whiteUtility =
@@ -955,16 +965,16 @@ function selectEdge(node: Node, isRoot: boolean, wideRootNoise: number, rand: Ra
     let childUtility = child && child.visits > 0 ? child.utilitySum / child.visits : fpuValue;
     let prior = e.prior;
 
-	    if (applyWideRootNoise) {
-	      // Mirrors KataGo's wideRootNoise: smooth policy and add random utility bonuses (root only).
-	      prior = Math.pow(prior, wideRootNoisePolicyExponent);
-		      if (rand.nextBool(0.5)) {
-		        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
-		        // Utility is stored from black's perspective in this port; adjust so that
-		        // the player's-perspective selection value (explore + sign*utility) gets +bonus.
-		        childUtility += pla === BLACK ? bonus : -bonus;
-		      }
-		    }
+    if (applyWideRootNoise) {
+      // Mirrors KataGo's wideRootNoise: smooth policy and add random utility bonuses (root only).
+      prior = Math.pow(prior, wideRootNoisePolicyExponent);
+      if (rand.nextBool(0.5)) {
+        const bonus = wideRootNoise * Math.abs(rand.nextGaussian());
+        // Utility is stored from black's perspective in this port; adjust so that
+        // the player's-perspective selection value (explore + sign*utility) gets +bonus.
+        childUtility += pla === BLACK ? bonus : -bonus;
+      }
+    }
 
     const explore = (scaling * prior) / (1.0 + childWeight);
     const score = explore + sign * childUtility;
@@ -1020,7 +1030,10 @@ function getPvForEdge(edge: Edge, maxDepth: number): string[] {
 }
 
 const NUM_SYMMETRIES = 8;
-const SYM_POS_MAP: Int16Array = (() => {
+let symPosMapBoardArea = 0;
+let SYM_POS_MAP = new Int16Array(0);
+
+const buildSymPosMap = (): Int16Array => {
   const n = BOARD_SIZE;
   const map = new Int16Array(NUM_SYMMETRIES * BOARD_AREA);
   for (let sym = 0; sym < NUM_SYMMETRIES; sym++) {
@@ -1051,7 +1064,16 @@ const SYM_POS_MAP: Int16Array = (() => {
     }
   }
   return map;
-})();
+};
+
+const getSymPosMap = (): Int16Array => {
+  const expectedSize = NUM_SYMMETRIES * BOARD_AREA;
+  if (symPosMapBoardArea !== BOARD_AREA || SYM_POS_MAP.length !== expectedSize) {
+    SYM_POS_MAP = buildSymPosMap();
+    symPosMapBoardArea = BOARD_AREA;
+  }
+  return SYM_POS_MAP;
+};
 
 type EvalBatchScratch = {
   spatialBatch: Float32Array;
@@ -1069,13 +1091,20 @@ type EvalBatchScratch = {
   passScratch: Float32Array;
 };
 
-const EMPTY_AREA_MAP = new Uint8Array(BOARD_AREA);
+let EMPTY_AREA_MAP = new Uint8Array(BOARD_AREA);
 
 let evalScratchNoArea: EvalBatchScratch | null = null;
 let evalScratchWithArea: EvalBatchScratch | null = null;
+let evalScratchBoardArea = BOARD_AREA;
 
 function getEvalScratch(args: { batch: number; includeAreaFeature: boolean }): EvalBatchScratch {
   const { batch, includeAreaFeature } = args;
+  if (evalScratchBoardArea !== BOARD_AREA) {
+    evalScratchNoArea = null;
+    evalScratchWithArea = null;
+    evalScratchBoardArea = BOARD_AREA;
+    EMPTY_AREA_MAP = new Uint8Array(BOARD_AREA);
+  }
   const neededSpatial = batch * BOARD_AREA * 22;
   const neededGlobal = batch * 19;
   const neededMaps = batch * BOARD_AREA;
@@ -1263,9 +1292,10 @@ async function evaluateBatch(args: {
       spatialBatch.set(spatialScratch, spatialOffset);
     } else {
       const symOff = sym * BOARD_AREA;
+      const symPosMap = getSymPosMap();
       const src = spatialScratch;
       for (let pos = 0; pos < BOARD_AREA; pos++) {
-        const dstPos = SYM_POS_MAP[symOff + pos]!;
+        const dstPos = symPosMap[symOff + pos]!;
         const srcBase = pos * 22;
         const dstBase = spatialOffset + dstPos * 22;
         for (let c = 0; c < 22; c++) {
@@ -1935,8 +1965,9 @@ export class MctsSearch {
           const own = new Float32Array(BOARD_AREA);
           const sym = ev.symmetry;
           const symOff = sym * BOARD_AREA;
+          const symPosMap = sym === 0 ? null : getSymPosMap();
           for (let p = 0; p < BOARD_AREA; p++) {
-            const symPos = sym === 0 ? p : SYM_POS_MAP[symOff + p]!;
+            const symPos = sym === 0 ? p : symPosMap![symOff + p]!;
             own[p] = ownershipSign * Math.tanh(ev.ownership[symPos]! * this.outputScaleMultiplier);
           }
           job.leaf.ownership = own;
@@ -2285,8 +2316,9 @@ export async function analyzeMcts(args: {
   const rootOwnership = new Float32Array(BOARD_AREA);
   const rootSym = rootEval.symmetry;
   const rootSymOff = rootSym * BOARD_AREA;
+  const symPosMap = rootSym === 0 ? null : getSymPosMap();
   for (let i = 0; i < BOARD_AREA; i++) {
-    const symPos = rootSym === 0 ? i : SYM_POS_MAP[rootSymOff + i]!;
+    const symPos = rootSym === 0 ? i : symPosMap![rootSymOff + i]!;
     rootOwnership[i] = rootOwnershipSign * Math.tanh(rootEval.ownership[symPos]! * outputScaleMultiplier);
   }
 
@@ -2317,15 +2349,15 @@ export async function analyzeMcts(args: {
     blackScoreStdev: rootEval.blackScoreStdev,
     recentScoreCenter,
   });
-		  rootNode.visits = 1;
-		  rootNode.valueSum = rootValue;
-		  rootNode.scoreLeadSum = rootEval.blackScoreLead;
-		  rootNode.scoreMeanSum = rootEval.blackScoreMean;
-		  const rootScoreMeanSq = rootEval.blackScoreStdev * rootEval.blackScoreStdev + rootEval.blackScoreMean * rootEval.blackScoreMean;
-		  rootNode.scoreMeanSqSum = rootScoreMeanSq;
-		  rootNode.utilitySum = rootUtility;
-		  rootNode.utilitySqSum = rootUtility * rootUtility;
-		  rootNode.nnUtility = rootUtility;
+  rootNode.visits = 1;
+  rootNode.valueSum = rootValue;
+  rootNode.scoreLeadSum = rootEval.blackScoreLead;
+  rootNode.scoreMeanSum = rootEval.blackScoreMean;
+  const rootScoreMeanSq = rootEval.blackScoreStdev * rootEval.blackScoreStdev + rootEval.blackScoreMean * rootEval.blackScoreMean;
+  rootNode.scoreMeanSqSum = rootScoreMeanSq;
+  rootNode.utilitySum = rootUtility;
+  rootNode.utilitySqSum = rootUtility * rootUtility;
+  rootNode.nnUtility = rootUtility;
 
   const sim: SimPosition = { stones: rootStones.slice(), koPoint: rootKoPoint };
   const captureStack: number[] = [];
@@ -2334,13 +2366,13 @@ export async function analyzeMcts(args: {
   const undoSnapshots: UndoSnapshot[] = [];
   const pathMoves: RecentMove[] = [];
 
-	  const deadline = performance.now() + maxTimeMs;
-	  let timeCheckCounter = 0;
-	  const timeCheckMask = 0x1f;
-	  const timeExceeded = (): boolean => {
-	    if ((timeCheckCounter++ & timeCheckMask) !== 0) return false;
-	    return performance.now() >= deadline;
-	  };
+  const deadline = performance.now() + maxTimeMs;
+  let timeCheckCounter = 0;
+  const timeCheckMask = 0x1f;
+  const timeExceeded = (): boolean => {
+    if ((timeCheckCounter++ & timeCheckMask) !== 0) return false;
+    return performance.now() >= deadline;
+  };
 
   while (rootNode.visits < maxVisits && !timeExceeded()) {
     const jobs: Array<{
@@ -2372,9 +2404,9 @@ export async function analyzeMcts(args: {
       let node = rootNode;
       let player = rootNode.playerToMove;
 
-		      while (node.edges && node.edges.length > 0) {
-		        const e = selectEdge(node, node === rootNode, wideRootNoise, rand);
-		        const move = e.move;
+      while (node.edges && node.edges.length > 0) {
+        const e = selectEdge(node, node === rootNode, wideRootNoise, rand);
+        const move = e.move;
 
         const snapshot = playMove(sim, move, player, captureStack);
         undoMoves.push(move);
@@ -2484,45 +2516,46 @@ export async function analyzeMcts(args: {
       const own = new Float32Array(BOARD_AREA);
       const sym = ev.symmetry;
       const symOff = sym * BOARD_AREA;
+      const symPosMap = sym === 0 ? null : getSymPosMap();
       for (let p = 0; p < BOARD_AREA; p++) {
-        const symPos = sym === 0 ? p : SYM_POS_MAP[symOff + p]!;
+        const symPos = sym === 0 ? p : symPosMap![symOff + p]!;
         own[p] = ownershipSign * Math.tanh(ev.ownership[symPos]! * outputScaleMultiplier);
       }
       job.leaf.ownership = own;
 
-		    expandNode({
-		      node: job.leaf,
-		      stones: job.stones,
-		      koPoint: job.koPoint,
-      policyLogits: ev.policy,
-      policyLogitsSymmetry: ev.symmetry,
-      passLogit: ev.passLogit,
-      maxChildren,
-		      libertyMap: ev.libertyMap,
-		      policyOutputScaling: outputScaleMultiplier,
-		    });
+      expandNode({
+        node: job.leaf,
+        stones: job.stones,
+        koPoint: job.koPoint,
+        policyLogits: ev.policy,
+        policyLogitsSymmetry: ev.symmetry,
+        passLogit: ev.passLogit,
+        maxChildren,
+        libertyMap: ev.libertyMap,
+        policyOutputScaling: outputScaleMultiplier,
+      });
 
-	      const leafValue = 2 * ev.blackWinProb - 1;
-	      const leafUtility = computeBlackUtilityFromEval({
-	        blackWinProb: ev.blackWinProb,
-	        blackNoResultProb: ev.blackNoResultProb,
-	        blackScoreMean: ev.blackScoreMean,
-	        blackScoreStdev: ev.blackScoreStdev,
-	        recentScoreCenter,
-	      });
-	      job.leaf.nnUtility = leafUtility;
-	      for (const n of job.path) {
-	        n.visits += 1;
-	        n.valueSum += leafValue;
-	        n.scoreLeadSum += ev.blackScoreLead;
-	        n.scoreMeanSum += ev.blackScoreMean;
-	        n.scoreMeanSqSum += ev.blackScoreStdev * ev.blackScoreStdev + ev.blackScoreMean * ev.blackScoreMean;
-	        n.utilitySum += leafUtility;
-	        n.utilitySqSum += leafUtility * leafUtility;
-	        n.inFlight -= 1;
-	      }
-	      job.leaf.pendingEval = false;
-	    }
+      const leafValue = 2 * ev.blackWinProb - 1;
+      const leafUtility = computeBlackUtilityFromEval({
+        blackWinProb: ev.blackWinProb,
+        blackNoResultProb: ev.blackNoResultProb,
+        blackScoreMean: ev.blackScoreMean,
+        blackScoreStdev: ev.blackScoreStdev,
+        recentScoreCenter,
+      });
+      job.leaf.nnUtility = leafUtility;
+      for (const n of job.path) {
+        n.visits += 1;
+        n.valueSum += leafValue;
+        n.scoreLeadSum += ev.blackScoreLead;
+        n.scoreMeanSum += ev.blackScoreMean;
+        n.scoreMeanSqSum += ev.blackScoreStdev * ev.blackScoreStdev + ev.blackScoreMean * ev.blackScoreMean;
+        n.utilitySum += leafUtility;
+        n.utilitySqSum += leafUtility * leafUtility;
+        n.inFlight -= 1;
+      }
+      job.leaf.pendingEval = false;
+    }
   }
 
   const edges = rootNode.edges ?? [];

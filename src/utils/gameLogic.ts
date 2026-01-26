@@ -1,12 +1,13 @@
-import { BOARD_SIZE, type BoardState, type Player } from '../types';
+import type { BoardState, Player } from '../types';
 
 export const getOpponent = (player: Player): Player => player === 'black' ? 'white' : 'black';
 
 export const boardsEqual = (a: BoardState, b: BoardState): boolean => {
-  for (let y = 0; y < BOARD_SIZE; y++) {
+  const size = a.length;
+  for (let y = 0; y < size; y++) {
     const rowA = a[y];
     const rowB = b[y];
-    for (let x = 0; x < BOARD_SIZE; x++) {
+    for (let x = 0; x < size; x++) {
       if (rowA?.[x] !== rowB?.[x]) return false;
     }
   }
@@ -17,6 +18,7 @@ export const getLiberties = (board: BoardState, x: number, y: number): { liberti
   const player = board[y][x];
   if (!player) return { liberties: 0, group: [] };
 
+  const size = board.length;
   const group: {x: number, y: number}[] = [];
   const visited = new Set<string>();
   const liberties = new Set<string>();
@@ -35,7 +37,7 @@ export const getLiberties = (board: BoardState, x: number, y: number): { liberti
     ];
 
     for (const n of neighbors) {
-      if (n.x < 0 || n.x >= BOARD_SIZE || n.y < 0 || n.y >= BOARD_SIZE) continue;
+      if (n.x < 0 || n.x >= size || n.y < 0 || n.y >= size) continue;
 
       const key = `${n.x},${n.y}`;
       const content = board[n.y][n.x];
@@ -55,6 +57,7 @@ export const getLiberties = (board: BoardState, x: number, y: number): { liberti
 
 export const applyCapturesInPlace = (board: BoardState, x: number, y: number, player: Player): { x: number; y: number }[] => {
   const opponent = getOpponent(player);
+  const size = board.length;
   const neighbors = [
     {x: x + 1, y},
     {x: x - 1, y},
@@ -65,7 +68,7 @@ export const applyCapturesInPlace = (board: BoardState, x: number, y: number, pl
   const captured: {x: number, y: number}[] = [];
 
   for (const n of neighbors) {
-    if (n.x < 0 || n.x >= BOARD_SIZE || n.y < 0 || n.y >= BOARD_SIZE) continue;
+    if (n.x < 0 || n.x >= size || n.y < 0 || n.y >= size) continue;
 
     if (board[n.y][n.x] === opponent) {
       const { liberties, group } = getLiberties(board, n.x, n.y);
@@ -88,8 +91,9 @@ export const checkCaptures = (board: BoardState, x: number, y: number, player: P
 };
 
 export const isValidMove = (board: BoardState, x: number, y: number, player: Player, previousBoard?: BoardState): boolean => {
+    const size = board.length;
     // 1. Bounds
-    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return false;
+    if (x < 0 || x >= size || y < 0 || y >= size) return false;
 
     // 2. Occupied
     if (board[y][x] !== null) return false;
@@ -123,6 +127,7 @@ export const isValidMove = (board: BoardState, x: number, y: number, player: Pla
 export const isEye = (board: BoardState, x: number, y: number, player: Player): boolean => {
     if (board[y][x] !== null) return false;
 
+    const size = board.length;
     const neighbors = [
         {x: x + 1, y},
         {x: x - 1, y},
@@ -131,7 +136,7 @@ export const isEye = (board: BoardState, x: number, y: number, player: Player): 
     ];
 
     for (const n of neighbors) {
-        if (n.x < 0 || n.x >= BOARD_SIZE || n.y < 0 || n.y >= BOARD_SIZE) continue; // Edge is fine
+        if (n.x < 0 || n.x >= size || n.y < 0 || n.y >= size) continue; // Edge is fine
         if (board[n.y][n.x] !== player) return false;
     }
 
@@ -153,7 +158,7 @@ export const isEye = (board: BoardState, x: number, y: number, player: Player): 
     let diagonalCount = 0;
 
     for (const d of diagonals) {
-        if (d.x < 0 || d.x >= BOARD_SIZE || d.y < 0 || d.y >= BOARD_SIZE) continue;
+        if (d.x < 0 || d.x >= size || d.y < 0 || d.y >= size) continue;
         diagonalCount++;
         if (board[d.y][d.x] === getOpponent(player)) {
             opponentDiagonals++;
@@ -169,8 +174,9 @@ export const isEye = (board: BoardState, x: number, y: number, player: Player): 
 
 export const getLegalMoves = (board: BoardState, player: Player, previousBoard?: BoardState): {x: number, y: number}[] => {
     const moves: {x: number, y: number}[] = [];
-    for(let y=0; y<BOARD_SIZE; y++) {
-        for(let x=0; x<BOARD_SIZE; x++) {
+    const size = board.length;
+    for(let y=0; y<size; y++) {
+        for(let x=0; x<size; x++) {
             if (isValidMove(board, x, y, player, previousBoard)) {
                 moves.push({x, y});
             }

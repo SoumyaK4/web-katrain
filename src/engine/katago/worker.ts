@@ -25,6 +25,7 @@ import {
   computeLadderedStonesV7KataGoInto,
   computeLibertyMapInto,
   playMove,
+  setBoardSize,
   type SimPosition,
   type StoneColor,
 } from './fastBoard';
@@ -36,31 +37,32 @@ let loadedModelUrl: string | null = null;
 let backendPromise: Promise<void> | null = null;
 let queue: Promise<void> = Promise.resolve();
 
-const V7_SPATIAL_STRIDE = BOARD_AREA * 22;
+let V7_SPATIAL_STRIDE = BOARD_AREA * 22;
 const V7_GLOBAL_STRIDE = 19;
 
-const evalSpatialV7 = new Float32Array(V7_SPATIAL_STRIDE);
-const evalGlobalV7 = new Float32Array(V7_GLOBAL_STRIDE);
+let evalSpatialV7 = new Float32Array(V7_SPATIAL_STRIDE);
+let evalGlobalV7 = new Float32Array(V7_GLOBAL_STRIDE);
 
-const stonesScratch = new Uint8Array(BOARD_AREA);
-const prevStonesScratch = new Uint8Array(BOARD_AREA);
-const prevPrevStonesScratch = new Uint8Array(BOARD_AREA);
+let stonesScratch = new Uint8Array(BOARD_AREA);
+let prevStonesScratch = new Uint8Array(BOARD_AREA);
+let prevPrevStonesScratch = new Uint8Array(BOARD_AREA);
 
-const koSimStonesScratch = new Uint8Array(BOARD_AREA);
-const koSimPosScratch: SimPosition = { stones: koSimStonesScratch, koPoint: -1 };
+let koSimStonesScratch = new Uint8Array(BOARD_AREA);
+let koSimPosScratch: SimPosition = { stones: koSimStonesScratch, koPoint: -1 };
 const koCaptureStackScratch: number[] = [];
 
-const libertyMapScratch = new Uint8Array(BOARD_AREA);
-const areaMapScratch = new Uint8Array(BOARD_AREA);
+let libertyMapScratch = new Uint8Array(BOARD_AREA);
+let areaMapScratch = new Uint8Array(BOARD_AREA);
 
-const ladderedStonesScratch = new Uint8Array(BOARD_AREA);
-const ladderWorkingMovesScratch = new Uint8Array(BOARD_AREA);
-const prevLadderedStonesScratch = new Uint8Array(BOARD_AREA);
-const prevPrevLadderedStonesScratch = new Uint8Array(BOARD_AREA);
+let ladderedStonesScratch = new Uint8Array(BOARD_AREA);
+let ladderWorkingMovesScratch = new Uint8Array(BOARD_AREA);
+let prevLadderedStonesScratch = new Uint8Array(BOARD_AREA);
+let prevPrevLadderedStonesScratch = new Uint8Array(BOARD_AREA);
 
 let evalBatchCapacity = 0;
 let evalBatchSpatialV7 = new Float32Array(0);
 let evalBatchGlobalV7 = new Float32Array(0);
+let scratchBoardSize = BOARD_SIZE;
 
 function regionKey(roi?: RegionOfInterest | null): string | null {
   if (!roi) return null;
@@ -232,6 +234,7 @@ let search: MctsSearch | null = null;
 let searchKey: {
   positionId: string;
   modelUrl: string;
+  boardSize: number;
   maxChildren: number;
   ownershipMode: OwnershipMode;
   komi: number;
@@ -245,6 +248,31 @@ let searchKey: {
 const latestAnalyzeByGroup = new Map<string, number>();
 let interactiveToken = 0;
 const analyzeMeta = new WeakMap<KataGoAnalyzeRequest, { analysisGroup: 'interactive' | 'background'; interactiveToken: number }>();
+
+function ensureBoardSizeForWorker(boardSize: number): void {
+  if (boardSize === scratchBoardSize) return;
+  setBoardSize(boardSize);
+  scratchBoardSize = BOARD_SIZE;
+  V7_SPATIAL_STRIDE = BOARD_AREA * 22;
+  evalSpatialV7 = new Float32Array(V7_SPATIAL_STRIDE);
+  evalGlobalV7 = new Float32Array(V7_GLOBAL_STRIDE);
+  stonesScratch = new Uint8Array(BOARD_AREA);
+  prevStonesScratch = new Uint8Array(BOARD_AREA);
+  prevPrevStonesScratch = new Uint8Array(BOARD_AREA);
+  koSimStonesScratch = new Uint8Array(BOARD_AREA);
+  koSimPosScratch = { stones: koSimStonesScratch, koPoint: -1 };
+  libertyMapScratch = new Uint8Array(BOARD_AREA);
+  areaMapScratch = new Uint8Array(BOARD_AREA);
+  ladderedStonesScratch = new Uint8Array(BOARD_AREA);
+  ladderWorkingMovesScratch = new Uint8Array(BOARD_AREA);
+  prevLadderedStonesScratch = new Uint8Array(BOARD_AREA);
+  prevPrevLadderedStonesScratch = new Uint8Array(BOARD_AREA);
+  evalBatchCapacity = 0;
+  evalBatchSpatialV7 = new Float32Array(0);
+  evalBatchGlobalV7 = new Float32Array(0);
+  search = null;
+  searchKey = null;
+}
 
 async function initBackend(): Promise<void> {
   try {
@@ -345,24 +373,26 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
   if (msg.type === 'katago:eval') {
     await ensureModel(msg.modelUrl);
     if (!model) throw new Error('Model not loaded');
+    ensureBoardSizeForWorker(msg.board.length);
+    const boardSize = BOARD_SIZE;
 
-	    const conservativePass = msg.conservativePass !== false;
-	    const rules: GameRules = msg.rules === 'chinese' ? 'chinese' : msg.rules === 'korean' ? 'korean' : 'japanese';
+    const conservativePass = msg.conservativePass !== false;
+    const rules: GameRules = msg.rules === 'chinese' ? 'chinese' : msg.rules === 'korean' ? 'korean' : 'japanese';
 
-	    fillInputsV7FastForPosition({
-	      board: msg.board,
-	      previousBoard: msg.previousBoard,
-	      previousPreviousBoard: msg.previousPreviousBoard,
-	      currentPlayer: msg.currentPlayer,
-	      moveHistory: msg.moveHistory,
-	      komi: msg.komi,
-	      rules,
-	      conservativePassAndIsRoot: conservativePass,
-	      outSpatial: evalSpatialV7,
-	      outGlobal: evalGlobalV7,
-	    });
+    fillInputsV7FastForPosition({
+      board: msg.board,
+      previousBoard: msg.previousBoard,
+      previousPreviousBoard: msg.previousPreviousBoard,
+      currentPlayer: msg.currentPlayer,
+      moveHistory: msg.moveHistory,
+      komi: msg.komi,
+      rules,
+      conservativePassAndIsRoot: conservativePass,
+      outSpatial: evalSpatialV7,
+      outGlobal: evalGlobalV7,
+    });
 
-    const spatial = tf.tensor4d(evalSpatialV7, [1, 19, 19, 22]);
+    const spatial = tf.tensor4d(evalSpatialV7, [1, boardSize, boardSize, 22]);
     const global = tf.tensor2d(evalGlobalV7, [1, 19]);
     const out = model.forwardValueOnly(spatial, global);
     const [valueLogitsArr, scoreValueArr] = await Promise.all([out.value.data(), out.scoreValue.data()]);
@@ -414,25 +444,29 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       return;
     }
 
+    const boardSize = msg.positions[0] ? msg.positions[0].board.length : BOARD_SIZE;
+    ensureBoardSizeForWorker(boardSize);
+    const size = BOARD_SIZE;
+
     const { spatial: spatialBatch, global: globalBatch } = getEvalBatchBuffersV7(batch);
 
-	    for (let i = 0; i < batch; i++) {
-	      const pos = msg.positions[i]!;
-	      fillInputsV7FastForPosition({
-	        board: pos.board,
-	        previousBoard: pos.previousBoard,
-	        previousPreviousBoard: pos.previousPreviousBoard,
-	        currentPlayer: pos.currentPlayer,
-	        moveHistory: pos.moveHistory,
-	        komi: pos.komi,
-	        rules,
-	        conservativePassAndIsRoot: conservativePass,
-	        outSpatial: spatialBatch.subarray(i * V7_SPATIAL_STRIDE, (i + 1) * V7_SPATIAL_STRIDE),
-	        outGlobal: globalBatch.subarray(i * V7_GLOBAL_STRIDE, (i + 1) * V7_GLOBAL_STRIDE),
-	      });
-	    }
+    for (let i = 0; i < batch; i++) {
+      const pos = msg.positions[i]!;
+      fillInputsV7FastForPosition({
+        board: pos.board,
+        previousBoard: pos.previousBoard,
+        previousPreviousBoard: pos.previousPreviousBoard,
+        currentPlayer: pos.currentPlayer,
+        moveHistory: pos.moveHistory,
+        komi: pos.komi,
+        rules,
+        conservativePassAndIsRoot: conservativePass,
+        outSpatial: spatialBatch.subarray(i * V7_SPATIAL_STRIDE, (i + 1) * V7_SPATIAL_STRIDE),
+        outGlobal: globalBatch.subarray(i * V7_GLOBAL_STRIDE, (i + 1) * V7_GLOBAL_STRIDE),
+      });
+    }
 
-    const spatial = tf.tensor4d(spatialBatch, [batch, 19, 19, 22]);
+    const spatial = tf.tensor4d(spatialBatch, [batch, size, size, 22]);
     const global = tf.tensor2d(globalBatch, [batch, 19]);
     const out = model.forwardValueOnly(spatial, global);
     const [valueLogitsArr, scoreValueArr] = await Promise.all([out.value.data(), out.scoreValue.data()]);
@@ -497,10 +531,13 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       return;
     }
 
+    ensureBoardSizeForWorker(msg.board.length);
+    const boardSize = BOARD_SIZE;
+
     const maxVisits = Math.max(16, Math.min(msg.visits ?? 256, ENGINE_MAX_VISITS));
     const maxTimeMs = Math.max(25, Math.min(msg.maxTimeMs ?? 800, ENGINE_MAX_TIME_MS));
     const batchSize = Math.max(1, Math.min(msg.batchSize ?? (tf.getBackend() === 'webgpu' ? 16 : 4), 64));
-    const maxChildren = Math.max(4, Math.min(msg.maxChildren ?? 64, 361));
+    const maxChildren = Math.max(4, Math.min(msg.maxChildren ?? 64, BOARD_AREA));
     const topK = Math.max(1, Math.min(msg.topK ?? 10, 50));
     const includeMovesOwnership = msg.includeMovesOwnership === true;
     const requestedOwnershipMode: OwnershipMode = msg.ownershipMode ?? 'root';
@@ -526,6 +563,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       !!searchKey &&
       searchKey.positionId === msg.positionId &&
       searchKey.modelUrl === msg.modelUrl &&
+      searchKey.boardSize === boardSize &&
       searchKey.maxChildren === maxChildren &&
       searchKey.ownershipMode === ownershipMode &&
       searchKey.komi === msg.komi &&
@@ -580,6 +618,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
             searchKey = {
               positionId: msg.positionId,
               modelUrl: msg.modelUrl,
+              boardSize,
               maxChildren,
               ownershipMode,
               komi: msg.komi,
@@ -616,6 +655,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
         searchKey = {
           positionId: msg.positionId,
           modelUrl: msg.modelUrl,
+          boardSize,
           maxChildren,
           ownershipMode,
           komi: msg.komi,

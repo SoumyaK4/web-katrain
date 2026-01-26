@@ -1,4 +1,5 @@
-import { BOARD_SIZE, type BoardState, type GameRules, type Move, type Player } from '../../types';
+import type { BoardState, GameRules, Move, Player } from '../../types';
+import { BOARD_SIZE } from './fastBoard';
 import { getOpponent } from '../../utils/gameLogic';
 
 const INPUT_SPATIAL_CHANNELS_V7 = 22;

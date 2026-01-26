@@ -1,6 +1,7 @@
-import type { CandidateMove, GameNode, GameState, BoardState, Player, FloatArray } from "../types";
-import { BOARD_SIZE } from "../types";
+import type { CandidateMove, GameNode, GameState, BoardState, Player, FloatArray, BoardSize } from "../types";
+import { DEFAULT_BOARD_SIZE } from "../types";
 import { encodeKaTrainKtFromAnalysis, KATRAIN_ANALYSIS_FORMAT_VERSION } from './katrainSgfAnalysis';
+import { createEmptyBoard, normalizeBoardSize } from './boardSize';
 
 // KaTrain convention: auto-generated SGF comments are marked so user notes remain editable.
 export const KATRAIN_SGF_INTERNAL_COMMENTS_MARKER = "\u3164\u200b";
@@ -66,11 +67,11 @@ function playerToSgfShort(player: Player): 'B' | 'W' {
     return player === 'black' ? 'B' : 'W';
 }
 
-function xyToGtp(x: number, y: number): string {
+function xyToGtp(x: number, y: number, boardSize: BoardSize): string {
     if (x < 0 || y < 0) return 'pass';
     const col = x >= 8 ? x + 1 : x; // Skip 'I'
     const letter = String.fromCharCode(65 + col);
-    return `${letter}${BOARD_SIZE - y}`;
+    return `${letter}${boardSize - y}`;
 }
 
 function formatScoreLead(scoreLead: number): string {
@@ -111,17 +112,18 @@ function computePointsLost(node: GameNode): number | null {
     return typeof candidate?.pointsLost === 'number' ? candidate.pointsLost : null;
 }
 
-function policyStats(args: { policy: FloatArray; move: { x: number; y: number } }): { rank: number; prob: number; bestMove: string; bestProb: number } | null {
+function policyStats(args: { policy: FloatArray; move: { x: number; y: number }; boardSize: BoardSize }): { rank: number; prob: number; bestMove: string; bestProb: number } | null {
     const policy = args.policy;
     const move = args.move;
-    const idx = move.x < 0 || move.y < 0 ? BOARD_SIZE * BOARD_SIZE : move.y * BOARD_SIZE + move.x;
+    const boardSize = args.boardSize;
+    const idx = move.x < 0 || move.y < 0 ? boardSize * boardSize : move.y * boardSize + move.x;
     const prob = policy[idx] ?? -1;
     if (!(prob > 0)) return null;
 
     let bestProb = -1;
     let bestIndex = -1;
     let betterCount = 0;
-    for (let i = 0; i < BOARD_SIZE * BOARD_SIZE + 1; i++) {
+    for (let i = 0; i < boardSize * boardSize + 1; i++) {
         const p = policy[i] ?? -1;
         if (!(p > 0)) continue;
         if (p > bestProb) {
@@ -131,7 +133,7 @@ function policyStats(args: { policy: FloatArray; move: { x: number; y: number } 
         if (p > prob) betterCount++;
     }
     if (!(bestProb > 0) || bestIndex < 0) return null;
-    const bestMove = bestIndex === BOARD_SIZE * BOARD_SIZE ? 'pass' : xyToGtp(bestIndex % BOARD_SIZE, Math.floor(bestIndex / BOARD_SIZE));
+    const bestMove = bestIndex === boardSize * boardSize ? 'pass' : xyToGtp(bestIndex % boardSize, Math.floor(bestIndex / boardSize), boardSize);
     return { rank: betterCount + 1, prob, bestMove, bestProb };
 }
 
@@ -141,9 +143,10 @@ function buildKaTrainAutoCommentSegment(args: { node: GameNode; trainer: KaTrain
     const move = node.move;
     if (!parent || !move) return null;
 
+    const boardSize = normalizeBoardSize(node.gameState.board.length, DEFAULT_BOARD_SIZE);
     const depth = node.gameState.moveHistory.length;
     const player = playerToSgfShort(move.player);
-    const moveGtp = xyToGtp(move.x, move.y);
+    const moveGtp = xyToGtp(move.x, move.y, boardSize);
 
     if (!node.analysis) return 'Analyzing move...';
 
@@ -153,7 +156,7 @@ function buildKaTrainAutoCommentSegment(args: { node: GameNode; trainer: KaTrain
 
     const topMove = bestMoveFromCandidates(parent.analysis?.moves);
     if (topMove) {
-        const topMoveGtp = xyToGtp(topMove.x, topMove.y);
+        const topMoveGtp = xyToGtp(topMove.x, topMove.y, boardSize);
         if (topMoveGtp !== moveGtp) {
             const pointsLost = computePointsLost(node);
             if (typeof pointsLost === 'number' && pointsLost > 0.5) text += `Estimated point loss: ${pointsLost.toFixed(1)}\n`;
@@ -167,8 +170,8 @@ function buildKaTrainAutoCommentSegment(args: { node: GameNode; trainer: KaTrain
     }
 
     const parentPolicy = parent.analysis?.policy;
-    if (parentPolicy && parentPolicy.length >= BOARD_SIZE * BOARD_SIZE + 1) {
-        const stats = policyStats({ policy: parentPolicy, move });
+    if (parentPolicy && parentPolicy.length >= boardSize * boardSize + 1) {
+        const stats = policyStats({ policy: parentPolicy, move, boardSize });
         if (stats) {
             text += `Move was #${stats.rank} according to policy  (${(stats.prob * 100).toFixed(2)}%).\n`;
             if (stats.rank !== 1) text += `Top policy move was ${stats.bestMove} (${(stats.bestProb * 100).toFixed(1)}%).\n`;
@@ -203,9 +206,10 @@ const coordinateToSgf = (x: number, y: number): string => {
 export const generateSgf = (gameState: GameState): string => {
   const { moveHistory } = gameState;
   const date = new Date().toISOString().split('T')[0];
+  const boardSize = normalizeBoardSize(gameState.board.length, DEFAULT_BOARD_SIZE);
 
   let sgf = `(;GM[1]FF[4]CA[UTF-8]AP[WebKatrain:0.1]ST[2]\n`;
-  sgf += `SZ[${BOARD_SIZE}]KM[${gameState.komi.toFixed(1)}]\n`;
+  sgf += `SZ[${boardSize}]KM[${gameState.komi.toFixed(1)}]\n`;
   sgf += `DT[${date}]\n`;
   // Add other metadata?
 
@@ -305,8 +309,9 @@ function serializeProps(props: Record<string, string[]>): string {
 function rootPlacementsFromBoard(board: BoardState): { AB?: string[]; AW?: string[] } {
     const ab: string[] = [];
     const aw: string[] = [];
-    for (let y = 0; y < BOARD_SIZE; y++) {
-        for (let x = 0; x < BOARD_SIZE; x++) {
+    const size = board.length;
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
             const v = board[y]?.[x] ?? null;
             if (v === 'black') ab.push(coordinateToSgf(x, y));
             else if (v === 'white') aw.push(coordinateToSgf(x, y));
@@ -387,6 +392,7 @@ function serializeSequence(node: GameNode, trainer: KaTrainSgfExportTrainerConfi
 export const generateSgfFromTree = (rootNode: GameNode, opts?: KaTrainSgfExportOptions): string => {
     const date = new Date().toISOString().split('T')[0];
     const trainer = normalizeTrainerConfig(opts);
+    const boardSize = normalizeBoardSize(rootNode.gameState.board.length, DEFAULT_BOARD_SIZE);
 
     const props = cloneProps(rootNode.properties);
     delete props.B;
@@ -401,7 +407,7 @@ export const generateSgfFromTree = (rootNode: GameNode, opts?: KaTrainSgfExportO
     props.AP = props.AP?.length ? props.AP : ['WebKatrain:0.1'];
     props.ST = props.ST?.length ? props.ST : ['2'];
     props.KTV = props.KTV?.length ? props.KTV : [KATRAIN_ANALYSIS_FORMAT_VERSION];
-    props.SZ = [String(BOARD_SIZE)];
+    props.SZ = [String(boardSize)];
     props.KM = [rootNode.gameState.komi.toFixed(1)];
     if (!props.DT?.length) props.DT = [date];
 
@@ -464,7 +470,8 @@ export interface ParsedSgf {
 
 export const parseSgf = (sgfContent: string): ParsedSgf => {
     const moves: { x: number, y: number, player: Player }[] = [];
-    const initialBoard: BoardState = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    let boardSize: BoardSize = DEFAULT_BOARD_SIZE;
+    let initialBoard: BoardState = createEmptyBoard(boardSize);
     let komi = 6.5;
 
     type SgfNode = ParsedSgfNode;
@@ -576,10 +583,17 @@ export const parseSgf = (sgfContent: string): ParsedSgf => {
         if (!Number.isNaN(k)) komi = k;
     }
 
+    const rootSize = root.props['SZ']?.[0];
+    if (rootSize) {
+        const sz = Number.parseInt(rootSize, 10);
+        boardSize = normalizeBoardSize(sz, boardSize);
+        initialBoard = createEmptyBoard(boardSize);
+    }
+
     const applyPlacement = (player: Player, coords: string[]) => {
         for (const coord of coords) {
             const { x, y } = sgfCoordToXy(coord);
-            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+            if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
                 initialBoard[y][x] = player;
             }
         }
@@ -589,7 +603,7 @@ export const parseSgf = (sgfContent: string): ParsedSgf => {
     if (root.props['AE']) {
         for (const coord of root.props['AE']) {
             const { x, y } = sgfCoordToXy(coord);
-            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+            if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
                 initialBoard[y][x] = null;
             }
         }

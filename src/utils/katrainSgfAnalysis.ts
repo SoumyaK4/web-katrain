@@ -1,5 +1,5 @@
 import pako from 'pako';
-import { BOARD_SIZE, type AnalysisResult, type CandidateMove, type Player } from '../types';
+import { DEFAULT_BOARD_SIZE, type AnalysisResult, type CandidateMove, type Player } from '../types';
 
 export const KATRAIN_ANALYSIS_FORMAT_VERSION = '1.0';
 
@@ -165,7 +165,7 @@ function flattenTerritoryToOwnership(territory: number[][], boardSize: number): 
 }
 
 export function encodeKaTrainKtFromAnalysis(args: { analysis: AnalysisResult; boardSize?: number }): string[] {
-  const boardSize = args.boardSize ?? BOARD_SIZE;
+  const boardSize = args.boardSize ?? DEFAULT_BOARD_SIZE;
   const boardSquares = boardSize * boardSize;
 
   const ownership = flattenTerritoryToOwnership(args.analysis.territory, boardSize).slice(0, boardSquares);
@@ -210,7 +210,7 @@ export function encodeKaTrainKtFromAnalysis(args: { analysis: AnalysisResult; bo
 }
 
 export function decodeKaTrainKt(args: { kt: string[]; boardSize?: number }): KaTrainSgfAnalysis | null {
-  const boardSize = args.boardSize ?? BOARD_SIZE;
+  const boardSize = args.boardSize ?? DEFAULT_BOARD_SIZE;
   const boardSquares = boardSize * boardSize;
   const kt = args.kt;
   if (!kt || kt.length < 3) return null;
@@ -252,7 +252,7 @@ export function kaTrainAnalysisToAnalysisResult(args: {
   currentPlayer: Player;
   boardSize?: number;
 }): AnalysisResult | null {
-  const boardSize = args.boardSize ?? BOARD_SIZE;
+  const boardSize = args.boardSize ?? DEFAULT_BOARD_SIZE;
   const a = args.analysis;
   const root = a.root as { winrate?: number; scoreLead?: number; scoreSelfplay?: number; scoreStdev?: number } | null;
   if (!root) return null;

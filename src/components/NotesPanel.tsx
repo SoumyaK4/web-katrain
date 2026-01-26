@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SIZE, type CandidateMove, type FloatArray, type Move, type Player } from '../types';
+import type { CandidateMove, FloatArray, Move, Player } from '../types';
 
-function moveToLabel(move: Move | null): string {
+function moveToLabel(move: Move | null, boardSize: number): string {
   if (!move) return 'Root';
   if (move.x < 0 || move.y < 0) return 'Pass';
   const col = String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x));
-  const row = BOARD_SIZE - move.y;
+  const row = boardSize - move.y;
   return `${col}${row}`;
 }
 
@@ -21,15 +21,15 @@ function bestMoveFromCandidates(moves: CandidateMove[] | undefined): CandidateMo
 }
 
 type PolicyMove = { prob: number; x: number; y: number; isPass: boolean };
-function policyRanking(policy: FloatArray): PolicyMove[] {
+function policyRanking(policy: FloatArray, boardSize: number): PolicyMove[] {
   const out: PolicyMove[] = [];
-  for (let y = 0; y < BOARD_SIZE; y++) {
-    for (let x = 0; x < BOARD_SIZE; x++) {
-      const p = policy[y * BOARD_SIZE + x] ?? -1;
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const p = policy[y * boardSize + x] ?? -1;
       if (p > 0) out.push({ prob: p, x, y, isPass: false });
     }
   }
-  const pass = policy[BOARD_SIZE * BOARD_SIZE] ?? -1;
+  const pass = policy[boardSize * boardSize] ?? -1;
   if (pass > 0) out.push({ prob: pass, x: -1, y: -1, isPass: true });
   out.sort((a, b) => b.prob - a.prob);
   return out;
@@ -56,18 +56,19 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   void treeVersion;
 
   const move = currentNode.move;
+  const boardSize = currentNode.gameState.board.length;
   const parent = currentNode.parent;
   const parentPolicy = parent?.analysis?.policy;
   const depth = currentNode.gameState.moveHistory.length;
-  const label = moveToLabel(move);
+  const label = moveToLabel(move, boardSize);
   const policyStats = useMemo(() => {
     if (!detailed) return null;
     if (!move || !parentPolicy) return null;
     const policy = parentPolicy;
-    const rankList = policyRanking(policy);
+    const rankList = policyRanking(policy, boardSize);
     if (rankList.length === 0) return null;
 
-    const idx = move.x < 0 || move.y < 0 ? BOARD_SIZE * BOARD_SIZE : move.y * BOARD_SIZE + move.x;
+    const idx = move.x < 0 || move.y < 0 ? boardSize * boardSize : move.y * boardSize + move.x;
     const prob = policy[idx] ?? -1;
     if (!(prob > 0)) return null;
 
@@ -77,7 +78,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
       ) + 1;
     const best = rankList[0] ?? null;
     return { rank: rank > 0 ? rank : null, prob, best };
-  }, [detailed, move, parentPolicy]);
+  }, [boardSize, detailed, move, parentPolicy]);
 
   const topMove = useMemo(() => bestMoveFromCandidates(parent?.analysis?.moves), [parent?.analysis?.moves]);
   const topMoveLabel =
@@ -85,7 +86,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
       ? null
       : topMove.x < 0 || topMove.y < 0
         ? 'Pass'
-        : `${String.fromCharCode(65 + (topMove.x >= 8 ? topMove.x + 1 : topMove.x))}${BOARD_SIZE - topMove.y}`;
+        : `${String.fromCharCode(65 + (topMove.x >= 8 ? topMove.x + 1 : topMove.x))}${boardSize - topMove.y}`;
 
   const showInfoBlock = showInfo || detailed;
   const showNotesBlock = showNotes;
@@ -120,7 +121,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
     if (detailed && policyStats?.rank) {
       text += `Policy rank: #${policyStats.rank} (${(policyStats.prob * 100).toFixed(2)}%)\n`;
       if (policyStats.rank !== 1 && policyStats.best) {
-        text += `Policy best: ${policyStats.best.isPass ? 'Pass' : moveToLabel({ x: policyStats.best.x, y: policyStats.best.y, player: move.player })} (${(policyStats.best.prob * 100).toFixed(2)}%)\n`;
+        text += `Policy best: ${policyStats.best.isPass ? 'Pass' : moveToLabel({ x: policyStats.best.x, y: policyStats.best.y, player: move.player }, boardSize)} (${(policyStats.best.prob * 100).toFixed(2)}%)\n`;
       }
     }
 

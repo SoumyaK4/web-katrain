@@ -1,4 +1,5 @@
-export const BOARD_SIZE = 19;
+export type BoardSize = 9 | 13 | 19;
+export const DEFAULT_BOARD_SIZE: BoardSize = 19;
 export const KOMI = 6.5;
 
 export type Player = 'black' | 'white';
@@ -46,9 +47,9 @@ export interface AnalysisResult {
   rootScoreStdev?: number;
   rootVisits?: number;
   moves: CandidateMove[];
-  territory: number[][]; // 19x19 grid, values -1 (white) to 1 (black)
-  policy?: FloatArray; // len 362, illegal = -1, pass at index 361
-  ownershipStdev?: FloatArray; // len 361
+  territory: number[][]; // boardSize x boardSize grid, values -1 (white) to 1 (black)
+  policy?: FloatArray; // len boardSize*boardSize + 1, illegal = -1, pass at last index
+  ownershipStdev?: FloatArray; // len boardSize*boardSize
   ownershipMode?: 'none' | 'root' | 'tree';
 }
 
@@ -94,6 +95,8 @@ export interface GameSettings {
   boardTheme: BoardThemeId;
   uiTheme: UiThemeId;
   uiDensity: UiDensityId;
+  defaultBoardSize: BoardSize;
+  defaultHandicap: number;
   timerSound: boolean; // KaTrain timer/sound
   timerMainTimeMinutes: number; // KaTrain timer/main_time (minutes)
   timerByoLengthSeconds: number; // KaTrain timer/byo_length (seconds)

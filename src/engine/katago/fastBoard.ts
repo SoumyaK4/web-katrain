@@ -1,6 +1,6 @@
-export const BOARD_SIZE = 19;
-export const BOARD_AREA = BOARD_SIZE * BOARD_SIZE;
-export const PASS_MOVE = BOARD_AREA;
+export let BOARD_SIZE = 19;
+export let BOARD_AREA = BOARD_SIZE * BOARD_SIZE;
+export let PASS_MOVE = BOARD_AREA;
 
 export type StoneColor = 0 | 1 | 2; // 0 empty, 1 black, 2 white
 
@@ -12,46 +12,20 @@ export function opponentOf(color: StoneColor): StoneColor {
   return (3 - color) as StoneColor;
 }
 
-const NEIGHBOR_START = new Int16Array(BOARD_AREA);
-const NEIGHBOR_COUNT = new Int8Array(BOARD_AREA);
-const NEIGHBORS = new Int16Array(BOARD_AREA * 4);
+let NEIGHBOR_START = new Int16Array(BOARD_AREA);
+let NEIGHBOR_COUNT = new Int8Array(BOARD_AREA);
+let NEIGHBORS = new Int16Array(BOARD_AREA * 4);
 
-let neighOffset = 0;
-for (let y = 0; y < BOARD_SIZE; y++) {
-  for (let x = 0; x < BOARD_SIZE; x++) {
-    const pos = y * BOARD_SIZE + x;
-    NEIGHBOR_START[pos] = neighOffset;
-    let count = 0;
-    if (x > 0) {
-      NEIGHBORS[neighOffset++] = pos - 1;
-      count++;
-    }
-    if (x + 1 < BOARD_SIZE) {
-      NEIGHBORS[neighOffset++] = pos + 1;
-      count++;
-    }
-    if (y > 0) {
-      NEIGHBORS[neighOffset++] = pos - BOARD_SIZE;
-      count++;
-    }
-    if (y + 1 < BOARD_SIZE) {
-      NEIGHBORS[neighOffset++] = pos + BOARD_SIZE;
-      count++;
-    }
-    NEIGHBOR_COUNT[pos] = count;
-  }
-}
+export let NEIGHBOR_STARTS = NEIGHBOR_START;
+export let NEIGHBOR_COUNTS = NEIGHBOR_COUNT;
+export let NEIGHBOR_LIST = NEIGHBORS;
 
-export const NEIGHBOR_STARTS = NEIGHBOR_START;
-export const NEIGHBOR_COUNTS = NEIGHBOR_COUNT;
-export const NEIGHBOR_LIST = NEIGHBORS;
-
-const VISITED = new Int32Array(BOARD_AREA);
-const LIB_VISITED = new Int32Array(BOARD_AREA);
+let VISITED = new Int32Array(BOARD_AREA);
+let LIB_VISITED = new Int32Array(BOARD_AREA);
 let bfsStamp = 0;
 
-const GROUP_BUF = new Int16Array(BOARD_AREA);
-const STACK_BUF = new Int16Array(BOARD_AREA);
+let GROUP_BUF = new Int16Array(BOARD_AREA);
+let STACK_BUF = new Int16Array(BOARD_AREA);
 
 function collectGroupAndLiberties(
   stones: Uint8Array,
@@ -94,10 +68,140 @@ function collectGroupAndLiberties(
   return { groupLen, liberties };
 }
 
-const PROCESSED_GROUP = new Int32Array(BOARD_AREA);
+let PROCESSED_GROUP = new Int32Array(BOARD_AREA);
 let processedStamp = 0;
-const GROUP_SEEN = new Int32Array(BOARD_AREA);
+let GROUP_SEEN = new Int32Array(BOARD_AREA);
 let groupSeenStamp = 0;
+
+let REGION_IDX_BY_POS = new Int16Array(BOARD_AREA);
+let NEXT_EMPTY_OR_OPP = new Int16Array(BOARD_AREA);
+let BORDERS_NONPASSALIVE_BY_HEADPOS = new Uint8Array(BOARD_AREA);
+let GROUP_INDEX_BY_POS = new Int16Array(BOARD_AREA);
+let GROUP_COLOR_BY_GROUP = new Uint8Array(BOARD_AREA);
+let GROUP_START_BY_GROUP = new Int16Array(BOARD_AREA);
+let GROUP_LEN_BY_GROUP = new Int16Array(BOARD_AREA);
+let GROUP_STONES_FLAT = new Int16Array(BOARD_AREA);
+
+let MAX_REGIONS = ((BOARD_AREA + 1) / 2 + 1) | 0;
+let REGION_HEADS = new Int16Array(MAX_REGIONS);
+let VITAL_START = new Uint16Array(MAX_REGIONS);
+let VITAL_LEN = new Uint8Array(MAX_REGIONS);
+let NUM_INTERNAL_SPACES_MAX2 = new Uint8Array(MAX_REGIONS);
+let CONTAINS_OPP = new Uint8Array(MAX_REGIONS);
+let VITAL_LIST = new Int16Array(MAX_REGIONS * 4);
+let REGION_QUEUE = new Int16Array(BOARD_AREA);
+
+let PLA_GROUPS = new Int16Array(BOARD_AREA);
+let PLA_GROUP_KILLED = new Uint8Array(BOARD_AREA);
+let VITAL_COUNT_BY_GROUP = new Int16Array(BOARD_AREA);
+
+const initBoardArrays = (size: number): void => {
+  BOARD_SIZE = size;
+  BOARD_AREA = BOARD_SIZE * BOARD_SIZE;
+  PASS_MOVE = BOARD_AREA;
+
+  NEIGHBOR_START = new Int16Array(BOARD_AREA);
+  NEIGHBOR_COUNT = new Int8Array(BOARD_AREA);
+  NEIGHBORS = new Int16Array(BOARD_AREA * 4);
+
+  let neighOffset = 0;
+  for (let y = 0; y < BOARD_SIZE; y++) {
+    for (let x = 0; x < BOARD_SIZE; x++) {
+      const pos = y * BOARD_SIZE + x;
+      NEIGHBOR_START[pos] = neighOffset;
+      let count = 0;
+      if (x > 0) {
+        NEIGHBORS[neighOffset++] = pos - 1;
+        count++;
+      }
+      if (x + 1 < BOARD_SIZE) {
+        NEIGHBORS[neighOffset++] = pos + 1;
+        count++;
+      }
+      if (y > 0) {
+        NEIGHBORS[neighOffset++] = pos - BOARD_SIZE;
+        count++;
+      }
+      if (y + 1 < BOARD_SIZE) {
+        NEIGHBORS[neighOffset++] = pos + BOARD_SIZE;
+        count++;
+      }
+      NEIGHBOR_COUNT[pos] = count;
+    }
+  }
+
+  NEIGHBOR_STARTS = NEIGHBOR_START;
+  NEIGHBOR_COUNTS = NEIGHBOR_COUNT;
+  NEIGHBOR_LIST = NEIGHBORS;
+
+  VISITED = new Int32Array(BOARD_AREA);
+  LIB_VISITED = new Int32Array(BOARD_AREA);
+  GROUP_BUF = new Int16Array(BOARD_AREA);
+  STACK_BUF = new Int16Array(BOARD_AREA);
+  PROCESSED_GROUP = new Int32Array(BOARD_AREA);
+  GROUP_SEEN = new Int32Array(BOARD_AREA);
+  bfsStamp = 0;
+  processedStamp = 0;
+  groupSeenStamp = 0;
+
+  REGION_IDX_BY_POS = new Int16Array(BOARD_AREA);
+  NEXT_EMPTY_OR_OPP = new Int16Array(BOARD_AREA);
+  BORDERS_NONPASSALIVE_BY_HEADPOS = new Uint8Array(BOARD_AREA);
+  GROUP_INDEX_BY_POS = new Int16Array(BOARD_AREA);
+  GROUP_COLOR_BY_GROUP = new Uint8Array(BOARD_AREA);
+  GROUP_START_BY_GROUP = new Int16Array(BOARD_AREA);
+  GROUP_LEN_BY_GROUP = new Int16Array(BOARD_AREA);
+  GROUP_STONES_FLAT = new Int16Array(BOARD_AREA);
+
+  MAX_REGIONS = ((BOARD_AREA + 1) / 2 + 1) | 0;
+  REGION_HEADS = new Int16Array(MAX_REGIONS);
+  VITAL_START = new Uint16Array(MAX_REGIONS);
+  VITAL_LEN = new Uint8Array(MAX_REGIONS);
+  NUM_INTERNAL_SPACES_MAX2 = new Uint8Array(MAX_REGIONS);
+  CONTAINS_OPP = new Uint8Array(MAX_REGIONS);
+  VITAL_LIST = new Int16Array(MAX_REGIONS * 4);
+  REGION_QUEUE = new Int16Array(BOARD_AREA);
+
+  PLA_GROUPS = new Int16Array(BOARD_AREA);
+  PLA_GROUP_KILLED = new Uint8Array(BOARD_AREA);
+  VITAL_COUNT_BY_GROUP = new Int16Array(BOARD_AREA);
+
+  LADDER_STACK_SIZE = ((BOARD_AREA * 3) / 2 + 2) | 0;
+  LADDER_SCRATCH = {
+    bufMoves: new Int16Array(LADDER_BUF_SIZE),
+    moveListStarts: new Int32Array(LADDER_STACK_SIZE),
+    moveListLens: new Int32Array(LADDER_STACK_SIZE),
+    moveListCur: new Int32Array(LADDER_STACK_SIZE),
+    recordMoves: new Int16Array(LADDER_STACK_SIZE),
+    recordPlayers: new Uint8Array(LADDER_STACK_SIZE),
+    recordKoPointBefore: new Int16Array(LADDER_STACK_SIZE),
+    recordCaptureStart: new Int32Array(LADDER_STACK_SIZE),
+    tmpKoPointBefore: new Int16Array(1),
+    tmpCaptureStart: new Int32Array(1),
+    captureStack: [],
+  };
+  LADDER_GROUP_SEEN = new Int32Array(BOARD_AREA);
+  LADDER_OPP_GROUP_SEEN = new Int32Array(BOARD_AREA);
+  LADDER_GROUP_COPY = new Int16Array(BOARD_AREA);
+  LADDER_CONNECT_GROUP_SEEN = new Int32Array(BOARD_AREA);
+  LADDER_CAPTURED = new Int32Array(BOARD_AREA);
+  ladderGroupSeenStamp = 0;
+  ladderOppGroupSeenStamp = 0;
+  ladderConnectGroupSeenStamp = 0;
+  ladderCapturedStamp = 0;
+
+  LADDER_FEATURES_SCRATCH_V7 = {
+    copyPos: { stones: new Uint8Array(BOARD_AREA), koPoint: -1 },
+    groupStones: new Int16Array(BOARD_AREA),
+    workingMoves: [],
+  };
+};
+
+export function setBoardSize(size: number): void {
+  const next = Math.max(2, Math.floor(size));
+  if (next === BOARD_SIZE) return;
+  initBoardArrays(next);
+}
 
 export type UndoSnapshot = {
   readonly koPointBefore: number;
@@ -242,27 +346,6 @@ export function computeLibertyMap(stones: Uint8Array): Uint8Array {
 // - Uses Benson pass-alive groups/territory.
 // - Includes large territories via safe/unsafe big territory marking.
 // - Fills remaining stones when `nonPassAliveStones` is true.
-const REGION_IDX_BY_POS = new Int16Array(BOARD_AREA);
-const NEXT_EMPTY_OR_OPP = new Int16Array(BOARD_AREA);
-const BORDERS_NONPASSALIVE_BY_HEADPOS = new Uint8Array(BOARD_AREA);
-const GROUP_INDEX_BY_POS = new Int16Array(BOARD_AREA);
-const GROUP_COLOR_BY_GROUP = new Uint8Array(BOARD_AREA);
-const GROUP_START_BY_GROUP = new Int16Array(BOARD_AREA);
-const GROUP_LEN_BY_GROUP = new Int16Array(BOARD_AREA);
-const GROUP_STONES_FLAT = new Int16Array(BOARD_AREA);
-
-const MAX_REGIONS = ((BOARD_AREA + 1) / 2 + 1) | 0;
-const REGION_HEADS = new Int16Array(MAX_REGIONS);
-const VITAL_START = new Uint16Array(MAX_REGIONS);
-const VITAL_LEN = new Uint8Array(MAX_REGIONS);
-const NUM_INTERNAL_SPACES_MAX2 = new Uint8Array(MAX_REGIONS);
-const CONTAINS_OPP = new Uint8Array(MAX_REGIONS);
-const VITAL_LIST = new Int16Array(MAX_REGIONS * 4);
-const REGION_QUEUE = new Int16Array(BOARD_AREA);
-
-const PLA_GROUPS = new Int16Array(BOARD_AREA);
-const PLA_GROUP_KILLED = new Uint8Array(BOARD_AREA);
-const VITAL_COUNT_BY_GROUP = new Int16Array(BOARD_AREA);
 
 function buildGroups(stones: Uint8Array): number {
   GROUP_INDEX_BY_POS.fill(-1);
@@ -591,10 +674,10 @@ type LadderSearchScratch = {
   captureStack: number[];
 };
 
-const LADDER_STACK_SIZE = ((BOARD_AREA * 3) / 2 + 2) | 0;
+let LADDER_STACK_SIZE = ((BOARD_AREA * 3) / 2 + 2) | 0;
 const LADDER_BUF_SIZE = 8192;
 const LADDER_SEARCH_NODE_BUDGET = 25_000;
-const LADDER_SCRATCH: LadderSearchScratch = {
+let LADDER_SCRATCH: LadderSearchScratch = {
   bufMoves: new Int16Array(LADDER_BUF_SIZE),
   moveListStarts: new Int32Array(LADDER_STACK_SIZE),
   moveListLens: new Int32Array(LADDER_STACK_SIZE),
@@ -608,14 +691,14 @@ const LADDER_SCRATCH: LadderSearchScratch = {
   captureStack: [],
 };
 
-const LADDER_GROUP_SEEN = new Int32Array(BOARD_AREA);
+let LADDER_GROUP_SEEN = new Int32Array(BOARD_AREA);
 let ladderGroupSeenStamp = 0;
-const LADDER_OPP_GROUP_SEEN = new Int32Array(BOARD_AREA);
+let LADDER_OPP_GROUP_SEEN = new Int32Array(BOARD_AREA);
 let ladderOppGroupSeenStamp = 0;
-const LADDER_GROUP_COPY = new Int16Array(BOARD_AREA);
-const LADDER_CONNECT_GROUP_SEEN = new Int32Array(BOARD_AREA);
+let LADDER_GROUP_COPY = new Int16Array(BOARD_AREA);
+let LADDER_CONNECT_GROUP_SEEN = new Int32Array(BOARD_AREA);
 let ladderConnectGroupSeenStamp = 0;
-const LADDER_CAPTURED = new Int32Array(BOARD_AREA);
+let LADDER_CAPTURED = new Int32Array(BOARD_AREA);
 let ladderCapturedStamp = 0;
 
 function isAdjacent(a: number, b: number): boolean {
@@ -1231,7 +1314,7 @@ type KataGoLadderFeaturesScratchV7 = {
   workingMoves: number[];
 };
 
-const LADDER_FEATURES_SCRATCH_V7: KataGoLadderFeaturesScratchV7 = {
+let LADDER_FEATURES_SCRATCH_V7: KataGoLadderFeaturesScratchV7 = {
   copyPos: { stones: new Uint8Array(BOARD_AREA), koPoint: -1 },
   groupStones: new Int16Array(BOARD_AREA),
   workingMoves: [],
@@ -1340,3 +1423,5 @@ export function computeLadderedStonesV7KataGo(args: { stones: Uint8Array; koPoin
   computeLadderedStonesV7KataGoInto({ ...args, outLadderedStones: laddered });
   return laddered;
 }
+
+initBoardArrays(BOARD_SIZE);

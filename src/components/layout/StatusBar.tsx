@@ -5,6 +5,8 @@ interface StatusBarProps {
   blackName: string;
   whiteName: string;
   komi: number;
+  boardSize: number;
+  handicap: number;
   moveCount: number;
   capturedBlack: number;
   capturedWhite: number;
@@ -16,6 +18,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   blackName,
   whiteName,
   komi,
+  boardSize,
+  handicap,
   moveCount,
   capturedBlack,
   capturedWhite,
@@ -30,6 +34,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       </span>
       <span className="status-bar-divider">•</span>
       <span className="status-bar-item">Komi {komi}</span>
+      <span className="status-bar-divider">•</span>
+      <span className="status-bar-item">Size {boardSize}x{boardSize}</span>
+      {handicap > 0 && (
+        <>
+          <span className="status-bar-divider">•</span>
+          <span className="status-bar-item">Handicap {handicap}</span>
+        </>
+      )}
       <span className="status-bar-divider">•</span>
       <span className="status-bar-item">Moves {moveCount}</span>
       <span className="status-bar-divider">•</span>

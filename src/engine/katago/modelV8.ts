@@ -83,17 +83,22 @@ function conv2d(x: tf.Tensor4D, conv: TfConv): tf.Tensor4D {
 }
 
 function poolRowsGPool(x: tf.Tensor4D): tf.Tensor2D {
-  // KataGo gpool: concat(mean, mean * (sqrt(div)-14)*0.1, max). For 19x19 board div=361 => sqrt=19 => factor=0.5.
+  // KataGo gpool: concat(mean, mean * (sqrt(div)-14)*0.1, max).
+  const boardSize = x.shape[1] ?? 19;
+  const factor = (boardSize - 14) * 0.1;
   const mean = tf.mean(x, [1, 2]) as tf.Tensor2D; // [N,C]
   const max = tf.max(x, [1, 2]) as tf.Tensor2D; // [N,C]
-  return tf.concat([mean, mean.mul(0.5), max], 1) as tf.Tensor2D;
+  return tf.concat([mean, mean.mul(factor), max], 1) as tf.Tensor2D;
 }
 
 function poolRowsValueHead(x: tf.Tensor4D): tf.Tensor2D {
   // KataGo value pooling: concat(mean, mean * (sqrt(div)-14)*0.1, mean * (((sqrt(div)-14)^2)*0.01 - 0.1)).
-  // For 19x19 div=361 => sqrt=19 => factors 0.5 and 0.15.
+  const boardSize = x.shape[1] ?? 19;
+  const base = boardSize - 14;
+  const factor1 = base * 0.1;
+  const factor2 = base * base * 0.01 - 0.1;
   const mean = tf.mean(x, [1, 2]) as tf.Tensor2D; // [N,C]
-  return tf.concat([mean, mean.mul(0.5), mean.mul(0.15)], 1) as tf.Tensor2D;
+  return tf.concat([mean, mean.mul(factor1), mean.mul(factor2)], 1) as tf.Tensor2D;
 }
 
 export type ParsedTrunkBlock =

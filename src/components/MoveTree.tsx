@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SIZE, type GameNode } from '../types';
+import type { GameNode } from '../types';
 
 type NodePos = { x: number; y: number };
 
@@ -9,8 +9,9 @@ function moveToLabel(node: GameNode): string {
   const move = node.move;
   if (!move) return 'Root';
   if (move.x < 0 || move.y < 0) return 'Pass';
+  const boardSize = node.gameState.board.length;
   const col = String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x));
-  const row = BOARD_SIZE - move.y;
+  const row = boardSize - move.y;
   return `${col}${row}`;
 }
 

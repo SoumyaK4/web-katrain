@@ -1,9 +1,9 @@
-import { BOARD_SIZE, type BoardState } from '../types';
+import type { BoardState } from '../types';
 
 const LO_THRESHOLD = 0.15;
 const HI_THRESHOLD = 0.85;
 const MAX_UNKNOWN = 10;
-const MAX_DAME = 4 * (BOARD_SIZE + BOARD_SIZE);
+const maxDame = (boardSize: number) => 4 * (boardSize + boardSize);
 
 export function roundToHalf(x: number): number {
   return Math.round(x * 2) / 2;
@@ -23,6 +23,7 @@ export function computeJapaneseManualScoreFromOwnership(args: {
   previousOwnership: number[][];
 }): string | null {
   const { board, komi, capturedBlack, capturedWhite, currentOwnership, previousOwnership } = args;
+  const boardSize = board.length;
 
   let countNeg2 = 0;
   let countNeg1 = 0;
@@ -32,8 +33,8 @@ export function computeJapaneseManualScoreFromOwnership(args: {
   let unknown = 0;
   let numStones = 0;
 
-  for (let y = 0; y < BOARD_SIZE; y++) {
-    for (let x = 0; x < BOARD_SIZE; x++) {
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
       const stone = board[y]?.[x] ?? null;
       if (stone) numStones++;
 
@@ -83,7 +84,7 @@ export function computeJapaneseManualScoreFromOwnership(args: {
 
   const dame = count0 - numStones;
   if (unknown > MAX_UNKNOWN) return null;
-  if (dame > MAX_DAME) return null;
+  if (dame > maxDame(boardSize)) return null;
 
   const scoreLead =
     -2 * countNeg2 +
@@ -97,4 +98,3 @@ export function computeJapaneseManualScoreFromOwnership(args: {
 
   return formatResultScoreLead(scoreLead);
 }
-

@@ -3,10 +3,10 @@ import { BOARD_AREA, BOARD_SIZE } from './fastBoard';
 const TWO_OVER_PI = 2 / Math.PI;
 const EXTRA_SCORE_DISTR_RADIUS = 60;
 
-const SV_TABLE_ASSUMED_BSIZE = BOARD_SIZE;
-const SV_TABLE_MEAN_RADIUS = SV_TABLE_ASSUMED_BSIZE * SV_TABLE_ASSUMED_BSIZE + EXTRA_SCORE_DISTR_RADIUS;
-const SV_TABLE_MEAN_LEN = SV_TABLE_MEAN_RADIUS * 2;
-const SV_TABLE_STDEV_LEN = SV_TABLE_ASSUMED_BSIZE * SV_TABLE_ASSUMED_BSIZE + EXTRA_SCORE_DISTR_RADIUS;
+let svTableBoardSize = 0;
+let svTableMeanRadius = 0;
+let svTableMeanLen = 0;
+let svTableStdevLen = 0;
 
 let expectedSVTable: Float64Array | null = null;
 
@@ -16,9 +16,14 @@ function whiteScoreValueOfScoreSmoothNoDrawAdjust(finalWhiteMinusBlackScore: num
 }
 
 function initScoreValueTables(): void {
-  if (expectedSVTable) return;
+  const boardSize = BOARD_SIZE;
+  if (expectedSVTable && svTableBoardSize === boardSize) return;
 
-  expectedSVTable = new Float64Array(SV_TABLE_MEAN_LEN * SV_TABLE_STDEV_LEN);
+  svTableBoardSize = boardSize;
+  svTableMeanRadius = svTableBoardSize * svTableBoardSize + EXTRA_SCORE_DISTR_RADIUS;
+  svTableMeanLen = svTableMeanRadius * 2;
+  svTableStdevLen = svTableBoardSize * svTableBoardSize + EXTRA_SCORE_DISTR_RADIUS;
+  expectedSVTable = new Float64Array(svTableMeanLen * svTableStdevLen);
 
   const stepsPerUnit = 10;
   const boundStdevs = 5;
@@ -32,23 +37,23 @@ function initScoreValueTables(): void {
   }
 
   const minSVSteps = -(
-    SV_TABLE_MEAN_RADIUS * stepsPerUnit +
+    svTableMeanRadius * stepsPerUnit +
     stepsPerUnit / 2 +
-    boundStdevs * SV_TABLE_STDEV_LEN * stepsPerUnit
+    boundStdevs * svTableStdevLen * stepsPerUnit
   );
   const maxSVSteps = -minSVSteps;
 
   const svPrecomp = new Float64Array(maxSVSteps - minSVSteps + 1);
   for (let i = minSVSteps; i <= maxSVSteps; i++) {
     const mean = i / stepsPerUnit;
-    svPrecomp[i - minSVSteps] = whiteScoreValueOfScoreSmoothNoDrawAdjust(mean, 0.0, 1.0, SV_TABLE_ASSUMED_BSIZE);
+    svPrecomp[i - minSVSteps] = whiteScoreValueOfScoreSmoothNoDrawAdjust(mean, 0.0, 1.0, svTableBoardSize);
   }
 
-  for (let meanIdx = 0; meanIdx < SV_TABLE_MEAN_LEN; meanIdx++) {
-    const meanSteps = (meanIdx - SV_TABLE_MEAN_RADIUS) * stepsPerUnit - stepsPerUnit / 2;
-    const rowBase = meanIdx * SV_TABLE_STDEV_LEN;
+  for (let meanIdx = 0; meanIdx < svTableMeanLen; meanIdx++) {
+    const meanSteps = (meanIdx - svTableMeanRadius) * stepsPerUnit - stepsPerUnit / 2;
+    const rowBase = meanIdx * svTableStdevLen;
 
-    for (let stdevIdx = 0; stdevIdx < SV_TABLE_STDEV_LEN; stdevIdx++) {
+    for (let stdevIdx = 0; stdevIdx < svTableStdevLen; stdevIdx++) {
       let wSum = 0.0;
       let wsvSum = 0.0;
 
@@ -75,14 +80,14 @@ export function expectedWhiteScoreValue(args: {
   initScoreValueTables();
   if (!expectedSVTable) throw new Error('ScoreValue tables not initialized');
 
-  const scaleFactor = SV_TABLE_ASSUMED_BSIZE / (args.scale * args.sqrtBoardArea);
+  const scaleFactor = svTableBoardSize / (args.scale * args.sqrtBoardArea);
 
   const meanScaled = (args.whiteScoreMean - args.center) * scaleFactor;
   const stdevScaled = args.whiteScoreStdev * scaleFactor;
 
   const meanRounded = Math.round(meanScaled);
   const stdevFloored = Math.floor(stdevScaled);
-  let meanIdx0 = meanRounded + SV_TABLE_MEAN_RADIUS;
+  let meanIdx0 = meanRounded + svTableMeanRadius;
   let stdevIdx0 = stdevFloored;
   let meanIdx1 = meanIdx0 + 1;
   let stdevIdx1 = stdevIdx0 + 1;
@@ -91,22 +96,22 @@ export function expectedWhiteScoreValue(args: {
     meanIdx0 = 0;
     meanIdx1 = 0;
   }
-  if (meanIdx1 >= SV_TABLE_MEAN_LEN) {
-    meanIdx0 = SV_TABLE_MEAN_LEN - 1;
-    meanIdx1 = SV_TABLE_MEAN_LEN - 1;
+  if (meanIdx1 >= svTableMeanLen) {
+    meanIdx0 = svTableMeanLen - 1;
+    meanIdx1 = svTableMeanLen - 1;
   }
 
   if (stdevIdx0 < 0) stdevIdx0 = 0;
-  if (stdevIdx1 >= SV_TABLE_STDEV_LEN) {
-    stdevIdx0 = SV_TABLE_STDEV_LEN - 1;
-    stdevIdx1 = SV_TABLE_STDEV_LEN - 1;
+  if (stdevIdx1 >= svTableStdevLen) {
+    stdevIdx0 = svTableStdevLen - 1;
+    stdevIdx1 = svTableStdevLen - 1;
   }
 
   const lambdaMean = meanScaled - meanRounded + 0.5;
   const lambdaStdev = stdevScaled - stdevFloored;
 
-  const row0 = meanIdx0 * SV_TABLE_STDEV_LEN;
-  const row1 = meanIdx1 * SV_TABLE_STDEV_LEN;
+  const row0 = meanIdx0 * svTableStdevLen;
+  const row1 = meanIdx1 * svTableStdevLen;
   const a00 = expectedSVTable[row0 + stdevIdx0]!;
   const a01 = expectedSVTable[row0 + stdevIdx1]!;
   const a10 = expectedSVTable[row1 + stdevIdx0]!;
@@ -123,4 +128,4 @@ export function getScoreStdev(scoreMean: number, scoreMeanSq: number): number {
   return Math.sqrt(variance);
 }
 
-export const SQRT_BOARD_AREA = Math.sqrt(BOARD_AREA);
+export const getSqrtBoardArea = (): number => Math.sqrt(BOARD_AREA);

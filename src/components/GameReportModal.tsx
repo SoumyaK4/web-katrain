@@ -3,7 +3,7 @@ import { FaTimes } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { computeGameReport, type MoveReportEntry } from '../utils/gameReport';
-import { BOARD_SIZE, type CandidateMove, type Player } from '../types';
+import type { CandidateMove, Player } from '../types';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { PanelHeaderButton } from './layout/ui';
 import { captureBoardSnapshot } from '../utils/boardSnapshot';
@@ -57,6 +57,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
   const [graphTick, setGraphTick] = useState(0);
   const snapshotTimerRef = useRef<number | null>(null);
+  const boardSize = currentNode.gameState.board.length;
   const sectionClass =
     'rounded-xl border ui-surface p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] print-surface';
   const sectionTitleClass = 'text-[11px] font-semibold uppercase tracking-[0.2em] ui-text-faint';
@@ -268,11 +269,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const graphRange = useMemo(() => {
     if (!depthFilter) return null;
     const [fromFrac, toFrac] = depthFilter;
-    const boardSquares = BOARD_SIZE * BOARD_SIZE;
+    const boardSize = currentNode.gameState.board.length;
+    const boardSquares = boardSize * boardSize;
     const start = Math.ceil(fromFrac * boardSquares);
     const end = Math.max(start, Math.ceil(toFrac * boardSquares) - 1);
     return { start, end };
-  }, [depthFilter]);
+  }, [currentNode.gameState.board.length, depthFilter]);
 
   const waitForBoardRender = () =>
     new Promise<void>((resolve) => {
@@ -293,7 +295,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
 
   const countPvMoves = (line: string[]): number => {
     return line.reduce((acc, move) => {
-      const parsed = parseGtpMove(move);
+      const parsed = parseGtpMove(move, boardSize);
       return parsed && parsed.kind === 'move' ? acc + 1 : acc;
     }, 0);
   };
@@ -333,7 +335,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
       };
     }
     if (!entry.topMove) return null;
-    const parsed = parseGtpMove(entry.topMove);
+    const parsed = parseGtpMove(entry.topMove, boardSize);
     if (!parsed || parsed.kind !== 'move') return null;
     const pvLine =
       entry.pv && entry.pv.length > 0 && entry.pv[0] === entry.topMove

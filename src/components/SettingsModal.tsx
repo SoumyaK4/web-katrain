@@ -8,6 +8,7 @@ import { publicUrl } from '../utils/publicUrl';
 import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { UI_THEME_OPTIONS } from '../utils/uiThemes';
+import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
 
 let uploadedModelUrl: string | null = null;
 let lastManualModelUrl: string | null = null;
@@ -116,6 +117,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     ];
     const uiThemeMeta = UI_THEME_OPTIONS.find((theme) => theme.value === settings.uiTheme);
     const uiDensityMeta = UI_DENSITY_OPTIONS.find((density) => density.value === settings.uiDensity);
+    const maxHandicap = getMaxHandicap(settings.defaultBoardSize);
 
     React.useEffect(() => {
         if (!isUploadedModel) {
@@ -350,6 +352,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     ))}
                                 </select>
                             </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <label className="ui-text-muted block">Default Board Size</label>
+                                    <select
+                                        value={settings.defaultBoardSize}
+                                        onChange={(e) => {
+                                            const nextSize = Number(e.target.value) as GameSettings['defaultBoardSize'];
+                                            const nextMax = getMaxHandicap(nextSize);
+                                            updateSettings({
+                                                defaultBoardSize: nextSize,
+                                                defaultHandicap: Math.min(settings.defaultHandicap, nextMax),
+                                            });
+                                        }}
+                                        className={selectClass}
+                                    >
+                                        {BOARD_SIZES.map((size) => (
+                                            <option key={size} value={size}>{size}×{size}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="ui-text-muted block">Default Handicap</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={maxHandicap}
+                                        step={1}
+                                        value={settings.defaultHandicap}
+                                        onChange={(e) => {
+                                            const next = Number.parseInt(e.target.value || '0', 10);
+                                            updateSettings({
+                                                defaultHandicap: Math.max(0, Math.min(Number.isFinite(next) ? next : 0, maxHandicap)),
+                                            });
+                                        }}
+                                        className={inputClass}
+                                    />
+                                </div>
+                            </div>
+                            <p className={subtextClass}>Defaults for the New Game dialog.</p>
 
                             <div className="space-y-2">
                                 <label className="ui-text-muted block">UI Theme</label>

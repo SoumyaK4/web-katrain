@@ -1,6 +1,6 @@
-import { BOARD_SIZE, type GameRules, type Player } from '../../types';
+import type { GameRules, Player } from '../../types';
 import { getOpponent } from '../../utils/gameLogic';
-import { BLACK, WHITE, EMPTY, PASS_MOVE, computeLibertyMap, computeAreaMapV7KataGo, type StoneColor } from './fastBoard';
+import { BLACK, WHITE, EMPTY, PASS_MOVE, BOARD_SIZE, computeLibertyMap, computeAreaMapV7KataGo, type StoneColor } from './fastBoard';
 
 const INPUT_SPATIAL_CHANNELS_V7 = 22;
 const INPUT_GLOBAL_CHANNELS_V7 = 19;
