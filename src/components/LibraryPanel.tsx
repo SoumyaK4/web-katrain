@@ -818,7 +818,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           title: 'Library',
           open: listOpen,
           onToggle: () => setListOpen((prev) => !prev),
-          wrapperClassName: listOpen ? 'flex flex-col min-h-0 flex-1' : '',
+          wrapperClassName: listOpen && analysisOpen ? 'flex flex-col min-h-0 flex-1' : listOpen ? 'flex flex-col min-h-0' : '',
           contentClassName: 'panel-section-content flex flex-col min-h-0 flex-1',
           children: (
             <>
