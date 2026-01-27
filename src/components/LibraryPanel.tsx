@@ -814,14 +814,15 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           </div>
         </div>
 
-        {renderSection({
-          title: 'Library',
-          open: listOpen,
-          onToggle: () => setListOpen((prev) => !prev),
-          wrapperClassName: listOpen && analysisOpen ? 'flex flex-col min-h-0 flex-1' : listOpen ? 'flex flex-col min-h-0' : '',
-          contentClassName: 'panel-section-content flex flex-col min-h-0 flex-1',
-          children: (
-            <>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          <div className="flex flex-col">
+            {renderSection({
+              title: 'Library',
+              open: listOpen,
+              onToggle: () => setListOpen((prev) => !prev),
+              contentClassName: 'panel-section-content flex flex-col min-h-0',
+              children: (
+                <>
               <div className="panel-toolbar">
                 <div className="relative flex-1 min-w-[160px]">
                   <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 ui-text-faint text-xs" />
@@ -983,46 +984,48 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   </div>
                 )}
               </div>
-            </>
-          ),
-        })}
+                </>
+              ),
+            })}
 
-        {docked &&
-          renderSection({
-            title: 'Analysis',
-            open: analysisOpen,
-            onToggle: () => setAnalysisOpen((prev) => !prev),
-            wrapperClassName: analysisOpen ? 'mx-0 flex flex-col min-h-0 flex-1' : 'mx-0',
-            contentClassName: 'panel-section-content flex-1 min-h-0',
-            actions: onStopAnalysis ? (
-              <button
-                type="button"
-                className={[
-                  analysisActionClass,
-                  isAnalysisRunning ? 'ui-danger-soft' : 'text-[var(--ui-text-muted)]',
-                ].join(' ')}
-                onClick={onStopAnalysis}
-                disabled={!isAnalysisRunning}
-                title="Stop analysis"
-                aria-label="Stop analysis"
-              >
-                <FaStop size={12} />
-              </button>
-            ) : null,
-            children: (
-              <div className="h-full overflow-y-auto">
-                {analysisContent ? (
-                  analysisContent
-                ) : graphOptions.score || graphOptions.winrate ? (
-                  <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-xs ui-text-faint border border-[var(--ui-border)] rounded">
-                    Graph hidden
+            {docked &&
+              renderSection({
+                title: 'Analysis',
+                open: analysisOpen,
+                onToggle: () => setAnalysisOpen((prev) => !prev),
+                wrapperClassName: 'mx-0',
+                contentClassName: 'panel-section-content min-h-0',
+                actions: onStopAnalysis ? (
+                  <button
+                    type="button"
+                    className={[
+                      analysisActionClass,
+                      isAnalysisRunning ? 'ui-danger-soft' : 'text-[var(--ui-text-muted)]',
+                    ].join(' ')}
+                    onClick={onStopAnalysis}
+                    disabled={!isAnalysisRunning}
+                    title="Stop analysis"
+                    aria-label="Stop analysis"
+                  >
+                    <FaStop size={12} />
+                  </button>
+                ) : null,
+                children: (
+                  <div className="h-full overflow-y-auto">
+                    {analysisContent ? (
+                      analysisContent
+                    ) : graphOptions.score || graphOptions.winrate ? (
+                      <ScoreWinrateGraph showScore={graphOptions.score} showWinrate={graphOptions.winrate} />
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs ui-text-faint border border-[var(--ui-border)] rounded">
+                        Graph hidden
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ),
-          })}
+                ),
+              })}
+          </div>
+        </div>
       </div>
     </>
   );
