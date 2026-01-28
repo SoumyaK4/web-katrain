@@ -157,11 +157,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   );
   const handleWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
-      // Allow browser zoom
-      if (e.ctrlKey || e.metaKey) return;
-
-      e.preventDefault();
-
       const isScrollUp = e.deltaY < 0;
 
       if (e.shiftKey) {
