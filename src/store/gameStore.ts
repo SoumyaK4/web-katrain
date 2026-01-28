@@ -338,6 +338,7 @@ const defaultSettings: GameSettings = {
   showCoordinates: true,
   showMoveNumbers: false,
   showBoardControls: true,
+  showTopBar: true,
   showNextMovePreview: true,
   boardTheme: 'hikaru',
   uiTheme: 'noir',

@@ -20,6 +20,8 @@ interface UseKeyboardShortcutsOptions {
   toggleLibrary: () => void;
   closeLibrary: () => void;
   toggleSidebar: () => void;
+  toggleTopBar: () => void;
+  toggleBottomBar: () => void; 
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
 }
 
@@ -38,6 +40,8 @@ export function useKeyboardShortcuts({
   toggleLibrary,
   closeLibrary,
   toggleSidebar,
+  toggleTopBar,
+  toggleBottomBar,
   toast,
 }: UseKeyboardShortcutsOptions): void {
   const {
@@ -67,6 +71,8 @@ export function useKeyboardShortcuts({
     rootNode,
     settings,
     updateSettings,
+    regionOfInterest,  
+    setRegionOfInterest, 
   } = useGameStore(
     (state) => ({
       passTurn: state.passTurn,
@@ -95,6 +101,8 @@ export function useKeyboardShortcuts({
       rootNode: state.rootNode,
       settings: state.settings,
       updateSettings: state.updateSettings,
+      regionOfInterest: state.regionOfInterest,  
+      setRegionOfInterest: state.setRegionOfInterest, 
     }),
     shallow
   );
@@ -208,7 +216,12 @@ export function useKeyboardShortcuts({
       // Escape
       if (key === 'Escape') {
         e.preventDefault();
-        if (isSelectingRegionOfInterest) cancelSelectRegionOfInterest();
+        if (isSelectingRegionOfInterest) {
+          cancelSelectRegionOfInterest();
+        }
+        else if (regionOfInterest) {
+          setRegionOfInterest(null);
+        }
         analyzeExtra('stop');
         setIsSettingsOpen(false);
         setIsGameAnalysisOpen(false);
@@ -222,14 +235,14 @@ export function useKeyboardShortcuts({
       }
 
       // Keyboard help
-      if (key === '?' || (shift && key === '/')) {
+      if (key === '?' || key === '/') {
         e.preventDefault();
         setIsKeyboardHelpOpen(true);
         return;
       }
 
       // Fullscreen
-      if (keyLower === 'f') {
+      if (keyLower === '.') {
         e.preventDefault();
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen?.().catch(() => {});
@@ -269,6 +282,16 @@ export function useKeyboardShortcuts({
         e.preventDefault();
         updateSettings({ showMoveNumbers: !settings.showMoveNumbers });
         return;
+      }
+      if (ctrl && keyLower === 'u') {                
+        e.preventDefault();  
+        toggleTopBar();  
+        return;  
+      }  
+      if (ctrl && keyLower === 'j') {                
+        e.preventDefault();  
+        toggleBottomBar();  
+        return;  
       }
 
       // Visualization toggles
@@ -501,6 +524,8 @@ export function useKeyboardShortcuts({
     startSelectRegionOfInterest,
     cancelSelectRegionOfInterest,
     isSelectingRegionOfInterest,
+    regionOfInterest,
+    setRegionOfInterest,
     isInsertMode,
     toggleInsertMode,
     selfplayToEnd,

@@ -361,6 +361,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
+                                            <label className={labelClass}>Show Top Bar</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.showTopBar}
+                                                onChange={(e) => updateSettings({ showTopBar: e.target.checked })}
+                                                className="toggle"
+                                            />
+                                        </div>
+                                        
+                                        <div className={rowClass}>
                                             <label className={labelClass}>Show Board Controls</label>
                                             <input
                                                 type="checkbox"

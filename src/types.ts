@@ -91,6 +91,7 @@ export interface GameSettings {
   showCoordinates: boolean;
   showMoveNumbers: boolean;
   showBoardControls: boolean;
+  showTopBar: boolean;
   showNextMovePreview: boolean;
   boardTheme: BoardThemeId;
   uiTheme: UiThemeId;

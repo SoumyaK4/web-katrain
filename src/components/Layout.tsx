@@ -766,6 +766,14 @@ export const Layout: React.FC = () => {
     openRightPanelForTab(tab);
   };
 
+  const handleToggleTopBar = () => {  
+    updateSettings({ showTopBar: !settings.showTopBar });  
+  };  
+    
+  const handleToggleBottomBar = () => {  
+    updateSettings({ showBoardControls: !settings.showBoardControls });  
+  };
+  
   const handleToggleLibrary = () => {
     if (isMobile) {
       handleMobileTabChange(libraryOpen ? 'board' : 'library');
@@ -967,6 +975,8 @@ export const Layout: React.FC = () => {
     toggleLibrary: handleToggleLibrary,
     closeLibrary: handleCloseLibrary,
     toggleSidebar: handleToggleSidebar,
+    toggleTopBar: handleToggleTopBar,
+    toggleBottomBar: handleToggleBottomBar,
     toast,
   });
 
@@ -1188,7 +1198,7 @@ export const Layout: React.FC = () => {
 
       {/* Main board column */}
       <div className={['flex flex-col flex-1 min-w-0 relative', isMobile ? 'mobile-safe-bottom' : ''].join(' ')}>
-        {topBarOpen && (
+        {settings.showTopBar && topBarOpen && (
           <TopControlBar
             settings={settings}
             updateControls={updateControls}
@@ -1375,7 +1385,7 @@ export const Layout: React.FC = () => {
         </>
       )}
 
-      {!isMobile && (
+      {!isMobile && settings.showTopBar && (
         <>
           <div className="absolute left-1/2 top-0 -translate-x-1/2 z-30">
             <PanelEdgeToggle

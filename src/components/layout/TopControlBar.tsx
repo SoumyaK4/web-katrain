@@ -235,7 +235,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           <span className="flex items-center gap-2">
             <FaTimes /> Clear region
           </span>
-          <span className="text-xs ui-text-faint">—</span>
+          <span className="text-xs ui-text-faint">Esc</span>
         </button>
       )}
       {isMobile && (
@@ -428,7 +428,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           closeViewMenuIfMobile();
         }}
       >
-        <span>Fullscreen</span>
+        <span>Fullscreen (F11)</span>
         <span className="text-xs ui-text-faint">{isFullscreen ? 'on' : 'off'}</span>
       </button>
       <button
@@ -848,7 +848,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                   <span className="flex items-center gap-2">
                     <FaTimes /> Clear region
                   </span>
-                  <span className="text-xs ui-text-faint">—</span>
+                  <span className="text-xs ui-text-faint">Esc</span>
                 </button>
               )}
 
