@@ -127,6 +127,10 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     isAiPlaying,
     aiColor,
     treeVersion,
+    navigateBack,
+    navigateForward,
+    navigateNextMistake,
+    navigatePrevMistake,
   } = useGameStore(
     (state) => ({
       board: state.board,
@@ -144,9 +148,53 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       isAiPlaying: state.isAiPlaying,
       aiColor: state.aiColor,
       treeVersion: state.treeVersion,
+      navigateBack: state.navigateBack,
+      navigateForward: state.navigateForward,
+      navigateNextMistake: state.navigateNextMistake,
+      navigatePrevMistake: state.navigatePrevMistake,
     }),
     shallow
   );
+  const handleWheel = useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      // Allow browser zoom
+      if (e.ctrlKey || e.metaKey) return;
+
+      const { deltaX, deltaY } = e;
+
+      // Ignore zero-movement events
+      if (deltaX === 0 && deltaY === 0) return;
+
+      // Determine dominant scroll axis
+      const dominantDelta =
+        Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
+
+      const isScrollUp = dominantDelta < 0;
+
+      if (e.shiftKey) {
+        // Shift + scroll → mistake navigation
+        if (isScrollUp) {
+          navigatePrevMistake();
+        } else {
+          navigateNextMistake();
+        }
+      } else {
+        // Normal scroll → back / forward
+        if (isScrollUp) {
+          navigateBack();
+        } else {
+          navigateForward();
+        }
+      }
+    },
+    [
+      navigateBack,
+      navigateForward,
+      navigateNextMistake,
+      navigatePrevMistake,
+    ]
+  );
+
   const pvOverlayEnabled = isAnalysisMode || forcePvOverlay;
   const boardSize = normalizeBoardSize(board.length, DEFAULT_BOARD_SIZE);
   const hoshiPoints = useMemo(() => getHoshiPoints(boardSize), [boardSize]);
@@ -1363,6 +1411,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
+        onWheel={handleWheel}
       >
       {/* Region of interest (KaTrain-style) */}
       {roiRect && (
