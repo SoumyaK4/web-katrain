@@ -160,8 +160,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       // Allow browser zoom
       if (e.ctrlKey || e.metaKey) return;
 
-      e.preventDefault();
-
       const isScrollUp = e.deltaY < 0;
 
       if (e.shiftKey) {
