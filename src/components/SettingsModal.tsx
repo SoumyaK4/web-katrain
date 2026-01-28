@@ -83,14 +83,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
     const [downloadError, setDownloadError] = React.useState<string | null>(null);
 
-    const [activeTab, setActiveTab] = React.useState('general');  
-  
-    const tabs = [  
-        { id: 'general', label: 'General' },  
-        { id: 'analysis', label: 'Analysis' },  
-        { id: 'ai', label: 'AI/Engine' },  
+    const [activeTab, setActiveTab] = React.useState(() => {
+        // Initialize from localStorage if available, otherwise default to "general"
+        if (typeof window === 'undefined') {
+            return 'general';
+        }
+        try {
+            const stored = window.localStorage.getItem('settingsModalActiveTab');
+            return stored || 'general';
+        } catch {
+            return 'general';
+        }
+    });
+
+    const tabs = [
+        { id: 'general', label: 'General' },
+        { id: 'analysis', label: 'Analysis' },
+        { id: 'ai', label: 'AI/Engine' },
     ];
 
+    React.useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        try {
+            window.localStorage.setItem('settingsModalActiveTab', activeTab);
+        } catch {
+            // Ignore storage errors to avoid breaking the settings modal
+        }
+    }, [activeTab]);
     const DEFAULT_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0];
     const DEFAULT_SHOW_DOTS = [true, true, true, true, true, true];
     const DEFAULT_SAVE_FEEDBACK = [true, true, true, true, false, false];
