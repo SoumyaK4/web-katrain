@@ -50,4 +50,4 @@ jobs:
         uses: actions/deploy-pages@v4
       - name: Show URL
         run: |
-          echo "🚀 Deployed at: $DEPLOY_URL
+          echo "🚀 Deployed at: https://katrain.soumyak4.in"
