@@ -4,11 +4,6 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
-// const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1];
-// const inferredBase = repoName && !repoName.endsWith('.github.io') ? `/${repoName}/` : '/';
-// const rawBase = process.env.VITE_BASE_URL ?? process.env.BASE_URL ?? inferredBase;
-// const normalizedBase = rawBase.startsWith('/') ? rawBase : `/${rawBase}`;
-// const base = normalizedBase.endsWith('/') ? normalizedBase : `${normalizedBase}/`;
 
 export default defineConfig({
   base: '/',
@@ -19,7 +14,15 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html'),
         notFound: path.resolve(__dirname, '404.html'),
       },
+      output: {  
+      manualChunks: {  
+        vendor: ['react', 'react-dom'],  
+        tfjs: ['@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm', '@tensorflow/tfjs-backend-webgpu'],  
+        ui: ['zustand', 'react-icons']  
+      }  
+      }  
     },
+    chunkSizeWarningLimit: 1000 
   },
   resolve: {
     alias: {
@@ -34,12 +37,15 @@ export default defineConfig({
       // Required for SharedArrayBuffer (enables threaded WASM backend when available).
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
+      // PWA headers  
+      'Cache-Control': 'public, max-age=31536000',  
     },
   },
   preview: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cache-Control': 'public, max-age=31536000', 
     },
   },
 });

@@ -1,0 +1,27 @@
+{  
+  "name": "Web Katrain - Professional Go Game Analysis",  
+  "short_name": "web-katrain",  
+  "description": "Browser-based Go game analysis with KataGo AI. Professional move evaluation, game review, and AI opponents.",  
+  "start_url": "/",  
+  "display": "standalone",  
+  "background_color": "#ffffff",  
+  "theme_color": "#000000",  
+  "orientation": "any",  
+  "scope": "/",  
+  "icons": [  
+    {  
+      "src": "/icon-192.png",  
+      "sizes": "192x192",  
+      "type": "image/png",  
+      "purpose": "any maskable"  
+    },  
+    {  
+      "src": "/icon-512.png",  
+      "sizes": "512x512",  
+      "type": "image/png",  
+      "purpose": "any maskable"  
+    }  
+  ],  
+  "categories": ["games", "education", "productivity"],  
+  "lang": "en"  
+}

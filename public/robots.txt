@@ -1,0 +1,6 @@
+User-agent: *  
+Allow: /  
+  
+# Sitemap  
+Sitemap: https://katrain.soumyak4.in/sitemap.xml  
+  
