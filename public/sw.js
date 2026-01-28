@@ -9,16 +9,22 @@ const STATIC_ASSETS = [
   '/index.html',  
   '/404.html',  
   '/vite.svg',  
-  // Add built assets that will actually exist  
-  '/assets/index.js',  
-  '/assets/index.css'  
 ];  
   
 // Install event - cache static assets  
 self.addEventListener('install', (event) => {  
   event.waitUntil(  
     caches.open(CACHE_VERSIONS.static)  
-      .then((cache) => cache.addAll(STATIC_ASSETS))  
+      .then((cache) => {
+        return Promise.allSettled(
+          STATIC_ASSETS.map((asset => 
+            cache.add(asset).catch(err => {
+              console.warn('Failed to cache ${asset}:', err);
+              return null;
+            })
+          ))
+        );
+      })
       .then(() => self.skipWaiting())  
   );  
 });  
