@@ -160,7 +160,16 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       // Allow browser zoom
       if (e.ctrlKey || e.metaKey) return;
 
-      const isScrollUp = e.deltaY < 0;
+      const { deltaX, deltaY } = e;
+
+      // Ignore zero-movement events
+      if (deltaX === 0 && deltaY === 0) return;
+
+      // Determine dominant scroll axis
+      const dominantDelta =
+        Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
+
+      const isScrollUp = dominantDelta < 0;
 
       if (e.shiftKey) {
         // Shift + scroll → mistake navigation
