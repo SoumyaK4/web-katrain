@@ -151,6 +151,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   };
   const viewMenuItems = (
     <>
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -163,6 +164,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">A</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -175,6 +178,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">S</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -187,6 +192,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">D</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -199,7 +206,11 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">F</span>
       </button>
+      )}
+      {isMobile && (
       <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -212,6 +223,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">G</span>
       </button>
+      )}
       {regionOfInterest && (
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
@@ -226,7 +238,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           <span className="text-xs ui-text-faint">—</span>
         </button>
       )}
+      {isMobile && (
       <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -239,6 +254,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">H</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -251,6 +268,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">I {isInsertMode ? 'on' : 'off'}</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -263,6 +282,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">L</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -278,6 +299,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           {isGameAnalysisRunning && gameAnalysisType === 'quick' ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
         </span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -293,6 +316,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           {isGameAnalysisRunning && gameAnalysisType === 'fast' ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
         </span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -305,6 +330,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">F2</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -317,7 +344,11 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">F3</span>
       </button>
+      )}
+      {isMobile && (
       <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -330,6 +361,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">Space</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -342,6 +375,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">Enter</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -354,6 +389,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">Esc</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -366,6 +403,8 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">O</span>
       </button>
+      )}
+      {isMobile && (
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
@@ -378,7 +417,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </span>
         <span className="text-xs ui-text-faint">{isTeachMode ? 'on' : 'off'}</span>
       </button>
+      )}
+      {isMobile && (
       <div className="h-px bg-gradient-to-r from-transparent via-[var(--ui-border-strong)] to-transparent my-1" />
+      )}
       <button
         className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
         onClick={() => {
