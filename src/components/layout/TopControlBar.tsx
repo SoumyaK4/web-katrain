@@ -600,7 +600,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   );
 
   return (
-    <div className="ui-bar ui-bar-height ui-bar-pad border-b flex flex-wrap items-center gap-1 sm:gap-2 gap-y-1.5 select-none">
+    <div className="ui-bar ui-bar-height ui-bar-pad border-b relative flex flex-wrap items-center justify-between gap-1 sm:gap-2 gap-y-1.5 select-none">
       {/* Mobile menu */}
       <div className="md:hidden">
         <IconButton title="Menu" onClick={onOpenMenu} className={topIconClass}>
@@ -613,10 +613,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <IconButton title="New game (Ctrl+N)" onClick={onNewGame} className={topIconClass}>
           <FaPlus />
         </IconButton>
+        {/* Divider */}
+        <div className="hidden md:block h-6 w-px bg-[var(--ui-border)]" />
       </div>
-
-      {/* Divider */}
-      <div className="hidden md:block h-6 w-px bg-[var(--ui-border)]" />
 
       {/* Analysis toggles */}
       <div className="order-last xl:order-none w-full xl:w-auto flex items-center gap-1 flex-wrap">
