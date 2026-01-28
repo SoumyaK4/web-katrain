@@ -95,13 +95,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             return 'general';
         }
     });
-
     const tabs = [
         { id: 'general', label: 'General' },
         { id: 'analysis', label: 'Analysis' },
         { id: 'ai', label: 'AI/Engine' },
     ];
-
     React.useEffect(() => {
         if (typeof window === 'undefined') {
             return;
@@ -245,26 +243,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 </div>
                 <div className="px-4 sm:px-6 py-5 flex flex-col flex-1 overflow-hidden">  
                     {/* Tab Navigation */}  
-                    <div className="flex border-b border-slate-700 mb-5">  
-                        {tabs.map(tab => (  
-                            <button  
-                                key={tab.id}  
-                                onClick={() => setActiveTab(tab.id)}  
-                                className={`px-4 py-2 text-sm font-medium transition-colors ${  
-                                    activeTab === tab.id  
-                                        ? 'text-white border-b-2 border-blue-500'  
-                                        : 'text-slate-400 hover:text-white'  
-                                }`}  
-                            >  
-                                {tab.label}  
-                            </button>  
-                        ))}  
+                    <div className="flex border-b border-slate-700 mb-5"
+                        role="tablist"
+                        aria-orientation="horizontal"
+                    >
+                        {tabs.map((tab, index) => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    id={`tab-${tab.id}`}
+                                    role="tab"
+                                    aria-selected={isActive}
+                                    aria-controls={`panel-${tab.id}`}
+                                    tabIndex={isActive ? 0 : -1}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'ArrowRight') {
+                                            const next = tabs[(index + 1) % tabs.length];
+                                            setActiveTab(next.id);
+                                        }
+                                        if (e.key === 'ArrowLeft') {
+                                            const prev = tabs[(index - 1 + tabs.length) % tabs.length];
+                                            setActiveTab(prev.id);
+                                        }
+                                    }}
+                                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                                        isActive
+                                            ? 'text-white border-b-2 border-blue-500'
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>  
                 
                     {/* Tab Content */}  
                     <div className="flex-1 overflow-y-auto space-y-6">  
                         {activeTab === 'general' && (  
-                            <>  
+                            <div
+                                id="panel-rules"
+                                role="tabpanel"
+                                aria-labelledby="tab-rules"
+                                tabIndex={0}
+                            >  
                                 {/* Timer Section */}  
                                 <div className={sectionClass}>  
                                     <div className="flex items-center justify-between">  
@@ -540,11 +564,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
                                     </div>  
                                 </div>
-                            </>  
+                            </div>  
                         )}  
                 
                         {activeTab === 'analysis' && (  
-                            <>  
+                            <div
+                                id="panel-rules"
+                                role="tabpanel"
+                                aria-labelledby="tab-rules"
+                                tabIndex={1}
+                            >  
                                 {/* Analysis Overlays Section */}  
                                 <div className={sectionClass}>  
                                     <h3 className={sectionTitleClass}>Analysis Overlays</h3>
@@ -846,11 +875,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </p>
                                     </div>  
                                 </div>
-                            </>  
+                            </div>  
                         )}  
                 
                         {activeTab === 'ai' && (  
-                            <>  
+                            <div
+                                id="panel-rules"
+                                role="tabpanel"
+                                aria-labelledby="tab-rules"
+                                tabIndex={2}
+                            > 
                                 {/* AI Section */}  
                                 <div className={sectionClass}>  
                                     <h3 className={sectionTitleClass}>AI</h3>
@@ -1635,7 +1669,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </p>
                                     </div>
                                 </div>  
-                            </>  
+                            </div>  
                         )}  
                     </div>  
                 </div>
