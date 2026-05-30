@@ -15,6 +15,7 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
     gameAnalysisType,
     gameAnalysisDone,
     gameAnalysisTotal,
+    defaultVisits,
     startFullGameAnalysis,
     stopGameAnalysis,
   } = useGameStore(
@@ -24,6 +25,7 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
       gameAnalysisType: state.gameAnalysisType,
       gameAnalysisDone: state.gameAnalysisDone,
       gameAnalysisTotal: state.gameAnalysisTotal,
+      defaultVisits: state.settings.katagoVisits,
       startFullGameAnalysis: state.startFullGameAnalysis,
       stopGameAnalysis: state.stopGameAnalysis,
     }),
@@ -31,8 +33,12 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
   );
 
   const defaultStartMove = useMemo(() => currentNode.gameState.moveHistory.length, [currentNode]);
+  const defaultMaxVisits = useMemo(
+    () => Math.max(16, Math.min(ENGINE_MAX_VISITS, Math.floor(defaultVisits))),
+    [defaultVisits]
+  );
 
-  const [visits, setVisits] = useState<number>(2500);
+  const [visits, setVisits] = useState<number>(defaultMaxVisits);
   const [useMoveRange, setUseMoveRange] = useState<boolean>(false);
   const [startMove, setStartMove] = useState<number>(defaultStartMove);
   const [endMove, setEndMove] = useState<number>(999);
@@ -72,10 +78,10 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
                 min={16}
                 max={ENGINE_MAX_VISITS}
                 value={visits}
-                onChange={(e) => setVisits(Math.max(16, clampInt(e.target.value, 2500)))}
+                onChange={(e) => setVisits(Math.max(16, clampInt(e.target.value, defaultMaxVisits)))}
                 className="w-full ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono"
               />
-              <p className="text-xs ui-text-faint">KaTrain default is 2500.</p>
+              <p className="text-xs ui-text-faint">Defaults to engine Visits ({defaultMaxVisits}).</p>
             </div>
 
             <div className="space-y-1">

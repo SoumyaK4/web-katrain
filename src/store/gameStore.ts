@@ -129,6 +129,8 @@ const applyHandicapStones = (board: BoardState, boardSize: BoardSize, handicap: 
 
 const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v3';
 const LEGACY_SETTINGS_STORAGE_KEYS = ['web-katrain:settings:v2', 'web-katrain:settings:v1'] as const;
+const OLD_DEFAULT_KATAGO_VISITS = 500;
+export const DEFAULT_KATAGO_VISITS = 5000;
 
 const normalizeModelUrl = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
@@ -204,6 +206,9 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
       } else {
         delete (parsed as { katagoBackend?: unknown }).katagoBackend;
       }
+    }
+    if ((parsed as { katagoVisits?: unknown }).katagoVisits === OLD_DEFAULT_KATAGO_VISITS) {
+      (parsed as { katagoVisits: number }).katagoVisits = DEFAULT_KATAGO_VISITS;
     }
     if ('boardTheme' in parsed) {
       if (!isBoardThemeId((parsed as { boardTheme?: unknown }).boardTheme)) {
@@ -459,7 +464,7 @@ const defaultSettings: GameSettings = {
   analysisShowOwnership: true,
   katagoModelUrl: publicUrl(KATAGO_SMALL_MODEL_PATH),
   katagoBackend: 'webgpu',
-  katagoVisits: 500,
+  katagoVisits: DEFAULT_KATAGO_VISITS,
   katagoFastVisits: 25,
   katagoMaxTimeMs: 8000,
   katagoBatchSize: 16,
