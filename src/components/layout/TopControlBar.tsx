@@ -147,7 +147,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onOpenMenu,
   onNewGame,
   onSaveSgf,
-  saveTitle = 'Save SGF (Ctrl+S)',
+  saveTitle = 'Save SGF',
   onLoadSgf,
   onOpenSidePanel,
   onCopySgf,

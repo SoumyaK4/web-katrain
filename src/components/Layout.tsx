@@ -51,6 +51,7 @@ import {
 import { PanelEdgeToggle } from './layout/ui';
 import { formatMoveLabel, playerToShort, rgba } from './layout/ui-utils';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { useGamepadNavigation } from '../hooks/useGamepadNavigation';
 import { UnsavedChangesModal, type UnsavedChangesChoice } from './UnsavedChangesModal';
 import { getCurrentLineMoveCount } from '../utils/branchNavigation';
@@ -65,6 +66,9 @@ const PasteSgfModal = lazy(() => import('./PasteSgfModal').then((module) => ({ d
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 const mainFileInputAccept = ['.sgf', ...PHOTO_BOARD_IMAGE_EXTENSIONS, 'image/*', MODEL_UPLOAD_ACCEPT].join(',');
+const LAYOUT_SHORTCUT_IDS = ['toggle-library', 'toggle-sidebar'] as const;
+
+type LayoutShortcutId = (typeof LAYOUT_SHORTCUT_IDS)[number];
 
 function computePointsLost(args: { currentNode: GameNode }): number | null {
   const node = args.currentNode;
@@ -274,6 +278,8 @@ export const Layout: React.FC = () => {
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem('web-katrain:bottom_bar_open:v1') !== 'false';
   });
+  const layoutShortcutLabels = useShortcutLabels(LAYOUT_SHORTCUT_IDS);
+  const withLayoutShortcut = (label: string, id: LayoutShortcutId) => `${label} (${layoutShortcutLabels[id]})`;
   const [mobileHomeOpen, setMobileHomeOpen] = useState(() => {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') return false;
     const isMobileViewport = window.matchMedia('(max-width: 1023px)').matches;
@@ -1853,7 +1859,7 @@ export const Layout: React.FC = () => {
               onOpenMenu={() => setMenuOpen(true)}
               onNewGame={() => void openNewGameWithGuard()}
               onSaveSgf={handleSaveCurrentSgf}
-              saveTitle={`${saveControlLabel} (Ctrl+S)`}
+              saveTitle={saveControlLabel}
               onLoadSgf={handleLoadClick}
               onOpenSidePanel={handleOpenSidePanel}
               onCopySgf={handleCopySgf}
@@ -2025,7 +2031,7 @@ export const Layout: React.FC = () => {
               <PanelEdgeToggle
                 side="left"
                 state={libraryOpen ? 'open' : 'closed'}
-                title={libraryOpen ? 'Hide panel (Ctrl+L)' : 'Show library (Ctrl+L)'}
+                title={libraryOpen ? withLayoutShortcut('Hide panel', 'toggle-library') : withLayoutShortcut('Show library', 'toggle-library')}
                 onClick={handleToggleLibrary}
               />
             </div>
@@ -2040,7 +2046,7 @@ export const Layout: React.FC = () => {
               <PanelEdgeToggle
                 side="right"
                 state={showSidebar ? 'open' : 'closed'}
-                title={showSidebar ? 'Hide panel (Ctrl+B)' : 'Show panel (Ctrl+B)'}
+                title={showSidebar ? withLayoutShortcut('Hide panel', 'toggle-sidebar') : withLayoutShortcut('Show panel', 'toggle-sidebar')}
                 onClick={handleToggleSidebar}
               />
             </div>
