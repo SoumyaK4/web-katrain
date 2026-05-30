@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseSgf } from '../src/utils/sgf';
+import type { GameNode } from '../src/types';
+import { getSgfDownloadFilename, parseSgf } from '../src/utils/sgf';
 
 describe('SGF Parser', () => {
   it('parses a simple SGF with moves', () => {
@@ -90,5 +91,13 @@ describe('SGF Parser', () => {
 
       expect(result.tree?.props.C?.[0]).toBe('helloworld');
       expect(result.tree?.props.N?.[0]).toBe('line1\nline2');
+  });
+
+  it('builds SGF download filenames from game metadata', () => {
+      const nodeWithProps = (properties: GameNode['properties']) => ({ properties }) as unknown as GameNode;
+
+      expect(getSgfDownloadFilename(nodeWithProps({ GN: ['  Alpha/Beta: Final?  '] }), 123)).toBe('Alpha-Beta- Final.sgf');
+      expect(getSgfDownloadFilename(nodeWithProps({ PB: ['Black/One'], PW: ['White:Two'] }), 123)).toBe('Black-One vs White-Two.sgf');
+      expect(getSgfDownloadFilename(nodeWithProps({}), 123)).toBe('game_123.sgf');
   });
 });

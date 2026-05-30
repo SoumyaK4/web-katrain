@@ -304,6 +304,37 @@ function escapeSgfValue(value: string): string {
     return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\/g, '\\\\').replace(/]/g, '\\]');
 }
 
+const sanitizeSgfFilenameStem = (value: string): string | null => {
+    const withoutControlCharacters = Array.from(value)
+        .filter((char) => {
+            const code = char.charCodeAt(0);
+            return code >= 32 && code !== 127;
+        })
+        .join('');
+    const cleaned = withoutControlCharacters
+        .trim()
+        .replace(/[/\\?%*:|"<>]/g, '-')
+        .replace(/\s+/g, ' ')
+        .replace(/^[.\s-]+|[.\s-]+$/g, '')
+        .slice(0, 96)
+        .trim();
+    return cleaned || null;
+};
+
+export const getSgfDownloadFilename = (rootNode: GameNode, timestamp = Date.now()): string => {
+    const props = rootNode.properties ?? {};
+    const gameName = props.GN?.find((value) => value.trim());
+    const gameStem = gameName ? sanitizeSgfFilenameStem(gameName) : null;
+    if (gameStem) return `${gameStem}.sgf`;
+
+    const black = sanitizeSgfFilenameStem(props.PB?.[0] ?? '');
+    const white = sanitizeSgfFilenameStem(props.PW?.[0] ?? '');
+    if (black && white) return `${black} vs ${white}.sgf`;
+    if (black || white) return `${black ?? white}.sgf`;
+
+    return `game_${timestamp}.sgf`;
+};
+
 function cloneProps(props: Record<string, string[]> | undefined): Record<string, string[]> {
     const out: Record<string, string[]> = {};
     if (!props) return out;
@@ -517,7 +548,7 @@ export const downloadSgfFromTree = (rootNode: GameNode, opts?: KaTrainSgfExportO
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `game_${new Date().getTime()}.sgf`;
+    a.download = getSgfDownloadFilename(rootNode);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
