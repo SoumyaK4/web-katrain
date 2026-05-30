@@ -20,6 +20,16 @@ import {
 } from '../utils/analysisQueue';
 import { findSiblingBranchTarget } from '../utils/branchNavigation';
 
+type BranchClipboardNode = {
+  move: Move | null;
+  properties: Record<string, string[]>;
+  endState: string | null;
+  timeUsedSeconds: number;
+  note: string;
+  aiThoughts: string;
+  children: BranchClipboardNode[];
+};
+
 interface GameStore extends GameState {
   // Tree State
   rootNode: GameNode;
@@ -35,6 +45,7 @@ interface GameStore extends GameState {
   insertAnchorNodeId: string | null; // Where insert mode started.
   isEditMode: boolean;
   editTool: EditTool;
+  copiedBranch: BranchClipboardNode | null;
   isSelfplayToEnd: boolean;
   isGameAnalysisRunning: boolean;
   gameAnalysisType: 'quick' | 'fast' | 'full' | null;
@@ -80,6 +91,8 @@ interface GameStore extends GameState {
   findMistake: (direction: 'undo' | 'redo') => void;
   deleteCurrentNode: () => void;
   pruneCurrentBranch: () => void;
+  copyCurrentBranch: () => void;
+  pasteCopiedBranch: () => void;
   jumpToNode: (node: GameNode) => void; // Navigate to arbitrary node
   navigateNextMistake: () => void;
   navigatePrevMistake: () => void;
@@ -450,6 +463,26 @@ const ensureNodeProperties = (node: GameNode): Record<string, string[]> => {
   return node.properties;
 };
 
+const cloneNodeProperties = (props: Record<string, string[]> | undefined): Record<string, string[]> => {
+  const out: Record<string, string[]> = {};
+  if (!props) return out;
+  for (const [key, values] of Object.entries(props)) out[key] = [...values];
+  return out;
+};
+
+const copyBranchSnapshot = (node: GameNode): BranchClipboardNode => ({
+  move: node.move ? { ...node.move } : null,
+  properties: cloneNodeProperties(node.properties),
+  endState: node.endState ?? null,
+  timeUsedSeconds: node.timeUsedSeconds ?? 0,
+  note: node.note ?? '',
+  aiThoughts: node.aiThoughts ?? '',
+  children: node.children.map(copyBranchSnapshot),
+});
+
+const countClipboardNodes = (node: BranchClipboardNode): number =>
+  1 + node.children.reduce((total, child) => total + countClipboardNodes(child), 0);
+
 const removeValue = (props: Record<string, string[]>, key: string, shouldRemove: (value: string) => boolean): void => {
   const values = props[key];
   if (!values) return;
@@ -592,6 +625,26 @@ const replayChildMove = (parent: GameNode, child: GameNode): GameState | null =>
     capturedWhite: newCapturedWhite,
     komi: parentState.komi,
   };
+};
+
+const pasteBranchSnapshot = (parent: GameNode, source: BranchClipboardNode): GameNode | null => {
+  if (!source.move) return null;
+  const node = createNode(parent, { ...source.move }, parent.gameState);
+  node.properties = cloneNodeProperties(source.properties);
+  node.endState = source.endState;
+  node.timeUsedSeconds = source.timeUsedSeconds;
+  node.note = source.note;
+  node.aiThoughts = source.aiThoughts;
+
+  const rebuiltState = replayChildMove(parent, node);
+  if (!rebuiltState) return null;
+  node.gameState = rebuiltState;
+
+  for (const child of source.children) {
+    const pastedChild = pasteBranchSnapshot(node, child);
+    if (pastedChild) node.children.push(pastedChild);
+  }
+  return node;
 };
 
 const rebuildDescendants = (node: GameNode): number => {
@@ -780,6 +833,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   insertAnchorNodeId: null,
   isEditMode: false,
   editTool: 'setup-black',
+  copiedBranch: null,
   isSelfplayToEnd: false,
   isGameAnalysisRunning: false,
   gameAnalysisType: null,
@@ -3231,6 +3285,48 @@ export const useGameStore = create<GameStore>((set, get) => ({
           node = parent;
       }
       return { treeVersion: state.treeVersion + 1 };
+  }),
+
+  copyCurrentBranch: () => set((state) => {
+      if (!state.currentNode.parent || !state.currentNode.move) {
+          return { notification: { message: 'Select a move branch to copy.', type: 'info' } };
+      }
+      const copiedBranch = copyBranchSnapshot(state.currentNode);
+      const nodes = countClipboardNodes(copiedBranch);
+      return {
+          copiedBranch,
+          notification: {
+              message: `Copied branch (${nodes} node${nodes === 1 ? '' : 's'}).`,
+              type: 'success',
+          },
+      };
+  }),
+
+  pasteCopiedBranch: () => set((state) => {
+      const source = state.copiedBranch;
+      if (!source) {
+          return { notification: { message: 'No copied branch to paste.', type: 'info' } };
+      }
+      const pasted = pasteBranchSnapshot(state.currentNode, source);
+      if (!pasted) {
+          return { notification: { message: 'Cannot paste branch at this position.', type: 'error' } };
+      }
+      state.currentNode.children.push(pasted);
+      const nodes = countClipboardNodes(source);
+      return {
+          currentNode: pasted,
+          board: pasted.gameState.board,
+          currentPlayer: pasted.gameState.currentPlayer,
+          moveHistory: pasted.gameState.moveHistory,
+          capturedBlack: pasted.gameState.capturedBlack,
+          capturedWhite: pasted.gameState.capturedWhite,
+          analysisData: pasted.analysis || null,
+          treeVersion: state.treeVersion + 1,
+          notification: {
+              message: `Pasted branch (${nodes} node${nodes === 1 ? '' : 's'}).`,
+              type: 'success',
+          },
+      };
   }),
 
   jumpToNode: (node: GameNode) => set(() => {

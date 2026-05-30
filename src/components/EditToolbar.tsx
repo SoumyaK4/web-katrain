@@ -2,10 +2,12 @@ import React from 'react';
 import {
   FaCaretUp,
   FaCircle,
+  FaCopy,
   FaEdit,
   FaEraser,
   FaFont,
   FaHashtag,
+  FaPaste,
   FaRegCircle,
   FaRegSquare,
   FaSitemap,
@@ -74,6 +76,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
     isEditMode,
     editTool,
     currentNode,
+    copiedBranch,
     treeVersion,
     toggleEditMode,
     setEditTool,
@@ -81,11 +84,14 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
     makeCurrentNodeMainBranch,
     deleteCurrentNode,
     pruneCurrentBranch,
+    copyCurrentBranch,
+    pasteCopiedBranch,
   } = useGameStore(
     (state) => ({
       isEditMode: state.isEditMode,
       editTool: state.editTool,
       currentNode: state.currentNode,
+      copiedBranch: state.copiedBranch,
       treeVersion: state.treeVersion,
       toggleEditMode: state.toggleEditMode,
       setEditTool: state.setEditTool,
@@ -93,6 +99,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
       makeCurrentNodeMainBranch: state.makeCurrentNodeMainBranch,
       deleteCurrentNode: state.deleteCurrentNode,
       pruneCurrentBranch: state.pruneCurrentBranch,
+      copyCurrentBranch: state.copyCurrentBranch,
+      pasteCopiedBranch: state.pasteCopiedBranch,
     }),
     shallow
   );
@@ -194,6 +202,26 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
               >
                 <FaStar />
                 <span className="hidden sm:inline">Main</span>
+              </button>
+              <button
+                type="button"
+                onClick={copyCurrentBranch}
+                disabled={!canEditBranch}
+                className={[toolButtonClass(false), !canEditBranch ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
+                title="Copy current branch"
+              >
+                <FaCopy />
+                <span className="hidden sm:inline">Copy</span>
+              </button>
+              <button
+                type="button"
+                onClick={pasteCopiedBranch}
+                disabled={!copiedBranch}
+                className={[toolButtonClass(false), !copiedBranch ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
+                title="Paste copied branch"
+              >
+                <FaPaste />
+                <span className="hidden sm:inline">Paste</span>
               </button>
               <button
                 type="button"

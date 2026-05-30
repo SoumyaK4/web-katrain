@@ -103,6 +103,30 @@ describe('GameStore loadGame', () => {
         expect(branchPoint?.children[0]?.move).toEqual({ x: 2, y: 2, player: 'white' });
     });
 
+    it('copies and pastes branches at the current node', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9];B[dd](;W[ee];B[ff];W[gg])(;W[cc]))'));
+        store.navigateEnd();
+
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 6, y: 6, player: 'white' });
+        store.navigateBack();
+        const copiedRootMove = useGameStore.getState().currentNode.move;
+        expect(copiedRootMove).toEqual({ x: 5, y: 5, player: 'black' });
+        store.copyCurrentBranch();
+
+        store.navigateBack();
+        store.switchBranch(1);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 2, y: 2, player: 'white' });
+
+        store.pasteCopiedBranch();
+        const pasted = useGameStore.getState().currentNode;
+        expect(pasted.move).toEqual(copiedRootMove);
+        expect(pasted.children[0]?.move).toEqual({ x: 6, y: 6, player: 'white' });
+        expect(pasted.parent?.move).toEqual({ x: 2, y: 2, player: 'white' });
+    });
+
     it('opens problem collections at the first problem without leaving joseki roots', () => {
         const store = useGameStore.getState();
         store.resetGame();
