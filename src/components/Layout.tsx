@@ -1528,6 +1528,16 @@ export const Layout: React.FC = () => {
   });
   const currentGameDirty = hasUnsavedChanges();
   const saveControlLabel = loadedLibraryFileId ? 'Save to Library' : 'Save SGF';
+  const desktopBottomControlsHeight =
+    !isMobile && settings.showBoardControls && bottomBarOpen ? 'var(--ui-bar-height)' : '0px';
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--desktop-bottom-controls-height', desktopBottomControlsHeight);
+    return () => {
+      root.style.removeProperty('--desktop-bottom-controls-height');
+    };
+  }, [desktopBottomControlsHeight]);
 
   return (
     <div

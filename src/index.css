@@ -1212,7 +1212,7 @@
     position: fixed;
     left: max(12px, env(safe-area-inset-left));
     right: max(12px, env(safe-area-inset-right));
-    bottom: calc(var(--ui-bar-height) + max(12px, env(safe-area-inset-bottom)));
+    bottom: calc(var(--ui-bar-height) + var(--desktop-bottom-controls-height, 0px) + max(12px, env(safe-area-inset-bottom)));
     z-index: 80;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
