@@ -10,6 +10,7 @@ export type LibraryBase = {
 };
 
 export type LibraryFileMetadata = {
+  gameName?: string;
   black?: string;
   white?: string;
   event?: string;
@@ -122,6 +123,7 @@ const numberProp = (value: string | undefined): number | undefined => {
 export const extractLibraryMetadata = (sgf: string): LibraryFileMetadata => {
   const props = readRootSgfProperties(sgf);
   return {
+    gameName: props.GN?.[0] || undefined,
     black: props.PB?.[0] || undefined,
     white: props.PW?.[0] || undefined,
     event: props.EV?.[0] || undefined,
@@ -132,6 +134,40 @@ export const extractLibraryMetadata = (sgf: string): LibraryFileMetadata => {
     handicap: numberProp(props.HA?.[0]),
     rules: props.RU?.[0] || undefined,
   };
+};
+
+const sanitizeLibraryItemName = (value: string): string | null => {
+  const withoutControls = Array.from(value)
+    .filter((char) => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127)
+    .join('');
+  const cleaned = withoutControls
+    .trim()
+    .replace(/[/\\?%*:|"<>]/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/^[.\s-]+|[.\s-]+$/g, '')
+    .replace(/\.sgf$/i, '')
+    .slice(0, 96)
+    .trim();
+  return cleaned || null;
+};
+
+export const suggestLibraryItemNameFromSgf = (sgf: string, fallback = 'Untitled'): string => {
+  const metadata = extractLibraryMetadata(sgf);
+  const gameName = metadata.gameName ? sanitizeLibraryItemName(metadata.gameName) : null;
+  if (gameName) return gameName;
+
+  const black = metadata.black ? sanitizeLibraryItemName(metadata.black) : null;
+  const white = metadata.white ? sanitizeLibraryItemName(metadata.white) : null;
+  if (black && white) return `${black} vs ${white}`;
+  if (black) return black;
+  if (white) return white;
+
+  return sanitizeLibraryItemName(fallback) ?? 'Untitled';
+};
+
+export const librarySgfDownloadFilename = (name: string): string => {
+  const stem = sanitizeLibraryItemName(name) ?? 'game';
+  return `${stem}.sgf`;
 };
 
 export const getLibraryStats = (items: LibraryItem[]): LibraryStats =>

@@ -9,15 +9,18 @@ import {
   extractLibraryMetadata,
   formatLibrarySize,
   getLibraryStats,
+  librarySgfDownloadFilename,
   normalizeLibraryItems,
   parseLibraryBackup,
+  suggestLibraryItemNameFromSgf,
 } from '../src/utils/library';
 
 describe('library storage helpers', () => {
-  const sgf = '(;GM[1]FF[4]SZ[19]KM[6.5]PB[Black Player]PW[White Player]DT[2024-01-02]RE[B+R];B[pd];W[dd])';
+  const sgf = '(;GM[1]FF[4]SZ[19]KM[6.5]GN[Title Game]PB[Black Player]PW[White Player]DT[2024-01-02]RE[B+R];B[pd];W[dd])';
 
   it('extracts useful SGF metadata for library rows', () => {
     expect(extractLibraryMetadata(sgf)).toEqual({
+      gameName: 'Title Game',
       black: 'Black Player',
       white: 'White Player',
       date: '2024-01-02',
@@ -38,6 +41,14 @@ describe('library storage helpers', () => {
     expect(item.moveCount).toBe(2);
     expect(item.size).toBe(sgf.length);
     expect(item.metadata.black).toBe('Black Player');
+  });
+
+  it('suggests library names from SGF metadata and keeps downloads single-extension', () => {
+    expect(suggestLibraryItemNameFromSgf(sgf)).toBe('Title Game');
+    expect(suggestLibraryItemNameFromSgf('(;GM[1]SZ[19]PB[Black/One]PW[White:Two];B[pd])')).toBe('Black-One vs White-Two');
+    expect(suggestLibraryItemNameFromSgf('(;GM[1]SZ[9];B[dd])', 'Game 3.sgf')).toBe('Game 3');
+    expect(librarySgfDownloadFilename('Game 3.sgf')).toBe('Game 3.sgf');
+    expect(librarySgfDownloadFilename('Bad/Name:Test')).toBe('Bad-Name-Test.sgf');
   });
 
   it('normalizes legacy localStorage records into current library items', () => {

@@ -28,9 +28,11 @@ import {
   duplicateLibraryItems,
   formatLibrarySize,
   getLibraryStats,
+  librarySgfDownloadFilename,
   loadLibrary,
   restoreLibrary,
   saveLibrary,
+  suggestLibraryItemNameFromSgf,
   updateLibraryItem,
   type LibraryItem,
   type LibraryFile,
@@ -565,7 +567,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     setTextDialog({
       title: 'Save to Library',
       label: 'Name',
-      initialValue: `Game ${items.length + 1}`,
+      initialValue: suggestLibraryItemNameFromSgf(sgf, `Game ${items.length + 1}`),
       placeholder: 'Game name',
       confirmLabel: 'Save',
       onSubmit: (name) => {
@@ -669,7 +671,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${item.name || 'game'}.sgf`;
+    link.download = librarySgfDownloadFilename(item.name);
     link.click();
     URL.revokeObjectURL(url);
     onToast(`Exported "${item.name}".`, 'success');
