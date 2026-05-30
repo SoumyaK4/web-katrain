@@ -546,9 +546,6 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     event.preventDefault();
     event.stopPropagation();
     const position = clampContextMenuPosition(event.clientX, event.clientY);
-    if (item && !visibleSelectedIds.has(item.id)) {
-      setSelectedIds(new Set([item.id]));
-    }
     setContextMenu({ ...position, itemId: item?.id ?? null });
   };
 
