@@ -5,6 +5,7 @@ import {
   FaRedoAlt,
   FaFileAlt,
   FaTrash,
+  FaInfoCircle,
   FaSitemap,
   FaCircle,
   FaLayerGroup,
@@ -14,6 +15,9 @@ import {
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import type { AnalysisControlsState, UiMode, UiState } from './layout/types';
 import { EngineStatusBadge } from './layout/ui';
+import { useGameStore } from '../store/gameStore';
+import { getKaTrainEvalColors } from '../utils/katrainTheme';
+import { DEFAULT_EVAL_THRESHOLDS } from '../utils/nodeAnalysis';
 
 interface AnalysisPanelProps {
   mode: UiMode;
@@ -53,6 +57,11 @@ interface AnalysisPanelProps {
 
 type GraphMetric = keyof UiState['panels'][UiMode]['graph'];
 type AnalysisOverlayControl = keyof AnalysisControlsState;
+type EvalColor = readonly [number, number, number, number];
+
+function evalColorToCss(color: EvalColor): string {
+  return `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${color[3]})`;
+}
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   mode,
@@ -88,6 +97,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   compact = false,
 }) => {
   void mode;
+  const trainerTheme = useGameStore((state) => state.settings.trainerTheme);
+  const trainerEvalThresholds = useGameStore((state) => state.settings.trainerEvalThresholds);
+  const [legendOpen, setLegendOpen] = React.useState(false);
   const graphMetrics = modePanels.graph;
   const activeTab: 'graph' | 'stats' =
     modePanels.statsOpen && !modePanels.graphOpen ? 'stats' : 'graph';
@@ -98,6 +110,25 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     : modelUrl.startsWith('http')
       ? 'Remote'
       : 'Local';
+  const qualityLegendItems = React.useMemo(() => {
+    const colors = getKaTrainEvalColors(trainerTheme);
+    const thresholds = trainerEvalThresholds.length > 0
+      ? trainerEvalThresholds
+      : DEFAULT_EVAL_THRESHOLDS;
+    const ranges = [
+      `${thresholds[0]}+`,
+      `${thresholds[1]}-${thresholds[0]}`,
+      `${thresholds[2]}-${thresholds[1]}`,
+      `${thresholds[3]}-${thresholds[2]}`,
+      `${thresholds[4]}-${thresholds[3]}`,
+      `0-${thresholds[4]}`,
+    ];
+    return ['Blunder', 'Mistake', 'Inaccuracy', 'Slight loss', 'Good', 'Best'].map((label, index) => ({
+      label,
+      range: `${ranges[index]} pt`,
+      color: evalColorToCss(colors[index] ?? colors[colors.length - 1]!),
+    }));
+  }, [trainerEvalThresholds, trainerTheme]);
   const toggleGraphMetric = (metric: GraphMetric) => {
     updatePanels((current) => {
       const next = { ...current.graph, [metric]: !current.graph[metric] };
@@ -181,6 +212,44 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       <span className="tabular-nums">{analysisCacheSize > 0 ? analysisCacheSize : '—'}</span>
     </button>
   );
+  const legendButton = (
+    <button
+      type="button"
+      className={['panel-icon-button', legendOpen ? 'active' : ''].join(' ')}
+      onClick={() => setLegendOpen((prev) => !prev)}
+      title="Move quality legend"
+      aria-label="Move quality legend"
+      aria-expanded={legendOpen}
+      aria-controls="analysis-quality-legend"
+    >
+      <FaInfoCircle size={12} aria-hidden="true" />
+    </button>
+  );
+  const qualityLegend = legendOpen ? (
+    <div
+      id="analysis-quality-legend"
+      className="border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-2 text-[11px]"
+      data-analysis-quality-legend="true"
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <div className="font-semibold text-[var(--ui-text)]">Move quality</div>
+        <div className="ui-text-faint">Points lost</div>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {qualityLegendItems.map((item) => (
+          <div key={item.label} className="flex min-w-0 items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 flex-none rounded-full border border-black/30"
+              style={{ background: item.color }}
+              aria-hidden="true"
+            />
+            <span className="truncate text-[var(--ui-text-muted)]">{item.label}</span>
+            <span className="ml-auto font-mono text-[var(--ui-text)]">{item.range}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
   const graphReadout = (
     <div
       className="grid grid-cols-4 gap-1.5 text-[11px]"
@@ -314,6 +383,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           {analysisCacheControl}
           {overlayToggles}
           <div className="ml-auto flex items-center gap-2 text-xs">
+            {legendButton}
             <button
               className="panel-icon-button"
               onClick={onOpenGameAnalysis}
@@ -331,6 +401,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </div>
         </div>
       )}
+      {!compact && qualityLegend}
 
       {!compact && (
         <div className="panel-tab-strip">
@@ -361,9 +432,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               {graphMetricToggles}
-              {analysisCacheControl}
+              <div className="flex items-center gap-1.5">
+                {analysisCacheControl}
+                {legendButton}
+              </div>
             </div>
             {overlayToggles}
+            {qualityLegend}
             <div className="panel-compact-graph">
               <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
             </div>
