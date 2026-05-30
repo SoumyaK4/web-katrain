@@ -64,6 +64,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   compact = false,
 }) => {
   void mode;
+  const [graphMetrics, setGraphMetrics] = React.useState({ score: true, winrate: true });
   const activeTab: 'graph' | 'stats' =
     modePanels.statsOpen && !modePanels.graphOpen ? 'stats' : 'graph';
   const activeBackend = engineBackend ?? requestedBackend;
@@ -73,6 +74,35 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     : modelUrl.startsWith('http')
       ? 'Remote'
       : 'Local';
+  const toggleGraphMetric = (metric: keyof typeof graphMetrics) => {
+    setGraphMetrics((current) => {
+      const next = { ...current, [metric]: !current[metric] };
+      return next.score || next.winrate ? next : current;
+    });
+  };
+  const metricToggle = (metric: keyof typeof graphMetrics, label: string, colorClass: string) => (
+    <button
+      type="button"
+      className={[
+        'px-2 py-1 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors',
+        graphMetrics[metric]
+          ? 'bg-[var(--ui-surface-2)] border-[var(--ui-border-strong)] text-[var(--ui-text)]'
+          : 'bg-[var(--ui-surface)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+      ].join(' ')}
+      onClick={() => toggleGraphMetric(metric)}
+      aria-pressed={graphMetrics[metric]}
+      title={`Toggle ${label.toLowerCase()} graph`}
+    >
+      <span className={['h-2 w-2 rounded-full', colorClass].join(' ')} aria-hidden="true" />
+      {label}
+    </button>
+  );
+  const graphMetricToggles = (
+    <div className="flex items-center gap-1.5">
+      {metricToggle('winrate', 'Win', 'bg-[var(--ui-success)]')}
+      {metricToggle('score', 'Score', 'bg-[var(--ui-warning)]')}
+    </div>
+  );
 
   return (
     <div className="flex flex-col min-h-0">
@@ -173,6 +203,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           >
             Stop
           </button>
+          {graphMetricToggles}
           <div className="ml-auto flex items-center gap-2 text-xs">
             <button
               className="panel-icon-button"
@@ -219,8 +250,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       <div className="panel-section-content">
         {compact ? (
           <div className="space-y-2">
+            {graphMetricToggles}
             <div className="panel-compact-graph">
-              <ScoreWinrateGraph showScore showWinrate />
+              <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="px-2 py-1.5">
@@ -247,7 +279,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </div>
         ) : activeTab === 'graph' ? (
           <div className="panel-compact-graph">
-            <ScoreWinrateGraph showScore showWinrate />
+            <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
