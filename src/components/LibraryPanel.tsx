@@ -34,6 +34,7 @@ import {
   restoreLibrary,
   saveLibrary,
   suggestLibraryItemNameFromSgf,
+  updateLibraryFileSgf,
   updateLibraryItem,
   type LibraryItem,
   type LibraryFile,
@@ -246,6 +247,8 @@ interface LibraryPanelProps {
   onOpenRecent?: (sgf: string) => void;
   onLibraryUpdated?: () => void;
   onCurrentSaved?: () => void;
+  loadedFileId?: string | null;
+  onLoadedFileChange?: (id: string | null) => void;
 }
 
 export const LibraryPanel: React.FC<LibraryPanelProps> = ({
@@ -263,12 +266,13 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   onOpenPhotoBoard,
   onLibraryUpdated,
   onCurrentSaved,
+  loadedFileId = null,
+  onLoadedFileChange,
 }) => {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [libraryStatus, setLibraryStatus] = useState<'loading' | 'ready' | 'saving' | 'error'>('loading');
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
     if (typeof localStorage === 'undefined') return null;
@@ -480,7 +484,17 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const currentFolder = folderItems.find((folder) => folder.id === activeFolderId) ?? null;
   const currentFolderName = currentFolder?.name ?? 'Root';
   const libraryStats = useMemo(() => getLibraryStats(items), [items]);
+  const loadedLibraryFile = useMemo(() => {
+    if (!loadedFileId) return null;
+    const item = items.find((candidate) => candidate.id === loadedFileId);
+    return item && isFile(item) ? item : null;
+  }, [items, loadedFileId]);
   const canSaveCurrentToLibrary = libraryStatus !== 'loading' && libraryStatus !== 'error';
+  const saveCurrentTitle = !canSaveCurrentToLibrary
+    ? 'Library is not ready'
+    : loadedLibraryFile
+      ? `Update "${loadedLibraryFile.name}" in Library`
+      : 'Save current game to Library';
   const libraryStatsText = [
     `${libraryStats.files} game${libraryStats.files === 1 ? '' : 's'}`,
     `${libraryStats.folders} folder${libraryStats.folders === 1 ? '' : 's'}`,
@@ -506,15 +520,15 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   }, [activeFolderId, items]);
 
   const activeAncestorIds = useMemo(() => {
-    if (!activeId) return new Set<string>();
+    if (!loadedFileId) return new Set<string>();
     const ancestors = new Set<string>();
-    let current = items.find((item) => item.id === activeId);
+    let current = items.find((item) => item.id === loadedFileId);
     while (current?.parentId) {
       ancestors.add(current.parentId);
       current = items.find((item) => item.id === current?.parentId);
     }
     return ancestors;
-  }, [activeId, items]);
+  }, [loadedFileId, items]);
 
   const childrenMap = useMemo(() => {
     const map = new Map<string | null, LibraryItem[]>();
@@ -602,6 +616,12 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       onToast('Nothing to save yet.', 'info');
       return;
     }
+    if (loadedLibraryFile) {
+      setItems((prev) => updateLibraryFileSgf(prev, loadedLibraryFile.id, sgf));
+      onCurrentSaved?.();
+      onToast(`Updated "${loadedLibraryFile.name}" in Library.`, 'success');
+      return;
+    }
     setTextDialog({
       title: 'Save to Library',
       label: 'Name',
@@ -617,7 +637,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       onSubmit: (name, targetFolderId) => {
         const newItem = createLibraryItem(name, sgf, targetFolderId ?? null);
         setItems((prev) => [newItem, ...prev]);
-        setActiveId(newItem.id);
+        onLoadedFileChange?.(newItem.id);
         onCurrentSaved?.();
         onToast(`Saved "${newItem.name}" to Library.`, 'success');
       },
@@ -663,7 +683,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       onConfirm: () => {
         setItems([]);
         setSelectedIds(new Set());
-        setActiveId(null);
+        onLoadedFileChange?.(null);
         setCurrentFolderId(null);
         onToast('Library cleared.', 'info');
       },
@@ -688,8 +708,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       danger: true,
       onConfirm: () => {
         setItems((prev) => deleteLibraryItem(prev, item.id));
-        if (activeId === item.id || (isFolderItem && activeId && isDescendantOf(activeId, item.id))) {
-          setActiveId(null);
+        if (loadedFileId === item.id || (isFolderItem && loadedFileId && isDescendantOf(loadedFileId, item.id))) {
+          onLoadedFileChange?.(null);
         }
       },
     });
@@ -782,7 +802,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       didLoadLibraryRef.current = true;
       setItems(restored);
       setSelectedIds(new Set());
-      setActiveId(null);
+      onLoadedFileChange?.(null);
       setCurrentFolderId(null);
       onToast(`Restored ${restored.length} library item${restored.length === 1 ? '' : 's'}.`, 'success');
     } catch {
@@ -826,10 +846,10 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           return next;
         });
         if (
-          activeId &&
-          Array.from(visibleSelectedIds).some((id) => activeId === id || isDescendantOf(activeId, id))
+          loadedFileId &&
+          Array.from(visibleSelectedIds).some((id) => loadedFileId === id || isDescendantOf(loadedFileId, id))
         ) {
-          setActiveId(null);
+          onLoadedFileChange?.(null);
         }
         setSelectedIds(new Set());
       },
@@ -893,7 +913,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     try {
       const loaded = await onLoadSgf(item.sgf);
       if (!loaded) return;
-      setActiveId(item.id);
+      onLoadedFileChange?.(item.id);
       setCurrentFolderId(item.parentId ?? null);
       onToast(`Loaded "${item.name}".`, 'success');
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
@@ -1024,7 +1044,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
 
   const renderFileRow = (item: LibraryFile, depth: number) => {
     const isSelected = visibleSelectedIds.has(item.id);
-    const isLoaded = activeId === item.id;
+    const isLoaded = loadedFileId === item.id;
     return (
       <div
         key={item.id}
@@ -1461,8 +1481,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               className={headerActionClass}
               onClick={handleSaveCurrent}
               disabled={!canSaveCurrentToLibrary}
-              title={canSaveCurrentToLibrary ? 'Save current game to Library' : 'Library is not ready'}
-              aria-label="Save current game to Library"
+              title={saveCurrentTitle}
+              aria-label={loadedLibraryFile ? 'Update loaded library game' : 'Save current game to Library'}
             >
               <FaSave />
             </button>

@@ -14,6 +14,7 @@ import {
   normalizeLibraryItems,
   parseLibraryBackup,
   suggestLibraryItemNameFromSgf,
+  updateLibraryFileSgf,
 } from '../src/utils/library';
 
 describe('library storage helpers', () => {
@@ -42,6 +43,28 @@ describe('library storage helpers', () => {
     expect(item.moveCount).toBe(2);
     expect(item.size).toBe(sgf.length);
     expect(item.metadata.black).toBe('Black Player');
+  });
+
+  it('updates a saved file in place with fresh SGF metadata', () => {
+    const item = createLibraryItem('Game', sgf, 'folder-a', 123);
+    const updatedSgf = '(;GM[1]FF[4]SZ[9]GN[Updated]PB[New Black]PW[New White];B[dd];W[ee];B[cf])';
+
+    const updatedItems = updateLibraryFileSgf([item], item.id, updatedSgf, 456);
+    const updated = updatedItems[0];
+
+    expect(updated?.id).toBe(item.id);
+    expect(updated?.name).toBe('Game');
+    expect(updated?.parentId).toBe('folder-a');
+    expect(updated?.createdAt).toBe(123);
+    expect(updated?.updatedAt).toBe(456);
+    expect(updated?.type).toBe('file');
+    if (updated?.type === 'file') {
+      expect(updated.sgf).toBe(updatedSgf);
+      expect(updated.moveCount).toBe(3);
+      expect(updated.size).toBe(updatedSgf.length);
+      expect(updated.metadata.gameName).toBe('Updated');
+      expect(updated.metadata.black).toBe('New Black');
+    }
   });
 
   it('suggests library names from SGF metadata and keeps downloads single-extension', () => {

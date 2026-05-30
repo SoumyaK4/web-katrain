@@ -537,6 +537,25 @@ export const createLibraryItem = (
   };
 };
 
+export const updateLibraryFileSgf = (
+  items: LibraryItem[],
+  id: string,
+  sgf: string,
+  timestamp = Date.now()
+): LibraryItem[] => {
+  return items.map((item) => {
+    if (item.id !== id || item.type !== 'file') return item;
+    return {
+      ...item,
+      sgf,
+      updatedAt: timestamp,
+      moveCount: countMoves(sgf),
+      size: sgf.length,
+      metadata: extractLibraryMetadata(sgf),
+    };
+  });
+};
+
 export const createLibraryFolder = (name: string, parentId: string | null = null): LibraryFolder => {
   const now = Date.now();
   return {

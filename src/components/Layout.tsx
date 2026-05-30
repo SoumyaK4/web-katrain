@@ -294,6 +294,7 @@ export const Layout: React.FC = () => {
   const [isResizingRight, setIsResizingRight] = useState(false);
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [recentLibraryItems, setRecentLibraryItems] = useState<LibraryFile[]>([]);
+  const [loadedLibraryFileId, setLoadedLibraryFileId] = useState<string | null>(null);
   const [isFileDragActive, setIsFileDragActive] = useState(false);
   const [scoringMode, setScoringMode] = useState(false);
   const [manualDeadStones, setManualDeadStones] = useState<Set<string>>(() => new Set());
@@ -568,6 +569,7 @@ export const Layout: React.FC = () => {
     try {
       const parsed = parseSgf(snapshot.sgf);
       loadGame(parsed);
+      setLoadedLibraryFileId(null);
       navigateEnd();
       setAutoSaveRecovery(null);
       toast('Restored auto-saved game.', 'success');
@@ -1107,6 +1109,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(text);
       if (!(await prepareForGameReplacement())) return;
       loadGame(parsed);
+      setLoadedLibraryFileId(null);
       markCurrentGameCleanAndClearAutoSave();
       toast('Loaded SGF.', 'success');
     } catch {
@@ -1176,6 +1179,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(result.sgf);
       if (!(await prepareForGameReplacement())) return false;
       loadGame(parsed);
+      setLoadedLibraryFileId(null);
       markCurrentGameCleanAndClearAutoSave();
       toast(result.source === 'ogs' ? `Downloaded OGS game ${result.gameId ?? ''}.` : 'Loaded SGF.', 'success');
       return true;
@@ -1236,6 +1240,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(sgfText);
       if (!(await prepareForGameReplacement())) return;
       loadGame(parsed);
+      setLoadedLibraryFileId(null);
       navigateStart();
       markCurrentGameCleanAndClearAutoSave();
       closePhotoBoard();
@@ -1492,6 +1497,7 @@ export const Layout: React.FC = () => {
             onClose={() => setIsNewGameOpen(false)}
             onStart={({ komi: nextKomi, rules, info, aiConfig, timerConfig, boardSize: nextBoardSize, handicap: nextHandicap }) => {
             startNewGame({ komi: nextKomi, rules, boardSize: nextBoardSize, handicap: nextHandicap });
+            setLoadedLibraryFileId(null);
             setRootProperty('PB', info.blackName);
             setRootProperty('PW', info.whiteName);
             setRootProperty('BR', info.blackRank);
@@ -1670,6 +1676,8 @@ export const Layout: React.FC = () => {
           onOpenRecent={handleOpenRecent}
           onLibraryUpdated={handleLibraryUpdated}
           onCurrentSaved={markCurrentGameCleanAndClearAutoSave}
+          loadedFileId={loadedLibraryFileId}
+          onLoadedFileChange={setLoadedLibraryFileId}
           isAnalysisRunning={isGameAnalysisRunning}
           onStopAnalysis={stopGameAnalysis}
           analysisContent={
