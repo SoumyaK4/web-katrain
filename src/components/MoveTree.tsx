@@ -44,8 +44,11 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   const containerRef = useRef<HTMLDivElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
-  const [layout, setLayout] = useState<MoveTreeLayout | null>(null);
-  const [layoutStatus, setLayoutStatus] = useState<'sync' | 'worker' | 'working' | 'fallback'>('sync');
+  const [workerResult, setWorkerResult] = useState<{
+    key: string;
+    layout: MoveTreeLayout;
+    status: 'worker' | 'fallback';
+  } | null>(null);
   const [viewport, setViewport] = useState<MoveTreeViewport>(EMPTY_VIEWPORT);
 
   const flatTree = useMemo(() => {
@@ -58,17 +61,29 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     return indexNodes(rootNode);
   }, [rootNode, treeVersion]);
 
+  const shouldUseWorker = typeof Worker !== 'undefined' && flatTree.length >= MOVE_TREE_LAYOUT_WORKER_THRESHOLD;
+  const layoutKey = `${rootNode.id}:${treeVersion}:${flatTree.length}`;
+  const syncLayout = useMemo(
+    () => (shouldUseWorker ? null : computeMoveTreeLayout(flatTree)),
+    [flatTree, shouldUseWorker]
+  );
+  const workerLayout = shouldUseWorker && workerResult?.key === layoutKey ? workerResult.layout : null;
+  const layout = syncLayout ?? workerLayout;
+  const layoutStatus = shouldUseWorker
+    ? workerResult?.key === layoutKey
+      ? workerResult.status
+      : 'working'
+    : 'sync';
+
   useEffect(() => {
+    if (!shouldUseWorker) return;
+
     const requestId = ++requestIdRef.current;
-    const canUseWorker = typeof Worker !== 'undefined' && flatTree.length >= MOVE_TREE_LAYOUT_WORKER_THRESHOLD;
-
-    if (!canUseWorker) {
-      setLayout(computeMoveTreeLayout(flatTree));
-      setLayoutStatus('sync');
-      return;
-    }
-
-    setLayoutStatus('working');
+    const key = layoutKey;
+    const applyFallback = () => {
+      if (requestId !== requestIdRef.current) return;
+      setWorkerResult({ key, layout: computeMoveTreeLayout(flatTree), status: 'fallback' });
+    };
     try {
       if (!workerRef.current) {
         workerRef.current = new Worker(new URL('../workers/moveTreeLayoutWorker.ts', import.meta.url), {
@@ -80,24 +95,19 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
         const msg = event.data;
         if (msg.requestId !== requestIdRef.current) return;
         if (msg.ok) {
-          setLayout(msg.layout);
-          setLayoutStatus('worker');
+          setWorkerResult({ key, layout: msg.layout, status: 'worker' });
           return;
         }
-        setLayout(computeMoveTreeLayout(flatTree));
-        setLayoutStatus('fallback');
+        applyFallback();
       };
       worker.onerror = () => {
-        if (requestId !== requestIdRef.current) return;
-        setLayout(computeMoveTreeLayout(flatTree));
-        setLayoutStatus('fallback');
+        applyFallback();
       };
       worker.postMessage({ requestId, items: flatTree });
     } catch {
-      setLayout(computeMoveTreeLayout(flatTree));
-      setLayoutStatus('fallback');
+      queueMicrotask(applyFallback);
     }
-  }, [flatTree]);
+  }, [flatTree, layoutKey, shouldUseWorker]);
 
   useEffect(() => {
     return () => {
