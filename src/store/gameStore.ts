@@ -23,6 +23,7 @@ import {
   findCurrentLineMoveTarget,
   findSiblingBranchTarget,
   getActiveChild,
+  getCurrentLineNodes,
   rememberActiveBranchPath,
   type ActiveBranchMap,
 } from '../utils/branchNavigation';
@@ -1658,12 +1659,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     analysisQueue.cancelGroup('game-analysis');
     const state = get();
 
-    const nodes: GameNode[] = [];
-    let cursor: GameNode | null = state.rootNode;
-    while (cursor) {
-      nodes.push(cursor);
-      cursor = cursor.children[0] ?? null;
-    }
+    const nodes = getCurrentLineNodes(state.rootNode, state.activeBranchChildIds);
 
     const total = nodes.length;
     if (total <= 1) {
@@ -1788,12 +1784,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     analysisQueue.cancelGroup('game-analysis');
     const state = get();
 
-    const nodes: GameNode[] = [];
-    let cursor: GameNode | null = state.rootNode;
-    while (cursor) {
-      nodes.push(cursor);
-      cursor = cursor.children[0] ?? null;
-    }
+    const nodes = getCurrentLineNodes(state.rootNode, state.activeBranchChildIds);
 
     const total = nodes.length;
     if (total <= 1) {
