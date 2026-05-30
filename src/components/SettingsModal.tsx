@@ -13,6 +13,9 @@ import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
 let uploadedModelUrl: string | null = null;
 let lastManualModelUrl: string | null = null;
 
+const KATRAIN_DEFAULT_MODEL_URL =
+    'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz';
+
 const OFFICIAL_MODELS: Array<{
     label: string;
     name: string;
@@ -49,7 +52,7 @@ const OFFICIAL_MODELS: Array<{
     {
         label: 'Strongest (b18)',
         name: 'kata1-b18c384nbt-s9996604416-d4316597426',
-        url: publicUrl('models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz'),
+        url: KATRAIN_DEFAULT_MODEL_URL,
         badge: 'Strongest b18',
         uploaded: '2024-05-26',
         size: '~96 MB',
@@ -122,7 +125,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const DEFAULT_SHOW_DOTS = [true, true, true, true, true, true];
     const DEFAULT_SAVE_FEEDBACK = [true, true, true, true, false, false];
     const DEFAULT_ANIM_PV_TIME = 0.5;
-    const KATRAIN_DEFAULT_MODEL_URL = publicUrl('models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz');
     const SMALL_MODEL_URL = publicUrl('models/katago-small.bin.gz');
     const isUploadedModel = settings.katagoModelUrl.startsWith('blob:');
     const sectionClass =

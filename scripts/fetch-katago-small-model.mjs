@@ -6,6 +6,7 @@ const MODEL_URL =
 const KATRAIN_MODEL_NAME = 'kata1-b18c384nbt-s9996604416-d4316597426.bin.gz';
 const KATRAIN_MODEL_URL =
   'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz';
+const SHOULD_FETCH_KATRAIN_MODEL = process.env.FETCH_KATRAIN_MODEL === '1';
 
 const projectRoot = path.resolve(import.meta.dirname, '..');
 const outDir = path.join(projectRoot, 'public', 'models');
@@ -49,15 +50,17 @@ async function downloadModel(url, destPath) {
 async function main() {
   await fs.mkdir(outDir, { recursive: true });
 
-  // Prefer KaTrain's default model if available locally (sibling checkout under ../katrain-ref/).
-  const copied = await ensureCopiedModel(katrainSrcPath, katrainOutPath);
-  if (copied) {
-    console.log(`KaTrain model ready: ${path.relative(projectRoot, katrainOutPath)}`);
-  } else if (await exists(katrainOutPath)) {
-    console.log(`KaTrain model already present: ${path.relative(projectRoot, katrainOutPath)}`);
-  } else {
-    console.log(`KaTrain model not found at ${path.relative(projectRoot, katrainSrcPath)} (downloading)`);
-    await downloadModel(KATRAIN_MODEL_URL, katrainOutPath);
+  if (SHOULD_FETCH_KATRAIN_MODEL) {
+    // Optional local heavyweight model for developers. Do not fetch this during normal builds.
+    const copied = await ensureCopiedModel(katrainSrcPath, katrainOutPath);
+    if (copied) {
+      console.log(`KaTrain model ready: ${path.relative(projectRoot, katrainOutPath)}`);
+    } else if (await exists(katrainOutPath)) {
+      console.log(`KaTrain model already present: ${path.relative(projectRoot, katrainOutPath)}`);
+    } else {
+      console.log(`KaTrain model not found at ${path.relative(projectRoot, katrainSrcPath)} (downloading)`);
+      await downloadModel(KATRAIN_MODEL_URL, katrainOutPath);
+    }
   }
 
   if (await exists(outPath)) {

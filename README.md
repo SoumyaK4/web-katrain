@@ -1,6 +1,6 @@
 # web-katrain
 
-Browser-based KaTrain-style UI with in-browser KataGo analysis using TensorFlow.js (WebGPU with WASM/CPU fallback).
+Browser-based KaTrain-style UI with in-browser KataGo analysis using TensorFlow.js (WASM by default, with WebGPU/CPU selectable in settings).
 
 ## How it works
 
@@ -27,7 +27,8 @@ Optional parity assets can be pulled from sibling checkouts:
 - `../katrain-ref/` – KaTrain reference (Python/Kivy)
 - `../KataGo/` – KataGo reference (C++)
 
-Scripts like `scripts/fetch-katago-small-model.mjs` will copy KaTrain’s default model from `../katrain-ref/katrain/models/` when present.
+`scripts/fetch-katago-small-model.mjs` keeps the small test model available for local builds.
+Set `FETCH_KATRAIN_MODEL=1` if you also want to copy/download KaTrain’s heavier default model into `public/models/` for local testing.
 
 ## Performance
 
