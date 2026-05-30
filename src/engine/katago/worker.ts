@@ -7,7 +7,7 @@ import { setThreadsCount, setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 import pako from 'pako';
 
 import type { KataGoAnalyzeRequest, KataGoWorkerRequest, KataGoWorkerResponse } from './types';
-import type { BoardState, GameRules, Move, Player, RegionOfInterest } from '../../types';
+import type { BoardState, GameRules, KataGoBackendPreference, Move, Player, RegionOfInterest } from '../../types';
 import { publicUrl } from '../../utils/publicUrl';
 import { parseKataGoModelV8 } from './loadModelV8';
 import { KataGoModelV8Tf } from './modelV8';
@@ -35,6 +35,8 @@ let model: KataGoModelV8Tf | null = null;
 let loadedModelName: string | undefined;
 let loadedModelUrl: string | null = null;
 let backendPromise: Promise<void> | null = null;
+let backendPreference: KataGoBackendPreference | null = null;
+let prodModeEnabled = false;
 let queue: Promise<void> = Promise.resolve();
 
 let V7_SPATIAL_STRIDE = BOARD_AREA * 22;
@@ -275,15 +277,10 @@ function ensureBoardSizeForWorker(boardSize: number): void {
   searchKey = null;
 }
 
-async function initBackend(): Promise<void> {
-  try {
-    await tf.setBackend('webgpu');
-    await tf.ready();
-    return;
-  } catch {
-    // Fall back to CPU if WebGPU isn't available in this environment.
-  }
+const normalizeBackendPreference = (backend?: KataGoBackendPreference): KataGoBackendPreference =>
+  backend === 'webgpu' || backend === 'cpu' ? backend : 'wasm';
 
+async function initWasmBackend(): Promise<void> {
   try {
     // Vite serves `public/` at the site root.
     setWasmPaths(publicUrl('tfjs/'));
@@ -299,11 +296,31 @@ async function initBackend(): Promise<void> {
     await tf.ready();
     return;
   } catch {
-    // Fall through.
+    // Fall through to CPU below.
   }
 
   await tf.setBackend('cpu');
   await tf.ready();
+}
+
+async function initBackend(preferredBackend: KataGoBackendPreference): Promise<void> {
+  if (preferredBackend === 'cpu') {
+    await tf.setBackend('cpu');
+    await tf.ready();
+    return;
+  }
+
+  if (preferredBackend === 'webgpu') {
+    try {
+      await tf.setBackend('webgpu');
+      await tf.ready();
+      return;
+    } catch {
+      // Fall back to WASM/CPU if WebGPU isn't available or fails to initialize.
+    }
+  }
+
+  await initWasmBackend();
 }
 
 function maybeUngzip(data: Uint8Array): Uint8Array {
@@ -312,22 +329,38 @@ function maybeUngzip(data: Uint8Array): Uint8Array {
   return data;
 }
 
-async function ensureBackend(): Promise<void> {
-  if (!backendPromise) {
-    backendPromise = initBackend()
+async function ensureBackend(backend?: KataGoBackendPreference): Promise<void> {
+  const preferredBackend = normalizeBackendPreference(backend);
+  if (backendPromise && backendPreference === preferredBackend) {
+    await backendPromise;
+    return;
+  }
+
+  model?.dispose();
+  model = null;
+  loadedModelName = undefined;
+  loadedModelUrl = null;
+  search = null;
+  searchKey = null;
+
+  backendPreference = preferredBackend;
+  backendPromise = initBackend(preferredBackend)
       .then(() => {
-        tf.enableProdMode();
+        if (!prodModeEnabled) {
+          tf.enableProdMode();
+          prodModeEnabled = true;
+        }
       })
       .catch((err) => {
         backendPromise = null;
+        backendPreference = null;
         throw err;
       });
-  }
   await backendPromise;
 }
 
-async function ensureModel(modelUrl: string): Promise<void> {
-  await ensureBackend();
+async function ensureModel(modelUrl: string, backend?: KataGoBackendPreference): Promise<void> {
+  await ensureBackend(backend);
   if (model && loadedModelUrl === modelUrl) return;
 
   const res = await fetch(modelUrl);
@@ -361,7 +394,7 @@ function post(msg: KataGoWorkerResponse, transfer?: Transferable[]) {
 
 async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
   if (msg.type === 'katago:init') {
-    await ensureModel(msg.modelUrl);
+    await ensureModel(msg.modelUrl, msg.backend);
     post({
       type: 'katago:init_result',
       ok: true,
@@ -372,7 +405,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
   }
 
   if (msg.type === 'katago:eval') {
-    await ensureModel(msg.modelUrl);
+    await ensureModel(msg.modelUrl, msg.backend);
     if (!model) throw new Error('Model not loaded');
     ensureBoardSizeForWorker(msg.board.length);
     const boardSize = BOARD_SIZE;
@@ -426,7 +459,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
   }
 
   if (msg.type === 'katago:eval_batch') {
-    await ensureModel(msg.modelUrl);
+    await ensureModel(msg.modelUrl, msg.backend);
     if (!model) throw new Error('Model not loaded');
 
     const conservativePass = msg.conservativePass !== false;
@@ -525,7 +558,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       return;
     }
 
-    await ensureModel(msg.modelUrl);
+    await ensureModel(msg.modelUrl, msg.backend);
     if (!model) throw new Error('Model not loaded');
     if (shouldAbort()) {
       postCanceled();

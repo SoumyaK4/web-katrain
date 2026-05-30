@@ -13,8 +13,8 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
 
   const modelName = p.readToken();
   const modelVersion = p.readInt();
-  if (modelVersion < 8 || modelVersion > 14) {
-    throw new Error(`Unsupported modelVersion ${modelVersion}, supported 8..14`);
+  if (modelVersion < 8 || modelVersion > 16) {
+    throw new Error(`Unsupported modelVersion ${modelVersion}, supported 8..16`);
   }
   const numInputChannels = p.readInt();
   const numInputGlobalChannels = p.readInt();
@@ -43,6 +43,14 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
           outputScaleMultiplier: 1.0,
         };
 
+  const metaEncoderVersion = modelVersion >= 15 ? p.readInt() : 0;
+  if (modelVersion >= 15) {
+    for (let i = 0; i < 7; i++) p.readInt(); // Unused model-level params in KataGo v15+.
+  }
+  if (metaEncoderVersion !== 0) {
+    throw new Error(`Unsupported metaEncoderVersion ${metaEncoderVersion}`);
+  }
+
   // trunk header
   p.readToken(); // trunk name
   const numBlocks = p.readInt();
@@ -51,6 +59,9 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
   const regularNumChannels = p.readInt();
   p.readInt();
   const gpoolNumChannels = p.readInt();
+  if (modelVersion >= 15) {
+    for (let i = 0; i < 6; i++) p.readInt(); // Unused trunk params in KataGo v15+.
+  }
 
   const conv1 = parseConv2d(p);
   const ginput = parseMatMul(p);
@@ -120,6 +131,9 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
   const p1Activation = parseActivationKind(p, modelVersion);
   const p2 = parseConv2d(p);
   const passMul = parseMatMul(p);
+  const passBias = modelVersion >= 15 ? parseMatBias(p) : undefined;
+  const passActivation = modelVersion >= 15 ? parseActivationKind(p, modelVersion) : undefined;
+  const passMul2 = modelVersion >= 15 ? parseMatMul(p) : undefined;
 
   // value head
   p.readToken(); // value head name
@@ -140,6 +154,7 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
     modelVersion,
     numInputChannels,
     numInputGlobalChannels,
+    metaEncoderVersion,
     postProcessParams,
     policyOutChannels: p2.outChannels,
     scoreValueChannels: sv3.outChannels,
@@ -165,6 +180,9 @@ export function parseKataGoModelV8(data: Uint8Array): ParsedKataGoModelV8 {
       p1Activation,
       p2,
       passMul,
+      passBias,
+      passActivation,
+      passMul2,
     },
     value: {
       v1,

@@ -1,5 +1,5 @@
 import type { KataGoWorkerRequest, KataGoWorkerResponse } from './types';
-import type { BoardState, GameRules, Move, Player, RegionOfInterest } from '../../types';
+import type { BoardState, GameRules, KataGoBackendPreference, Move, Player, RegionOfInterest } from '../../types';
 
 type Analysis = NonNullable<Extract<KataGoWorkerResponse, { type: 'katago:analyze_result' }>['analysis']>;
 type EvalResult = NonNullable<Extract<KataGoWorkerResponse, { type: 'katago:eval_result' }>['eval']>;
@@ -118,11 +118,11 @@ class KataGoEngineClient {
     return { backend: this.backend, modelName: this.modelName };
   }
 
-  init(modelUrl: string): Promise<void> {
+  init(modelUrl: string, backend?: KataGoBackendPreference): Promise<void> {
     if (this.pendingInit) return Promise.reject(new Error('Init already in progress'));
     return new Promise<void>((resolve, reject) => {
       this.pendingInit = { resolve, reject };
-      const initMsg: KataGoWorkerRequest = { type: 'katago:init', modelUrl };
+      const initMsg: KataGoWorkerRequest = { type: 'katago:init', modelUrl, backend };
       this.worker.postMessage(initMsg);
     });
   }
@@ -134,6 +134,7 @@ class KataGoEngineClient {
     positionKey?: string;
     parentPositionKey?: string;
     modelUrl: string;
+    backend?: KataGoBackendPreference;
     board: BoardState;
     previousBoard?: BoardState;
     previousPreviousBoard?: BoardState;
@@ -168,6 +169,7 @@ class KataGoEngineClient {
       positionKey: args.positionKey,
       parentPositionKey: args.parentPositionKey,
       modelUrl: args.modelUrl,
+      backend: args.backend,
       board: args.board,
       previousBoard: args.previousBoard,
       previousPreviousBoard: args.previousPreviousBoard,
@@ -200,6 +202,7 @@ class KataGoEngineClient {
 
   async evaluate(args: {
     modelUrl: string;
+    backend?: KataGoBackendPreference;
     board: BoardState;
     previousBoard?: BoardState;
     previousPreviousBoard?: BoardState;
@@ -214,6 +217,7 @@ class KataGoEngineClient {
       type: 'katago:eval',
       id,
       modelUrl: args.modelUrl,
+      backend: args.backend,
       board: args.board,
       previousBoard: args.previousBoard,
       previousPreviousBoard: args.previousPreviousBoard,
@@ -232,6 +236,7 @@ class KataGoEngineClient {
 
   async evaluateBatch(args: {
     modelUrl: string;
+    backend?: KataGoBackendPreference;
     positions: Array<{
       board: BoardState;
       previousBoard?: BoardState;
@@ -248,6 +253,7 @@ class KataGoEngineClient {
       type: 'katago:eval_batch',
       id,
       modelUrl: args.modelUrl,
+      backend: args.backend,
       positions: args.positions.map((p) => ({
         board: p.board,
         previousBoard: p.previousBoard,

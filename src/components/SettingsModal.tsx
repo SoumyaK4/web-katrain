@@ -23,20 +23,28 @@ const OFFICIAL_MODELS: Array<{
     downloadAndLoad?: boolean;
 }> = [
     {
-        label: 'Latest (b28)',
-        name: 'kata1-b28c512nbt-s12253653760-d5671874532',
-        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b28c512nbt-s12253653760-d5671874532.bin.gz',
-        badge: 'Latest',
-        uploaded: '2026-01-16',
-        size: '~280 MB',
+        label: 'Latest / Strongest (b40)',
+        name: 'kata1-zhizi-b40c768nbt-fdx6d',
+        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-zhizi-b40c768nbt-fdx6d.bin.gz',
+        badge: 'Strongest',
+        uploaded: '2026-05-02',
+        size: '~824 MB',
     },
     {
         label: 'Strongest (b28)',
-        name: 'kata1-b28c512nbt-s12192929536-d5655876072',
-        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b28c512nbt-s12192929536-d5655876072.bin.gz',
-        badge: 'Strongest',
-        uploaded: '2026-01-06',
-        size: '~280 MB',
+        name: 'kata1-zhizi-b28c512nbt-muonfd2',
+        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-zhizi-b28c512nbt-muonfd2.bin.gz',
+        badge: 'b28',
+        uploaded: '2026-03-22',
+        size: '~259 MB',
+    },
+    {
+        label: 'Latest (b28)',
+        name: 'kata1-b28c512nbt-s12763923712-d5805955894',
+        url: 'https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b28c512nbt-s12763923712-d5805955894.bin.gz',
+        badge: 'Latest b28',
+        uploaded: '2026-03-28',
+        size: '~259 MB',
     },
     {
         label: 'Strongest (b18)',
@@ -1495,6 +1503,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         <p className={subtextClass}>
                                             Use a local path under <span className="font-mono">{publicUrl('models/')}</span> or a full URL (must allow CORS).
                                         </p>
+                                        <div className="space-y-1">
+                                            <label className="text-slate-300 block text-sm">Backend</label>
+                                            <select
+                                                value={settings.katagoBackend}
+                                                onChange={(e) => updateSettings({ katagoBackend: e.target.value as GameSettings['katagoBackend'] })}
+                                                className={selectClass}
+                                            >
+                                                <option value="wasm">WASM</option>
+                                                <option value="webgpu">WebGPU</option>
+                                                <option value="cpu">CPU</option>
+                                            </select>
+                                        </div>
                                         <p className={subtextClass}>
                                             Engine: <span className="font-mono">{engineBackend ?? 'not loaded'}</span>
                                             {engineModelLabel ? (

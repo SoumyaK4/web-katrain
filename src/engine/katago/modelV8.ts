@@ -141,6 +141,7 @@ export type ParsedKataGoModelV8 = {
   modelVersion: number;
   numInputChannels: number;
   numInputGlobalChannels: number;
+  metaEncoderVersion: number;
   postProcessParams: {
     tdScoreMultiplier: number;
     scoreMeanMultiplier: number;
@@ -175,6 +176,9 @@ export type ParsedKataGoModelV8 = {
     p1Activation: ActivationKind;
     p2: ParsedConv2d;
     passMul: ParsedMatMul;
+    passBias?: ParsedMatBias;
+    passActivation?: ActivationKind;
+    passMul2?: ParsedMatMul;
   };
   value: {
     v1: ParsedConv2d;
@@ -248,6 +252,9 @@ export class KataGoModelV8Tf {
   private readonly p1Activation: ActivationKind;
   private readonly p2: TfConv;
   private readonly passMul: TfMatMul;
+  private readonly passBias?: TfMatBias;
+  private readonly passActivation?: ActivationKind;
+  private readonly passMul2?: TfMatMul;
 
   private readonly v1: TfConv;
   private readonly v1BN: TfBn;
@@ -322,6 +329,9 @@ export class KataGoModelV8Tf {
     this.p1Activation = parsed.policy.p1Activation;
     this.p2 = makeConv(parsed.policy.p2);
     this.passMul = makeMatMul(parsed.policy.passMul);
+    this.passBias = parsed.policy.passBias ? makeMatBias(parsed.policy.passBias) : undefined;
+    this.passActivation = parsed.policy.passActivation;
+    this.passMul2 = parsed.policy.passMul2 ? makeMatMul(parsed.policy.passMul2) : undefined;
 
     this.v1 = makeConv(parsed.value.v1);
     this.v1BN = makeBn(parsed.value.v1BN);
@@ -356,7 +366,7 @@ export class KataGoModelV8Tf {
       const p1Out2 = bnAct(p1Out, this.p1BN, this.p1Activation);
 
       const policy = conv2d(p1Out2, this.p2); // [N,19,19,policyOutChannels]
-      const policyPass = tf.matMul(g1Concat, this.passMul.w) as tf.Tensor2D; // [N,policyOutChannels]
+      const policyPass = this.forwardPolicyPass(g1Concat); // [N,policyOutChannels]
 
       // Value head
       const v1Out = conv2d(trunk, this.v1);
@@ -397,7 +407,7 @@ export class KataGoModelV8Tf {
       const p1Out2 = bnAct(p1Out, this.p1BN, this.p1Activation);
 
       const policy = conv2d(p1Out2, this.p2);
-      const policyPass = tf.matMul(g1Concat, this.passMul.w) as tf.Tensor2D;
+      const policyPass = this.forwardPolicyPass(g1Concat);
 
       const v1Out = conv2d(trunk, this.v1);
       const v1Out2 = bnAct(v1Out, this.v1BN, this.v1Activation);
@@ -451,6 +461,16 @@ export class KataGoModelV8Tf {
     return bnAct(trunk, this.trunkTipBN, this.trunkTipActivation);
   }
 
+  private forwardPolicyPass(gpool: tf.Tensor2D): tf.Tensor2D {
+    let pass = tf.matMul(gpool, this.passMul.w) as tf.Tensor2D;
+    if (this.passBias && this.passActivation && this.passMul2) {
+      pass = pass.add(this.passBias.b) as tf.Tensor2D;
+      pass = applyActivation2D(pass, this.passActivation);
+      pass = tf.matMul(pass, this.passMul2.w) as tf.Tensor2D;
+    }
+    return pass;
+  }
+
   private applyBlockStack(trunk: tf.Tensor4D, blocks: TfTrunkBlock[]): tf.Tensor4D {
     for (const block of blocks) {
       if (block.kind === 'ordinary') {
@@ -502,6 +522,8 @@ export class KataGoModelV8Tf {
       this.p1BN.bias,
       this.p2.filter,
       this.passMul.w,
+      ...(this.passBias ? [this.passBias.b] : []),
+      ...(this.passMul2 ? [this.passMul2.w] : []),
       this.v1.filter,
       this.v1BN.scale,
       this.v1BN.bias,

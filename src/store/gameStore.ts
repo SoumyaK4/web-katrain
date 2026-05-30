@@ -1,5 +1,5 @@
 import { createWithEqualityFn as create } from 'zustand/traditional';
-import { DEFAULT_BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest, type BoardSize } from '../types';
+import { DEFAULT_BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest, type BoardSize, type KataGoBackendPreference } from '../types';
 import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
@@ -143,6 +143,10 @@ const normalizeModelUrl = (value: unknown): string | null => {
   return trimmed;
 };
 
+const normalizeKataGoBackend = (value: unknown): KataGoBackendPreference | null => {
+  return value === 'wasm' || value === 'webgpu' || value === 'cpu' ? value : null;
+};
+
 const resolveModelUrlForFetch = (value: string): string => {
   const trimmed = value.trim();
   if (!trimmed) return trimmed;
@@ -170,6 +174,14 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
         (parsed as { katagoModelUrl: string }).katagoModelUrl = normalized;
       } else {
         delete (parsed as { katagoModelUrl?: unknown }).katagoModelUrl;
+      }
+    }
+    if ('katagoBackend' in parsed) {
+      const backend = normalizeKataGoBackend((parsed as { katagoBackend?: unknown }).katagoBackend);
+      if (backend) {
+        (parsed as { katagoBackend: KataGoBackendPreference }).katagoBackend = backend;
+      } else {
+        delete (parsed as { katagoBackend?: unknown }).katagoBackend;
       }
     }
     if ('boardTheme' in parsed) {
@@ -389,6 +401,7 @@ const defaultSettings: GameSettings = {
   analysisShowPolicy: false,
   analysisShowOwnership: true,
   katagoModelUrl: publicUrl(DEFAULT_MODEL_PATH),
+  katagoBackend: 'wasm',
   katagoVisits: 500,
   katagoFastVisits: 25,
   katagoMaxTimeMs: 8000,
@@ -884,6 +897,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             positionKey: nodeAnalysisPositionKey(node, s.settings.gameRules),
             parentPositionKey: parentAnalysisPositionKey(node, s.settings.gameRules),
             modelUrl,
+            backend: s.settings.katagoBackend,
             board: s.board,
             previousBoard: parentBoard,
             previousPreviousBoard: grandparentBoard,
@@ -974,6 +988,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const modelUrl = resolveModelUrlForFetch(get().settings.katagoModelUrl);
             const evals = await getKataGoEngineClient().evaluateBatch({
               modelUrl,
+              backend: get().settings.katagoBackend,
               positions: toEval.map((n) => ({
                 board: n.gameState.board,
                 previousBoard: n.parent?.gameState.board,
@@ -1096,6 +1111,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               positionKey: nodeAnalysisPositionKey(node, get().settings.gameRules),
               parentPositionKey: parentAnalysisPositionKey(node, get().settings.gameRules),
               modelUrl,
+              backend: get().settings.katagoBackend,
               board: node.gameState.board,
               previousBoard: parentBoard,
               previousPreviousBoard: grandparentBoard,
@@ -1245,6 +1261,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               positionKey: nodeAnalysisPositionKey(node, s.settings.gameRules),
               parentPositionKey: parentAnalysisPositionKey(node, s.settings.gameRules),
               modelUrl,
+              backend: s.settings.katagoBackend,
               board: node.gameState.board,
               previousBoard: parentBoard,
               previousPreviousBoard: grandparentBoard,
@@ -1474,6 +1491,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             positionKey: nodeAnalysisPositionKey(node, rules),
             parentPositionKey: parentAnalysisPositionKey(node, rules),
 	          modelUrl,
+            backend: state.settings.katagoBackend,
 	          board: state.board,
 	          previousBoard: parentBoard,
 	          previousPreviousBoard: grandparentBoard,
@@ -1579,6 +1597,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       saveStoredSettings(nextSettings);
       const engineKeys: Array<keyof GameSettings> = [
         'katagoModelUrl',
+        'katagoBackend',
         'katagoVisits',
         'katagoMaxTimeMs',
         'katagoBatchSize',
@@ -1752,6 +1771,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             positionKey: nodeAnalysisPositionKey(node, rules),
             parentPositionKey: parentAnalysisPositionKey(node, rules),
 	          modelUrl,
+            backend: state.settings.katagoBackend,
 	          board: state.board,
 	          previousBoard: parentBoard,
 	          previousPreviousBoard: grandparentBoard,

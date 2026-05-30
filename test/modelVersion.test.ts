@@ -5,7 +5,9 @@ const encoder = new TextEncoder();
 
 function makeMinimalModelBytes(modelVersion: number): Uint8Array {
   // Enough structure to reach past the modelVersion check for v13+ models, then fail due to EOF later.
-  const header = `model ${modelVersion} 22 19 20 20 20 20 40 0.25 150 trunk 0 0 0 0 0 0 conv1 1 1 1 1 1 1 @BIN@`;
+  const modelExtras = modelVersion >= 15 ? ' 0 0 0 0 0 0 0 0' : '';
+  const trunkExtras = modelVersion >= 15 ? ' 0 0 0 0 0 0' : '';
+  const header = `model ${modelVersion} 22 19 20 20 20 20 40 0.25 150${modelExtras} trunk 0 0 0 0 0 0${trunkExtras} conv1 1 1 1 1 1 1 @BIN@`;
   const headerBytes = encoder.encode(header);
   const out = new Uint8Array(headerBytes.length + 4); // 1 float weight (4 bytes) after @BIN@
   out.set(headerBytes);
@@ -18,9 +20,18 @@ describe('KataGo model version support', () => {
     expect(() => parseKataGoModelV8(data)).toThrowError(/Unexpected EOF/);
   });
 
-  it('rejects modelVersion 15', () => {
+  it('accepts modelVersion 15', () => {
     const data = makeMinimalModelBytes(15);
-    expect(() => parseKataGoModelV8(data)).toThrowError(/Unsupported modelVersion 15/);
+    expect(() => parseKataGoModelV8(data)).toThrowError(/Unexpected EOF/);
+  });
+
+  it('accepts modelVersion 16', () => {
+    const data = makeMinimalModelBytes(16);
+    expect(() => parseKataGoModelV8(data)).toThrowError(/Unexpected EOF/);
+  });
+
+  it('rejects modelVersion 17', () => {
+    const data = makeMinimalModelBytes(17);
+    expect(() => parseKataGoModelV8(data)).toThrowError(/Unsupported modelVersion 17/);
   });
 });
-
