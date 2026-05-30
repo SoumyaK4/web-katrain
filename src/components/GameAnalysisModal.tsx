@@ -8,6 +8,16 @@ interface GameAnalysisModalProps {
   onClose: () => void;
 }
 
+const FULL_GAME_VISIT_PRESETS = [16, 250, 1000, 5000] as const;
+
+const visitPresetLabel = (visits: number, defaultVisits: number): string => {
+  if (visits === defaultVisits) return 'Default';
+  if (visits <= 16) return 'Fast';
+  if (visits <= 250) return 'Balanced';
+  if (visits <= 1000) return 'Deep';
+  return 'Thorough';
+};
+
 export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose }) => {
   const {
     currentNode,
@@ -45,15 +55,20 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
   const [mistakesOnly, setMistakesOnly] = useState<boolean>(false);
 
   const isRunning = isGameAnalysisRunning && gameAnalysisType === 'full';
+  const visitPresets = useMemo(
+    () => Array.from(new Set([...FULL_GAME_VISIT_PRESETS, defaultMaxVisits])).sort((a, b) => a - b),
+    [defaultMaxVisits]
+  );
 
   const clampInt = (v: string, fallback: number): number => {
     const n = Number.parseInt(v || String(fallback), 10);
     if (!Number.isFinite(n)) return fallback;
     return n;
   };
+  const clampVisits = (v: number): number => Math.max(16, Math.min(ENGINE_MAX_VISITS, Math.floor(v)));
 
   const onStart = () => {
-    const v = Math.max(16, Math.min(ENGINE_MAX_VISITS, Math.floor(visits)));
+    const v = clampVisits(visits);
     const range = useMoveRange ? ([startMove, endMove] as [number, number]) : null;
     startFullGameAnalysis({ visits: v, moveRange: range, mistakesOnly });
     onClose();
@@ -78,7 +93,7 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
                 min={16}
                 max={ENGINE_MAX_VISITS}
                 value={visits}
-                onChange={(e) => setVisits(Math.max(16, clampInt(e.target.value, defaultMaxVisits)))}
+                onChange={(e) => setVisits(clampVisits(clampInt(e.target.value, defaultMaxVisits)))}
                 className="w-full ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono"
               />
               <p className="text-xs ui-text-faint">Defaults to engine Visits ({defaultMaxVisits}).</p>
@@ -99,6 +114,37 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
                   Stop
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[var(--ui-border)] space-y-2" data-game-analysis-visit-presets="true">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[var(--ui-text-muted)] text-sm">MCTS depth presets</label>
+              <span className="text-xs ui-text-faint">Kaya-style</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {visitPresets.map((preset) => {
+                const active = visits === preset;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={[
+                      'rounded border px-2 py-2 text-left transition-colors',
+                      active
+                        ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-text)]'
+                        : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+                    ].join(' ')}
+                    onClick={() => setVisits(preset)}
+                    aria-pressed={active}
+                  >
+                    <span className="block font-mono text-sm">{preset}</span>
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide">
+                      {visitPresetLabel(preset, defaultMaxVisits)}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
