@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome } from 'react-icons/fa';
+import { APP_BUILD_LABEL } from '../../utils/appInfo';
 
 interface MenuDrawerProps {
   open: boolean;
@@ -186,6 +187,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </div>
           </div>
         )}
+
+        <div className="mt-4 border-t border-[var(--ui-border)] pt-3 px-3 text-[11px] ui-text-faint">
+          {APP_BUILD_LABEL}
+        </div>
 
       </div>
     </div>

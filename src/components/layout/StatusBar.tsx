@@ -1,4 +1,5 @@
 import React from 'react';
+import { APP_BUILD_LABEL } from '../../utils/appInfo';
 
 interface StatusBarProps {
   moveName: string;
@@ -74,6 +75,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           {endResult}
         </div>
       )}
+    </div>
+    <div
+      className="ml-auto hidden xl:flex items-center px-2 py-1 rounded bg-[var(--ui-surface)] text-[var(--ui-text-faint)] border border-[var(--ui-border)] shadow-sm"
+      title={APP_BUILD_LABEL}
+    >
+      {APP_BUILD_LABEL}
     </div>
   </div>
 );
