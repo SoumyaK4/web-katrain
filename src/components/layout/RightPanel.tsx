@@ -26,6 +26,7 @@ import type { UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
 import { SectionHeader } from './ui';
 import { formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
+import { getBranchInfo } from '../../utils/branchNavigation';
 
 interface RightPanelProps {
   open: boolean;
@@ -166,6 +167,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     }
     return nodes.reverse();
   }, [currentNode]);
+
+  const branchInfo = React.useMemo(() => {
+    void treeVersion;
+    return getBranchInfo(currentNode);
+  }, [currentNode, treeVersion]);
 
   const notesNodes = React.useMemo(() => {
     void treeVersion;
@@ -411,6 +417,24 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     >
                       <FaArrowDown size={12} />
                     </button>
+                    {branchInfo.hasBranches && (
+                      <div
+                        className="min-w-[4.75rem] rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1 text-[10px] leading-none text-[var(--ui-text-muted)]"
+                        title={
+                          branchInfo.isAtFork
+                            ? 'Current branch'
+                            : `Current branch, ${branchInfo.depthFromBranchRoot} move${branchInfo.depthFromBranchRoot === 1 ? '' : 's'} into this variation`
+                        }
+                      >
+                        <span className="uppercase tracking-wide">Branch</span>{' '}
+                        <span className="font-mono text-[var(--ui-text)]">
+                          {branchInfo.currentIndex}/{branchInfo.totalBranches}
+                        </span>
+                        {!branchInfo.isAtFork && (
+                          <span className="ml-1 font-mono text-[var(--ui-accent)]">+{branchInfo.depthFromBranchRoot}</span>
+                        )}
+                      </div>
+                    )}
                     <div className="h-5 w-px bg-[var(--ui-border)] mx-1" />
                     <button
                       type="button"

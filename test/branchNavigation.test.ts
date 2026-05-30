@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameNode, GameState, Move } from '../src/types';
-import { findBranchRoot, findSiblingBranchTarget } from '../src/utils/branchNavigation';
+import { findBranchRoot, findSiblingBranchTarget, getBranchInfo } from '../src/utils/branchNavigation';
 
 const makeState = (): GameState => ({
   board: [[null]],
@@ -46,6 +46,35 @@ describe('branch navigation', () => {
     expect(findSiblingBranchTarget(a, 1)?.id).toBe('b');
     expect(findSiblingBranchTarget(a1, 1)?.id).toBe('b1');
     expect(findSiblingBranchTarget(a2, 1)?.id).toBe('b1');
+  });
+
+  it('reports branch index and depth from the nearest fork', () => {
+    const root = makeNode('root', null);
+    const a = makeNode('a', root, { x: 0, y: 0, player: 'black' });
+    const a1 = makeNode('a1', a, { x: 0, y: 0, player: 'white' });
+    const b = makeNode('b', root, { x: 0, y: 0, player: 'black' });
+
+    expect(getBranchInfo(a)).toMatchObject({
+      hasBranches: true,
+      currentIndex: 1,
+      totalBranches: 2,
+      depthFromBranchRoot: 0,
+      isAtFork: true,
+    });
+    expect(getBranchInfo(a1)).toMatchObject({
+      hasBranches: true,
+      currentIndex: 1,
+      totalBranches: 2,
+      depthFromBranchRoot: 1,
+      isAtFork: false,
+    });
+    expect(getBranchInfo(b)).toMatchObject({
+      hasBranches: true,
+      currentIndex: 2,
+      totalBranches: 2,
+      depthFromBranchRoot: 0,
+      isAtFork: true,
+    });
   });
 
   it('wraps around sibling branches', () => {

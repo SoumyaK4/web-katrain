@@ -6,6 +6,14 @@ type BranchRoot = {
   depthFromBranchRoot: number;
 };
 
+export type BranchInfo = {
+  hasBranches: boolean;
+  currentIndex: number;
+  totalBranches: number;
+  depthFromBranchRoot: number;
+  isAtFork: boolean;
+};
+
 export function findBranchRoot(currentNode: GameNode): BranchRoot | null {
   let node: GameNode | null = currentNode;
   let depthFromBranchRoot = 0;
@@ -21,6 +29,29 @@ export function findBranchRoot(currentNode: GameNode): BranchRoot | null {
   }
 
   return null;
+}
+
+export function getBranchInfo(currentNode: GameNode): BranchInfo {
+  const branch = findBranchRoot(currentNode);
+  if (!branch) {
+    return {
+      hasBranches: false,
+      currentIndex: 0,
+      totalBranches: 0,
+      depthFromBranchRoot: 0,
+      isAtFork: false,
+    };
+  }
+
+  const totalBranches = branch.forkNode.children.length;
+  const currentIndex = branch.forkNode.children.findIndex((node) => node.id === branch.branchRootNode.id);
+  return {
+    hasBranches: totalBranches > 1 && currentIndex >= 0,
+    currentIndex: currentIndex >= 0 ? currentIndex + 1 : 0,
+    totalBranches,
+    depthFromBranchRoot: branch.depthFromBranchRoot,
+    isAtFork: branch.depthFromBranchRoot === 0,
+  };
 }
 
 export function findSiblingBranchTarget(currentNode: GameNode, direction: 1 | -1): GameNode | null {
