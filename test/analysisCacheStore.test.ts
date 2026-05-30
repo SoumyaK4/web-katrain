@@ -67,4 +67,81 @@ describe('analysis cache store actions', () => {
     expect(cleared.isGameAnalysisRunning).toBe(false);
     expect(cleared.engineStatus).toBe('idle');
   });
+
+  it('changing komi updates every node and invalidates stale analysis', async () => {
+    useGameStore.getState().playMove(3, 3);
+    useGameStore.getState().playMove(15, 15);
+    const root = useGameStore.getState().rootNode;
+    const first = root.children[0]!;
+    const current = useGameStore.getState().currentNode;
+
+    root.analysis = analysis(50);
+    first.analysis = analysis(75);
+    current.analysis = analysis(100);
+    root.analysisVisitsRequested = 50;
+    first.analysisVisitsRequested = 75;
+    current.analysisVisitsRequested = 100;
+
+    useGameStore.setState((state) => ({
+      analysisData: current.analysis,
+      analysisCacheSize: 3,
+      isContinuousAnalysis: true,
+      isSelfplayToEnd: true,
+      isGameAnalysisRunning: true,
+      gameAnalysisType: 'full',
+      engineStatus: 'ready',
+      treeVersion: state.treeVersion + 1,
+    }));
+
+    await analysisQueue.enqueue({
+      id: 'komi-sensitive-cache',
+      group: 'test',
+      priority: 1,
+      cacheKey: 'komi-position',
+      run: async () => ({ visits: 25 }),
+    });
+
+    useGameStore.getState().setKomi(7.5);
+    const changed = useGameStore.getState();
+
+    expect(changed.komi).toBe(7.5);
+    expect(changed.rootNode.properties?.KM).toEqual(['7.5']);
+    expect(changed.rootNode.gameState.komi).toBe(7.5);
+    expect(changed.rootNode.children[0]?.gameState.komi).toBe(7.5);
+    expect(changed.currentNode.gameState.komi).toBe(7.5);
+    expect(changed.analysisData).toBeNull();
+    expect(changed.rootNode.analysis).toBeNull();
+    expect(changed.rootNode.children[0]?.analysis).toBeNull();
+    expect(changed.currentNode.analysis).toBeNull();
+    expect(analysisQueue.getCacheSize()).toBe(0);
+    expect(changed.analysisCacheSize).toBe(0);
+    expect(changed.isContinuousAnalysis).toBe(false);
+    expect(changed.isSelfplayToEnd).toBe(false);
+    expect(changed.isGameAnalysisRunning).toBe(false);
+    expect(changed.engineStatus).toBe('idle');
+  });
+
+  it('routes SGF KM property edits through the komi state', () => {
+    useGameStore.getState().setRootProperty('KM', '0');
+    const changed = useGameStore.getState();
+
+    expect(changed.komi).toBe(0);
+    expect(changed.rootNode.gameState.komi).toBe(0);
+    expect(changed.rootNode.properties?.KM).toEqual(['0']);
+  });
+
+  it('normalizes matching komi text without clearing analysis', () => {
+    const root = useGameStore.getState().rootNode;
+    root.analysis = analysis(50);
+    useGameStore.setState({ analysisData: root.analysis, analysisCacheSize: 1 });
+
+    useGameStore.getState().setRootProperty('KM', '6.50');
+    const changed = useGameStore.getState();
+
+    expect(changed.komi).toBe(6.5);
+    expect(changed.rootNode.properties?.KM).toEqual(['6.5']);
+    expect(changed.rootNode.analysis).not.toBeNull();
+    expect(changed.analysisData).not.toBeNull();
+    expect(changed.analysisCacheSize).toBe(1);
+  });
 });

@@ -28,9 +28,11 @@ const inputClass =
   'w-full ui-input border rounded px-2 py-1.5 text-xs text-[var(--ui-text)] focus:border-[var(--ui-accent)] outline-none';
 
 export const GameInfoPanel: React.FC = () => {
-  const { rootNode, setRootProperty, treeVersion } = useGameStore(
+  const { rootNode, komi, setKomi, setRootProperty, treeVersion } = useGameStore(
     (state) => ({
       rootNode: state.rootNode,
+      komi: state.komi,
+      setKomi: state.setKomi,
       setRootProperty: state.setRootProperty,
       treeVersion: state.treeVersion,
     }),
@@ -40,8 +42,37 @@ export const GameInfoPanel: React.FC = () => {
 
   const rootProps = rootNode.properties ?? {};
   const valueFor = (key: string) => rootProps[key]?.[0] ?? '';
+  const [komiInput, setKomiInput] = React.useState(() => String(komi));
+  const [isEditingKomi, setIsEditingKomi] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isEditingKomi) setKomiInput(String(komi));
+  }, [isEditingKomi, komi]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     e.stopPropagation();
+  };
+
+  const commitKomi = () => {
+    const parsed = Number(komiInput.trim());
+    if (Number.isFinite(parsed)) {
+      setKomi(parsed);
+      setKomiInput(String(Number(parsed.toFixed(2))));
+    } else {
+      setKomiInput(String(komi));
+    }
+    setIsEditingKomi(false);
+  };
+
+  const handleKomiKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    handleKeyDown(e);
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
+      setKomiInput(String(komi));
+      setIsEditingKomi(false);
+      e.currentTarget.blur();
+    }
   };
 
   const renderField = ({ key, label, placeholder, className }: GameInfoField) => (
@@ -67,6 +98,22 @@ export const GameInfoPanel: React.FC = () => {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {detailFields.map(renderField)}
+        <label className="min-w-0 space-y-1">
+          <span className="block text-[10px] font-semibold uppercase tracking-wide ui-text-faint">
+            Komi
+          </span>
+          <input
+            value={komiInput}
+            onChange={(e) => setKomiInput(e.target.value)}
+            onFocus={() => setIsEditingKomi(true)}
+            onBlur={commitKomi}
+            onKeyDown={handleKomiKeyDown}
+            placeholder="6.5"
+            className={inputClass}
+            inputMode="decimal"
+            spellCheck={false}
+          />
+        </label>
       </div>
     </div>
   );

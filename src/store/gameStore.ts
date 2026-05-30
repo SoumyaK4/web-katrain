@@ -136,6 +136,7 @@ interface GameStore extends GameState {
   startFullGameAnalysis: (opts: { visits: number; moveRange?: [number, number] | null; mistakesOnly?: boolean }) => void;
   stopGameAnalysis: () => void;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
+  setKomi: (komi: number) => void;
   setRootProperty: (key: string, value: string) => void;
   setCurrentNodeNote: (note: string) => void;
   rotateBoard: () => void;
@@ -610,6 +611,18 @@ const countAnalyzedNodes = (node: GameNode): number => {
 
 const getAnalysisCacheSize = (rootNode: GameNode): number =>
   Math.max(countAnalyzedNodes(rootNode), analysisQueue.getCacheSize());
+
+const applyKomiToSubtree = (node: GameNode, komi: number): void => {
+  const stack = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    n.gameState = { ...n.gameState, komi };
+    for (const child of n.children) stack.push(child);
+  }
+};
+
+const formatKomiProperty = (komi: number): string =>
+  Number.isInteger(komi) ? String(komi) : String(Number(komi.toFixed(2)));
 
 const replayChildMove = (parent: GameNode, child: GameNode): GameState | null => {
   const move = child.move;
@@ -2340,7 +2353,62 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
     }),
 
-  setRootProperty: (key, value) =>
+  setKomi: (komi) => {
+    if (!Number.isFinite(komi)) return;
+    const nextKomi = Number(komi.toFixed(2));
+    const nextKomiText = formatKomiProperty(nextKomi);
+    const current = get();
+    const currentKomiText = current.rootNode.properties?.KM?.[0] ?? '';
+    const sameKomi = Math.abs(current.komi - nextKomi) < 0.0001;
+    if (sameKomi) {
+      if (currentKomiText === nextKomiText) return;
+      set((state) => {
+        state.rootNode.properties = state.rootNode.properties ?? {};
+        state.rootNode.properties.KM = [nextKomiText];
+        return { treeVersion: state.treeVersion + 1 };
+      });
+      return;
+    }
+
+    continuousToken++;
+    selfplayToken++;
+    gameAnalysisToken++;
+    analysisQueue.cancelWhere(() => true, 'Komi changed');
+    analysisQueue.clearCache();
+
+    set((state) => {
+      state.rootNode.properties = state.rootNode.properties ?? {};
+      state.rootNode.properties.KM = [nextKomiText];
+      applyKomiToSubtree(state.rootNode, nextKomi);
+      clearAnalysisInSubtree(state.rootNode);
+
+      return {
+        komi: nextKomi,
+        board: state.currentNode.gameState.board,
+        currentPlayer: state.currentNode.gameState.currentPlayer,
+        moveHistory: state.currentNode.gameState.moveHistory,
+        capturedBlack: state.currentNode.gameState.capturedBlack,
+        capturedWhite: state.currentNode.gameState.capturedWhite,
+        analysisData: null,
+        analysisCacheSize: 0,
+        isContinuousAnalysis: false,
+        isSelfplayToEnd: false,
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        engineStatus: 'idle',
+        engineError: null,
+        treeVersion: state.treeVersion + 1,
+      };
+    });
+  },
+
+  setRootProperty: (key, value) => {
+    if (key.toUpperCase() === 'KM') {
+      const parsed = Number(value.trim());
+      if (Number.isFinite(parsed)) get().setKomi(parsed);
+      return;
+    }
+
     set((state) => {
       state.rootNode.properties = state.rootNode.properties ?? {};
       const trimmed = value.trim();
@@ -2350,7 +2418,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         state.rootNode.properties[key] = [trimmed];
       }
       return { rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
-    }),
+    });
+  },
 
   setCurrentNodeNote: (note) =>
     set((state) => {
