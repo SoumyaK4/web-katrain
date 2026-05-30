@@ -8,8 +8,8 @@ import { DEFAULT_BOARD_SIZE } from '../types';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { PanelHeaderButton } from './layout/ui';
 import { captureBoardSnapshot } from '../utils/boardSnapshot';
-import { parseGtpMove } from '../lib/gtp';
 import { normalizeBoardSize } from '../utils/boardSize';
+import { captureReportBoardSnapshot } from '../utils/reportBoardSnapshot';
 
 interface GameReportModalProps {
   onClose: () => void;
@@ -28,7 +28,7 @@ function fmtNum(x: number | undefined, digits = 2): string {
   return x.toFixed(digits);
 }
 
-export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setReportHoverMove }) => {
+export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => {
   const {
     currentNode,
     trainerEvalThresholds,
@@ -56,7 +56,6 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const [pdfSnapshots, setPdfSnapshots] = useState<Array<{ id: string; dataUrl: string | null; entry: MoveReportEntry }>>([]);
-  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
   const [graphTick, setGraphTick] = useState(0);
   const snapshotTimerRef = useRef<number | null>(null);
   const boardSize = normalizeBoardSize(currentNode.gameState.board.length, DEFAULT_BOARD_SIZE);
@@ -277,151 +276,29 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     return { start, end };
   }, [boardSize, depthFilter]);
 
-  const waitForBoardRender = () =>
-    new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.setTimeout(() => resolve(), 200);
-        });
-      });
-    });
-
-  const waitForNode = async (nodeId: string) => {
-    const start = performance.now();
-    while (performance.now() - start < 1200) {
-      if (useGameStore.getState().currentNode?.id === nodeId) return;
-      await new Promise((resolve) => setTimeout(resolve, 40));
-    }
-  };
-
-  const countPvMoves = (line: string[]): number => {
-    return line.reduce((acc, move) => {
-      const parsed = parseGtpMove(move, boardSize);
-      return parsed && parsed.kind === 'move' ? acc + 1 : acc;
-    }, 0);
-  };
-
-  const waitForPvRender = async (expectedCount: number) => {
-    if (typeof document === 'undefined') return;
-    const board = document.querySelector<HTMLElement>('[data-board-snapshot="true"]');
-    if (!board) return;
-    const initial = board.dataset.pvRendered ?? '';
-    const start = performance.now();
-    while (performance.now() - start < 1200) {
-      const next = board.dataset.pvRendered ?? '';
-      const pvCount = Number.parseInt(board.dataset.pvCount ?? '0', 10);
-      if (next && next !== initial && pvCount >= expectedCount) return;
-      await new Promise((resolve) => setTimeout(resolve, 60));
-    }
-  };
-
-  const pickBestCandidate = (moves: CandidateMove[] | undefined | null): CandidateMove | null => {
-    if (!moves || moves.length === 0) return null;
-    return moves.find((m) => m.order === 0) ?? moves.reduce<CandidateMove | null>((acc, m) => (acc && acc.pointsLost <= m.pointsLost ? acc : m), null);
-  };
-
-  const buildReportHoverMove = (entry: MoveReportEntry, candidate?: CandidateMove | null): CandidateMove | null => {
-    const parentMoves = entry.node.parent?.analysis?.moves ?? [];
-    const best = candidate ?? pickBestCandidate(parentMoves);
-    if (best) {
-      const pvLine =
-        best.pv && best.pv.length > 0
-          ? best.pv
-          : entry.topMove
-            ? [entry.topMove, ...(entry.pv ?? [])]
-            : entry.pv ?? [];
-      return {
-        ...best,
-        pv: pvLine,
-      };
-    }
-    if (!entry.topMove) return null;
-    const parsed = parseGtpMove(entry.topMove, boardSize);
-    if (!parsed || parsed.kind !== 'move') return null;
-    const pvLine =
-      entry.pv && entry.pv.length > 0 && entry.pv[0] === entry.topMove
-        ? entry.pv
-        : [entry.topMove, ...(entry.pv ?? [])];
-    return {
-      x: parsed.x,
-      y: parsed.y,
-      winRate: 0.5,
-      scoreLead: 0,
-      visits: 0,
-      pointsLost: entry.pointsLost,
-      order: 0,
-      pv: pvLine,
-    };
-  };
-
-  const ensureBestPv = async (targetNode: { id: string; analysis?: { moves?: CandidateMove[] | null } | null }) => {
-    const existing = pickBestCandidate(targetNode.analysis?.moves);
-    if (existing?.pv && existing.pv.length > 1) return existing;
-
-    const state = useGameStore.getState();
-    const wasAnalysisMode = state.isAnalysisMode;
-    if (!wasAnalysisMode) {
-      useGameStore.setState({ isAnalysisMode: true });
-    }
-    try {
-      await state.runAnalysis({
-        force: true,
-        analysisPvLen: Math.max(8, state.settings.katagoAnalysisPvLen || 8),
-        visits: Math.max(24, Math.min(64, state.settings.katagoFastVisits || 32)),
-        maxTimeMs: Math.max(80, Math.min(400, state.settings.katagoMaxTimeMs || 200)),
-        topK: Math.max(8, state.settings.katagoTopK || 8),
-      });
-    } catch {
-      // Ignore analysis failures and fall back to existing data.
-    }
-    const refreshed = pickBestCandidate(useGameStore.getState().currentNode?.analysis?.moves);
-    if (!wasAnalysisMode) {
-      useGameStore.setState({ isAnalysisMode: false, analysisData: null });
-    }
-    return refreshed ?? existing;
-  };
-
-  const preparePdf = async () => {
+  const preparePrint = async () => {
     if (isPreparingPdf) return;
     setIsPreparingPdf(true);
-    setPdfProgress({ done: 0, total: pdfMistakes.length });
-    const originalNode = currentNode;
-    const snapshots: Array<{ id: string; dataUrl: string | null; entry: MoveReportEntry }> = [];
     try {
-      for (let i = 0; i < pdfMistakes.length; i++) {
-        const entry = pdfMistakes[i]!;
-        const targetNode = entry.node.parent ?? entry.node;
-        jumpToNode(targetNode);
-        await waitForNode(targetNode.id);
-        const bestCandidate = await ensureBestPv(targetNode);
-        const hoverMove = buildReportHoverMove(entry, bestCandidate);
-        setReportHoverMove(hoverMove);
-        await waitForBoardRender();
-        const expected = hoverMove?.pv ? countPvMoves(hoverMove.pv) : 0;
-        await waitForPvRender(expected);
-        const dataUrl = await captureBoardSnapshot();
-        snapshots.push({ id: entry.node.id, dataUrl, entry });
-        setPdfProgress({ done: i + 1, total: pdfMistakes.length });
-      }
+      const snapshots = pdfMistakes.map((entry) => ({
+        id: entry.node.id,
+        dataUrl: captureReportBoardSnapshot({
+          board: entry.node.gameState.board,
+          playedMove: entry.node.move,
+          bestMove: entry.topMove,
+        }),
+        entry,
+      }));
+      setPdfSnapshots(snapshots);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      window.print();
     } finally {
-      setReportHoverMove(null);
-      if (originalNode) {
-        jumpToNode(originalNode);
-      }
+      setIsPreparingPdf(false);
     }
-    setPdfSnapshots(snapshots);
-    setIsPreparingPdf(false);
-    setPdfProgress(null);
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    window.print();
   };
 
-  const handleDownloadPdf = () => {
-    if (pdfMistakes.length === 0) {
-      window.print();
-      return;
-    }
-    void preparePdf();
+  const handlePrintReport = () => {
+    void preparePrint();
   };
 
   const formatPv = (pv?: string[], max = 12) => {
@@ -892,13 +769,13 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
         <div className="px-5 py-4 ui-bar border-t border-[var(--ui-border)] flex items-center justify-between print:hidden">
           <button
             type="button"
-            onClick={handleDownloadPdf}
+            onClick={handlePrintReport}
             className="px-4 py-2 bg-[var(--ui-surface-2)] hover:brightness-110 text-white rounded-lg font-semibold disabled:opacity-60"
             disabled={isPreparingPdf}
           >
             {isPreparingPdf
-              ? `Preparing (${pdfProgress?.done ?? 0}/${pdfProgress?.total ?? pdfMistakes.length})`
-              : 'Download PDF'}
+              ? 'Preparing print...'
+              : 'Print / Save PDF'}
           </button>
           <button
             type="button"
