@@ -27,6 +27,27 @@ import type { AnalysisControlsState } from './types';
 import { EngineStatusBadge, IconButton } from './ui';
 import { BOARD_THEME_OPTIONS } from '../../utils/boardThemes';
 import { UI_THEME_OPTIONS } from '../../utils/uiThemes';
+import { useShortcutLabels } from '../../hooks/useShortcutLabels';
+
+const TOP_CONTROL_SHORTCUT_IDS = [
+  'settings-modal',
+  'keyboard-help',
+  'copy-sgf',
+  'paste-sgf',
+  'new-game',
+  'save-sgf',
+  'open-sgf',
+  'toggle-analysis',
+  'toggle-children',
+  'toggle-eval',
+  'toggle-hints',
+  'toggle-policy',
+  'toggle-territory',
+] as const;
+
+type TopControlShortcutId = (typeof TOP_CONTROL_SHORTCUT_IDS)[number];
+
+const stripShortcutSuffix = (title: string): string => title.replace(/\s*\([^)]+\)\s*$/, '');
 
 interface TopControlBarProps {
   settings: GameSettings;
@@ -143,6 +164,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   isMobile = false,
 }) => {
   const topIconClass = 'ui-control';
+  const shortcutLabels = useShortcutLabels(TOP_CONTROL_SHORTCUT_IDS);
+  const withShortcut = (label: string, id: TopControlShortcutId) => `${label} (${shortcutLabels[id]})`;
+  const saveControlTitle = withShortcut(stripShortcutSuffix(saveTitle), 'save-sgf');
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
     if (typeof document === 'undefined') return false;
     return !!document.fullscreenElement;
@@ -181,26 +205,26 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { onSettings(); closeViewMenuIfMobile(); }}
         >
-          <span className="flex items-center gap-2"><FaCog /> Settings</span><span className="text-xs ui-text-faint">F8</span>
+          <span className="flex items-center gap-2"><FaCog /> Settings</span><span className="text-xs ui-text-faint">{shortcutLabels['settings-modal']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { onKeyboardHelp(); closeViewMenuIfMobile(); }}
         >
-          <span className="flex items-center gap-2"><FaKeyboard /> Keyboard shortcuts</span><span className="text-xs ui-text-faint">?</span>
+          <span className="flex items-center gap-2"><FaKeyboard /> Keyboard shortcuts</span><span className="text-xs ui-text-faint">{shortcutLabels['keyboard-help']}</span>
         </button>
         <div className="h-px bg-[var(--ui-border)] w-full" />
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { onCopySgf(); closeViewMenuIfMobile(); }}
         >
-          <span className="flex items-center gap-2"><FaCopy /> Copy SGF</span><span className="text-xs ui-text-faint">Ctrl+C</span>
+          <span className="flex items-center gap-2"><FaCopy /> Copy SGF</span><span className="text-xs ui-text-faint">{shortcutLabels['copy-sgf']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { onPasteSgf(); closeViewMenuIfMobile(); }}
         >
-          <span className="flex items-center gap-2"><FaPaste /> Paste SGF/OGS</span><span className="text-xs ui-text-faint">Ctrl+V</span>
+          <span className="flex items-center gap-2"><FaPaste /> Paste SGF/OGS</span><span className="text-xs ui-text-faint">{shortcutLabels['paste-sgf']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
@@ -249,32 +273,32 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { updateControls({ analysisShowChildren: !settings.analysisShowChildren }); closeViewMenuIfMobile(); }}
         >
-          <span>Children (Q)</span><span className="text-xs ui-text-faint">{settings.analysisShowChildren ? 'on' : 'off'}</span>
+          <span>Children</span><span className="text-xs ui-text-faint">{settings.analysisShowChildren ? 'on' : 'off'} · {shortcutLabels['toggle-children']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { updateControls({ analysisShowEval: !settings.analysisShowEval }); closeViewMenuIfMobile(); }}
         >
-          <span>Dots (W)</span><span className="text-xs ui-text-faint">{settings.analysisShowEval ? 'on' : 'off'}</span>
+          <span>Dots</span><span className="text-xs ui-text-faint">{settings.analysisShowEval ? 'on' : 'off'} · {shortcutLabels['toggle-eval']}</span>
         </button>
         <button
           className={['w-full px-3 py-2 text-left flex items-center justify-between', settings.analysisShowPolicy ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[var(--ui-surface-2)]'].join(' ')}
           disabled={settings.analysisShowPolicy}
           onClick={() => { updateControls({ analysisShowHints: !settings.analysisShowHints }); closeViewMenuIfMobile(); }}
         >
-          <span>Top moves (E)</span><span className="text-xs ui-text-faint">{settings.analysisShowHints ? 'on' : 'off'}</span>
+          <span>Top moves</span><span className="text-xs ui-text-faint">{settings.analysisShowHints ? 'on' : 'off'} · {shortcutLabels['toggle-hints']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { updateControls({ analysisShowPolicy: !settings.analysisShowPolicy }); closeViewMenuIfMobile(); }}
         >
-          <span>Policy (R)</span><span className="text-xs ui-text-faint">{settings.analysisShowPolicy ? 'on' : 'off'}</span>
+          <span>Policy</span><span className="text-xs ui-text-faint">{settings.analysisShowPolicy ? 'on' : 'off'} · {shortcutLabels['toggle-policy']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { updateControls({ analysisShowOwnership: !settings.analysisShowOwnership }); closeViewMenuIfMobile(); }}
         >
-          <span>Territory (T)</span><span className="text-xs ui-text-faint">{settings.analysisShowOwnership ? 'on' : 'off'}</span>
+          <span>Territory</span><span className="text-xs ui-text-faint">{settings.analysisShowOwnership ? 'on' : 'off'} · {shortcutLabels['toggle-territory']}</span>
         </button>
 
         <div className="border-t border-[var(--ui-border)] w-full mt-auto" />
@@ -416,16 +440,16 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
 
       {/* Desktop file actions */}
       <div className="hidden lg:flex items-center gap-1 shrink-0">
-        <IconButton title="New game (Ctrl+N)" onClick={onNewGame} className={topIconClass}>
+        <IconButton title={withShortcut('New game', 'new-game')} onClick={onNewGame} className={topIconClass}>
           <FaPlus />
         </IconButton>
-        <IconButton title={saveTitle} onClick={onSaveSgf} className={topIconClass}>
+        <IconButton title={saveControlTitle} onClick={onSaveSgf} className={topIconClass}>
           <FaSave />
         </IconButton>
-        <IconButton title="Load SGF, board photo, or model weights (Ctrl+O)" onClick={onLoadSgf} className={topIconClass}>
+        <IconButton title={withShortcut('Load SGF, board photo, or model weights', 'open-sgf')} onClick={onLoadSgf} className={topIconClass}>
           <FaFolderOpen />
         </IconButton>
-        <IconButton title="Paste SGF / OGS (Ctrl+V)" onClick={onPasteSgf} className={topIconClass}>
+        <IconButton title={withShortcut('Paste SGF / OGS', 'paste-sgf')} onClick={onPasteSgf} className={topIconClass}>
           <FaPaste />
         </IconButton>
         <IconButton title="Photo Board" onClick={onScanBoard} className={topIconClass}>
@@ -503,7 +527,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 ? 'bg-[var(--ui-accent-soft)] border border-[var(--ui-accent)] text-[var(--ui-accent)] shadow-sm shadow-black/20'
                 : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white',
             ].join(' ')}
-            title="Toggle analysis mode (Tab)"
+            title={withShortcut('Toggle analysis mode', 'toggle-analysis')}
             onClick={toggleAnalysisMode}
           >
             <span className={['inline-block h-2 w-2 rounded-full', engineDot].join(' ')} />
@@ -524,10 +548,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           </IconButton>
         )}
         <div className="hidden 2xl:flex items-center gap-1.5">
-          <IconButton title="Settings (F8)" onClick={onSettings} className={topIconClass}>
+          <IconButton title={withShortcut('Settings', 'settings-modal')} onClick={onSettings} className={topIconClass}>
             <FaCog />
           </IconButton>
-          <IconButton title="Keyboard shortcuts (?)" onClick={onKeyboardHelp} className={topIconClass}>
+          <IconButton title={withShortcut('Keyboard shortcuts', 'keyboard-help')} onClick={onKeyboardHelp} className={topIconClass}>
             <FaKeyboard />
           </IconButton>
         </div>
@@ -594,7 +618,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 ? 'bg-[var(--ui-accent-soft)] border border-[var(--ui-accent)] text-[var(--ui-accent)] shadow-sm shadow-black/20'
                 : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white',
             ].join(' ')}
-            title="Toggle analysis mode (Tab)"
+            title={withShortcut('Toggle analysis mode', 'toggle-analysis')}
             onClick={toggleAnalysisMode}
           >
             <span className={['inline-block h-2 w-2 rounded-full', engineDot].join(' ')} />

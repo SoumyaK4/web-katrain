@@ -16,6 +16,7 @@ import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { UI_THEME_OPTIONS } from '../utils/uiThemes';
 import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
+import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { ShortcutSettingsPanel } from './ShortcutSettingsPanel';
 import {
     clearUploadedModelUrl,
@@ -91,6 +92,14 @@ interface SettingsModalProps {
     onClose: () => void;
 }
 
+const ANALYSIS_OVERLAY_SHORTCUT_IDS = [
+    'toggle-children',
+    'toggle-eval',
+    'toggle-hints',
+    'toggle-policy',
+    'toggle-territory',
+] as const;
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const { settings, updateSettings, engineBackend, engineModelName } = useGameStore(
         (state) => ({
@@ -107,6 +116,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
     const [downloadError, setDownloadError] = React.useState<string | null>(null);
     const [modelUploadError, setModelUploadError] = React.useState<string | null>(null);
+    const shortcutLabels = useShortcutLabels(ANALYSIS_OVERLAY_SHORTCUT_IDS);
 
     const [activeTab, setActiveTab] = React.useState(() => {
         // Initialize from localStorage if available, otherwise default to "general"
@@ -623,7 +633,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="mt-4 space-y-4">
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Show Children (Q)</label>
+                                            <label className={labelClass}>Show Children ({shortcutLabels['toggle-children']})</label>
                                             <input
                                                 type="checkbox"
                                                 checked={settings.analysisShowChildren}
@@ -633,7 +643,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Evaluation Dots (W)</label>
+                                            <label className={labelClass}>Evaluation Dots ({shortcutLabels['toggle-eval']})</label>
                                             <input
                                                 type="checkbox"
                                                 checked={settings.analysisShowEval}
@@ -643,7 +653,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Top Moves (Hints) (E)</label>
+                                            <label className={labelClass}>Top Moves (Hints) ({shortcutLabels['toggle-hints']})</label>
                                             <input
                                                 type="checkbox"
                                                 checked={settings.analysisShowHints}
@@ -653,7 +663,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Policy (R)</label>
+                                            <label className={labelClass}>Policy ({shortcutLabels['toggle-policy']})</label>
                                             <input
                                                 type="checkbox"
                                                 checked={settings.analysisShowPolicy}
@@ -663,7 +673,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Ownership (Territory) (T)</label>
+                                            <label className={labelClass}>Ownership (Territory) ({shortcutLabels['toggle-territory']})</label>
                                             <input
                                                 type="checkbox"
                                                 checked={settings.analysisShowOwnership}
