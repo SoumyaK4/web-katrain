@@ -1806,6 +1806,8 @@ export const Layout: React.FC = () => {
                 startQuickGameAnalysis={startQuickGameAnalysis}
                 startFastGameAnalysis={startFastGameAnalysis}
                 stopGameAnalysis={stopGameAnalysis}
+                clearAnalysisCache={clearAnalysisCache}
+                analysisCacheSize={analysisCacheSize}
                 onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
                 onOpenGameReport={() => setIsGameReportOpen(true)}
                 currentMoveNumber={moveHistory.length}
@@ -1993,6 +1995,8 @@ export const Layout: React.FC = () => {
           startQuickGameAnalysis={startQuickGameAnalysis}
           startFastGameAnalysis={startFastGameAnalysis}
           stopGameAnalysis={stopGameAnalysis}
+          clearAnalysisCache={clearAnalysisCache}
+          analysisCacheSize={analysisCacheSize}
           onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
           onOpenGameReport={() => setIsGameReportOpen(true)}
           currentPlayer={currentPlayer}

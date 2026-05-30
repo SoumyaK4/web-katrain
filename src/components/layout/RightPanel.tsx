@@ -67,6 +67,8 @@ interface RightPanelProps {
   startQuickGameAnalysis: () => void;
   startFastGameAnalysis: () => void;
   stopGameAnalysis: () => void;
+  clearAnalysisCache: () => void;
+  analysisCacheSize: number;
   onOpenGameAnalysis: () => void;
   onOpenGameReport: () => void;
   // Player info
@@ -126,6 +128,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   startQuickGameAnalysis,
   startFastGameAnalysis,
   stopGameAnalysis,
+  clearAnalysisCache,
+  analysisCacheSize,
   onOpenGameAnalysis,
   onOpenGameReport,
   currentPlayer,
@@ -662,6 +666,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   startQuickGameAnalysis={startQuickGameAnalysis}
                   startFastGameAnalysis={startFastGameAnalysis}
                   stopGameAnalysis={stopGameAnalysis}
+                  clearAnalysisCache={clearAnalysisCache}
+                  analysisCacheSize={analysisCacheSize}
                   onOpenGameAnalysis={onOpenGameAnalysis}
                   onOpenGameReport={onOpenGameReport}
                   currentMoveNumber={moveHistory.length}

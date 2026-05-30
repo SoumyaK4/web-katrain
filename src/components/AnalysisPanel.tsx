@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaChartLine, FaChartBar, FaRedoAlt, FaFileAlt } from 'react-icons/fa';
+import { FaChartLine, FaChartBar, FaRedoAlt, FaFileAlt, FaTrash } from 'react-icons/fa';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import type { UiMode, UiState } from './layout/types';
 import { EngineStatusBadge } from './layout/ui';
@@ -27,6 +27,8 @@ interface AnalysisPanelProps {
   startQuickGameAnalysis: () => void;
   startFastGameAnalysis: () => void;
   stopGameAnalysis: () => void;
+  clearAnalysisCache: () => void;
+  analysisCacheSize: number;
   onOpenGameAnalysis: () => void;
   onOpenGameReport: () => void;
   currentMoveNumber: number;
@@ -59,6 +61,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   startQuickGameAnalysis,
   startFastGameAnalysis,
   stopGameAnalysis,
+  clearAnalysisCache,
+  analysisCacheSize,
   onOpenGameAnalysis,
   onOpenGameReport,
   currentMoveNumber,
@@ -106,6 +110,25 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       {metricToggle('winrate', 'Win', 'bg-[var(--ui-success)]')}
       {metricToggle('score', 'Score', 'bg-[var(--ui-warning)]')}
     </div>
+  );
+  const analysisCacheControl = (
+    <button
+      type="button"
+      className="panel-action-button"
+      onClick={clearAnalysisCache}
+      disabled={analysisCacheSize === 0 || isGameAnalysisRunning}
+      title={
+        analysisCacheSize > 0
+          ? isGameAnalysisRunning
+            ? 'Stop analysis before clearing cache'
+            : `Clear ${analysisCacheSize} cached ${analysisCacheSize === 1 ? 'analysis' : 'analyses'}`
+          : 'No cached analysis'
+      }
+      aria-label="Clear analysis cache"
+    >
+      <FaTrash size={11} aria-hidden="true" />
+      <span className="tabular-nums">{analysisCacheSize > 0 ? analysisCacheSize : '—'}</span>
+    </button>
   );
   const graphReadout = (
     <div
@@ -237,6 +260,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             Stop
           </button>
           {graphMetricToggles}
+          {analysisCacheControl}
           <div className="ml-auto flex items-center gap-2 text-xs">
             <button
               className="panel-icon-button"
@@ -283,7 +307,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       <div className="panel-section-content">
         {compact ? (
           <div className="space-y-2">
-            {graphMetricToggles}
+            <div className="flex items-center justify-between gap-2">
+              {graphMetricToggles}
+              {analysisCacheControl}
+            </div>
             <div className="panel-compact-graph">
               <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
             </div>
