@@ -5,10 +5,16 @@ import type { AnalysisResult, CandidateMove } from '../src/types';
 
 const EMPTY_TERRITORY: number[][] = Array.from({ length: 19 }, () => Array.from({ length: 19 }, () => 0));
 
-function analysis(args: { rootScoreLead: number; rootWinRate: number; moves?: CandidateMove[] }): AnalysisResult {
+function analysis(args: {
+  rootScoreLead: number;
+  rootWinRate: number;
+  moves?: CandidateMove[];
+  rootVisits?: number;
+}): AnalysisResult {
   return {
     rootWinRate: args.rootWinRate,
     rootScoreLead: args.rootScoreLead,
+    rootVisits: args.rootVisits,
     moves: args.moves ?? [],
     territory: EMPTY_TERRITORY,
     policy: undefined,
@@ -51,6 +57,7 @@ describe('computeGameReport', () => {
     n2.analysis = analysis({
       rootScoreLead: -6,
       rootWinRate: 0.5,
+      rootVisits: 100,
     });
 
     const thresholds = [12, 6, 3, 1.5, 0.5, 0];
@@ -86,8 +93,8 @@ describe('computeGameReport', () => {
       rootWinRate: 0.5,
       moves: [{ x: 0, y: 0, winRate: 0.55, scoreLead: 0.0, visits: 100, pointsLost: 0, order: 0, prior: 1.0 }],
     });
-    n1.analysis = analysis({ rootScoreLead: -5, rootWinRate: 0.5 });
-    n2.analysis = analysis({ rootScoreLead: -6, rootWinRate: 0.5 });
+    n1.analysis = analysis({ rootScoreLead: -5, rootWinRate: 0.5, rootVisits: 100 });
+    n2.analysis = analysis({ rootScoreLead: -6, rootWinRate: 0.5, rootVisits: 100 });
 
     const thresholds = [12, 6, 3, 1.5, 0.5, 0];
     const boardSquares = 19 * 19;
@@ -102,5 +109,51 @@ describe('computeGameReport', () => {
     const whiteTotal = report.histogram.reduce((acc, row) => acc + row.white, 0);
     expect(blackTotal).toBe(1);
     expect(whiteTotal).toBe(0);
+  });
+
+  it('does not count quick value-only evals as report-grade analysis', () => {
+    const store = useGameStore.getState();
+    store.resetGame();
+
+    store.playMove(0, 0); // B
+    store.playMove(1, 0); // W
+
+    const root = useGameStore.getState().rootNode;
+    const n1 = root.children[0]!;
+    const n2 = n1.children[0]!;
+
+    root.analysis = analysis({ rootScoreLead: 0, rootWinRate: 0.5 });
+    n1.analysis = analysis({ rootScoreLead: -5, rootWinRate: 0.5 });
+    n2.analysis = analysis({ rootScoreLead: -6, rootWinRate: 0.5 });
+
+    const report = computeGameReport({ currentNode: root, thresholds: [12, 6, 3, 1.5, 0.5, 0] });
+
+    expect(report.movesInFilter).toBe(2);
+    expect(report.stats.black.numMoves).toBe(0);
+    expect(report.stats.white.numMoves).toBe(0);
+    expect(report.moveEntries).toHaveLength(0);
+  });
+
+  it('skips mixed parent MCTS and child quick evals', () => {
+    const store = useGameStore.getState();
+    store.resetGame();
+
+    store.playMove(0, 0); // B
+
+    const root = useGameStore.getState().rootNode;
+    const n1 = root.children[0]!;
+
+    root.analysis = analysis({
+      rootScoreLead: 0,
+      rootWinRate: 0.5,
+      moves: [{ x: 0, y: 0, winRate: 0.55, scoreLead: 0.0, visits: 100, pointsLost: 0, order: 0, prior: 1.0 }],
+    });
+    n1.analysis = analysis({ rootScoreLead: -5, rootWinRate: 0.5 });
+
+    const report = computeGameReport({ currentNode: root, thresholds: [12, 6, 3, 1.5, 0.5, 0] });
+
+    expect(report.movesInFilter).toBe(1);
+    expect(report.stats.black.numMoves).toBe(0);
+    expect(report.moveEntries).toHaveLength(0);
   });
 });

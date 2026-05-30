@@ -12,11 +12,26 @@ function computePointsLostStrict(node: GameNode): number | null {
   const move = node.move;
   const parent = node.parent;
   if (!move || !parent) return null;
+  if (!hasReportCandidateMoves(parent) || !hasReportPositionAnalysis(node)) return null;
   const parentScore = parent.analysis?.rootScoreLead;
   const childScore = node.analysis?.rootScoreLead;
   if (typeof parentScore !== 'number' || typeof childScore !== 'number') return null;
   const sign = move.player === 'black' ? 1 : -1;
   return sign * (parentScore - childScore);
+}
+
+function hasReportPositionAnalysis(node: GameNode): boolean {
+  const analysis = node.analysis;
+  if (!analysis) return false;
+  if (!Number.isFinite(analysis.rootScoreLead) || !Number.isFinite(analysis.rootWinRate)) return false;
+  if (analysis.moves.length > 0) return true;
+  return typeof analysis.rootVisits === 'number' && Number.isFinite(analysis.rootVisits) && analysis.rootVisits > 1;
+}
+
+function hasReportCandidateMoves(node: GameNode): boolean {
+  const analysis = node.analysis;
+  if (!analysis || !hasReportPositionAnalysis(node)) return false;
+  return analysis.moves.length > 0;
 }
 
 function bestCandidateMove(moves: CandidateMove[] | undefined): CandidateMove | null {
@@ -120,22 +135,12 @@ export function computeGameReport(args: {
     const bucket = thresholds.length - 1 - cls;
     const player: Player = move.player;
 
-    playerPtLoss[player].push(pointsLost);
-    histogram[bucket]![player] += 1;
-
     const parent = n.parent;
     const cands = parent?.analysis?.moves;
-    if (!parent || !cands || cands.length === 0) {
-      weights[player].push({ weight: 0, adj: Math.max(0.05, Math.min(1.0, pointsLost / 4)) });
-      moveEntries.push({
-        node: n,
-        moveNumber: n.gameState.moveHistory.length,
-        player,
-        move: xyToGtp(move.x, move.y, boardSize),
-        pointsLost,
-      });
-      continue;
-    }
+    if (!parent || !cands || cands.length === 0) continue;
+
+    playerPtLoss[player].push(pointsLost);
+    histogram[bucket]![player] += 1;
 
     const top = bestCandidateMove(cands);
     if (top && top.x === move.x && top.y === move.y) aiTopMoveCount[player] += 1;
