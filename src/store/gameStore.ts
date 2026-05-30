@@ -1802,8 +1802,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	      const modelUrl = resolveModelUrlForFetch(state.settings.katagoModelUrl);
         const rules = state.settings.gameRules;
         const analysisPvLen = state.settings.katagoAnalysisPvLen;
-        const wideRootNoise = state.settings.katagoWideRootNoise;
-        const nnRandomize = state.settings.katagoNnRandomize;
+        const wideRootNoise = 0;
+        const nnRandomize = false;
         const conservativePass = state.settings.katagoConservativePass;
         const aiNeedsMovesOwnership = state.settings.aiStrategy === 'simple' || state.settings.aiStrategy === 'settle';
         const aiOwnershipMode = aiNeedsMovesOwnership ? 'tree' : state.settings.katagoOwnershipMode;
@@ -2322,7 +2322,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                 const w = Math.pow(1 / lineWeight, exponent);
                 return {
-                  score: m.prob * w,
+                  score: m.prob,
                   weight: Number.isFinite(w) ? Math.max(0, w) : 0,
                   x: m.x,
                   y: m.y,
