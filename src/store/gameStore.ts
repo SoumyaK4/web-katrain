@@ -10,6 +10,7 @@ import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katra
 import { publicUrl } from '../utils/publicUrl';
 import { isBoardThemeId } from '../utils/boardThemes';
 import { createEmptyBoard, getHandicapPoints, getMaxHandicap, normalizeBoardSize } from '../utils/boardSize';
+import { makeGameStateAnalysisPositionKey } from '../utils/analysisPositionKey';
 
 interface GameStore extends GameState {
   // Tree State
@@ -309,6 +310,21 @@ const createNode = (
     };
 };
 
+const createRootNodeId = (): string => `root-${Math.random().toString(36).slice(2, 11)}`;
+
+const nodeAnalysisPositionKey = (node: GameNode, rules: GameRules): string =>
+  makeGameStateAnalysisPositionKey(node.gameState, rules);
+
+const parentAnalysisPositionKey = (node: GameNode, rules: GameRules): string | undefined =>
+  node.parent ? nodeAnalysisPositionKey(node.parent, rules) : undefined;
+
+const nodeAnalysisVisitCount = (node: GameNode): number => {
+  const rootVisits = node.analysis?.rootVisits;
+  if (typeof rootVisits === 'number' && Number.isFinite(rootVisits)) return Math.max(0, Math.floor(rootVisits));
+  const requested = node.analysisVisitsRequested ?? 0;
+  return Number.isFinite(requested) ? Math.max(0, Math.floor(requested)) : 0;
+};
+
 const findNodeById = (root: GameNode, id: string): GameNode | null => {
   if (root.id === id) return root;
   const stack: GameNode[] = [...root.children];
@@ -330,7 +346,7 @@ const initialGameState: GameState = {
     capturedWhite: 0,
     komi: 6.5
 };
-const initialRoot = createNode(null, null, initialGameState, 'root');
+const initialRoot = createNode(null, null, initialGameState, createRootNodeId());
 initialRoot.properties = { RU: [rulesToSgfRu('japanese')] };
 
 const defaultSettings: GameSettings = {
@@ -551,9 +567,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               const fast = Number.isFinite(rawFast) ? rawFast : 25;
               const initialVisits = Math.max(16, Math.min(target, Math.floor(fast)));
               const node = state.currentNode;
-              const currentVisits =
-                typeof node.analysis?.rootVisits === 'number' ? node.analysis.rootVisits : (node.analysisVisitsRequested ?? 0);
-              const normalizedVisits = Number.isFinite(currentVisits) ? Math.max(0, Math.floor(currentVisits)) : 0;
+              const normalizedVisits = nodeAnalysisVisitCount(node);
 
               let nextVisits: number;
               if (normalizedVisits < 1) {
@@ -867,6 +881,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const analysis = await getKataGoEngineClient().analyze({
             positionId: node.id,
             parentPositionId: node.parent?.id,
+            positionKey: nodeAnalysisPositionKey(node, s.settings.gameRules),
+            parentPositionKey: parentAnalysisPositionKey(node, s.settings.gameRules),
             modelUrl,
             board: s.board,
             previousBoard: parentBoard,
@@ -1068,7 +1084,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           await sleep(50);
         }
 
-        const already = node.analysis && (node.analysisVisitsRequested ?? 0) >= fastVisits;
+        const already = node.analysis && nodeAnalysisVisitCount(node) >= fastVisits;
         if (!already) {
           try {
             const parentBoard = node.parent?.gameState.board;
@@ -1077,6 +1093,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const analysis = await getKataGoEngineClient().analyze({
               positionId: node.id,
               parentPositionId: node.parent?.id,
+              positionKey: nodeAnalysisPositionKey(node, get().settings.gameRules),
+              parentPositionKey: parentAnalysisPositionKey(node, get().settings.gameRules),
               modelUrl,
               board: node.gameState.board,
               previousBoard: parentBoard,
@@ -1207,7 +1225,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           }
         }
 
-        const already = node.analysis && (node.analysisVisitsRequested ?? 0) >= visits;
+        const already = node.analysis && nodeAnalysisVisitCount(node) >= visits;
         if (!already) {
           try {
             const s = get();
@@ -1224,6 +1242,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const analysis = await getKataGoEngineClient().analyze({
               positionId: node.id,
               parentPositionId: node.parent?.id,
+              positionKey: nodeAnalysisPositionKey(node, s.settings.gameRules),
+              parentPositionKey: parentAnalysisPositionKey(node, s.settings.gameRules),
               modelUrl,
               board: node.gameState.board,
               previousBoard: parentBoard,
@@ -1320,7 +1340,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               : true;
         const needsPolicy = state.settings.analysisShowPolicy;
         const policyOk = !needsPolicy || !!existing.policy;
-        if ((state.currentNode.analysisVisitsRequested ?? 0) >= desiredVisits && ownershipOk && policyOk) {
+        if (nodeAnalysisVisitCount(state.currentNode) >= desiredVisits && ownershipOk && policyOk) {
           set({ analysisData: existing });
           return;
         }
@@ -1407,6 +1427,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               fallbackTerritory,
             });
             node.analysis = analysisWithTerritory;
+            if (isFinal) node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, visits);
 
             const latest = get();
             const isCurrent = latest.currentNode.id === node.id;
@@ -1445,12 +1466,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
             : undefined;
 
       set({ engineStatus: 'loading', engineError: null });
-      node.analysisVisitsRequested = visits;
 
 	      return getKataGoEngineClient()
 	        .analyze({
 	          positionId: node.id,
 	          parentPositionId: node.parent?.id,
+            positionKey: nodeAnalysisPositionKey(node, rules),
+            parentPositionKey: parentAnalysisPositionKey(node, rules),
 	          modelUrl,
 	          board: state.board,
 	          previousBoard: parentBoard,
@@ -1727,6 +1749,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	        .analyze({
 	          positionId: nodeId,
 	          parentPositionId: node.parent?.id,
+            positionKey: nodeAnalysisPositionKey(node, rules),
+            parentPositionKey: parentAnalysisPositionKey(node, rules),
 	          modelUrl,
 	          board: state.board,
 	          previousBoard: parentBoard,
@@ -2702,7 +2726,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       capturedWhite: 0,
       komi,
     };
-    const newRoot = createNode(null, null, rootState, 'root');
+    const newRoot = createNode(null, null, rootState, createRootNodeId());
     newRoot.properties = { RU: [rulesToSgfRu(rules)], SZ: [String(normalizedBoardSize)] };
     if (safeHandicap > 0) {
       newRoot.properties.HA = [String(safeHandicap)];
@@ -2753,7 +2777,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       capturedWhite: 0,
       komi: 6.5,
     };
-    const newRoot = createNode(null, null, rootState, 'root');
+    const newRoot = createNode(null, null, rootState, createRootNodeId());
     newRoot.properties = { RU: [rulesToSgfRu(state.settings.gameRules)], SZ: [String(boardSize)] };
     set({
       board: rootState.board,
@@ -2811,7 +2835,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       komi: sgf.komi || 6.5,
     };
 
-    const newRoot = createNode(null, null, rootState, 'root');
+    const newRoot = createNode(null, null, rootState, createRootNodeId());
     newRoot.properties = { RU: [rulesToSgfRu(rules)], SZ: [String(boardSize)] };
     if (safeHandicap > 0) {
       newRoot.properties.HA = [String(safeHandicap)];

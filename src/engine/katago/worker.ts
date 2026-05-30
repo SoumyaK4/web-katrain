@@ -233,6 +233,7 @@ function fillInputsV7FastForPosition(args: {
 let search: MctsSearch | null = null;
 let searchKey: {
   positionId: string;
+  positionKey: string | null;
   modelUrl: string;
   boardSize: number;
   maxChildren: number;
@@ -562,6 +563,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       !!search &&
       !!searchKey &&
       searchKey.positionId === msg.positionId &&
+      searchKey.positionKey === (msg.positionKey ?? null) &&
       searchKey.modelUrl === msg.modelUrl &&
       searchKey.boardSize === boardSize &&
       searchKey.maxChildren === maxChildren &&
@@ -587,6 +589,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
     ) {
       const canReRoot =
         searchKey.positionId === msg.parentPositionId &&
+        searchKey.positionKey === (msg.parentPositionKey ?? null) &&
         searchKey.modelUrl === msg.modelUrl &&
         searchKey.maxChildren === maxChildren &&
         searchKey.ownershipMode === ownershipMode &&
@@ -617,6 +620,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
             reusedSearch = true;
             searchKey = {
               positionId: msg.positionId,
+              positionKey: msg.positionKey ?? null,
               modelUrl: msg.modelUrl,
               boardSize,
               maxChildren,
@@ -654,6 +658,7 @@ async function handleMessage(msg: KataGoWorkerRequest): Promise<void> {
       if (typeof msg.positionId === 'string') {
         searchKey = {
           positionId: msg.positionId,
+          positionKey: msg.positionKey ?? null,
           modelUrl: msg.modelUrl,
           boardSize,
           maxChildren,

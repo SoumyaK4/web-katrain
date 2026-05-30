@@ -131,6 +131,8 @@ class KataGoEngineClient {
     analysisGroup?: 'interactive' | 'background';
     positionId?: string;
     parentPositionId?: string;
+    positionKey?: string;
+    parentPositionKey?: string;
     modelUrl: string;
     board: BoardState;
     previousBoard?: BoardState;
@@ -163,6 +165,8 @@ class KataGoEngineClient {
       analysisGroup: args.analysisGroup,
       positionId: args.positionId,
       parentPositionId: args.parentPositionId,
+      positionKey: args.positionKey,
+      parentPositionKey: args.parentPositionKey,
       modelUrl: args.modelUrl,
       board: args.board,
       previousBoard: args.previousBoard,
