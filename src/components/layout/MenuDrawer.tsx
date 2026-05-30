@@ -99,10 +99,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onLoad();
                 onClose();
               }}
-              aria-label="Load SGF file, keyboard shortcut Control plus O"
+              aria-label="Load SGF file or board photo, keyboard shortcut Control plus O"
             >
               <span className="flex items-center gap-2">
-                <FaFolderOpen aria-hidden="true" /> Load SGF
+                <FaFolderOpen aria-hidden="true" /> Load SGF / Photo
               </span>
               <kbd className="text-xs ui-text-faint">Ctrl+O</kbd>
             </button>

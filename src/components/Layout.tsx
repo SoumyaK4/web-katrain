@@ -18,7 +18,7 @@ import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundTo
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { normalizeBoardSize } from '../utils/boardSize';
-import { isPhotoBoardImageFile } from '../utils/photoBoard';
+import { PHOTO_BOARD_IMAGE_EXTENSIONS, isPhotoBoardImageFile } from '../utils/photoBoard';
 
 // Layout components
 import { MenuDrawer } from './layout/MenuDrawer';
@@ -53,6 +53,7 @@ const PhotoBoardModal = lazy(() => import('./PhotoBoardModal').then((module) => 
 const PasteSgfModal = lazy(() => import('./PasteSgfModal').then((module) => ({ default: module.PasteSgfModal })));
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
+const mainFileInputAccept = ['.sgf', ...PHOTO_BOARD_IMAGE_EXTENSIONS, 'image/*'].join(',');
 
 function computePointsLost(args: { currentNode: GameNode }): number | null {
   const node = args.currentNode;
@@ -994,6 +995,11 @@ export const Layout: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      if (isPhotoBoardImageFile(file)) {
+        openPhotoBoard(file);
+        toast('Opened photo board from image.', 'info');
+        return;
+      }
       const text = await file.text();
       const parsed = parseSgf(text);
       if (!(await prepareForGameReplacement())) return;
@@ -1471,7 +1477,7 @@ export const Layout: React.FC = () => {
         )}
       </Suspense>
 
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".sgf" />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept={mainFileInputAccept} />
 
       {isFileDragActive && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
