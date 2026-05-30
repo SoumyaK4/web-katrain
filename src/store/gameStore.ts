@@ -127,8 +127,8 @@ const applyHandicapStones = (board: BoardState, boardSize: BoardSize, handicap: 
   }
 };
 
-const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v2';
-const LEGACY_SETTINGS_STORAGE_KEY = 'web-katrain:settings:v1';
+const SETTINGS_STORAGE_KEY = 'web-katrain:settings:v3';
+const LEGACY_SETTINGS_STORAGE_KEYS = ['web-katrain:settings:v2', 'web-katrain:settings:v1'] as const;
 
 const normalizeModelUrl = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
@@ -150,7 +150,13 @@ const normalizeKataGoBackend = (value: unknown): KataGoBackendPreference | null 
 
 const isLegacyDefaultModelUrl = (value: string): boolean => {
   const legacyPath = `/${KATAGO_SMALL_MODEL_PATH}`;
-  return value === publicUrl(KATAGO_SMALL_MODEL_PATH) || value === KATAGO_SMALL_MODEL_PATH || value === legacyPath || value.endsWith(legacyPath);
+  return (
+    value === KATAGO_RECOMMENDED_MODEL_URL ||
+    value === publicUrl(KATAGO_SMALL_MODEL_PATH) ||
+    value === KATAGO_SMALL_MODEL_PATH ||
+    value === legacyPath ||
+    value.endsWith(legacyPath)
+  );
 };
 
 const resolveModelUrlForFetch = (value: string): string => {
@@ -171,17 +177,20 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
   if (typeof localStorage === 'undefined') return null;
   try {
     const rawCurrent = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    const rawLegacy = rawCurrent ? null : localStorage.getItem(LEGACY_SETTINGS_STORAGE_KEY);
-    const raw = rawCurrent ?? rawLegacy;
+    const legacyEntry = rawCurrent
+      ? null
+      : LEGACY_SETTINGS_STORAGE_KEYS.map((key) => ({ key, raw: localStorage.getItem(key) })).find((entry) => entry.raw);
+    const raw = rawCurrent ?? legacyEntry?.raw;
     if (!raw) return null;
-    const isLegacySettings = rawLegacy !== null;
+    const isLegacySettings = legacyEntry != null;
+    const isV1Settings = legacyEntry?.key === 'web-katrain:settings:v1';
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
     if ('katagoModelUrl' in parsed) {
       const normalized = normalizeModelUrl((parsed as { katagoModelUrl?: unknown }).katagoModelUrl);
       if (normalized) {
         (parsed as { katagoModelUrl: string }).katagoModelUrl = isLegacySettings && isLegacyDefaultModelUrl(normalized)
-          ? KATAGO_RECOMMENDED_MODEL_URL
+          ? publicUrl(KATAGO_SMALL_MODEL_PATH)
           : normalized;
       } else {
         delete (parsed as { katagoModelUrl?: unknown }).katagoModelUrl;
@@ -191,7 +200,7 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
       const backend = normalizeKataGoBackend((parsed as { katagoBackend?: unknown }).katagoBackend);
       if (backend) {
         (parsed as { katagoBackend: KataGoBackendPreference }).katagoBackend =
-          isLegacySettings && backend === 'wasm' ? 'webgpu' : backend;
+          isV1Settings && backend === 'wasm' ? 'webgpu' : backend;
       } else {
         delete (parsed as { katagoBackend?: unknown }).katagoBackend;
       }
@@ -412,7 +421,7 @@ const defaultSettings: GameSettings = {
   analysisShowHints: true,
   analysisShowPolicy: false,
   analysisShowOwnership: true,
-  katagoModelUrl: KATAGO_RECOMMENDED_MODEL_URL,
+  katagoModelUrl: publicUrl(KATAGO_SMALL_MODEL_PATH),
   katagoBackend: 'webgpu',
   katagoVisits: 500,
   katagoFastVisits: 25,

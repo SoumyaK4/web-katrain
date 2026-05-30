@@ -30,10 +30,10 @@ const OFFICIAL_MODELS: Array<{
     downloadAndLoad?: boolean;
 }> = [
     {
-        label: 'Recommended Strong (b18)',
+        label: 'Strong Browser (b18)',
         name: KATAGO_RECOMMENDED_MODEL_NAME,
         url: KATAGO_RECOMMENDED_MODEL_URL,
-        badge: 'Default',
+        badge: 'Optional',
         uploaded: KATAGO_RECOMMENDED_MODEL_UPLOADED,
         size: KATAGO_RECOMMENDED_MODEL_SIZE,
         downloadAndLoad: true,
@@ -215,7 +215,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const handleClearUpload = () => {
         if (!isUploadedModel) return;
         revokeUploadedModelUrl();
-        updateSettings({ katagoModelUrl: lastManualModelUrl ?? KATAGO_RECOMMENDED_MODEL_URL });
+        updateSettings({ katagoModelUrl: lastManualModelUrl ?? SMALL_MODEL_URL });
     };
 
     const handleDownloadAndLoad = async (url: string) => {
@@ -1388,18 +1388,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <button
                                                 type="button"
                                                 className={pillButtonClass}
-                                                onClick={() => updateSettings({ katagoModelUrl: KATAGO_RECOMMENDED_MODEL_URL })}
-                                                title="Recommended strong browser weights"
+                                                onClick={() => updateSettings({ katagoModelUrl: SMALL_MODEL_URL })}
+                                                title="Small bundled KataGo model"
                                             >
-                                                Recommended b18
+                                                Small Model
                                             </button>
                                             <button
                                                 type="button"
                                                 className={pillButtonClass}
-                                                onClick={() => updateSettings({ katagoModelUrl: SMALL_MODEL_URL })}
-                                                title="Small KataGo test model"
+                                                onClick={() => updateSettings({ katagoModelUrl: KATAGO_RECOMMENDED_MODEL_URL })}
+                                                title="Stronger b18 browser weights"
                                             >
-                                                Small Model
+                                                Strong b18
                                             </button>
                                         </div>
                                         <div className="space-y-1">
@@ -1504,7 +1504,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             value={settings.katagoModelUrl}
                                             onChange={(e) => updateSettings({ katagoModelUrl: e.target.value })}
                                             className={`${inputClass} text-xs`}
-                                            placeholder={KATAGO_RECOMMENDED_MODEL_URL}
+                                            placeholder={SMALL_MODEL_URL}
                                         />
                                         <p className={subtextClass}>
                                             Use a local path under <span className="font-mono">{publicUrl('models/')}</span> or a full URL (must allow CORS).
