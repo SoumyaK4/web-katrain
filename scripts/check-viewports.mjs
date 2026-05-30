@@ -209,6 +209,7 @@ function assertViewport(result) {
   if (result.desktop) {
     if (!result.topBar) failures.push('top bar missing');
     if (result.topControlsOutOfBar > 0) failures.push(`${result.topControlsOutOfBar} top controls escape top bar`);
+    if (result.missingFileActions.length > 0) failures.push(`missing file actions: ${result.missingFileActions.join(', ')}`);
     if (!result.viewMenuReachable) failures.push('View menu not reachable');
     if (!result.actionsMenuReachable) failures.push('Actions menu not reachable');
     if (result.topToggleOverTopBar) failures.push('top toggle overlaps top bar');
@@ -284,6 +285,8 @@ async function main() {
         const topToggle = Array.from(document.querySelectorAll('button')).find((button) => (button.getAttribute('title') || '').includes('top bar')) || null;
         const editToolbar = document.querySelector('[data-edit-toolbar]');
         const board = document.querySelector('[data-board-snapshot="true"]');
+        const requiredFileActions = ['New game', 'Save SGF', 'Load SGF', 'Paste SGF / OGS', 'Photo Board'];
+        const allButtons = Array.from(document.querySelectorAll('button'));
         return {
           viewport: '${viewport.width}x${viewport.height}',
           desktop: ${viewport.width >= 1024},
@@ -295,6 +298,7 @@ async function main() {
           topToggle: rect(topToggle),
           editToolbar: rect(editToolbar),
           board: rect(board),
+          missingFileActions: requiredFileActions.filter((label) => !allButtons.some((button) => button.getAttribute('aria-label') === label)),
           viewMenuReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.textContent || '').includes('View')),
           actionsMenuReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.textContent || '').includes('Actions')),
           toolsReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.getAttribute('aria-label') || button.getAttribute('title') || '') === 'Tools'),
