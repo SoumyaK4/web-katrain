@@ -67,6 +67,7 @@ interface TopControlBarProps {
   onOpenMenu: () => void;
   onNewGame: () => void;
   onSaveSgf: () => void;
+  saveTitle?: string;
   onLoadSgf: () => void;
   onOpenSidePanel: () => void;
   onCopySgf: () => void;
@@ -120,6 +121,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onOpenMenu,
   onNewGame,
   onSaveSgf,
+  saveTitle = 'Save SGF (Ctrl+S)',
   onLoadSgf,
   onOpenSidePanel,
   onCopySgf,
@@ -412,7 +414,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <IconButton title="New game (Ctrl+N)" onClick={onNewGame} className={topIconClass}>
           <FaPlus />
         </IconButton>
-        <IconButton title="Save SGF (Ctrl+S)" onClick={onSaveSgf} className={topIconClass}>
+        <IconButton title={saveTitle} onClick={onSaveSgf} className={topIconClass}>
           <FaSave />
         </IconButton>
         <IconButton title="Load SGF, board photo, or model weights (Ctrl+O)" onClick={onLoadSgf} className={topIconClass}>

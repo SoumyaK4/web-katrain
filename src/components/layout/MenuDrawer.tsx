@@ -8,6 +8,7 @@ interface MenuDrawerProps {
   onHome?: () => void;
   onNewGame: () => void;
   onSave: () => void;
+  saveLabel?: string;
   onLoad: () => void;
   onScanBoard: () => void;
   onCopy: () => void;
@@ -24,6 +25,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onHome,
   onNewGame,
   onSave,
+  saveLabel = 'Save SGF',
   onLoad,
   onScanBoard,
   onCopy,
@@ -86,10 +88,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onSave();
                 onClose();
               }}
-              aria-label="Save SGF file, keyboard shortcut Control plus S"
+              aria-label={`${saveLabel}, keyboard shortcut Control plus S`}
             >
               <span className="flex items-center gap-2">
-                <FaSave aria-hidden="true" /> Save SGF
+                <FaSave aria-hidden="true" /> {saveLabel}
               </span>
               <kbd className="text-xs ui-text-faint">Ctrl+S</kbd>
             </button>

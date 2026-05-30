@@ -1479,6 +1479,7 @@ export const Layout: React.FC = () => {
     },
   });
   const currentGameDirty = hasUnsavedChanges();
+  const saveControlLabel = loadedLibraryFileId ? 'Save to Library' : 'Save SGF';
 
   return (
     <div
@@ -1497,7 +1498,12 @@ export const Layout: React.FC = () => {
             onDismiss={dismissAutoSaveRecovery}
           />
         )}
-        {isUnsavedChangesOpen && <UnsavedChangesModal onChoice={handleUnsavedChangesChoice} />}
+        {isUnsavedChangesOpen && (
+          <UnsavedChangesModal
+            onChoice={handleUnsavedChangesChoice}
+            saveTarget={loadedLibraryFileId ? 'library' : 'download'}
+          />
+        )}
         {isGameAnalysisOpen && <GameAnalysisModal onClose={() => setIsGameAnalysisOpen(false)} />}
         {isGameReportOpen && (
           <GameReportModal
@@ -1643,6 +1649,7 @@ export const Layout: React.FC = () => {
         onHome={openMobileHome}
         onNewGame={() => void openNewGameWithGuard()}
         onSave={handleSaveCurrentSgf}
+        saveLabel={saveControlLabel}
         onLoad={handleLoadClick}
         onScanBoard={() => openPhotoBoard()}
         onCopy={handleCopySgf}
@@ -1801,6 +1808,7 @@ export const Layout: React.FC = () => {
               onOpenMenu={() => setMenuOpen(true)}
               onNewGame={() => void openNewGameWithGuard()}
               onSaveSgf={handleSaveCurrentSgf}
+              saveTitle={`${saveControlLabel} (Ctrl+S)`}
               onLoadSgf={handleLoadClick}
               onOpenSidePanel={handleOpenSidePanel}
               onCopySgf={handleCopySgf}
