@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaTimes } from 'react-icons/fa';
+import { FaBullseye, FaTimes } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import {
@@ -46,6 +46,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     gameAnalysisDone,
     gameAnalysisTotal,
     isGameAnalysisRunning,
+    isInsertMode,
   } = useGameStore(
     (state) => ({
       currentNode: state.currentNode,
@@ -55,6 +56,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
       gameAnalysisDone: state.gameAnalysisDone,
       gameAnalysisTotal: state.gameAnalysisTotal,
       isGameAnalysisRunning: state.isGameAnalysisRunning,
+      isInsertMode: state.isInsertMode,
     }),
     shallow
   );
@@ -336,6 +338,32 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     jumpToNode(reviewQueue[next]!.node);
   };
 
+  const startPractice = (entry: MoveReportEntry) => {
+    if (isInsertMode) {
+      useGameStore.setState({ notification: { message: 'Finish insert mode before starting mistake practice.', type: 'error' } });
+      window.setTimeout(() => useGameStore.setState({ notification: null }), 2500);
+      return;
+    }
+
+    const target = entry.node.parent ?? entry.node;
+    jumpToNode(target);
+    window.setTimeout(() => {
+      const latest = useGameStore.getState();
+      if (!latest.isInsertMode && latest.currentNode.children.length > 0) {
+        latest.toggleInsertMode();
+      }
+      useGameStore.setState({
+        notification: {
+          message: `Practice move ${entry.moveNumber}: try a correction for ${entry.player === 'black' ? 'Black' : 'White'}.`,
+          type: 'info',
+        },
+      });
+      window.setTimeout(() => useGameStore.setState({ notification: null }), 2500);
+    }, 0);
+    setReportHoverMove(null);
+    onClose();
+  };
+
   const formatPv = (pv?: string[], max = 12) => {
     if (!pv || pv.length === 0) return '-';
     const sliced = pv.slice(0, max);
@@ -365,13 +393,22 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
           </div>
           <div className="col-span-3 text-right">
             {showJump ? (
-              <button
-                type="button"
-                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 text-slate-200 hover:bg-slate-700/70 print-hide"
-                onClick={() => jumpToNode(entry.node)}
-              >
-                Jump to move
-              </button>
+              <div className="flex flex-wrap justify-end gap-1 print-hide">
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 text-slate-200 hover:bg-slate-700/70"
+                  onClick={() => jumpToNode(entry.node)}
+                >
+                  Jump
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded bg-[var(--ui-accent-soft)] border border-[var(--ui-accent)] text-[var(--ui-accent)] hover:brightness-110"
+                  onClick={() => startPractice(entry)}
+                >
+                  <span className="inline-flex items-center gap-1"><FaBullseye /> Practice</span>
+                </button>
+              </div>
             ) : (
               <span className="text-slate-400">-</span>
             )}
@@ -688,6 +725,13 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                   <div className="ml-auto flex items-center gap-2">
                     <button
                       type="button"
+                      onClick={() => startPractice(activeReview)}
+                      className="px-2 py-1 rounded border border-[var(--ui-accent)] text-[var(--ui-accent)] hover:brightness-110"
+                    >
+                      Practice
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => reviewStep(-1)}
                       disabled={reviewIndex === 0}
                       className="px-2 py-1 rounded border border-slate-700/60 hover:bg-slate-800/80 disabled:opacity-40"
@@ -725,7 +769,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 <div className="col-span-2 uppercase tracking-wide text-[10px]">Played</div>
                 <div className="col-span-2 uppercase tracking-wide text-[10px]">Top</div>
                 <div className="col-span-2 text-right uppercase tracking-wide text-[10px]">Loss</div>
-                <div className="col-span-3 text-right uppercase tracking-wide text-[10px]">Jump</div>
+                <div className="col-span-3 text-right uppercase tracking-wide text-[10px]">Action</div>
                 {renderMistakeRows(topMistakes, true)}
               </div>
             )}
