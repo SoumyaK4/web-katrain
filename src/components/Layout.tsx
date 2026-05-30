@@ -46,6 +46,7 @@ const GameReportModal = lazy(() => import('./GameReportModal').then((module) => 
 const KeyboardHelpModal = lazy(() => import('./KeyboardHelpModal').then((module) => ({ default: module.KeyboardHelpModal })));
 const NewGameModal = lazy(() => import('./NewGameModal').then((module) => ({ default: module.NewGameModal })));
 const PhotoBoardModal = lazy(() => import('./PhotoBoardModal').then((module) => ({ default: module.PhotoBoardModal })));
+const PasteSgfModal = lazy(() => import('./PasteSgfModal').then((module) => ({ default: module.PasteSgfModal })));
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 
@@ -217,6 +218,7 @@ export const Layout: React.FC = () => {
   const [isKeyboardHelpOpen, setIsKeyboardHelpOpen] = useState(false);
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isPhotoBoardOpen, setIsPhotoBoardOpen] = useState(false);
+  const [isPasteSgfOpen, setIsPasteSgfOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
@@ -904,21 +906,17 @@ export const Layout: React.FC = () => {
     }
   };
 
-  const handlePasteSgf = async () => {
-    let text: string | null = null;
-    try {
-      text = await navigator.clipboard.readText();
-    } catch {
-      text = window.prompt('Paste SGF here:') ?? null;
-    }
-    if (!text) return;
-    await handleOpenSgfFromText(text);
+  const handlePasteSgf = () => {
+    setAnalysisMenuOpen(false);
+    setViewMenuOpen(false);
+    setMenuOpen(false);
+    setIsPasteSgfOpen(true);
   };
 
-  const handleOpenSgfFromText = async (text: string) => {
+  const handleOpenSgfFromText = async (text: string): Promise<boolean> => {
     try {
       const result = await loadSgfOrOgs(text);
-      if (!result.sgf.trim()) return;
+      if (!result.sgf.trim()) return false;
       if (result.source === 'ogs') {
         toast(`Downloaded OGS game ${result.gameId ?? ''}.`, 'success');
       }
@@ -926,8 +924,10 @@ export const Layout: React.FC = () => {
       loadGame(parsed);
       navigateEnd();
       toast('Loaded SGF.', 'success');
+      return true;
     } catch {
       toast('Failed to load SGF or OGS URL.', 'error');
+      return false;
     }
   };
 
@@ -1039,6 +1039,7 @@ export const Layout: React.FC = () => {
     setViewMenuOpen,
     setMenuOpen,
     setIsKeyboardHelpOpen,
+    openPasteSgf: handlePasteSgf,
     openNewGame: () => setIsNewGameOpen(true),
     toggleLibrary: handleToggleLibrary,
     closeLibrary: handleCloseLibrary,
@@ -1084,7 +1085,8 @@ export const Layout: React.FC = () => {
       !isGameReportOpen &&
       !isKeyboardHelpOpen &&
       !isNewGameOpen &&
-      !isPhotoBoardOpen,
+      !isPhotoBoardOpen &&
+      !isPasteSgfOpen,
     handlers: {
       back: mode === 'play' ? handleUndo : navigateBack,
       forward: navigateForward,
@@ -1124,6 +1126,12 @@ export const Layout: React.FC = () => {
             onImportSgf={handlePhotoBoardImport}
             defaultBoardSize={boardSize}
             defaultKomi={komi}
+          />
+        )}
+        {isPasteSgfOpen && (
+          <PasteSgfModal
+            onClose={() => setIsPasteSgfOpen(false)}
+            onSubmit={handleOpenSgfFromText}
           />
         )}
         {isNewGameOpen && (

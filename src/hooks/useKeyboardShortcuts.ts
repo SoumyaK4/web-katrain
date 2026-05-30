@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import { downloadSgfFromTree, generateSgfFromTree, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
-import { loadSgfOrOgs } from '../utils/ogs';
+import { downloadSgfFromTree, generateSgfFromTree, type KaTrainSgfExportOptions } from '../utils/sgf';
 import type { UiMode } from '../components/layout/types';
 import { eventMatchesShortcut, loadShortcutOverrides } from '../utils/shortcuts';
 
@@ -17,6 +16,7 @@ interface UseKeyboardShortcutsOptions {
   setViewMenuOpen: (v: boolean) => void;
   setMenuOpen: (v: boolean) => void;
   setIsKeyboardHelpOpen: (v: boolean) => void;
+  openPasteSgf: () => void;
   openNewGame: () => void;
   toggleLibrary: () => void;
   closeLibrary: () => void;
@@ -35,6 +35,7 @@ export function useKeyboardShortcuts({
   setViewMenuOpen,
   setMenuOpen,
   setIsKeyboardHelpOpen,
+  openPasteSgf,
   openNewGame,
   toggleLibrary,
   closeLibrary,
@@ -53,7 +54,6 @@ export function useKeyboardShortcuts({
     undoToMainBranch,
     makeCurrentNodeMainBranch,
     findMistake,
-    loadGame,
     analyzeExtra,
     resetCurrentAnalysis,
     toggleAnalysisMode,
@@ -81,7 +81,6 @@ export function useKeyboardShortcuts({
       undoToMainBranch: state.undoToMainBranch,
       makeCurrentNodeMainBranch: state.makeCurrentNodeMainBranch,
       findMistake: state.findMistake,
-      loadGame: state.loadGame,
       analyzeExtra: state.analyzeExtra,
       resetCurrentAnalysis: state.resetCurrentAnalysis,
       toggleAnalysisMode: state.toggleAnalysisMode,
@@ -145,29 +144,6 @@ export function useKeyboardShortcuts({
         }
       };
 
-      const pasteSgfFromClipboard = async () => {
-        let text: string | null = null;
-        try {
-          text = await navigator.clipboard.readText();
-        } catch {
-          text = window.prompt('Paste SGF here:') ?? null;
-        }
-        if (!text) return;
-        try {
-          const result = await loadSgfOrOgs(text);
-          if (!result.sgf.trim()) return;
-          if (result.source === 'ogs') {
-            toast(`Downloaded OGS game ${result.gameId ?? ''}.`, 'success');
-          }
-          const parsed = parseSgf(result.sgf);
-          loadGame(parsed);
-          navigateEnd();
-          toast('Loaded SGF from clipboard.', 'success');
-        } catch {
-          toast('Failed to load SGF or OGS URL.', 'error');
-        }
-      };
-
       // File operations
       if (matches('save-sgf')) {
         e.preventDefault();
@@ -196,7 +172,7 @@ export function useKeyboardShortcuts({
       }
       if (matches('paste-sgf')) {
         e.preventDefault();
-        void pasteSgfFromClipboard();
+        openPasteSgf();
         return;
       }
       if (matches('new-game')) {
@@ -483,6 +459,7 @@ export function useKeyboardShortcuts({
     mode,
     toggleAnalysisMode,
     updateSettings,
+    openPasteSgf,
     settings.showCoordinates,
     settings.showMoveNumbers,
     settings.analysisShowChildren,
@@ -492,7 +469,6 @@ export function useKeyboardShortcuts({
     settings.analysisShowOwnership,
     makeAiMove,
     rootNode,
-    loadGame,
     findMistake,
     analyzeExtra,
     resetCurrentAnalysis,
