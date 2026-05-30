@@ -27,6 +27,21 @@ import type { MobileTab } from './MobileTabBar';
 import { SectionHeader } from './ui';
 import { formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
 import { getBranchInfo } from '../../utils/branchNavigation';
+import { useShortcutLabels } from '../../hooks/useShortcutLabels';
+
+const RIGHT_PANEL_SHORTCUT_IDS = [
+  'nav-back',
+  'ai-move',
+  'nav-start',
+  'nav-end',
+  'branch-prev',
+  'branch-next',
+  'undo-branch-point',
+  'undo-main-branch',
+  'make-main-branch',
+] as const;
+
+type RightPanelShortcutId = (typeof RIGHT_PANEL_SHORTCUT_IDS)[number];
 
 interface RightPanelProps {
   open: boolean;
@@ -177,6 +192,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const [isBranchIndexEditing, setIsBranchIndexEditing] = React.useState(false);
   const [branchIndexDraft, setBranchIndexDraft] = React.useState('');
   const skipBranchIndexBlurCommit = React.useRef(false);
+  const shortcutLabels = useShortcutLabels(RIGHT_PANEL_SHORTCUT_IDS);
+  const withShortcut = (label: string, id: RightPanelShortcutId) => `${label} (${shortcutLabels[id]})`;
 
   React.useEffect(() => {
     if (!isBranchIndexEditing) {
@@ -357,7 +374,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               type="button"
               className="panel-action-button"
               onClick={onUndo}
-              title="Undo (left arrow)"
+              title={withShortcut('Undo', 'nav-back')}
             >
               Undo
             </button>
@@ -372,7 +389,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               type="button"
               className="panel-action-button"
               onClick={onAiMove}
-              title="AI move (Enter)"
+              title={withShortcut('AI move', 'ai-move')}
               aria-label="Make AI move"
             >
               AI Move
@@ -432,7 +449,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="To start (Home)"
+                      title={withShortcut('To start', 'nav-start')}
                       onClick={() => guardInsertMode(navigateStart)}
                       disabled={isInsertMode}
                     >
@@ -441,7 +458,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="To end (End)"
+                      title={withShortcut('To end', 'nav-end')}
                       onClick={() => guardInsertMode(navigateEnd)}
                       disabled={isInsertMode}
                     >
@@ -451,7 +468,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="Previous branch (↑)"
+                      title={withShortcut('Previous branch', 'branch-prev')}
                       onClick={() => guardInsertMode(() => switchBranch(-1))}
                       disabled={isInsertMode}
                     >
@@ -460,7 +477,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="Next branch (↓)"
+                      title={withShortcut('Next branch', 'branch-next')}
                       onClick={() => guardInsertMode(() => switchBranch(1))}
                       disabled={isInsertMode}
                     >
@@ -528,7 +545,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="Back to branch point (B)"
+                      title={withShortcut('Back to branch point', 'undo-branch-point')}
                       onClick={() => guardInsertMode(undoToBranchPoint)}
                       disabled={isInsertMode}
                     >
@@ -537,7 +554,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="Back to main branch (Shift+B)"
+                      title={withShortcut('Back to main branch', 'undo-main-branch')}
                       onClick={() => guardInsertMode(undoToMainBranch)}
                       disabled={isInsertMode}
                     >
@@ -547,7 +564,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <button
                       type="button"
                       className="panel-icon-button"
-                      title="Make main branch"
+                      title={withShortcut('Make main branch', 'make-main-branch')}
                       onClick={() => guardInsertMode(makeCurrentNodeMainBranch)}
                       disabled={isInsertMode || !currentNode.parent}
                     >
