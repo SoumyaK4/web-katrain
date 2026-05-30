@@ -144,6 +144,12 @@ describe('GameStore loadGame', () => {
 
         store.switchToBranchIndex(2);
         expect(useGameStore.getState().currentNode.move).toEqual({ x: 1, y: 1, player: 'black' });
+
+        store.switchToBranchIndex(99);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 7, y: 7, player: 'black' });
+
+        store.switchToBranchIndex(0);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 5, y: 5, player: 'black' });
     });
 
     it('jumps to move numbers on the current branch line', () => {

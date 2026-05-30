@@ -104,7 +104,8 @@ describe('branch navigation', () => {
 
     expect(findBranchTargetByIndex(a2, 2)?.id).toBe('b1');
     expect(findBranchTargetByIndex(a2, 3)?.id).toBe('c');
-    expect(findBranchTargetByIndex(a2, 4)).toBeNull();
+    expect(findBranchTargetByIndex(a2, 4)?.id).toBe('c');
+    expect(findBranchTargetByIndex(a2, 0)?.id).toBe('a2');
   });
 
   it('finds move targets on the current branch line', () => {

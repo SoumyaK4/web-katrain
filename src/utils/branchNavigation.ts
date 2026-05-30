@@ -80,11 +80,14 @@ export function findSiblingBranchTarget(currentNode: GameNode, direction: 1 | -1
 }
 
 export function findBranchTargetByIndex(currentNode: GameNode, branchIndex: number): GameNode | null {
+  if (!Number.isFinite(branchIndex)) return null;
   const branch = findBranchRoot(currentNode);
   if (!branch) return null;
 
-  const targetIndex = Math.floor(branchIndex) - 1;
-  const targetRoot = branch.forkNode.children[targetIndex] ?? null;
+  const siblings = branch.forkNode.children;
+  if (siblings.length === 0) return null;
+  const targetIndex = Math.max(0, Math.min(Math.floor(branchIndex) - 1, siblings.length - 1));
+  const targetRoot = siblings[targetIndex] ?? null;
   if (!targetRoot) return null;
 
   let target = targetRoot;

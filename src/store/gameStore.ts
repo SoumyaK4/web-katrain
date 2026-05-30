@@ -3557,7 +3557,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   }),
 
   switchToBranchIndex: (index) => set((state) => {
-      if (!Number.isFinite(index)) return {};
       const next = findBranchTargetByIndex(state.currentNode, index);
       if (!next) return { notification: { message: 'Branch number unavailable.', type: 'info' } };
 
