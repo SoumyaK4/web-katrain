@@ -1788,7 +1788,9 @@ export const Layout: React.FC = () => {
               <AnalysisPanel
                 mode={mode}
                 modePanels={modePanels}
+                analysisControls={modeControls}
                 updatePanels={updatePanels}
+                updateControls={updateControls}
                 statusText={statusText}
                 engineDot={engineDot}
                 engineMeta={engineMeta}
@@ -1985,7 +1987,9 @@ export const Layout: React.FC = () => {
           mode={mode}
           setMode={setMode}
           modePanels={modePanels}
+          analysisControls={modeControls}
           updatePanels={updatePanels}
+          updateControls={updateControls}
           rootNode={rootNode}
           treeVersion={treeVersion}
           isGameAnalysisRunning={isGameAnalysisRunning}

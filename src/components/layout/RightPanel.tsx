@@ -22,7 +22,7 @@ import { GameInfoPanel } from '../GameInfoPanel';
 import { MoveTree } from '../MoveTree';
 import { NotesPanel } from '../NotesPanel';
 import { Timer } from '../Timer';
-import type { UiMode, UiState } from './types';
+import type { AnalysisControlsState, UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
 import { SectionHeader } from './ui';
 import { formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
@@ -54,9 +54,11 @@ interface RightPanelProps {
   mode: UiMode;
   setMode: (m: UiMode) => void;
   modePanels: UiState['panels'][UiMode];
+  analysisControls: AnalysisControlsState;
   updatePanels: (
     partial: Partial<UiState['panels'][UiMode]> | ((current: UiState['panels'][UiMode]) => Partial<UiState['panels'][UiMode]>)
   ) => void;
+  updateControls: (partial: Partial<AnalysisControlsState>) => void;
   rootNode: GameNode;
   treeVersion: number;
   // Game analysis actions
@@ -118,7 +120,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   mode,
   setMode,
   modePanels,
+  analysisControls,
   updatePanels,
+  updateControls,
   rootNode,
   treeVersion,
   isGameAnalysisRunning,
@@ -648,7 +652,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <AnalysisPanel
                   mode={mode}
                   modePanels={modePanels}
+                  analysisControls={analysisControls}
                   updatePanels={updatePanels}
+                  updateControls={updateControls}
                   statusText={statusText}
                   engineDot={engineDot}
                   engineMeta={engineMeta}

@@ -1,15 +1,28 @@
 import React from 'react';
-import { FaChartLine, FaChartBar, FaRedoAlt, FaFileAlt, FaTrash } from 'react-icons/fa';
+import {
+  FaChartLine,
+  FaChartBar,
+  FaRedoAlt,
+  FaFileAlt,
+  FaTrash,
+  FaSitemap,
+  FaCircle,
+  FaLayerGroup,
+  FaThLarge,
+  FaMap,
+} from 'react-icons/fa';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
-import type { UiMode, UiState } from './layout/types';
+import type { AnalysisControlsState, UiMode, UiState } from './layout/types';
 import { EngineStatusBadge } from './layout/ui';
 
 interface AnalysisPanelProps {
   mode: UiMode;
   modePanels: UiState['panels'][UiMode];
+  analysisControls: AnalysisControlsState;
   updatePanels: (
     partial: Partial<UiState['panels'][UiMode]> | ((current: UiState['panels'][UiMode]) => Partial<UiState['panels'][UiMode]>)
   ) => void;
+  updateControls: (partial: Partial<AnalysisControlsState>) => void;
   statusText: string;
   engineDot: string;
   engineMeta: string;
@@ -39,11 +52,14 @@ interface AnalysisPanelProps {
 }
 
 type GraphMetric = keyof UiState['panels'][UiMode]['graph'];
+type AnalysisOverlayControl = keyof AnalysisControlsState;
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   mode,
   modePanels,
+  analysisControls,
   updatePanels,
+  updateControls,
   statusText,
   engineDot,
   engineMeta,
@@ -109,6 +125,41 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     <div className="flex items-center gap-1.5">
       {metricToggle('winrate', 'Win', 'bg-[var(--ui-success)]')}
       {metricToggle('score', 'Score', 'bg-[var(--ui-warning)]')}
+    </div>
+  );
+  const overlayToggle = (
+    control: AnalysisOverlayControl,
+    label: string,
+    icon: React.ReactNode,
+    disabled = false
+  ) => (
+    <button
+      type="button"
+      className={[
+        'panel-action-button',
+        analysisControls[control] ? 'active' : '',
+      ].join(' ')}
+      onClick={() => updateControls({ [control]: !analysisControls[control] })}
+      aria-pressed={analysisControls[control]}
+      disabled={disabled}
+      title={`Toggle ${label.toLowerCase()} overlay`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+  const overlayToggles = (
+    <div className="flex flex-wrap items-center gap-1.5" data-analysis-overlay-controls="true">
+      {overlayToggle('analysisShowChildren', 'Children', <FaSitemap size={11} aria-hidden="true" />)}
+      {overlayToggle('analysisShowEval', 'Dots', <FaCircle size={9} aria-hidden="true" />)}
+      {overlayToggle(
+        'analysisShowHints',
+        'Top moves',
+        <FaLayerGroup size={11} aria-hidden="true" />,
+        analysisControls.analysisShowPolicy
+      )}
+      {overlayToggle('analysisShowPolicy', 'Policy', <FaThLarge size={11} aria-hidden="true" />)}
+      {overlayToggle('analysisShowOwnership', 'Territory', <FaMap size={11} aria-hidden="true" />)}
     </div>
   );
   const analysisCacheControl = (
@@ -261,6 +312,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </button>
           {graphMetricToggles}
           {analysisCacheControl}
+          {overlayToggles}
           <div className="ml-auto flex items-center gap-2 text-xs">
             <button
               className="panel-icon-button"
@@ -311,6 +363,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               {graphMetricToggles}
               {analysisCacheControl}
             </div>
+            {overlayToggles}
             <div className="panel-compact-graph">
               <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
             </div>
