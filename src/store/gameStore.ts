@@ -1,6 +1,6 @@
 import { createWithEqualityFn as create } from 'zustand/traditional';
 import { DEFAULT_BOARD_SIZE, type FloatArray, type GameRules, type GameState, type BoardState, type Player, type AnalysisResult, type GameNode, type Move, type GameSettings, type CandidateMove, type RegionOfInterest, type BoardSize, type KataGoBackendPreference } from '../types';
-import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye } from '../utils/gameLogic';
+import { applyCapturesInPlace, boardsEqual, getLiberties, getLegalMoves, isEye, isValidMove } from '../utils/gameLogic';
 import { playStoneSound, playCaptureSound, playPassSound, playNewGameSound } from '../utils/sound';
 import { extractKaTrainUserNoteFromSgfComment, type ParsedSgf } from '../utils/sgf';
 import { getKataGoEngineClient, isKataGoCanceledError } from '../engine/katago/client';
@@ -1716,8 +1716,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     // New Move Logic
-    // Validate
-    if (state.board[y][x] !== null) return;
+    // Validate against the same simple-ko/no-suicide rules used by the engine presets exposed in the UI.
+    if (!isValidMove(state.board, x, y, state.currentPlayer, state.currentNode.parent?.gameState.board)) return;
 
 	    const tentativeBoard = state.board.map((row) => [...row]);
 	    tentativeBoard[y][x] = state.currentPlayer;

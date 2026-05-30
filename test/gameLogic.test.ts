@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { boardsEqual, getLiberties, checkCaptures } from '../src/utils/gameLogic';
 import { DEFAULT_BOARD_SIZE, type BoardState } from '../src/types';
+import { useGameStore } from '../src/store/gameStore';
 
 const createEmptyBoard = (): BoardState => {
   return Array(DEFAULT_BOARD_SIZE).fill(null).map(() => Array(DEFAULT_BOARD_SIZE).fill(null));
@@ -53,5 +54,18 @@ describe('Game Logic', () => {
     expect(captured.length).toBe(1);
     expect(captured[0]).toEqual({ x: 0, y: 0 });
     expect(newBoard[0][0]).toBeNull();
+  });
+
+  it('ignores invalid store play coordinates instead of throwing', () => {
+    const store = useGameStore.getState();
+    store.resetGame();
+
+    expect(() => store.playMove(-1, 3)).not.toThrow();
+    expect(() => store.playMove(3, -1)).not.toThrow();
+    expect(() => store.playMove(DEFAULT_BOARD_SIZE, 3)).not.toThrow();
+
+    const state = useGameStore.getState();
+    expect(state.moveHistory).toHaveLength(0);
+    expect(state.currentPlayer).toBe('black');
   });
 });
