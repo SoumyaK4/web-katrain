@@ -9,6 +9,10 @@ import { getBoardTheme } from '../utils/boardThemes';
 import { getHoshiPoints, normalizeBoardSize } from '../utils/boardSize';
 import { expandSgfPointList, sgfCoordToXy } from '../utils/sgf';
 import { getHorizontalSwipeNavigationAction } from '../utils/swipeNavigation';
+import {
+  getWheelNavigationAction,
+  WHEEL_NAVIGATION_THROTTLE_MS,
+} from '../utils/wheelNavigation';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const OWNERSHIP_COLORS = {
@@ -163,36 +167,52 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     }),
     shallow
   );
+  const wheelDeltaRef = useRef(0);
+  const wheelThrottleRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (wheelThrottleRef.current !== null) window.clearTimeout(wheelThrottleRef.current);
+    };
+  }, []);
+
   const handleWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
       // Allow browser zoom
       if (e.ctrlKey || e.metaKey) return;
+      if (wheelThrottleRef.current !== null) return;
 
       const { deltaX, deltaY } = e;
-
-      // Ignore zero-movement events
       if (deltaX === 0 && deltaY === 0) return;
 
-      // Determine dominant scroll axis
       const dominantDelta =
         Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
+      wheelDeltaRef.current += dominantDelta;
+      const action = getWheelNavigationAction({
+        deltaX: 0,
+        deltaY: wheelDeltaRef.current,
+        shiftKey: e.shiftKey,
+      });
+      if (!action) return;
 
-      const isScrollUp = dominantDelta < 0;
+      wheelDeltaRef.current = 0;
+      wheelThrottleRef.current = window.setTimeout(() => {
+        wheelThrottleRef.current = null;
+      }, WHEEL_NAVIGATION_THROTTLE_MS);
 
-      if (e.shiftKey) {
-        // Shift + scroll → mistake navigation
-        if (isScrollUp) {
+      switch (action) {
+        case 'prevMistake':
           navigatePrevMistake();
-        } else {
+          break;
+        case 'nextMistake':
           navigateNextMistake();
-        }
-      } else {
-        // Normal scroll → back / forward
-        if (isScrollUp) {
+          break;
+        case 'back':
           navigateBack();
-        } else {
+          break;
+        case 'forward':
           navigateForward();
-        }
+          break;
       }
     },
     [
