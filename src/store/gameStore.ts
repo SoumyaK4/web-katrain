@@ -1238,7 +1238,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         setTimeout(() => set({ notification: null }), 2000);
         return;
       }
-      const insertAfter = s.currentNode.children[0]!;
+      const insertAfter = getActiveChild(s.currentNode, s.activeBranchChildIds);
+      if (!insertAfter) {
+        set({ notification: { message: 'Insert mode: no continuation to insert into.', type: 'error' } });
+        setTimeout(() => set({ notification: null }), 2000);
+        return;
+      }
       set((state) => ({
         isInsertMode: true,
         insertAfterNodeId: insertAfter.id,
@@ -1348,7 +1353,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         to = child;
         numCopied++;
       }
-      from = from.children[0] ?? null;
+      from = getActiveChild(from, s.activeBranchChildIds);
     }
 
     set((state) => ({

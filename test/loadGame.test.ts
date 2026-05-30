@@ -231,6 +231,35 @@ describe('GameStore loadGame', () => {
         expect(useGameStore.getState().currentNode.move).toEqual({ x: 6, y: 6, player: 'white' });
     });
 
+    it('uses the active branch as the insert-mode continuation', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9];B[dd](;W[ee];B[ff])(;W[cc];B[bb])(;W[gg];B[hh]))'));
+        store.navigateEnd();
+        store.switchToBranchIndex(3);
+        store.navigateToMove(1);
+
+        const anchor = useGameStore.getState().currentNode;
+        const activeContinuation = anchor.children[2]!;
+        expect(activeContinuation.move).toEqual({ x: 6, y: 6, player: 'white' });
+
+        store.toggleInsertMode();
+        expect(useGameStore.getState().insertAfterNodeId).toBe(activeContinuation.id);
+
+        store.playMove(0, 0);
+        store.playMove(1, 1);
+        store.toggleInsertMode();
+
+        const insertedWhite = anchor.children.at(-1)!;
+        const insertedBlack = insertedWhite.children[0]!;
+        const copiedActiveContinuation = insertedBlack.children[0]!;
+        expect(insertedWhite.move).toEqual({ x: 0, y: 0, player: 'white' });
+        expect(insertedBlack.move).toEqual({ x: 1, y: 1, player: 'black' });
+        expect(copiedActiveContinuation.move).toEqual({ x: 6, y: 6, player: 'white' });
+        expect(copiedActiveContinuation.children[0]?.move).toEqual({ x: 7, y: 7, player: 'black' });
+    });
+
     it('copies and pastes branches at the current node', () => {
         const store = useGameStore.getState();
         store.resetGame();
