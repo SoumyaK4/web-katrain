@@ -1,6 +1,17 @@
 import React from 'react';
 import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera } from 'react-icons/fa';
 import { APP_BUILD_LABEL } from '../../utils/appInfo';
+import { useShortcutLabels } from '../../hooks/useShortcutLabels';
+
+const MENU_DRAWER_SHORTCUT_IDS = [
+  'new-game',
+  'save-sgf',
+  'open-sgf',
+  'copy-sgf',
+  'paste-sgf',
+  'settings-modal',
+  'keyboard-help',
+] as const;
 
 interface MenuDrawerProps {
   open: boolean;
@@ -35,6 +46,8 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   recentItems = [],
   onOpenRecent,
 }) => {
+  const shortcutLabels = useShortcutLabels(MENU_DRAWER_SHORTCUT_IDS);
+
   if (!open) return null;
 
   return (
@@ -75,12 +88,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onNewGame();
                 onClose();
               }}
-              aria-label="New game, keyboard shortcut Control plus N"
+              aria-label={`New game, keyboard shortcut ${shortcutLabels['new-game']}`}
             >
               <span className="flex items-center gap-2">
                 <FaPlay aria-hidden="true" /> New Game
               </span>
-              <kbd className="text-xs ui-text-faint">Ctrl+N</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['new-game']}</kbd>
             </button>
             <button
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
@@ -88,12 +101,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onSave();
                 onClose();
               }}
-              aria-label={`${saveLabel}, keyboard shortcut Control plus S`}
+              aria-label={`${saveLabel}, keyboard shortcut ${shortcutLabels['save-sgf']}`}
             >
               <span className="flex items-center gap-2">
                 <FaSave aria-hidden="true" /> {saveLabel}
               </span>
-              <kbd className="text-xs ui-text-faint">Ctrl+S</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['save-sgf']}</kbd>
             </button>
             <button
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
@@ -101,12 +114,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onLoad();
                 onClose();
               }}
-              aria-label="Load SGF file, board photo, or model weights, keyboard shortcut Control plus O"
+              aria-label={`Load SGF file, board photo, or model weights, keyboard shortcut ${shortcutLabels['open-sgf']}`}
             >
               <span className="flex items-center gap-2">
                 <FaFolderOpen aria-hidden="true" /> Load SGF / Photo / Model
               </span>
-              <kbd className="text-xs ui-text-faint">Ctrl+O</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['open-sgf']}</kbd>
             </button>
             <button
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
@@ -129,12 +142,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onCopy();
                 onClose();
               }}
-              aria-label="Copy SGF, keyboard shortcut Control plus C"
+              aria-label={`Copy SGF, keyboard shortcut ${shortcutLabels['copy-sgf']}`}
             >
               <span className="flex items-center gap-2">
                 <FaCopy aria-hidden="true" /> Copy SGF
               </span>
-              <kbd className="text-xs ui-text-faint">Ctrl+C</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['copy-sgf']}</kbd>
             </button>
             <button
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
@@ -142,12 +155,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onPaste();
                 onClose();
               }}
-              aria-label="Paste SGF or OGS URL, keyboard shortcut Control plus V"
+              aria-label={`Paste SGF or OGS URL, keyboard shortcut ${shortcutLabels['paste-sgf']}`}
             >
               <span className="flex items-center gap-2">
                 <FaPaste aria-hidden="true" /> Paste SGF / OGS
               </span>
-              <kbd className="text-xs ui-text-faint">Ctrl+V</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['paste-sgf']}</kbd>
             </button>
           </div>
           <div>
@@ -158,12 +171,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onSettings();
                 onClose();
               }}
-              aria-label="Open settings, keyboard shortcut F8"
+              aria-label={`Open settings, keyboard shortcut ${shortcutLabels['settings-modal']}`}
             >
               <span className="flex items-center gap-2">
                 <FaCog aria-hidden="true" /> Settings
               </span>
-              <kbd className="text-xs ui-text-faint">F8</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['settings-modal']}</kbd>
             </button>
             <button
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
@@ -171,12 +184,12 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 onKeyboardHelp();
                 onClose();
               }}
-              aria-label="Open keyboard shortcuts"
+              aria-label={`Open keyboard shortcuts, keyboard shortcut ${shortcutLabels['keyboard-help']}`}
             >
               <span className="flex items-center gap-2">
                 <FaKeyboard aria-hidden="true" /> Keyboard Shortcuts
               </span>
-              <kbd className="text-xs ui-text-faint">?</kbd>
+              <kbd className="text-xs ui-text-faint">{shortcutLabels['keyboard-help']}</kbd>
             </button>
           </div>
         </nav>
