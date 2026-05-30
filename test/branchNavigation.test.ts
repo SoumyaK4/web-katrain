@@ -124,6 +124,19 @@ describe('branch navigation', () => {
     expect(findCurrentLineMoveTarget(a1, 2)?.id).toBe('a1');
   });
 
+  it('uses active branch preferences for current-line targets', () => {
+    const root = makeNode('root', null);
+    const a = makeNode('a', root, { x: 0, y: 0, player: 'black' });
+    makeNode('a1', a, { x: 0, y: 0, player: 'white' });
+    const b = makeNode('b', root, { x: 0, y: 0, player: 'black' });
+    const b1 = makeNode('b1', b, { x: 0, y: 0, player: 'white' });
+
+    const active = { [root.id]: b.id, [b.id]: b1.id };
+    expect(getCurrentLineMoveCount(root, active)).toBe(2);
+    expect(findCurrentLineMoveTarget(root, 1, active)?.id).toBe('b');
+    expect(findCurrentLineMoveTarget(root, 2, active)?.id).toBe('b1');
+  });
+
   it('returns null when the current path has no sibling branch', () => {
     const root = makeNode('root', null);
     const a = makeNode('a', root, { x: 0, y: 0, player: 'black' });

@@ -18,7 +18,14 @@ import {
   isAnalysisQueueCanceledError,
   isAnalysisQueueStaleError,
 } from '../utils/analysisQueue';
-import { findBranchTargetByIndex, findCurrentLineMoveTarget, findSiblingBranchTarget } from '../utils/branchNavigation';
+import {
+  findBranchTargetByIndex,
+  findCurrentLineMoveTarget,
+  findSiblingBranchTarget,
+  getActiveChild,
+  rememberActiveBranchPath,
+  type ActiveBranchMap,
+} from '../utils/branchNavigation';
 
 type BranchClipboardNode = {
   move: Move | null;
@@ -35,6 +42,7 @@ interface GameStore extends GameState {
   rootNode: GameNode;
   currentNode: GameNode;
   treeVersion: number;
+  activeBranchChildIds: ActiveBranchMap;
 
   // Settings & Modes
   boardRotation: 0 | 1 | 2 | 3; // 0,90,180,270 degrees clockwise (KaTrain rotate)
@@ -949,6 +957,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   rootNode: initialRoot,
   currentNode: initialRoot,
   treeVersion: 0,
+  activeBranchChildIds: {},
 
   boardRotation: 0,
   regionOfInterest: null,
@@ -2721,6 +2730,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       capturedBlack: newGameState.capturedBlack,
       capturedWhite: newGameState.capturedWhite,
       analysisData: null, // Clear old analysis
+      activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, newNode),
       treeVersion: state.treeVersion + 1,
     });
 
@@ -3495,9 +3505,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   }),
 
   navigateForward: () => set((state) => {
-      if (state.currentNode.children.length === 0) return state;
-      // Default to first child (main branch usually)
-      const nextNode = state.currentNode.children[0];
+      const nextNode = getActiveChild(state.currentNode, state.activeBranchChildIds);
+      if (!nextNode) return {};
       return {
           currentNode: nextNode,
           board: nextNode.gameState.board,
@@ -3506,6 +3515,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: nextNode.gameState.capturedBlack,
           capturedWhite: nextNode.gameState.capturedWhite,
           analysisData: nextNode.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, nextNode),
       };
   }),
 
@@ -3527,8 +3537,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   navigateEnd: () => set((state) => {
       let node = state.currentNode;
+      let activeBranchChildIds = state.activeBranchChildIds;
       while (node.children.length > 0) {
-          node = node.children[0]; // Follow main branch
+          const child = getActiveChild(node, activeBranchChildIds);
+          if (!child) break;
+          activeBranchChildIds = rememberActiveBranchPath(activeBranchChildIds, child);
+          node = child;
       }
       return {
           currentNode: node,
@@ -3538,6 +3552,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: node.gameState.capturedBlack,
           capturedWhite: node.gameState.capturedWhite,
           analysisData: node.analysis || null,
+          activeBranchChildIds,
       };
   }),
 
@@ -3553,6 +3568,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: next.gameState.capturedBlack,
           capturedWhite: next.gameState.capturedWhite,
           analysisData: next.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, next),
       };
   }),
 
@@ -3568,11 +3584,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: next.gameState.capturedBlack,
           capturedWhite: next.gameState.capturedWhite,
           analysisData: next.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, next),
       };
   }),
 
   navigateToMove: (moveNumber) => set((state) => {
-      const target = findCurrentLineMoveTarget(state.currentNode, moveNumber);
+      const target = findCurrentLineMoveTarget(state.currentNode, moveNumber, state.activeBranchChildIds);
       if (!target || target.id === state.currentNode.id) return {};
 
       return {
@@ -3583,6 +3600,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: target.gameState.capturedBlack,
           capturedWhite: target.gameState.capturedWhite,
           analysisData: target.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, target),
       };
   }),
 
@@ -3770,6 +3788,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: pasted.gameState.capturedBlack,
           capturedWhite: pasted.gameState.capturedWhite,
           analysisData: pasted.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, pasted),
           treeVersion: state.treeVersion + 1,
           notification: {
               message: `Pasted branch (${nodes} node${nodes === 1 ? '' : 's'}).`,
@@ -3778,7 +3797,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
   }),
 
-  jumpToNode: (node: GameNode) => set(() => {
+  jumpToNode: (node: GameNode) => set((state) => {
       // Just set current node and sync state
       return {
           currentNode: node,
@@ -3788,6 +3807,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           capturedBlack: node.gameState.capturedBlack,
           capturedWhite: node.gameState.capturedWhite,
           analysisData: node.analysis || null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, node),
       };
   }),
 
@@ -3867,6 +3887,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       rootNode: newRoot,
       currentNode: newRoot,
+      activeBranchChildIds: {},
       treeVersion: state.treeVersion + 1,
     });
   },
@@ -3918,6 +3939,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Reset Tree
       rootNode: newRoot,
       currentNode: newRoot,
+      activeBranchChildIds: {},
       treeVersion: state.treeVersion + 1,
     });
   },
@@ -4188,10 +4210,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       while (current.children.length > 0) current = current.children[0]!;
     }
 
-	    set((state) => ({
-	      rootNode: newRoot,
-	      currentNode: current,
-	      board: current.gameState.board,
+    set((state) => ({
+      rootNode: newRoot,
+      currentNode: current,
+      activeBranchChildIds: rememberActiveBranchPath({}, current),
+      board: current.gameState.board,
       currentPlayer: current.gameState.currentPlayer,
       moveHistory: current.gameState.moveHistory,
       capturedBlack: current.gameState.capturedBlack,
@@ -4256,6 +4279,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           moveHistory: newGameState.moveHistory,
           // board doesn't change
           analysisData: null,
+          activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, newNode),
       });
 
       const after = get();

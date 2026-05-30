@@ -1,5 +1,7 @@
 import type { GameNode } from '../types';
 
+export type ActiveBranchMap = Record<string, string>;
+
 type BranchRoot = {
   forkNode: GameNode;
   branchRootNode: GameNode;
@@ -29,6 +31,26 @@ export function findBranchRoot(currentNode: GameNode): BranchRoot | null {
   }
 
   return null;
+}
+
+export function rememberActiveBranchPath(activeBranches: ActiveBranchMap, node: GameNode): ActiveBranchMap {
+  const next = { ...activeBranches };
+  let cursor: GameNode | null = node;
+  while (cursor?.parent) {
+    next[cursor.parent.id] = cursor.id;
+    cursor = cursor.parent;
+  }
+  return next;
+}
+
+export function getActiveChild(node: GameNode, activeBranches: ActiveBranchMap = {}): GameNode | null {
+  if (node.children.length === 0) return null;
+  const preferredId = activeBranches[node.id];
+  if (preferredId) {
+    const preferred = node.children.find((child) => child.id === preferredId);
+    if (preferred) return preferred;
+  }
+  return node.children[0] ?? null;
 }
 
 export function getBranchInfo(currentNode: GameNode): BranchInfo {
@@ -102,7 +124,7 @@ export function findBranchTargetByIndex(currentNode: GameNode, branchIndex: numb
   return target;
 }
 
-export function getCurrentLineNodes(currentNode: GameNode): GameNode[] {
+export function getCurrentLineNodes(currentNode: GameNode, activeBranches: ActiveBranchMap = {}): GameNode[] {
   const path: GameNode[] = [];
   let node: GameNode | null = currentNode;
   while (node) {
@@ -111,26 +133,30 @@ export function getCurrentLineNodes(currentNode: GameNode): GameNode[] {
   }
   path.reverse();
 
-  node = currentNode.children[0] ?? null;
+  node = getActiveChild(currentNode, activeBranches);
   while (node) {
     path.push(node);
-    node = node.children[0] ?? null;
+    node = getActiveChild(node, activeBranches);
   }
 
   return path;
 }
 
-export function getCurrentLineMoveCount(currentNode: GameNode): number {
-  return getCurrentLineNodes(currentNode).filter((node) => node.move).length;
+export function getCurrentLineMoveCount(currentNode: GameNode, activeBranches: ActiveBranchMap = {}): number {
+  return getCurrentLineNodes(currentNode, activeBranches).filter((node) => node.move).length;
 }
 
-export function findCurrentLineMoveTarget(currentNode: GameNode, moveNumber: number): GameNode | null {
+export function findCurrentLineMoveTarget(
+  currentNode: GameNode,
+  moveNumber: number,
+  activeBranches: ActiveBranchMap = {}
+): GameNode | null {
   if (!Number.isFinite(moveNumber)) return null;
   const targetMoveNumber = Math.max(0, Math.floor(moveNumber));
   let seenMoves = 0;
   let lastNode: GameNode | null = null;
 
-  for (const node of getCurrentLineNodes(currentNode)) {
+  for (const node of getCurrentLineNodes(currentNode, activeBranches)) {
     lastNode = node;
     if (node.move) seenMoves++;
     if (seenMoves === targetMoveNumber) return node;

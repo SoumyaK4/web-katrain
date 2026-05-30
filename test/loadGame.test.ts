@@ -168,7 +168,29 @@ describe('GameStore loadGame', () => {
         expect(useGameStore.getState().currentNode.move).toBe(null);
 
         store.navigateToMove(99);
-        expect(useGameStore.getState().currentNode.move).toEqual({ x: 5, y: 5, player: 'black' });
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 7, y: 7, player: 'black' });
+    });
+
+    it('remembers the active branch for forward and end navigation', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9];B[dd](;W[ee];B[ff])(;W[cc];B[bb])(;W[gg];B[hh]))'));
+        store.navigateEnd();
+        store.switchToBranchIndex(3);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 7, y: 7, player: 'black' });
+
+        store.navigateStart();
+        store.navigateEnd();
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 7, y: 7, player: 'black' });
+
+        store.navigateToMove(2);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 6, y: 6, player: 'white' });
+
+        store.navigateStart();
+        store.navigateForward();
+        store.navigateForward();
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 6, y: 6, player: 'white' });
     });
 
     it('copies and pastes branches at the current node', () => {

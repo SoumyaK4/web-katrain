@@ -129,6 +129,7 @@ export const Layout: React.FC = () => {
     analysisData,
     board,
     currentNode,
+    activeBranchChildIds,
     treeVersion,
     runAnalysis,
     settings,
@@ -199,6 +200,7 @@ export const Layout: React.FC = () => {
       analysisData: state.analysisData,
       board: state.board,
       currentNode: state.currentNode,
+      activeBranchChildIds: state.activeBranchChildIds,
       treeVersion: state.treeVersion,
       runAnalysis: state.runAnalysis,
       settings: state.settings,
@@ -989,8 +991,8 @@ export const Layout: React.FC = () => {
   const scoreLead = analysisData?.rootScoreLead ?? currentNode.analysis?.rootScoreLead;
   const totalMovesInCurrentLine = useMemo(() => {
     void treeVersion;
-    return getCurrentLineMoveCount(currentNode);
-  }, [currentNode, treeVersion]);
+    return getCurrentLineMoveCount(currentNode, activeBranchChildIds);
+  }, [activeBranchChildIds, currentNode, treeVersion]);
   const passPolicyColor = useMemo(() => {
     if (!isAnalysisMode || !settings.analysisShowPolicy) return null;
     const policy = analysisData?.policy;
