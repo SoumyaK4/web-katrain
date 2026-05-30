@@ -23,6 +23,21 @@ describe('library ZIP helpers', () => {
     await expect(zip.file('Pro Games/2026/Nested Game.sgf')?.async('string')).resolves.toBe(sgfB);
   });
 
+  it('exports a selected folder with descendants as a ZIP subset', async () => {
+    const folder = createLibraryFolder('Pro Games', null);
+    const nested = createLibraryFolder('2026', folder.id);
+    const rootGame = createLibraryItem('Root Game', sgfA, null);
+    const nestedGame = createLibraryItem('Nested Game', sgfB, nested.id);
+    const items: LibraryItem[] = [folder, nested, rootGame, nestedGame];
+
+    const { blob, fileCount } = await createLibraryZipBlob(items, new Set([folder.id]));
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+
+    expect(fileCount).toBe(1);
+    expect(zip.file('Root Game.sgf')).toBeFalsy();
+    expect(zip.file('Pro Games/2026/Nested Game.sgf')).toBeTruthy();
+  });
+
   it('imports SGFs from ZIP paths into library folders', async () => {
     const zip = new JSZip();
     zip.file('Study/Openings/Game A.sgf', sgfA);

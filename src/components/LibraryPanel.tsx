@@ -41,6 +41,14 @@ import { panelCardBase, panelCardClosed, panelCardOpen } from './layout/ui-utils
 
 const isFolder = (item: LibraryItem): item is LibraryFolder => item.type === 'folder';
 const isFile = (item: LibraryItem): item is LibraryFile => item.type === 'file';
+const safeDownloadName = (name: string, fallback: string): string =>
+  Array.from(name)
+    .filter((char) => char.charCodeAt(0) >= 32)
+    .join('')
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+$/, '') || fallback;
 const libraryImportAccept = [
   '.sgf',
   '.zip',
@@ -639,6 +647,20 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     }
   };
 
+  const handleExportFolderZip = async (item: LibraryFolder) => {
+    try {
+      const { blob, fileCount } = await createLibraryZipBlob(items, new Set([item.id]));
+      if (fileCount === 0) {
+        onToast(`Folder "${item.name}" has no SGF files to export.`, 'info');
+        return;
+      }
+      downloadBlob(blob, `${safeDownloadName(item.name, 'folder')}.zip`);
+      onToast(`Exported "${item.name}" with ${fileCount} SGF file${fileCount === 1 ? '' : 's'}.`, 'success');
+    } catch {
+      onToast('Failed to export folder ZIP.', 'error');
+    }
+  };
+
   const handleRestoreBackup = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -1051,6 +1073,18 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               aria-label="Duplicate"
             >
               <FaCopy size={12} />
+            </button>
+            <button
+              type="button"
+              className="library-tree-node-action"
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleExportFolderZip(item);
+              }}
+              title="Export folder as ZIP"
+              aria-label="Export folder as ZIP"
+            >
+              <FaDownload size={12} />
             </button>
             <button
               type="button"
