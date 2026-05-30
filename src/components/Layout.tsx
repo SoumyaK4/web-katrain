@@ -1286,6 +1286,7 @@ export const Layout: React.FC = () => {
             onImportSgf={handlePhotoBoardImport}
             defaultBoardSize={boardSize}
             defaultKomi={komi}
+            currentBoard={board}
             initialPhotoFile={photoBoardInitialFile}
           />
         )}

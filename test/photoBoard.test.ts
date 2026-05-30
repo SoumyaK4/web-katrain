@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildPhotoBoardSetupSgf, isPhotoBoardImageFile, type PhotoBoardStone } from '../src/utils/photoBoard';
+import {
+  buildPhotoBoardSetupSgf,
+  isPhotoBoardImageFile,
+  photoBoardStonesFromBoard,
+  type PhotoBoardStone,
+} from '../src/utils/photoBoard';
+import { createEmptyBoard } from '../src/utils/boardSize';
 import { parseSgf } from '../src/utils/sgf';
 
 const emptyStones = (boardSize: number): PhotoBoardStone[] =>
@@ -48,6 +54,24 @@ describe('photo board SGF import', () => {
     expect(() => buildPhotoBoardSetupSgf({ boardSize: 13, stones: emptyStones(9) })).toThrow(
       'Expected 169 intersections'
     );
+  });
+
+  it('copies the current board into photo board tracing order', () => {
+    const board = createEmptyBoard(9);
+    board[0]![0] = 'black';
+    board[0]![8] = 'white';
+    board[8]![8] = 'black';
+
+    const stones = photoBoardStonesFromBoard(board, 9);
+    expect(stones).toHaveLength(81);
+    expect(stones[0]).toBe('black');
+    expect(stones[8]).toBe('white');
+    expect(stones[80]).toBe('black');
+    expect(stones[40]).toBeNull();
+  });
+
+  it('rejects current boards with the wrong size', () => {
+    expect(() => photoBoardStonesFromBoard(createEmptyBoard(9), 13)).toThrow('Expected a 13x13 board.');
   });
 
   it('recognizes board photo file types for drop import', () => {

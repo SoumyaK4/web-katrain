@@ -1,14 +1,15 @@
 import React from 'react';
-import { FaCamera, FaEraser, FaFolderOpen, FaTimes, FaTrash } from 'react-icons/fa';
-import type { BoardSize, Player } from '../types';
+import { FaCamera, FaEraser, FaFolderOpen, FaLayerGroup, FaTimes, FaTrash } from 'react-icons/fa';
+import type { BoardSize, BoardState, Player } from '../types';
 import { BOARD_SIZES } from '../utils/boardSize';
-import { buildPhotoBoardSetupSgf, type PhotoBoardStone } from '../utils/photoBoard';
+import { buildPhotoBoardSetupSgf, photoBoardStonesFromBoard, type PhotoBoardStone } from '../utils/photoBoard';
 
 interface PhotoBoardModalProps {
   onClose: () => void;
   onImportSgf: (sgf: string) => void | Promise<void>;
   defaultBoardSize: BoardSize;
   defaultKomi: number;
+  currentBoard?: BoardState;
   initialPhotoFile?: File | null;
 }
 
@@ -36,6 +37,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   onImportSgf,
   defaultBoardSize,
   defaultKomi,
+  currentBoard,
   initialPhotoFile = null,
 }) => {
   const galleryInputRef = React.useRef<HTMLInputElement>(null);
@@ -51,6 +53,26 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [photoUnderlay, setPhotoUnderlay] = React.useState(true);
   const [photoOpacity, setPhotoOpacity] = React.useState(0.45);
   const [photoFit, setPhotoFit] = React.useState<PhotoFit>('cover');
+
+  const currentBoardSize = React.useMemo<BoardSize | null>(() => {
+    const size = currentBoard?.length;
+    return BOARD_SIZES.includes(size as BoardSize) ? (size as BoardSize) : null;
+  }, [currentBoard]);
+
+  const currentBoardStones = React.useMemo<PhotoBoardStone[] | null>(() => {
+    if (!currentBoard || !currentBoardSize) return null;
+    try {
+      return photoBoardStonesFromBoard(currentBoard, currentBoardSize);
+    } catch {
+      return null;
+    }
+  }, [currentBoard, currentBoardSize]);
+
+  const currentBoardStoneCount = React.useMemo(
+    () => currentBoardStones?.reduce((sum, stone) => sum + (stone ? 1 : 0), 0) ?? 0,
+    [currentBoardStones]
+  );
+  const canUseCurrentBoard = currentBoardStoneCount > 0;
 
   React.useEffect(() => {
     return () => {
@@ -98,6 +120,12 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   };
 
   const clearBoard = () => setStones(makeEmptyStones(boardSize));
+
+  const useCurrentBoard = () => {
+    if (!currentBoardSize || !currentBoardStones || !canUseCurrentBoard) return;
+    setBoardSize(currentBoardSize);
+    setStones(currentBoardStones);
+  };
 
   const importBoard = () => {
     const sgf = buildPhotoBoardSetupSgf({
@@ -246,6 +274,29 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               >
                 <span className="inline-flex items-center gap-2"><FaEraser /> Erase</span>
               </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="min-h-10 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canUseCurrentBoard}
+                onClick={useCurrentBoard}
+                title={
+                  canUseCurrentBoard
+                    ? `Copy ${currentBoardStoneCount} current stone${currentBoardStoneCount === 1 ? '' : 's'} into the trace grid`
+                    : 'No current stones to copy'
+                }
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FaLayerGroup aria-hidden="true" /> Use current
+                </span>
+              </button>
+              {currentBoardStoneCount > 0 && (
+                <span className="text-xs font-medium text-[var(--ui-text-muted)]">
+                  {currentBoardStoneCount} current stone{currentBoardStoneCount === 1 ? '' : 's'}
+                </span>
+              )}
             </div>
 
             <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">

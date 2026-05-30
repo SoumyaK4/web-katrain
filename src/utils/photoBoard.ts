@@ -1,4 +1,4 @@
-import type { BoardSize, Player } from '../types';
+import type { BoardSize, BoardState, Player } from '../types';
 import { coordinateToSgf } from './sgf';
 
 export type PhotoBoardStone = Player | null;
@@ -25,6 +25,20 @@ const escapeSgfValue = (value: string): string =>
   value.replace(/\\/g, '\\\\').replace(/]/g, '\\]');
 
 const playerToSgf = (player: Player): 'B' | 'W' => (player === 'black' ? 'B' : 'W');
+
+export function photoBoardStonesFromBoard(board: BoardState, boardSize: BoardSize): PhotoBoardStone[] {
+  if (board.length !== boardSize || board.some((row) => row.length !== boardSize)) {
+    throw new Error(`Expected a ${boardSize}x${boardSize} board.`);
+  }
+
+  const stones: PhotoBoardStone[] = [];
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      stones.push(board[y]?.[x] ?? null);
+    }
+  }
+  return stones;
+}
 
 export function buildPhotoBoardSetupSgf({
   boardSize,
