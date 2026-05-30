@@ -1176,7 +1176,6 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(result.sgf);
       if (!(await prepareForGameReplacement())) return false;
       loadGame(parsed);
-      navigateEnd();
       markCurrentGameCleanAndClearAutoSave();
       toast(result.source === 'ogs' ? `Downloaded OGS game ${result.gameId ?? ''}.` : 'Loaded SGF.', 'success');
       return true;
