@@ -248,7 +248,7 @@ interface LibraryPanelProps {
   onLibraryUpdated?: () => void;
   onCurrentSaved?: () => void;
   loadedFileId?: string | null;
-  onLoadedFileChange?: (id: string | null) => void;
+  onLoadedFileChange?: (id: string | null, name?: string | null) => void;
 }
 
 export const LibraryPanel: React.FC<LibraryPanelProps> = ({
@@ -637,7 +637,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       onSubmit: (name, targetFolderId) => {
         const newItem = createLibraryItem(name, sgf, targetFolderId ?? null);
         setItems((prev) => [newItem, ...prev]);
-        onLoadedFileChange?.(newItem.id);
+        onLoadedFileChange?.(newItem.id, newItem.name);
         onCurrentSaved?.();
         onToast(`Saved "${newItem.name}" to Library.`, 'success');
       },
@@ -653,6 +653,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       confirmLabel: 'Rename',
       onSubmit: (next) => {
         setItems((prev) => updateLibraryItem(prev, item.id, { name: next }));
+        if (item.id === loadedFileId) onLoadedFileChange?.(item.id, next);
       },
     });
   };
@@ -913,7 +914,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     try {
       const loaded = await onLoadSgf(item.sgf);
       if (!loaded) return;
-      onLoadedFileChange?.(item.id);
+      onLoadedFileChange?.(item.id, item.name);
       setCurrentFolderId(item.parentId ?? null);
       onToast(`Loaded "${item.name}".`, 'success');
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {

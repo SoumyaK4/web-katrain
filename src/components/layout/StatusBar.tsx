@@ -13,6 +13,7 @@ interface StatusBarProps {
   capturedWhite: number;
   endResult: string | null;
   gamepadName?: string | null;
+  loadedFileName?: string | null;
   unsavedChanges?: boolean;
 }
 
@@ -28,6 +29,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   capturedWhite,
   endResult,
   gamepadName,
+  loadedFileName = null,
   unsavedChanges = false,
 }) => (
   <div className="status-bar flex flex-wrap gap-2 px-3 py-2 items-center text-xs">
@@ -77,6 +79,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       {endResult && (
         <div className="px-2 py-1 rounded bg-[var(--ui-success-soft)] text-[var(--ui-success)] font-bold border border-[var(--ui-success)] shadow-sm">
           {endResult}
+        </div>
+      )}
+
+      {loadedFileName && (
+        <div
+          className="px-2 py-1 rounded bg-[var(--ui-surface)] text-[var(--ui-text-muted)] border border-[var(--ui-border)] shadow-sm hidden sm:flex items-center gap-1.5 max-w-[240px]"
+          title={`Loaded from Library: ${loadedFileName}`}
+        >
+          <span className="text-[var(--ui-text-faint)]">Library:</span>
+          <span className="truncate text-[var(--ui-text)] font-medium">{loadedFileName}</span>
         </div>
       )}
 

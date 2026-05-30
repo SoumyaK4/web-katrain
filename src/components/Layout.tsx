@@ -295,6 +295,7 @@ export const Layout: React.FC = () => {
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [recentLibraryItems, setRecentLibraryItems] = useState<LibraryFile[]>([]);
   const [loadedLibraryFileId, setLoadedLibraryFileId] = useState<string | null>(null);
+  const [loadedLibraryFileName, setLoadedLibraryFileName] = useState<string | null>(null);
   const [isFileDragActive, setIsFileDragActive] = useState(false);
   const [scoringMode, setScoringMode] = useState(false);
   const [manualDeadStones, setManualDeadStones] = useState<Set<string>>(() => new Set());
@@ -512,6 +513,11 @@ export const Layout: React.FC = () => {
     clearAutoSavedGame();
   }, [markCurrentGameClean]);
 
+  const setLoadedLibraryFile = useCallback((id: string | null, name?: string | null) => {
+    setLoadedLibraryFileId(id);
+    setLoadedLibraryFileName(id ? (name?.trim() || 'Library game') : null);
+  }, []);
+
   useEffect(() => {
     if (cleanGameSgfRef.current === null) markCurrentGameClean();
   }, [markCurrentGameClean]);
@@ -569,7 +575,7 @@ export const Layout: React.FC = () => {
     try {
       const parsed = parseSgf(snapshot.sgf);
       loadGame(parsed);
-      setLoadedLibraryFileId(null);
+      setLoadedLibraryFile(null);
       navigateEnd();
       setAutoSaveRecovery(null);
       toast('Restored auto-saved game.', 'success');
@@ -578,7 +584,7 @@ export const Layout: React.FC = () => {
       setAutoSaveRecovery(null);
       toast('Failed to restore auto-saved game.', 'error');
     }
-  }, [autoSaveRecovery, loadGame, navigateEnd, toast]);
+  }, [autoSaveRecovery, loadGame, navigateEnd, setLoadedLibraryFile, toast]);
 
   const handleSaveCurrentSgf = useCallback(() => {
     const saved = downloadSgfFromTree(useGameStore.getState().rootNode, sgfExportOptions);
@@ -1109,7 +1115,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(text);
       if (!(await prepareForGameReplacement())) return;
       loadGame(parsed);
-      setLoadedLibraryFileId(null);
+      setLoadedLibraryFile(null);
       markCurrentGameCleanAndClearAutoSave();
       toast('Loaded SGF.', 'success');
     } catch {
@@ -1179,7 +1185,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(result.sgf);
       if (!(await prepareForGameReplacement())) return false;
       loadGame(parsed);
-      setLoadedLibraryFileId(null);
+      setLoadedLibraryFile(null);
       markCurrentGameCleanAndClearAutoSave();
       toast(result.source === 'ogs' ? `Downloaded OGS game ${result.gameId ?? ''}.` : 'Loaded SGF.', 'success');
       return true;
@@ -1240,7 +1246,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(sgfText);
       if (!(await prepareForGameReplacement())) return;
       loadGame(parsed);
-      setLoadedLibraryFileId(null);
+      setLoadedLibraryFile(null);
       navigateStart();
       markCurrentGameCleanAndClearAutoSave();
       closePhotoBoard();
@@ -1497,7 +1503,7 @@ export const Layout: React.FC = () => {
             onClose={() => setIsNewGameOpen(false)}
             onStart={({ komi: nextKomi, rules, info, aiConfig, timerConfig, boardSize: nextBoardSize, handicap: nextHandicap }) => {
             startNewGame({ komi: nextKomi, rules, boardSize: nextBoardSize, handicap: nextHandicap });
-            setLoadedLibraryFileId(null);
+            setLoadedLibraryFile(null);
             setRootProperty('PB', info.blackName);
             setRootProperty('PW', info.whiteName);
             setRootProperty('BR', info.blackRank);
@@ -1677,7 +1683,7 @@ export const Layout: React.FC = () => {
           onLibraryUpdated={handleLibraryUpdated}
           onCurrentSaved={markCurrentGameCleanAndClearAutoSave}
           loadedFileId={loadedLibraryFileId}
-          onLoadedFileChange={setLoadedLibraryFileId}
+          onLoadedFileChange={setLoadedLibraryFile}
           isAnalysisRunning={isGameAnalysisRunning}
           onStopAnalysis={stopGameAnalysis}
           analysisContent={
@@ -2023,6 +2029,7 @@ export const Layout: React.FC = () => {
         capturedWhite={capturedWhite}
         endResult={endResult}
         gamepadName={gamepadStatus.connected ? gamepadStatus.name : null}
+        loadedFileName={loadedLibraryFileName}
         unsavedChanges={currentGameDirty}
       />
     </div>
