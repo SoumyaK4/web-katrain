@@ -175,7 +175,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       const node = stack.pop()!;
       if (node.note && node.note.trim()) {
         const move = node.move;
-        const label = move ? formatMoveLabel(move.x, move.y) : 'Root';
+        const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : 'Root';
         const snippet = node.note.trim().split('\n')[0]!.slice(0, 60);
         out.push({ node, label, snippet });
       }
@@ -456,7 +456,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         {pathNodes.map((node, idx) => {
                           const move = node.move;
                           const isCurrent = node.id === currentNode.id;
-                          const label = move ? formatMoveLabel(move.x, move.y) : 'Root';
+                          const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : 'Root';
                           const player = move ? playerToShort(move.player) : '—';
                           const hasNote = !!node.note?.trim();
                           return (
@@ -557,7 +557,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <div className="truncate text-xs text-[var(--ui-text)]">
                       <span className="font-mono">{playerToShort(currentPlayer)}</span> ·{' '}
                       <span className="font-mono">{moveHistory.length}</span> ·{' '}
-                      <span className="font-mono">{currentNode.move ? formatMoveLabel(currentNode.move.x, currentNode.move.y) : 'Root'}</span>
+                      <span className="font-mono">
+                        {currentNode.move
+                          ? formatMoveLabel(currentNode.move.x, currentNode.move.y, currentNode.gameState.board.length)
+                          : 'Root'}
+                      </span>
                     </div>
                     <div className="ml-auto flex items-center gap-1">
                       <button

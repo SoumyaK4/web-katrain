@@ -75,6 +75,24 @@ describe('GameStore loadGame', () => {
         expect(endState.currentNode.move).toEqual({ x: 3, y: 3, player: 'white' });
     });
 
+    it('opens problem collections at the first problem without leaving joseki roots', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9](;B[aa])(;B[bb])(;B[cc])(;B[dd]))'));
+
+        const problemState = useGameStore.getState();
+        expect(problemState.currentNode.move).toEqual({ x: 0, y: 0, player: 'black' });
+        expect(problemState.moveHistory).toHaveLength(1);
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9]LB[aa:A](;B[aa])(;B[bb])(;B[cc])(;B[dd]))'));
+
+        const josekiState = useGameStore.getState();
+        expect(josekiState.currentNode.move).toBe(null);
+        expect(josekiState.moveHistory).toHaveLength(0);
+        expect(josekiState.rootNode.properties?.LB).toEqual(['aa:A']);
+    });
+
     it('preserves explicit zero komi from SGF data', () => {
         const store = useGameStore.getState();
         store.resetGame();

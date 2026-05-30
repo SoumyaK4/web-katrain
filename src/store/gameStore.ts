@@ -3601,9 +3601,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    const rootPropsForNavigation = newRoot.properties ?? {};
+    const hasMarkersAtRoot = !!(
+      rootPropsForNavigation.MA?.length ||
+      rootPropsForNavigation.TR?.length ||
+      rootPropsForNavigation.CR?.length ||
+      rootPropsForNavigation.SQ?.length ||
+      rootPropsForNavigation.LB?.length
+    );
+    const isProblemCollection = newRoot.children.length > 3 && !newRoot.move && !hasMarkersAtRoot;
     const rewind = get().settings.loadSgfRewind;
     let current = newRoot;
-    if (!rewind) {
+    if (isProblemCollection) {
+      current = newRoot.children[0]!;
+    } else if (!rewind) {
       while (current.children.length > 0) current = current.children[0]!;
     }
 

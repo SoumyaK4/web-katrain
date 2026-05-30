@@ -3,10 +3,10 @@ export function rgba(color: readonly [number, number, number, number], alphaOver
   return `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${a})`;
 }
 
-export function formatMoveLabel(x: number, y: number): string {
+export function formatMoveLabel(x: number, y: number, boardSize = 19): string {
   if (x < 0 || y < 0) return 'Pass';
   const col = String.fromCharCode(65 + (x >= 8 ? x + 1 : x));
-  const row = 19 - y;
+  const row = boardSize - y;
   return `${col}${row}`;
 }
 

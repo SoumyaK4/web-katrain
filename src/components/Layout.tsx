@@ -1207,7 +1207,7 @@ export const Layout: React.FC = () => {
   const blackName = getRootProp('PB') || 'Black';
   const whiteName = getRootProp('PW') || 'White';
   const moveName = currentNode.move
-    ? `Move ${moveHistory.length}: ${playerToShort(currentNode.move.player)} ${formatMoveLabel(currentNode.move.x, currentNode.move.y)}`
+    ? `Move ${moveHistory.length}: ${playerToShort(currentNode.move.player)} ${formatMoveLabel(currentNode.move.x, currentNode.move.y, boardSize)}`
     : 'Root';
 
   const handleUndo = () => {
