@@ -90,6 +90,7 @@ export const Layout: React.FC = () => {
     startSelectRegionOfInterest,
     setRegionOfInterest,
     isInsertMode,
+    isEditMode,
     toggleInsertMode,
     isSelfplayToEnd,
     selfplayToEnd,
@@ -153,6 +154,7 @@ export const Layout: React.FC = () => {
       startSelectRegionOfInterest: state.startSelectRegionOfInterest,
       setRegionOfInterest: state.setRegionOfInterest,
       isInsertMode: state.isInsertMode,
+      isEditMode: state.isEditMode,
       toggleInsertMode: state.toggleInsertMode,
       isSelfplayToEnd: state.isSelfplayToEnd,
       selfplayToEnd: state.selfplayToEnd,
@@ -1201,6 +1203,7 @@ export const Layout: React.FC = () => {
               regionOfInterest={regionOfInterest}
               setRegionOfInterest={setRegionOfInterest}
               isInsertMode={isInsertMode}
+              isEditMode={isEditMode}
               isAnalysisMode={isAnalysisMode}
               toggleAnalysisMode={toggleAnalysisMode}
               engineDot={engineDot}

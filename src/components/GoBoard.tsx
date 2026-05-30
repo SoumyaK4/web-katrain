@@ -800,10 +800,73 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
       ctx.restore();
     };
 
+    const drawEditPreview = (x: number, y: number) => {
+      const d = toDisplay(x, y);
+      const cx = originX + d.x * cellSize;
+      const cy = originY + d.y * cellSize;
+      const r = Math.max(8, cellSize * 0.25);
+      const accent = 'rgba(34,197,94,0.92)';
+      const halo = 'rgba(0,0,0,0.45)';
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(2, cellSize * 0.045);
+      ctx.strokeStyle = halo;
+      ctx.fillStyle = 'rgba(34,197,94,0.18)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.28, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = accent;
+      if (editTool === 'setup-erase' || editTool === 'marker-erase') {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 1.08, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.75, cy - r * 0.75);
+        ctx.lineTo(cx + r * 0.75, cy + r * 0.75);
+        ctx.moveTo(cx + r * 0.75, cy - r * 0.75);
+        ctx.lineTo(cx - r * 0.75, cy + r * 0.75);
+        ctx.stroke();
+      } else if (editTool === 'marker-triangle') {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r);
+        ctx.lineTo(cx + r * 0.88, cy + r * 0.58);
+        ctx.lineTo(cx - r * 0.88, cy + r * 0.58);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (editTool === 'marker-square') {
+        ctx.strokeRect(cx - r * 0.75, cy - r * 0.75, r * 1.5, r * 1.5);
+      } else if (editTool === 'marker-circle') {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (editTool === 'marker-cross') {
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.75, cy - r * 0.75);
+        ctx.lineTo(cx + r * 0.75, cy + r * 0.75);
+        ctx.moveTo(cx + r * 0.75, cy - r * 0.75);
+        ctx.lineTo(cx - r * 0.75, cy + r * 0.75);
+        ctx.stroke();
+      } else if (editTool === 'label-alpha' || editTool === 'label-number') {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 1.04, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = `800 ${Math.max(10, cellSize * 0.34)}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = accent;
+        ctx.fillText(editTool === 'label-alpha' ? 'A' : '1', cx, cy + 1);
+      }
+      ctx.restore();
+    };
+
     if (isEditMode) {
       if (editSetupPlayer && cursorPt) {
         const existing = board[cursorPt.y]?.[cursorPt.x] ?? null;
         drawGhost(cursorPt.x, cursorPt.y, editSetupPlayer, existing === editSetupPlayer ? 0.25 : 0.68);
+      } else if (cursorPt) {
+        drawEditPreview(cursorPt.x, cursorPt.y);
       }
       return;
     }
@@ -829,6 +892,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
     cellSize,
     cursorPt,
     currentPlayer,
+    editTool,
     editSetupPlayer,
     isEditMode,
     hoveredMove,
@@ -1565,7 +1629,10 @@ export const GoBoard: React.FC<GoBoardProps> = ({ hoveredMove, onHoverMove, pvUp
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center">
       <div
-        className="relative shadow-lg rounded-sm cursor-pointer select-none touch-none"
+        className={[
+          'relative shadow-lg rounded-sm select-none touch-none',
+          isEditMode ? 'cursor-crosshair' : 'cursor-pointer',
+        ].join(' ')}
         data-board-snapshot="true"
         ref={boardSnapshotRef}
         style={{

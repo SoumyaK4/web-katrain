@@ -67,16 +67,25 @@ const toolButtonClass = (active: boolean) =>
   ].join(' ');
 
 export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false }) => {
-  const { isEditMode, editTool, toggleEditMode, setEditTool, clearCurrentNodeAnnotations } = useGameStore(
+  const { isEditMode, editTool, currentNode, treeVersion, toggleEditMode, setEditTool, clearCurrentNodeAnnotations } = useGameStore(
     (state) => ({
       isEditMode: state.isEditMode,
       editTool: state.editTool,
+      currentNode: state.currentNode,
+      treeVersion: state.treeVersion,
       toggleEditMode: state.toggleEditMode,
       setEditTool: state.setEditTool,
       clearCurrentNodeAnnotations: state.clearCurrentNodeAnnotations,
     }),
     shallow
   );
+
+  const nodeProps = currentNode.properties ?? {};
+  const setupCount = (nodeProps.AB?.length ?? 0) + (nodeProps.AW?.length ?? 0) + (nodeProps.AE?.length ?? 0);
+  const markerCount =
+    (nodeProps.TR?.length ?? 0) + (nodeProps.SQ?.length ?? 0) + (nodeProps.CR?.length ?? 0) + (nodeProps.MA?.length ?? 0);
+  const labelCount = nodeProps.LB?.length ?? 0;
+  void treeVersion;
 
   return (
     <div
@@ -97,7 +106,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
           Edit
         </button>
       ) : (
-        <div className="pointer-events-auto ui-panel border rounded-lg shadow-xl overflow-hidden backdrop-blur">
+        <div className="pointer-events-auto ui-panel border rounded-lg shadow-xl overflow-hidden backdrop-blur max-w-full">
           <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-surface-2)]">
             <div className="flex items-center gap-2 min-w-0">
               <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[var(--ui-accent)] shadow-sm shadow-black/30" />
@@ -105,6 +114,17 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
                 Edit mode
               </div>
               <div className="hidden sm:block text-xs ui-text-faint truncate">Active: {TOOL_LABELS[editTool]}</div>
+            </div>
+            <div className="hidden md:flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]">
+                Setup {setupCount}
+              </span>
+              <span className="px-1.5 py-0.5 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]">
+                Marks {markerCount}
+              </span>
+              <span className="px-1.5 py-0.5 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]">
+                Labels {labelCount}
+              </span>
             </div>
             <button
               type="button"
@@ -117,13 +137,13 @@ export const EditToolbar: React.FC<{ isMobile?: boolean }> = ({ isMobile = false
             </button>
           </div>
 
-          <div className="flex flex-wrap items-stretch gap-2 p-2">
+          <div className="flex flex-wrap items-stretch gap-2 p-2 max-h-[40vh] overflow-y-auto">
             {TOOL_GROUPS.map((group) => (
               <div
                 key={group.title}
-                className="flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] last:border-r-0 last:pr-0"
+                className="flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] last:border-r-0 last:pr-0 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-2 max-sm:last:border-b-0 max-sm:last:pb-0"
               >
-                <div className="hidden md:block text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
+                <div className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
                   {group.title}
                 </div>
                 {group.items.map((item) => (

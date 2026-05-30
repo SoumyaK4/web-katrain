@@ -31,6 +31,7 @@ interface TopControlBarProps {
   regionOfInterest: RegionOfInterest | null;
   setRegionOfInterest: (r: null) => void;
   isInsertMode: boolean;
+  isEditMode: boolean;
   isAnalysisMode: boolean;
   toggleAnalysisMode: () => void;
   engineDot: string;
@@ -83,6 +84,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   regionOfInterest,
   setRegionOfInterest,
   isInsertMode,
+  isEditMode,
   isAnalysisMode,
   toggleAnalysisMode,
   engineDot,
@@ -436,6 +438,11 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         {isInsertMode && (
           <div className="px-2 py-0.5 rounded-md border ui-accent-soft text-xs font-semibold">
             Insert
+          </div>
+        )}
+        {isEditMode && (
+          <div className="px-2 py-0.5 rounded-md border border-[var(--ui-warning)] bg-[var(--ui-warning-soft)] text-[var(--ui-warning)] text-xs font-semibold">
+            Edit
           </div>
         )}
       </div>
