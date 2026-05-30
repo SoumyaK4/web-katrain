@@ -3624,10 +3624,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	      settings: { ...state.settings, gameRules: rules, defaultBoardSize: boardSize, defaultHandicap: safeHandicap },
 		    }));
 
-		    // KaTrain-like: start a quick background analysis of the whole mainline so graphs populate fast.
-		    if (typeof window !== 'undefined' && typeof Worker !== 'undefined') {
-		      const fast = get().settings.loadSgfFastAnalysis;
-		      setTimeout(() => (fast ? get().startFastGameAnalysis() : get().startQuickGameAnalysis()), 0);
+		    // KaTrain-like: optionally start fast background analysis of the whole mainline so graphs populate fast.
+		    if (typeof window !== 'undefined' && typeof Worker !== 'undefined' && get().settings.loadSgfFastAnalysis) {
+		      setTimeout(() => get().startFastGameAnalysis(), 0);
 		    }
 		  },
 

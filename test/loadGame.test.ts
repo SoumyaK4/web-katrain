@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { useGameStore } from '../src/store/gameStore';
 import { DEFAULT_BOARD_SIZE, type AnalysisResult } from '../src/types';
 import { generateSgfFromTree, parseSgf } from '../src/utils/sgf';
@@ -85,6 +85,52 @@ describe('GameStore loadGame', () => {
         const state = useGameStore.getState();
         expect(state.komi).toBe(0);
         expect(state.rootNode.gameState.komi).toBe(0);
+    });
+
+    it('only auto-starts load-time analysis when the fast-analysis setting is enabled', () => {
+        const original = useGameStore.getState();
+        const originalQuick = original.startQuickGameAnalysis;
+        const originalFast = original.startFastGameAnalysis;
+        const originalSettings = original.settings;
+        const quick = vi.fn();
+        const fast = vi.fn();
+
+        vi.useFakeTimers();
+        vi.stubGlobal('window', {});
+        vi.stubGlobal('Worker', vi.fn());
+
+        try {
+            useGameStore.setState((state) => ({
+                settings: { ...state.settings, soundEnabled: false, loadSgfFastAnalysis: false },
+                startQuickGameAnalysis: quick,
+                startFastGameAnalysis: fast,
+            }));
+
+            useGameStore.getState().loadGame(parseSgf('(;GM[1]SZ[19];B[pd];W[dd])'));
+            vi.runOnlyPendingTimers();
+
+            expect(quick).not.toHaveBeenCalled();
+            expect(fast).not.toHaveBeenCalled();
+
+            useGameStore.setState((state) => ({
+                settings: { ...state.settings, loadSgfFastAnalysis: true },
+            }));
+
+            useGameStore.getState().loadGame(parseSgf('(;GM[1]SZ[19];B[pd];W[dd])'));
+            vi.runOnlyPendingTimers();
+
+            expect(quick).not.toHaveBeenCalled();
+            expect(fast).toHaveBeenCalledTimes(1);
+        } finally {
+            useGameStore.setState({
+                settings: originalSettings,
+                startQuickGameAnalysis: originalQuick,
+                startFastGameAnalysis: originalFast,
+            });
+            vi.unstubAllGlobals();
+            vi.useRealTimers();
+            useGameStore.getState().resetGame();
+        }
     });
 
     it('loads non-root setup properties into descendant board states', () => {

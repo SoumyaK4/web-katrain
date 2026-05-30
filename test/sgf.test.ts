@@ -78,4 +78,17 @@ describe('SGF Parser', () => {
       expect(node?.props.MA).toEqual(['pp']);
       expect(node?.props.LB).toEqual(['cc:A', 'dc:1']);
   });
+
+  it('throws on malformed SGF instead of returning an empty game', () => {
+      expect(() => parseSgf('not sgf')).toThrow('Invalid SGF');
+      expect(() => parseSgf('(;GM[1]SZ[19];B[pd]')).toThrow('Invalid SGF');
+  });
+
+  it('parses escaped line continuations without losing real newlines', () => {
+      const sgf = '(;GM[1]SZ[19]C[hello\\\nworld]N[line1\nline2])';
+      const result = parseSgf(sgf);
+
+      expect(result.tree?.props.C?.[0]).toBe('helloworld');
+      expect(result.tree?.props.N?.[0]).toBe('line1\nline2');
+  });
 });

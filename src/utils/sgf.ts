@@ -301,7 +301,7 @@ export const downloadSgf = (gameState: GameState) => {
 };
 
 function escapeSgfValue(value: string): string {
-    return value.replace(/\\/g, '\\\\').replace(/]/g, '\\]').replace(/\r?\n/g, '\\\n');
+    return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\/g, '\\\\').replace(/]/g, '\\]');
 }
 
 function cloneProps(props: Record<string, string[]> | undefined): Record<string, string[]> {
@@ -546,7 +546,7 @@ export const parseSgf = (sgfContent: string): ParsedSgf => {
 
     // Find the first game tree.
     let i = sgfContent.indexOf('(');
-    if (i < 0) return { moves, initialBoard, komi };
+    if (i < 0) throw new Error('Invalid SGF: missing game tree');
     const len = sgfContent.length;
 
     const skipWhitespace = () => {
@@ -560,9 +560,21 @@ export const parseSgf = (sgfContent: string): ParsedSgf => {
         while (i < len) {
             const char = sgfContent[i]!;
             if (char === '\\') {
-                // Escape next char (including ] or \). SGF also allows escaping newlines.
+                // Escape next char (including ] or \). Escaped line breaks are SGF continuations.
                 i++;
-                if (i < len) value += sgfContent[i]!;
+                if (i < len) {
+                    const escaped = sgfContent[i]!;
+                    if (escaped === '\r') {
+                        i++;
+                        if (i < len && sgfContent[i] === '\n') i++;
+                        continue;
+                    }
+                    if (escaped === '\n') {
+                        i++;
+                        continue;
+                    }
+                    value += escaped;
+                }
                 i++;
                 continue;
             }
@@ -638,12 +650,7 @@ export const parseSgf = (sgfContent: string): ParsedSgf => {
         return root;
     };
 
-    let root: SgfNode;
-    try {
-        root = parseGameTree();
-    } catch {
-        return { moves, initialBoard, komi };
-    }
+    const root = parseGameTree();
 
     const rootKomi = root.props['KM']?.[0];
     if (rootKomi) {
