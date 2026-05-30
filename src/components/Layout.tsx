@@ -1798,6 +1798,7 @@ export const Layout: React.FC = () => {
                 stopGameAnalysis={stopGameAnalysis}
                 onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
                 onOpenGameReport={() => setIsGameReportOpen(true)}
+                currentMoveNumber={moveHistory.length}
                 winRate={winRate ?? null}
                 scoreLead={scoreLead ?? null}
                 pointsLost={pointsLost}

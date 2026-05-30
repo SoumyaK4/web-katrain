@@ -29,6 +29,7 @@ interface AnalysisPanelProps {
   stopGameAnalysis: () => void;
   onOpenGameAnalysis: () => void;
   onOpenGameReport: () => void;
+  currentMoveNumber: number;
   winRate: number | null;
   scoreLead: number | null;
   pointsLost: number | null;
@@ -60,6 +61,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   stopGameAnalysis,
   onOpenGameAnalysis,
   onOpenGameReport,
+  currentMoveNumber,
   winRate,
   scoreLead,
   pointsLost,
@@ -103,6 +105,35 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     <div className="flex items-center gap-1.5">
       {metricToggle('winrate', 'Win', 'bg-[var(--ui-success)]')}
       {metricToggle('score', 'Score', 'bg-[var(--ui-warning)]')}
+    </div>
+  );
+  const graphReadout = (
+    <div
+      className="grid grid-cols-4 gap-1.5 text-[11px]"
+      data-analysis-graph-readout="true"
+    >
+      <div className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
+        <div className="ui-text-faint">Move</div>
+        <div className="font-mono text-sm text-[var(--ui-text)]">{currentMoveNumber}</div>
+      </div>
+      <div className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
+        <div className="ui-text-faint">Winrate</div>
+        <div className="font-mono text-sm text-[var(--ui-success)]">
+          {typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : '-'}
+        </div>
+      </div>
+      <div className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
+        <div className="ui-text-faint">Score</div>
+        <div className="font-mono text-sm text-[var(--ui-warning)]">
+          {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+        </div>
+      </div>
+      <div className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
+        <div className="ui-text-faint">{pointsLost != null && pointsLost < 0 ? 'Gained' : 'Lost'}</div>
+        <div className="font-mono text-sm text-[var(--ui-danger)]">
+          {pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}
+        </div>
+      </div>
     </div>
   );
 
@@ -280,8 +311,11 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             </div>
           </div>
         ) : activeTab === 'graph' ? (
-          <div className="panel-compact-graph">
-            <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
+          <div className="space-y-2">
+            <div className="panel-compact-graph">
+              <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
+            </div>
+            {graphReadout}
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">

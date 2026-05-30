@@ -664,6 +664,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   stopGameAnalysis={stopGameAnalysis}
                   onOpenGameAnalysis={onOpenGameAnalysis}
                   onOpenGameReport={onOpenGameReport}
+                  currentMoveNumber={moveHistory.length}
                   winRate={winRate}
                   scoreLead={scoreLead}
                   pointsLost={pointsLost}
