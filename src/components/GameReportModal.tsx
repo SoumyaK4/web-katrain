@@ -37,7 +37,7 @@ function fmtNum(x: number | undefined, digits = 2): string {
   return x.toFixed(digits);
 }
 
-export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => {
+export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setReportHoverMove }) => {
   const {
     currentNode,
     trainerEvalThresholds,
@@ -343,37 +343,45 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
   };
 
   const renderMistakeRows = (entries: MoveReportEntry[], showJump: boolean) => {
-    return entries.map((entry) => (
-      <React.Fragment key={`${entry.node.id}-${entry.moveNumber}`}>
-        <div className="col-span-2 text-slate-200 font-mono">#{entry.moveNumber}</div>
-        <div className="col-span-1 text-center font-semibold text-slate-200">
-          {entry.player === 'black' ? 'B' : 'W'}
+    return entries.map((entry) => {
+      const previewMove = entry.topCandidate ?? null;
+      return (
+        <div
+          key={`${entry.node.id}-${entry.moveNumber}`}
+          className="contents"
+          onMouseEnter={() => setReportHoverMove(previewMove)}
+          onMouseLeave={() => setReportHoverMove(null)}
+        >
+          <div className="col-span-2 text-slate-200 font-mono">#{entry.moveNumber}</div>
+          <div className="col-span-1 text-center font-semibold text-slate-200">
+            {entry.player === 'black' ? 'B' : 'W'}
+          </div>
+          <div className="col-span-2 text-slate-200 font-mono">{entry.move}</div>
+          <div className="col-span-2 text-slate-300 font-mono">
+            {entry.topMove ?? '-'}
+          </div>
+          <div className="col-span-2 text-right font-mono text-rose-300">
+            {fmtNum(entry.pointsLost, 2)}
+          </div>
+          <div className="col-span-3 text-right">
+            {showJump ? (
+              <button
+                type="button"
+                className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 text-slate-200 hover:bg-slate-700/70 print-hide"
+                onClick={() => jumpToNode(entry.node)}
+              >
+                Jump to move
+              </button>
+            ) : (
+              <span className="text-slate-400">-</span>
+            )}
+          </div>
+          <div className="col-span-12 text-[10px] text-slate-500 font-mono print-muted">
+            PV: {formatPv(entry.pv)}
+          </div>
         </div>
-        <div className="col-span-2 text-slate-200 font-mono">{entry.move}</div>
-        <div className="col-span-2 text-slate-300 font-mono">
-          {entry.topMove ?? '-'}
-        </div>
-        <div className="col-span-2 text-right font-mono text-rose-300">
-          {fmtNum(entry.pointsLost, 2)}
-        </div>
-        <div className="col-span-3 text-right">
-          {showJump ? (
-            <button
-              type="button"
-              className="px-2 py-1 rounded bg-slate-800/70 border border-slate-700/50 text-slate-200 hover:bg-slate-700/70 print-hide"
-              onClick={() => jumpToNode(entry.node)}
-            >
-              Jump to move
-            </button>
-          ) : (
-            <span className="text-slate-400">-</span>
-          )}
-        </div>
-        <div className="col-span-12 text-[10px] text-slate-500 font-mono print-muted">
-          PV: {formatPv(entry.pv)}
-        </div>
-      </React.Fragment>
-    ));
+      );
+    });
   };
 
   const renderPvTree = (entry: MoveReportEntry) => {
@@ -446,7 +454,10 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose }) => 
   useEffect(() => {
     setReviewQueue([]);
     setReviewIndex(0);
-  }, [bucketFilter, phaseFilter, playerFilter, treeVersion]);
+    setReportHoverMove(null);
+  }, [bucketFilter, phaseFilter, playerFilter, setReportHoverMove, treeVersion]);
+
+  useEffect(() => () => setReportHoverMove(null), [setReportHoverMove]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 report-overlay p-3 sm:p-6 mobile-safe-inset mobile-safe-area-bottom">

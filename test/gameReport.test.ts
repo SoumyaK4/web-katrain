@@ -106,6 +106,11 @@ describe('computeGameReport', () => {
     // White points lost: -(( -5 ) - ( -6 )) = -1 -> clamped to 0 -> bucket < 0.5.
     expect(report.histogram[2]!.black).toBe(1);
     expect(report.histogram[5]!.white).toBe(1);
+    expect(report.moveEntries.find((entry) => entry.moveNumber === 1)?.topCandidate).toMatchObject({
+      x: 0,
+      y: 0,
+      order: 0,
+    });
     const blackTotal = report.histogram.reduce((acc, row) => acc + row.black, 0);
     const whiteTotal = report.histogram.reduce((acc, row) => acc + row.white, 0);
     expect(blackTotal).toBe(1);

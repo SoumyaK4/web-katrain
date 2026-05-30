@@ -131,6 +131,7 @@ export type MoveReportEntry = {
   pointsLost: number;
   phase: GameReportPhase;
   topMove?: string;
+  topCandidate?: CandidateMove;
   isTopMove?: boolean;
   pv?: string[];
 };
@@ -223,6 +224,7 @@ export function computeGameReport(args: {
       pointsLost,
       phase,
       topMove: top ? xyToGtp(top.x, top.y, boardSize) : undefined,
+      topCandidate: top ?? undefined,
       isTopMove: top ? top.x === move.x && top.y === move.y : undefined,
       pv: top?.pv,
     });
