@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import type { AnalysisResult } from '../src/types';
 import { useGameStore } from '../src/store/gameStore';
 import { analysisQueue } from '../src/utils/analysisQueue';
+import { getHandicapPoints } from '../src/utils/boardSize';
 
 const analysis = (visits: number): AnalysisResult => ({
   rootWinRate: 0.5,
@@ -197,6 +198,79 @@ describe('analysis cache store actions', () => {
 
     expect(changed.settings.gameRules).toBe('japanese');
     expect(changed.rootNode.properties?.RU).toEqual(['Japanese']);
+    expect(changed.rootNode.analysis).not.toBeNull();
+    expect(changed.analysisData).not.toBeNull();
+    expect(changed.analysisCacheSize).toBe(1);
+  });
+
+  it('changing handicap updates root setup stones and invalidates stale analysis', async () => {
+    const root = useGameStore.getState().rootNode;
+    root.analysis = analysis(50);
+    useGameStore.setState((state) => ({
+      analysisData: root.analysis,
+      analysisCacheSize: 1,
+      isContinuousAnalysis: true,
+      isSelfplayToEnd: true,
+      isGameAnalysisRunning: true,
+      gameAnalysisType: 'fast',
+      engineStatus: 'ready',
+      treeVersion: state.treeVersion + 1,
+    }));
+
+    await analysisQueue.enqueue({
+      id: 'handicap-sensitive-cache',
+      group: 'test',
+      priority: 1,
+      cacheKey: 'handicap-position',
+      run: async () => ({ visits: 25 }),
+    });
+
+    useGameStore.getState().setHandicap(4);
+    const changed = useGameStore.getState();
+
+    expect(changed.rootNode.properties?.HA).toEqual(['4']);
+    expect(changed.rootNode.properties?.PL).toEqual(['W']);
+    expect(changed.rootNode.gameState.currentPlayer).toBe('white');
+    expect(changed.currentPlayer).toBe('white');
+    for (const [x, y] of getHandicapPoints(19, 4)) {
+      expect(changed.rootNode.gameState.board[y]?.[x]).toBe('black');
+      expect(changed.board[y]?.[x]).toBe('black');
+    }
+    expect(changed.analysisData).toBeNull();
+    expect(changed.rootNode.analysis).toBeNull();
+    expect(analysisQueue.getCacheSize()).toBe(0);
+    expect(changed.analysisCacheSize).toBe(0);
+    expect(changed.isContinuousAnalysis).toBe(false);
+    expect(changed.isSelfplayToEnd).toBe(false);
+    expect(changed.isGameAnalysisRunning).toBe(false);
+    expect(changed.engineStatus).toBe('idle');
+  });
+
+  it('routes SGF HA edits through handicap state and clears handicap stones', () => {
+    useGameStore.getState().setRootProperty('HA', '4');
+    useGameStore.getState().setRootProperty('HA', '');
+    const changed = useGameStore.getState();
+
+    expect(changed.rootNode.properties?.HA).toBeUndefined();
+    expect(changed.rootNode.properties?.PL).toBeUndefined();
+    expect(changed.rootNode.gameState.currentPlayer).toBe('black');
+    for (const [x, y] of getHandicapPoints(19, 4)) {
+      expect(changed.rootNode.gameState.board[y]?.[x]).toBeNull();
+    }
+  });
+
+  it('normalizes matching handicap text without clearing analysis', () => {
+    useGameStore.getState().setHandicap(4);
+    const root = useGameStore.getState().rootNode;
+    root.properties = { ...(root.properties ?? {}), HA: ['04'], PL: ['W'] };
+    root.analysis = analysis(50);
+    useGameStore.setState({ analysisData: root.analysis, analysisCacheSize: 1 });
+
+    useGameStore.getState().setRootProperty('HA', '4');
+    const changed = useGameStore.getState();
+
+    expect(changed.rootNode.properties?.HA).toEqual(['4']);
+    expect(changed.rootNode.properties?.PL).toEqual(['W']);
     expect(changed.rootNode.analysis).not.toBeNull();
     expect(changed.analysisData).not.toBeNull();
     expect(changed.analysisCacheSize).toBe(1);

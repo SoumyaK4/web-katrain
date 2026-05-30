@@ -1,7 +1,8 @@
 import React from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import type { GameSettings } from '../types';
+import { DEFAULT_BOARD_SIZE, type GameSettings } from '../types';
+import { getMaxHandicap, normalizeBoardSize } from '../utils/boardSize';
 
 type GameInfoField = {
   key: string;
@@ -29,12 +30,13 @@ const inputClass =
   'w-full ui-input border rounded px-2 py-1.5 text-xs text-[var(--ui-text)] focus:border-[var(--ui-accent)] outline-none';
 
 export const GameInfoPanel: React.FC = () => {
-  const { rootNode, komi, gameRules, setKomi, setRootProperty, updateSettings, treeVersion } = useGameStore(
+  const { rootNode, komi, gameRules, setKomi, setHandicap, setRootProperty, updateSettings, treeVersion } = useGameStore(
     (state) => ({
       rootNode: state.rootNode,
       komi: state.komi,
       gameRules: state.settings.gameRules,
       setKomi: state.setKomi,
+      setHandicap: state.setHandicap,
       setRootProperty: state.setRootProperty,
       updateSettings: state.updateSettings,
       treeVersion: state.treeVersion,
@@ -45,12 +47,22 @@ export const GameInfoPanel: React.FC = () => {
 
   const rootProps = rootNode.properties ?? {};
   const valueFor = (key: string) => rootProps[key]?.[0] ?? '';
+  const boardSize = normalizeBoardSize(rootNode.gameState.board.length, DEFAULT_BOARD_SIZE);
+  const maxHandicap = getMaxHandicap(boardSize);
+  const rawHandicap = Number.parseInt(rootProps.HA?.[0] ?? '0', 10);
+  const handicap = Number.isFinite(rawHandicap) ? Math.max(0, Math.min(rawHandicap, maxHandicap)) : 0;
   const [komiInput, setKomiInput] = React.useState(() => String(komi));
   const [isEditingKomi, setIsEditingKomi] = React.useState(false);
+  const [handicapInput, setHandicapInput] = React.useState(() => String(handicap));
+  const [isEditingHandicap, setIsEditingHandicap] = React.useState(false);
 
   React.useEffect(() => {
     if (!isEditingKomi) setKomiInput(String(komi));
   }, [isEditingKomi, komi]);
+
+  React.useEffect(() => {
+    if (!isEditingHandicap) setHandicapInput(String(handicap));
+  }, [handicap, isEditingHandicap]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
     e.stopPropagation();
@@ -74,6 +86,29 @@ export const GameInfoPanel: React.FC = () => {
     } else if (e.key === 'Escape') {
       setKomiInput(String(komi));
       setIsEditingKomi(false);
+      e.currentTarget.blur();
+    }
+  };
+
+  const commitHandicap = () => {
+    const parsed = Number.parseInt(handicapInput.trim(), 10);
+    if (Number.isFinite(parsed)) {
+      const next = Math.max(0, Math.min(parsed, maxHandicap));
+      setHandicap(next);
+      setHandicapInput(String(next));
+    } else {
+      setHandicapInput(String(handicap));
+    }
+    setIsEditingHandicap(false);
+  };
+
+  const handleHandicapKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    handleKeyDown(e);
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
+      setHandicapInput(String(handicap));
+      setIsEditingHandicap(false);
       e.currentTarget.blur();
     }
   };
@@ -114,6 +149,24 @@ export const GameInfoPanel: React.FC = () => {
             placeholder="6.5"
             className={inputClass}
             inputMode="decimal"
+            spellCheck={false}
+          />
+        </label>
+        <label className="min-w-0 space-y-1">
+          <span className="block text-[10px] font-semibold uppercase tracking-wide ui-text-faint">
+            Handicap
+          </span>
+          <input
+            value={handicapInput}
+            onChange={(e) => setHandicapInput(e.target.value)}
+            onFocus={() => setIsEditingHandicap(true)}
+            onBlur={commitHandicap}
+            onKeyDown={handleHandicapKeyDown}
+            placeholder="0"
+            className={inputClass}
+            inputMode="numeric"
+            min={0}
+            max={maxHandicap}
             spellCheck={false}
           />
         </label>

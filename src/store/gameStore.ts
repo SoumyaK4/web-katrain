@@ -137,6 +137,7 @@ interface GameStore extends GameState {
   stopGameAnalysis: () => void;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
   setKomi: (komi: number) => void;
+  setHandicap: (handicap: number) => void;
   setRootProperty: (key: string, value: string) => void;
   setCurrentNodeNote: (note: string) => void;
   rotateBoard: () => void;
@@ -623,6 +624,24 @@ const applyKomiToSubtree = (node: GameNode, komi: number): void => {
 
 const formatKomiProperty = (komi: number): string =>
   Number.isInteger(komi) ? String(komi) : String(Number(komi.toFixed(2)));
+
+const parseHandicapProperty = (props: Record<string, string[]> | undefined, boardSize: BoardSize): number => {
+  const raw = props?.HA?.[0];
+  const parsed = raw ? Number.parseInt(raw, 10) : 0;
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.min(parsed, getMaxHandicap(boardSize)));
+};
+
+const applyRootHandicap = (board: BoardState, boardSize: BoardSize, oldHandicap: number, nextHandicap: number): BoardState => {
+  const next = cloneBoard(board);
+  for (const [x, y] of getHandicapPoints(boardSize, oldHandicap)) {
+    if (next[y]?.[x] === 'black') next[y]![x] = null;
+  }
+  for (const [x, y] of getHandicapPoints(boardSize, nextHandicap)) {
+    next[y]![x] = 'black';
+  }
+  return next;
+};
 
 const replayChildMove = (parent: GameNode, child: GameNode): GameState | null => {
   const move = child.move;
@@ -2409,6 +2428,88 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
+  setHandicap: (handicap) => {
+    if (!Number.isFinite(handicap)) return;
+    const current = get();
+    const boardSize = getBoardSizeFromBoard(current.rootNode.gameState.board);
+    const nextHandicap = Math.max(0, Math.min(Math.floor(handicap), getMaxHandicap(boardSize)));
+    const currentHandicap = parseHandicapProperty(current.rootNode.properties, boardSize);
+    const currentHandicapText = current.rootNode.properties?.HA?.[0] ?? '';
+    const nextHandicapText = nextHandicap > 0 ? String(nextHandicap) : '';
+    if (currentHandicap === nextHandicap) {
+      const hasHandicapPlayer = current.rootNode.properties?.PL?.[0] === 'W';
+      if (
+        currentHandicapText === nextHandicapText &&
+        (nextHandicap > 0 ? hasHandicapPlayer : !hasHandicapPlayer)
+      ) {
+        return;
+      }
+      set((state) => {
+        state.rootNode.properties = state.rootNode.properties ?? {};
+        if (nextHandicap > 0) {
+          state.rootNode.properties.HA = [nextHandicapText];
+          state.rootNode.properties.PL = ['W'];
+        } else {
+          delete state.rootNode.properties.HA;
+          if (state.rootNode.properties.PL?.[0] === 'W') delete state.rootNode.properties.PL;
+        }
+        return { rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+      });
+      return;
+    }
+
+    continuousToken++;
+    selfplayToken++;
+    gameAnalysisToken++;
+    analysisQueue.cancelWhere(() => true, 'Handicap changed');
+    analysisQueue.clearCache();
+
+    set((state) => {
+      const root = state.rootNode;
+      const rootBoardSize = getBoardSizeFromBoard(root.gameState.board);
+      const oldHandicap = parseHandicapProperty(root.properties, rootBoardSize);
+      const nextBoard = applyRootHandicap(root.gameState.board, rootBoardSize, oldHandicap, nextHandicap);
+      const nextPlayer: Player = nextHandicap > 0 ? 'white' : 'black';
+      root.properties = root.properties ?? {};
+      if (nextHandicap > 0) {
+        root.properties.HA = [String(nextHandicap)];
+        root.properties.PL = ['W'];
+      } else {
+        delete root.properties.HA;
+        if (root.properties.PL?.[0] === 'W') delete root.properties.PL;
+      }
+      root.gameState = {
+        ...root.gameState,
+        board: nextBoard,
+        currentPlayer: nextPlayer,
+        moveHistory: [],
+        capturedBlack: 0,
+        capturedWhite: 0,
+      };
+      clearAnalysisInSubtree(root);
+      rebuildDescendants(root);
+      const currentNode = findNodeById(root, state.currentNode.id) ?? root;
+
+      return {
+        currentNode,
+        board: currentNode.gameState.board,
+        currentPlayer: currentNode.gameState.currentPlayer,
+        moveHistory: currentNode.gameState.moveHistory,
+        capturedBlack: currentNode.gameState.capturedBlack,
+        capturedWhite: currentNode.gameState.capturedWhite,
+        analysisData: null,
+        analysisCacheSize: 0,
+        isContinuousAnalysis: false,
+        isSelfplayToEnd: false,
+        isGameAnalysisRunning: false,
+        gameAnalysisType: null,
+        engineStatus: 'idle',
+        engineError: null,
+        treeVersion: state.treeVersion + 1,
+      };
+    });
+  },
+
   setRootProperty: (key, value) => {
     const normalizedKey = key.toUpperCase();
     if (normalizedKey === 'KM') {
@@ -2434,6 +2535,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
         return;
       }
+    }
+    if (normalizedKey === 'HA') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        get().setHandicap(0);
+        return;
+      }
+      const parsed = Number.parseInt(trimmed, 10);
+      if (Number.isFinite(parsed)) get().setHandicap(parsed);
+      return;
     }
 
     set((state) => {
