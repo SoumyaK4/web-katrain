@@ -13,6 +13,7 @@ interface PhotoBoardModalProps {
 }
 
 type TraceTool = Player | 'erase';
+type PhotoFit = 'cover' | 'contain';
 
 const makeEmptyStones = (boardSize: BoardSize): PhotoBoardStone[] =>
   Array.from({ length: boardSize * boardSize }, () => null);
@@ -47,6 +48,9 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [stones, setStones] = React.useState<PhotoBoardStone[]>(() => makeEmptyStones(defaultBoardSize));
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(null);
   const [photoName, setPhotoName] = React.useState<string>('');
+  const [photoUnderlay, setPhotoUnderlay] = React.useState(true);
+  const [photoOpacity, setPhotoOpacity] = React.useState(0.45);
+  const [photoFit, setPhotoFit] = React.useState<PhotoFit>('cover');
 
   React.useEffect(() => {
     return () => {
@@ -71,6 +75,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     photoUrlRef.current = objectUrl;
     setPhotoName(file.name || 'Camera photo');
     setPhotoUrl(objectUrl);
+    setPhotoUnderlay(true);
   }, []);
 
   React.useEffect(() => {
@@ -243,33 +248,96 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               </button>
             </div>
 
+            <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-[var(--ui-text)]">
+                  <input
+                    type="checkbox"
+                    checked={!!photoUrl && photoUnderlay}
+                    disabled={!photoUrl}
+                    onChange={(event) => setPhotoUnderlay(event.target.checked)}
+                    className="h-4 w-4 accent-[var(--ui-accent)] disabled:opacity-50"
+                  />
+                  Photo under grid
+                </label>
+                <label className="ml-auto flex items-center gap-2 text-sm">
+                  <span className="ui-text-muted">Fit</span>
+                  <select
+                    value={photoFit}
+                    onChange={(event) => setPhotoFit(event.target.value as PhotoFit)}
+                    disabled={!photoUrl || !photoUnderlay}
+                    className="ui-input rounded border px-2 py-1 text-sm text-[var(--ui-text)] disabled:opacity-50"
+                    aria-label="Photo underlay fit"
+                  >
+                    <option value="cover">Cover</option>
+                    <option value="contain">Contain</option>
+                  </select>
+                </label>
+              </div>
+              <label className="mt-3 grid grid-cols-[auto_minmax(0,1fr)_3rem] items-center gap-2 text-xs">
+                <span className="ui-text-muted">Opacity</span>
+                <input
+                  type="range"
+                  min={0.15}
+                  max={0.85}
+                  step={0.05}
+                  value={photoOpacity}
+                  disabled={!photoUrl || !photoUnderlay}
+                  onChange={(event) => setPhotoOpacity(Number(event.target.value))}
+                  className="w-full accent-[var(--ui-accent)] disabled:opacity-50"
+                  aria-label="Photo underlay opacity"
+                />
+                <span className="text-right font-mono text-[var(--ui-text-muted)]">
+                  {Math.round(photoOpacity * 100)}%
+                </span>
+              </label>
+            </div>
+
             <div className="mx-auto w-full max-w-[min(78vh,640px)] rounded-lg border border-[var(--ui-border)] bg-[#c89a55] p-2 shadow-inner">
               <div
-                className="grid overflow-hidden rounded border border-black/35"
-                style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}
+                className="relative overflow-hidden rounded border border-black/35 bg-[#d7ad68]"
                 aria-label={`${boardSize} by ${boardSize} trace board`}
               >
-                {stones.map((stone, index) => (
-                  <button
-                    key={`${boardSize}-${index}`}
-                    type="button"
-                    className="relative aspect-square border border-black/25 bg-[#d7ad68] hover:bg-[#e5bd78] focus:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]"
-                    onClick={() => toggleStone(index)}
-                    aria-label={`${gtpPoint(index, boardSize)} ${stoneLabel(stone)}`}
-                  >
-                    {stone && (
-                      <span
-                        aria-hidden="true"
-                        className={[
-                          'absolute left-1/2 top-1/2 block h-[72%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full shadow-md',
-                          stone === 'black'
-                            ? 'bg-gradient-to-br from-zinc-700 to-black'
-                            : 'bg-gradient-to-br from-white to-zinc-200 ring-1 ring-black/20',
-                        ].join(' ')}
-                      />
-                    )}
-                  </button>
-                ))}
+                {photoUrl && photoUnderlay && (
+                  <img
+                    src={photoUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 h-full w-full"
+                    style={{ opacity: photoOpacity, objectFit: photoFit }}
+                  />
+                )}
+                <div
+                  className="relative z-10 grid"
+                  style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}
+                >
+                  {stones.map((stone, index) => (
+                    <button
+                      key={`${boardSize}-${index}`}
+                      type="button"
+                      className={[
+                        'relative aspect-square border border-black/25 focus:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]',
+                        photoUrl && photoUnderlay
+                          ? 'bg-[#d7ad68]/45 hover:bg-[#e5bd78]/60'
+                          : 'bg-[#d7ad68] hover:bg-[#e5bd78]',
+                      ].join(' ')}
+                      onClick={() => toggleStone(index)}
+                      aria-label={`${gtpPoint(index, boardSize)} ${stoneLabel(stone)}`}
+                    >
+                      {stone && (
+                        <span
+                          aria-hidden="true"
+                          className={[
+                            'absolute left-1/2 top-1/2 block h-[72%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full shadow-md',
+                            stone === 'black'
+                              ? 'bg-gradient-to-br from-zinc-700 to-black'
+                              : 'bg-gradient-to-br from-white to-zinc-200 ring-1 ring-black/20',
+                          ].join(' ')}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
