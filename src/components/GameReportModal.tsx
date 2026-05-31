@@ -384,6 +384,21 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
       : hasReviewTargets
       ? 'Run fast review'
       : 'No moves to review';
+  const coveragePercent = totalMoves > 0 ? Math.round(coverage * 100) : 0;
+  const analysisStatusTitle = isGameAnalysisRunning
+    ? 'Review running'
+    : hasFullCoverage
+      ? 'Analysis complete'
+      : hasReviewTargets
+        ? 'Partial analysis'
+        : 'No moves to review';
+  const analysisStatusDetail = isGameAnalysisRunning
+    ? `Fast review is updating the report${gameAnalysisTotal > 0 ? ` (${gameAnalysisDone}/${gameAnalysisTotal})` : ''}.`
+    : hasFullCoverage
+      ? 'Every move in this filter has consecutive analysis, so the report is complete.'
+      : hasReviewTargets
+        ? `${analyzedMoves}/${totalMoves} moves have report-grade consecutive analysis. Run fast review to fill the gaps.`
+        : 'Load or play a game with moves before running a report review.';
   const playerFilterLabel = playerFilter === 'all' ? 'All players' : playerFilter === 'black' ? 'Black' : 'White';
   const statsPlayers: Array<Player> = playerFilter === 'all' ? ['black', 'white'] : [playerFilter];
   const filteredReportEntries = useMemo(() => {
@@ -856,6 +871,43 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 Quality {policyFilterLabel} x
               </button>
             )}
+          </div>
+
+          <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.22)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className={sectionTitleClass}>{analysisStatusTitle}</div>
+                <div className="mt-1 text-sm text-[var(--ui-text-muted)]">{analysisStatusDetail}</div>
+              </div>
+              <button
+                type="button"
+                onClick={isGameAnalysisRunning ? stopGameAnalysis : startFastGameAnalysis}
+                disabled={isPreparingPdf || (!isGameAnalysisRunning && !hasReviewTargets)}
+                className={[
+                  'shrink-0 rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-60',
+                  isGameAnalysisRunning
+                    ? 'bg-rose-600/80 text-white hover:bg-rose-500'
+                    : hasFullCoverage
+                      ? 'bg-[var(--ui-surface-2)] text-white hover:brightness-110'
+                      : 'ui-accent-bg hover:brightness-110',
+                ].join(' ')}
+              >
+                {reviewButtonLabel}
+              </button>
+            </div>
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--ui-surface-2)]"
+              role="progressbar"
+              aria-label="Report analysis coverage"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={coveragePercent}
+            >
+              <div
+                className={['h-full', hasFullCoverage ? 'bg-emerald-400' : 'bg-[var(--ui-accent)]'].join(' ')}
+                style={{ width: `${coveragePercent}%` }}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
