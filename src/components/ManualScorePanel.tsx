@@ -7,6 +7,7 @@ interface ManualScorePanelProps {
   disabled?: boolean;
   isCompact?: boolean;
   commandBarOffset?: boolean;
+  scoreMode?: 'manual' | 'estimate';
   score: ManualScoreEstimate;
   blackName: string;
   whiteName: string;
@@ -16,6 +17,7 @@ interface ManualScorePanelProps {
   deadStoneCount: number;
   onToggle: () => void;
   onAutoEstimate?: () => void;
+  onUseManualScore?: () => void;
   canAutoEstimate?: boolean;
   onClear: () => void;
   onDone: () => void;
@@ -28,6 +30,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   disabled = false,
   isCompact = false,
   commandBarOffset = false,
+  scoreMode = 'manual',
   score,
   blackName,
   whiteName,
@@ -37,6 +40,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   deadStoneCount,
   onToggle,
   onAutoEstimate,
+  onUseManualScore,
   canAutoEstimate = false,
   onClear,
   onDone,
@@ -80,7 +84,30 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
         </button>
       </div>
 
+      <div className="manual-score-method" role="group" aria-label="Scoring method">
+        <button
+          type="button"
+          className={scoreMode === 'estimate' ? 'active' : ''}
+          onClick={onAutoEstimate}
+          disabled={!onAutoEstimate || !canAutoEstimate}
+          title={canAutoEstimate ? 'Estimate dead stones from ownership' : 'Run territory analysis before estimating'}
+        >
+          <FaMagic size={11} />
+          <span>Estimate</span>
+        </button>
+        <button
+          type="button"
+          className={scoreMode === 'manual' ? 'active' : ''}
+          onClick={onUseManualScore}
+          disabled={scoreMode === 'manual'}
+          title="Use current dead-stone marks as the final manual score"
+        >
+          <span>Final</span>
+        </button>
+      </div>
+
       <div className={['manual-score-result', leaderClass].join(' ')}>
+        {scoreMode === 'estimate' && <span className="manual-score-estimate-mark">≈</span>}
         {score.result}
       </div>
 
@@ -143,6 +170,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
           onClick={onAutoEstimate}
           disabled={!onAutoEstimate || !canAutoEstimate}
           title={canAutoEstimate ? 'Estimate dead stones from ownership' : 'Run territory analysis before auto-estimating'}
+          className={scoreMode === 'estimate' ? 'active' : ''}
         >
           <FaMagic size={12} />
           <span>Auto</span>

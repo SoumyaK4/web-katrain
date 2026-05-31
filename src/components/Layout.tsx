@@ -361,6 +361,7 @@ export const Layout: React.FC = () => {
   const [isFileDragActive, setIsFileDragActive] = useState(false);
   const [scoringMode, setScoringMode] = useState(false);
   const [manualDeadStones, setManualDeadStones] = useState<Set<string>>(() => new Set());
+  const [manualScoreMode, setManualScoreMode] = useState<'manual' | 'estimate'>('manual');
   const fileDragCounter = useRef(0);
   const cleanGameSgfRef = useRef<string | null>(null);
   const unsavedChangesResolveRef = useRef<((choice: UnsavedChangesChoice) => void) | null>(null);
@@ -449,6 +450,7 @@ export const Layout: React.FC = () => {
 
   useEffect(() => {
     setManualDeadStones(new Set());
+    setManualScoreMode('manual');
   }, [boardSize, currentNode.id]);
 
   const manualScoreEstimate = useMemo(
@@ -549,6 +551,7 @@ export const Layout: React.FC = () => {
 
   const clearManualDeadStones = useCallback(() => {
     setManualDeadStones(new Set());
+    setManualScoreMode('manual');
   }, []);
 
   const autoEstimateDeadStones = useCallback(() => {
@@ -559,6 +562,7 @@ export const Layout: React.FC = () => {
 
     const nextDeadStones = estimateDeadStonesFromOwnership(board, manualScoreOwnership);
     setManualDeadStones(nextDeadStones);
+    setManualScoreMode('estimate');
     toast(
       nextDeadStones.size > 0
         ? `Auto-marked ${nextDeadStones.size} dead ${nextDeadStones.size === 1 ? 'stone' : 'stones'}.`
@@ -568,6 +572,7 @@ export const Layout: React.FC = () => {
   }, [board, manualScoreOwnership, toast]);
 
   const toggleManualDeadStone = useCallback((x: number, y: number) => {
+    setManualScoreMode('manual');
     setManualDeadStones((prev) => toggleDeadStoneChain(board, prev, x, y));
   }, [board]);
 
@@ -2100,8 +2105,10 @@ export const Layout: React.FC = () => {
               capturedWhite={capturedWhite}
               komi={komi}
               deadStoneCount={manualDeadStones.size}
+              scoreMode={manualScoreMode}
               onToggle={toggleScoringMode}
               onAutoEstimate={autoEstimateDeadStones}
+              onUseManualScore={() => setManualScoreMode('manual')}
               canAutoEstimate={!!manualScoreOwnership}
               onClear={clearManualDeadStones}
               onDone={() => setScoringMode(false)}
