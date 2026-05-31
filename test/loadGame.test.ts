@@ -567,6 +567,33 @@ describe('GameStore loadGame', () => {
         expect(cleared.notification?.message).toContain('Cleared 1 setup stone');
     });
 
+    it('alternates setup stones and cycles existing stones in edit mode', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        useGameStore.getState().setEditTool('setup-alternate');
+        useGameStore.getState().applyEditTool(0, 0);
+        useGameStore.getState().applyEditTool(1, 0);
+
+        let state = useGameStore.getState();
+        expect(state.rootNode.gameState.board[0]?.[0]).toBe('black');
+        expect(state.rootNode.gameState.board[0]?.[1]).toBe('white');
+        expect(state.rootNode.properties?.AB).toEqual(['aa']);
+        expect(state.rootNode.properties?.AW).toEqual(['ba']);
+
+        useGameStore.getState().applyEditTool(0, 0);
+        state = useGameStore.getState();
+        expect(state.rootNode.gameState.board[0]?.[0]).toBe('white');
+        expect(state.rootNode.properties?.AB).toBeUndefined();
+        expect(state.rootNode.properties?.AW).toEqual(['ba', 'aa']);
+
+        useGameStore.getState().applyEditTool(0, 0);
+        state = useGameStore.getState();
+        expect(state.rootNode.gameState.board[0]?.[0]).toBeNull();
+        expect(state.rootNode.properties?.AW).toEqual(['ba']);
+        expect(state.rootNode.properties?.AE).toEqual(['aa']);
+    });
+
     it('applies photo board setup stones in one batch edit', () => {
         const store = useGameStore.getState();
         store.resetGame();

@@ -531,6 +531,14 @@ const addUniqueValue = (props: Record<string, string[]>, key: string, value: str
   if (!values.includes(value)) props[key] = [...values, value];
 };
 
+const nextAlternateSetupStone = (props: Record<string, string[]>, currentStone: Player | null): Player | null => {
+  if (currentStone === 'black') return 'white';
+  if (currentStone === 'white') return null;
+  const blackCount = props.AB?.length ?? 0;
+  const whiteCount = props.AW?.length ?? 0;
+  return blackCount <= whiteCount ? 'black' : 'white';
+};
+
 const nextAlphaLabel = (props: Record<string, string[]>): string => {
   let max = -1;
   for (const value of props.LB ?? []) {
@@ -1441,16 +1449,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
         };
       }
 
-      if (tool !== 'setup-black' && tool !== 'setup-white' && tool !== 'setup-erase') return {};
+      if (tool !== 'setup-black' && tool !== 'setup-white' && tool !== 'setup-alternate' && tool !== 'setup-erase') return {};
 
       const nextBoard = cloneBoard(node.gameState.board);
-      const nextStone = tool === 'setup-black' ? 'black' : tool === 'setup-white' ? 'white' : null;
-      if ((nextBoard[y]?.[x] ?? null) === nextStone) return {};
+      const currentStone = nextBoard[y]?.[x] ?? null;
+      const nextStone: Player | null =
+        tool === 'setup-black'
+          ? 'black'
+          : tool === 'setup-white'
+            ? 'white'
+            : tool === 'setup-alternate'
+              ? nextAlternateSetupStone(props, currentStone)
+              : null;
+      if (currentStone === nextStone) return {};
       nextBoard[y]![x] = nextStone;
 
       removeSetupCoord(props, coord);
-      if (tool === 'setup-black') addUniqueValue(props, 'AB', coord);
-      else if (tool === 'setup-white') addUniqueValue(props, 'AW', coord);
+      if (nextStone === 'black') addUniqueValue(props, 'AB', coord);
+      else if (nextStone === 'white') addUniqueValue(props, 'AW', coord);
       else addUniqueValue(props, 'AE', coord);
 
       node.gameState = { ...node.gameState, board: nextBoard };
@@ -1460,7 +1476,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const pruned = rebuildDescendants(node);
 
       const setupWord =
-        tool === 'setup-black' ? 'black setup stone' : tool === 'setup-white' ? 'white setup stone' : 'setup stone';
+        nextStone === 'black' ? 'black setup stone' : nextStone === 'white' ? 'white setup stone' : 'setup stone';
       const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
       return {
         currentNode: node,

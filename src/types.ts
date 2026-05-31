@@ -59,6 +59,7 @@ export type RegionOfInterest = { xMin: number; xMax: number; yMin: number; yMax:
 export type EditTool =
   | 'setup-black'
   | 'setup-white'
+  | 'setup-alternate'
   | 'setup-erase'
   | 'marker-triangle'
   | 'marker-square'
