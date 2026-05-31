@@ -5,6 +5,7 @@ import { useGameStore } from '../store/gameStore';
 import type { CandidateMove, FloatArray, Move, Player } from '../types';
 import { formatRootInfoText } from '../utils/gameInfoText';
 import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment } from '../utils/notePreview';
+import { getVisualViewport } from '../utils/visualViewport';
 
 function moveToLabel(move: Move | null, boardSize: number): string {
   if (!move) return 'Root';
@@ -215,6 +216,18 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   const noteTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const shouldFocusNoteRef = React.useRef(false);
 
+  const scrollNoteEditorIntoView = React.useCallback(() => {
+    const editor = noteTextareaRef.current;
+    if (!editor) return;
+    window.setTimeout(() => {
+      try {
+        editor.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      } catch {
+        // Best effort for browsers with partial scrollIntoView support.
+      }
+    }, 0);
+  }, []);
+
   React.useEffect(() => {
     setNoteDraft(currentNote);
     setIsEditingNote(!currentNote.trim());
@@ -224,7 +237,21 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
     if (!isEditingNote || !shouldFocusNoteRef.current) return;
     shouldFocusNoteRef.current = false;
     noteTextareaRef.current?.focus();
-  }, [isEditingNote]);
+    scrollNoteEditorIntoView();
+  }, [isEditingNote, scrollNoteEditorIntoView]);
+
+  React.useEffect(() => {
+    if (!isEditingNote) return;
+    const visualViewport = getVisualViewport();
+    if (!visualViewport) return;
+    const updateForKeyboard = () => scrollNoteEditorIntoView();
+    visualViewport.addEventListener('resize', updateForKeyboard);
+    visualViewport.addEventListener('scroll', updateForKeyboard);
+    return () => {
+      visualViewport.removeEventListener('resize', updateForKeyboard);
+      visualViewport.removeEventListener('scroll', updateForKeyboard);
+    };
+  }, [isEditingNote, scrollNoteEditorIntoView]);
 
   const startNoteEdit = () => {
     setNoteDraft(currentNote);
@@ -356,6 +383,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
               onKeyDown={handleNoteKeyDown}
+              onFocus={scrollNoteEditorIntoView}
               aria-label="User note"
               data-note-editor="true"
               placeholder="Write a note for this position..."
