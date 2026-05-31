@@ -19,6 +19,15 @@ export type GamepadLike = {
 };
 
 const AXIS_THRESHOLD = 0.65;
+const HAT_AXIS_INDEX = 9;
+const HAT_AXIS_TOLERANCE = 0.08;
+
+const HAT_AXIS_COMMANDS: Array<{ value: number; key: string; command: GamepadNavigationCommand }> = [
+  { value: -1, key: 'up', command: 'branchPrev' },
+  { value: -0.42857, key: 'right', command: 'forward' },
+  { value: 0.14286, key: 'down', command: 'branchNext' },
+  { value: 0.71429, key: 'left', command: 'back' },
+];
 
 function isButtonPressed(gamepad: GamepadLike, index: number): boolean {
   const button = gamepad.buttons?.[index];
@@ -42,6 +51,13 @@ function axisInput(
   return null;
 }
 
+function hatAxisInput(gamepad: GamepadLike): GamepadNavigationInput | null {
+  const value = gamepad.axes?.[HAT_AXIS_INDEX];
+  if (typeof value !== 'number') return null;
+  const match = HAT_AXIS_COMMANDS.find((item) => Math.abs(value - item.value) <= HAT_AXIS_TOLERANCE);
+  return match ? { command: match.command, key: `axis:${HAT_AXIS_INDEX}:hat-${match.key}` } : null;
+}
+
 export function getGamepadNavigationInput(gamepad: GamepadLike): GamepadNavigationInput | null {
   return (
     buttonInput(gamepad, 4, 'backFast') ??
@@ -54,6 +70,7 @@ export function getGamepadNavigationInput(gamepad: GamepadLike): GamepadNavigati
     buttonInput(gamepad, 9, 'end') ??
     buttonInput(gamepad, 1, 'back') ??
     buttonInput(gamepad, 0, 'forward') ??
+    hatAxisInput(gamepad) ??
     axisInput(gamepad, 0, -1, 'back') ??
     axisInput(gamepad, 0, 1, 'forward') ??
     axisInput(gamepad, 1, -1, 'branchPrev') ??

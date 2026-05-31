@@ -33,4 +33,18 @@ describe('gamepad navigation mapping', () => {
     expect(getGamepadNavigationInput(pad({ axes: [0, 0.7] }))?.command).toBe('branchNext');
     expect(getGamepadNavigationInput(pad({ axes: [0.4, 0.4] }))).toBeNull();
   });
+
+  it('maps hat-axis d-pads used by compact controllers', () => {
+    const axes = (hatValue: number) => {
+      const values = Array.from({ length: 10 }, () => 0);
+      values[9] = hatValue;
+      return values;
+    };
+
+    expect(getGamepadNavigationInput(pad({ axes: axes(0.71429) }))).toEqual({ command: 'back', key: 'axis:9:hat-left' });
+    expect(getGamepadNavigationInput(pad({ axes: axes(-0.42857) }))).toEqual({ command: 'forward', key: 'axis:9:hat-right' });
+    expect(getGamepadNavigationInput(pad({ axes: axes(-1) }))).toEqual({ command: 'branchPrev', key: 'axis:9:hat-up' });
+    expect(getGamepadNavigationInput(pad({ axes: axes(0.14286) }))).toEqual({ command: 'branchNext', key: 'axis:9:hat-down' });
+    expect(getGamepadNavigationInput(pad({ axes: axes(1) }))).toBeNull();
+  });
 });
