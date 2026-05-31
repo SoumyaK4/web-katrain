@@ -64,6 +64,7 @@ function NoteInlinePreview({ segments }: { segments: NoteInlineSegment[] }) {
               href={segment.href}
               target="_blank"
               rel="noreferrer"
+              onClick={(event) => event.stopPropagation()}
               className="text-[var(--ui-accent)] underline decoration-[var(--ui-accent)]/50 underline-offset-2 hover:decoration-[var(--ui-accent)]"
             >
               {segment.text}
@@ -362,8 +363,9 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
             />
           ) : (
             <div
-              className="min-h-[88px] max-h-44 overflow-y-auto rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-sm leading-6 text-[var(--ui-text-muted)]"
+              className="min-h-[88px] max-h-44 cursor-text overflow-y-auto rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-sm leading-6 text-[var(--ui-text-muted)]"
               data-note-preview="true"
+              onClick={startNoteEdit}
             >
               {noteHasContent ? (
                 <NotePreview note={currentNote} />
