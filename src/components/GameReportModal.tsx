@@ -832,6 +832,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                         const active = policyFilter === category;
                         const playerLabel = player === 'black' ? 'Black' : 'White';
                         const categoryLabel = policyCategoryLabel(category);
+                        const moveWord = count === 1 ? 'move' : 'moves';
                         return (
                           <button
                             type="button"
@@ -845,7 +846,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                             aria-label={
                               count === 0
                                 ? `${playerLabel} ${categoryLabel}: no moves`
-                                : `Filter ${playerLabel} policy quality ${categoryLabel}: ${count} moves, ${pct}%`
+                                : `Filter ${playerLabel} policy quality ${categoryLabel}: ${count} ${moveWord}, ${pct}%`
                             }
                             title={
                               count === 0
