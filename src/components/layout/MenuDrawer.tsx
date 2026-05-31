@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera, FaInfoCircle } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera, FaInfoCircle, FaBook } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import type { LibraryFile } from '../../utils/library';
@@ -21,6 +21,7 @@ interface MenuDrawerProps {
   onNewGame: () => void;
   onSave: () => void;
   saveLabel?: string;
+  onSaveToLibrary: () => void;
   onLoad: () => void;
   onScanBoard: () => void;
   onCopy: () => void;
@@ -39,6 +40,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onNewGame,
   onSave,
   saveLabel = 'Save SGF',
+  onSaveToLibrary,
   onLoad,
   onScanBoard,
   onCopy,
@@ -129,6 +131,18 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 <FaSave aria-hidden="true" /> {saveLabel}
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['save-sgf']}</kbd>
+            </button>
+            <button
+              className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+              onClick={() => {
+                onSaveToLibrary();
+                onClose();
+              }}
+              aria-label="Save a copy to Library"
+            >
+              <span className="flex items-center gap-2">
+                <FaBook aria-hidden="true" /> Save Copy to Library
+              </span>
             </button>
             <button
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"

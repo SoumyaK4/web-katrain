@@ -8,8 +8,17 @@ import { ManualScorePanel } from './ManualScorePanel';
 import type { GameInfoValues, AiConfigValues, TimerConfigValues } from './NewGameModal';
 import { downloadSgfFromTree, formatSgfDate, generateSgfFromTree, getSgfDownloadFilenameFromProperties, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
 import { clearAutoSavedGame, readAutoSavedGame, writeAutoSavedGame, type AutoSavedGame } from '../utils/autoSave';
-import type { LibraryFile } from '../utils/library';
-import { loadLibrary, saveLibrary, updateLibraryFileSgf, updateLibraryItem } from '../utils/library';
+import {
+  createLibraryItem,
+  getLibraryFolderOptions,
+  loadLibrary,
+  saveLibrary,
+  suggestLibraryItemNameFromSgf,
+  updateLibraryFileSgf,
+  updateLibraryItem,
+  type LibraryFile,
+  type LibraryFolderOption,
+} from '../utils/library';
 import { isOgsUrl, loadSgfOrOgs } from '../utils/ogs';
 import type { CandidateMove, GameNode, Player } from '../types';
 import { DEFAULT_BOARD_SIZE } from '../types';
@@ -65,11 +74,18 @@ const KeyboardHelpModal = lazy(() => import('./KeyboardHelpModal').then((module)
 const NewGameModal = lazy(() => import('./NewGameModal').then((module) => ({ default: module.NewGameModal })));
 const PhotoBoardModal = lazy(() => import('./PhotoBoardModal').then((module) => ({ default: module.PhotoBoardModal })));
 const PasteSgfModal = lazy(() => import('./PasteSgfModal').then((module) => ({ default: module.PasteSgfModal })));
+const SaveToLibraryDialog = lazy(() => import('./SaveToLibraryDialog').then((module) => ({ default: module.SaveToLibraryDialog })));
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 const mainFileInputAccept = ['.sgf', ...PHOTO_BOARD_IMAGE_EXTENSIONS, 'image/*', MODEL_UPLOAD_ACCEPT].join(',');
 const LAYOUT_SHORTCUT_IDS = ['toggle-library', 'toggle-sidebar'] as const;
 type LoadedExternalFile = { name: string; kind: 'file' | 'ogs' | 'pasted' };
+type SaveToLibraryDialogState = {
+  sgf: string;
+  initialName: string;
+  initialFolderId: string | null;
+  folderOptions: LibraryFolderOption[];
+};
 
 const getImportedSgfName = (parsed: ReturnType<typeof parseSgf>, fallback: string): string => {
   const props = parsed.tree?.props ?? {};
@@ -264,6 +280,7 @@ export const Layout: React.FC = () => {
   const [isPhotoBoardOpen, setIsPhotoBoardOpen] = useState(false);
   const [photoBoardInitialFile, setPhotoBoardInitialFile] = useState<File | null>(null);
   const [isPasteSgfOpen, setIsPasteSgfOpen] = useState(false);
+  const [saveToLibraryDialog, setSaveToLibraryDialog] = useState<SaveToLibraryDialogState | null>(null);
   const [isUnsavedChangesOpen, setIsUnsavedChangesOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
@@ -332,6 +349,10 @@ export const Layout: React.FC = () => {
   const [externalLibraryItemRename, setExternalLibraryItemRename] = useState<{
     id: string;
     name: string;
+    updatedAt: number;
+  } | null>(null);
+  const [externalLibraryItemCreate, setExternalLibraryItemCreate] = useState<{
+    item: LibraryFile;
     updatedAt: number;
   } | null>(null);
   const [isFileDragActive, setIsFileDragActive] = useState(false);
@@ -684,6 +705,49 @@ export const Layout: React.FC = () => {
     markCurrentGameCleanAndClearAutoSave(saved);
     toast('Downloaded SGF.', 'success');
   }, [generateCurrentSgf, markCurrentGameCleanAndClearAutoSave, saveLoadedLibraryFile, sgfExportOptions, toast]);
+
+  const openSaveToLibraryDialog = useCallback(async () => {
+    const sgf = generateCurrentSgf();
+    try {
+      const items = await loadLibrary();
+      const currentLibraryItem = loadedLibraryFileId
+        ? items.find((item) => item.id === loadedLibraryFileId)
+        : null;
+      const fileCount = items.filter((item): item is LibraryFile => item.type === 'file').length;
+      const fallbackName = loadedLibraryFileName ?? loadedExternalFile?.name ?? `Game ${fileCount + 1}`;
+      setSaveToLibraryDialog({
+        sgf,
+        initialName: suggestLibraryItemNameFromSgf(sgf, fallbackName),
+        initialFolderId: currentLibraryItem?.type === 'file' ? currentLibraryItem.parentId ?? null : null,
+        folderOptions: getLibraryFolderOptions(items),
+      });
+    } catch {
+      toast('Failed to open Library save dialog.', 'error');
+    }
+  }, [generateCurrentSgf, loadedExternalFile?.name, loadedLibraryFileId, loadedLibraryFileName, toast]);
+
+  const handleSaveCopyToLibrary = useCallback(async (name: string, folderId: string | null): Promise<boolean> => {
+    const sgf = saveToLibraryDialog?.sgf ?? generateCurrentSgf();
+    const itemName = name.trim().replace(/\.sgf$/i, '').trim() || 'Untitled';
+    try {
+      const items = await loadLibrary();
+      const targetFolderId =
+        folderId && items.some((item) => item.type === 'folder' && item.id === folderId) ? folderId : null;
+      const updatedAt = Date.now();
+      const newItem = createLibraryItem(itemName, sgf, targetFolderId, updatedAt);
+      await saveLibrary([newItem, ...items]);
+      setLoadedLibraryFile(newItem.id, newItem.name);
+      setExternalLibraryItemCreate({ item: newItem, updatedAt });
+      setLibraryVersion((prev) => prev + 1);
+      markCurrentGameCleanAndClearAutoSave(sgf);
+      toast(`Saved "${newItem.name}" to Library.`, 'success');
+      setSaveToLibraryDialog(null);
+      return true;
+    } catch {
+      toast('Failed to save game to Library.', 'error');
+      return false;
+    }
+  }, [generateCurrentSgf, markCurrentGameCleanAndClearAutoSave, saveToLibraryDialog?.sgf, setLoadedLibraryFile, toast]);
 
   const confirmReplaceCurrentGame = useCallback(async (): Promise<UnsavedChangesChoice> => {
     if (!hasUnsavedChanges()) return 'discard';
@@ -1631,6 +1695,16 @@ export const Layout: React.FC = () => {
             onSubmit={handleOpenSgfFromText}
           />
         )}
+        {saveToLibraryDialog && (
+          <SaveToLibraryDialog
+            open
+            initialName={saveToLibraryDialog.initialName}
+            folderOptions={saveToLibraryDialog.folderOptions}
+            initialFolderId={saveToLibraryDialog.initialFolderId}
+            onClose={() => setSaveToLibraryDialog(null)}
+            onSave={handleSaveCopyToLibrary}
+          />
+        )}
         {isNewGameOpen && (
           <NewGameModal
             onClose={() => setIsNewGameOpen(false)}
@@ -1747,6 +1821,7 @@ export const Layout: React.FC = () => {
         onNewGame={() => void openNewGameWithGuard()}
         onSave={handleSaveCurrentSgf}
         saveLabel={saveControlLabel}
+        onSaveToLibrary={() => void openSaveToLibraryDialog()}
         onLoad={handleLoadClick}
         onScanBoard={() => openPhotoBoard()}
         onCopy={handleCopySgf}
@@ -1820,6 +1895,7 @@ export const Layout: React.FC = () => {
           onLoadedFileChange={setLoadedLibraryFile}
           externalFileUpdate={externalLibraryFileUpdate}
           externalItemRename={externalLibraryItemRename}
+          externalItemCreate={externalLibraryItemCreate}
           isAnalysisRunning={isGameAnalysisRunning}
           onStopAnalysis={stopGameAnalysis}
           analysisContent={
@@ -1914,6 +1990,7 @@ export const Layout: React.FC = () => {
               onNewGame={() => void openNewGameWithGuard()}
               onSaveSgf={handleSaveCurrentSgf}
               saveTitle={saveControlLabel}
+              onSaveToLibrary={() => void openSaveToLibraryDialog()}
               onLoadSgf={handleLoadClick}
               onOpenSidePanel={handleOpenSidePanel}
               onCopySgf={handleCopySgf}

@@ -250,6 +250,7 @@ interface LibraryPanelProps {
   onLoadedFileChange?: (id: string | null, name?: string | null) => void;
   externalFileUpdate?: { id: string; sgf: string; updatedAt: number } | null;
   externalItemRename?: { id: string; name: string; updatedAt: number } | null;
+  externalItemCreate?: { item: LibraryItem; updatedAt: number } | null;
 }
 
 export const LibraryPanel: React.FC<LibraryPanelProps> = ({
@@ -271,6 +272,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   onLoadedFileChange,
   externalFileUpdate = null,
   externalItemRename = null,
+  externalItemCreate = null,
 }) => {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [libraryStatus, setLibraryStatus] = useState<'loading' | 'ready' | 'saving' | 'error'>('loading');
@@ -306,6 +308,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const didLoadLibraryRef = useRef(false);
   const lastExternalFileUpdateRef = useRef<string | null>(null);
   const lastExternalItemRenameRef = useRef<string | null>(null);
+  const lastExternalItemCreateRef = useRef<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const headerActionClass = 'panel-icon-button';
@@ -398,6 +401,18 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       updateLibraryItem(prev, externalItemRename.id, { name: externalItemRename.name }, externalItemRename.updatedAt)
     );
   }, [externalItemRename]);
+
+  useEffect(() => {
+    if (!didLoadLibraryRef.current || !externalItemCreate) return;
+    const key = `${externalItemCreate.item.id}:${externalItemCreate.updatedAt}`;
+    if (lastExternalItemCreateRef.current === key) return;
+    lastExternalItemCreateRef.current = key;
+    setItems((prev) =>
+      prev.some((item) => item.id === externalItemCreate.item.id)
+        ? prev.map((item) => (item.id === externalItemCreate.item.id ? externalItemCreate.item : item))
+        : [externalItemCreate.item, ...prev]
+    );
+  }, [externalItemCreate]);
 
   const activeFolderId = useMemo(() => {
     if (!currentFolderId) return null;

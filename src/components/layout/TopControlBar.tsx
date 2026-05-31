@@ -22,6 +22,7 @@ import {
   FaCamera,
   FaTrash,
   FaInfoCircle,
+  FaBook,
 } from 'react-icons/fa';
 import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
@@ -94,6 +95,7 @@ interface TopControlBarProps {
   onNewGame: () => void;
   onSaveSgf: () => void;
   saveTitle?: string;
+  onSaveToLibrary: () => void;
   onLoadSgf: () => void;
   onOpenSidePanel: () => void;
   onCopySgf: () => void;
@@ -151,6 +153,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onNewGame,
   onSaveSgf,
   saveTitle = 'Save SGF',
+  onSaveToLibrary,
   onLoadSgf,
   onOpenSidePanel,
   onCopySgf,
@@ -450,6 +453,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </IconButton>
         <IconButton title={saveControlTitle} onClick={onSaveSgf} className={topIconClass}>
           <FaSave />
+        </IconButton>
+        <IconButton title="Save copy to Library" onClick={onSaveToLibrary} className={topIconClass}>
+          <FaBook />
         </IconButton>
         <IconButton title={withShortcut('Load SGF, board photo, or model weights', 'open-sgf')} onClick={onLoadSgf} className={topIconClass}>
           <FaFolderOpen />
