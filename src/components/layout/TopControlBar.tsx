@@ -87,7 +87,7 @@ interface TopControlBarProps {
   gameAnalysisDone: number;
   gameAnalysisTotal: number;
   startQuickGameAnalysis: () => void;
-  startFastGameAnalysis: () => void;
+  startFastGameAnalysis: (opts?: { moveRange?: [number, number] | null }) => void;
   stopGameAnalysis: () => void;
   setIsGameAnalysisOpen: (v: boolean) => void;
   setIsGameReportOpen: (v: boolean) => void;

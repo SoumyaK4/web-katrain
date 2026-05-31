@@ -73,6 +73,14 @@ export function getPhaseMoveRange(
   return { start: middleEnd + 1, end: Number.MAX_SAFE_INTEGER };
 }
 
+export function getPhaseAnalysisMoveRange(boardSize: number, phase: GameReportPhaseFilter): [number, number] | null {
+  const range = getPhaseMoveRange(boardSize, phase);
+  if (!range) return null;
+  const start = Math.max(0, range.start - 1);
+  const end = range.end === Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : Math.max(start, range.end - 1);
+  return [start, end];
+}
+
 function evaluationClass(pointsLost: number, thresholds: number[]): number {
   let i = 0;
   while (i < thresholds.length - 1 && pointsLost < thresholds[i]!) i++;

@@ -7,6 +7,7 @@ import {
   MOVE_POLICY_CATEGORIES,
   computeGameReport,
   describeReportSwing,
+  getPhaseAnalysisMoveRange,
   getPhaseLabel,
   getPhaseMoveRange,
   getPointLossBucket,
@@ -412,12 +413,15 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const coverage = totalMoves > 0 ? analyzedMoves / totalMoves : 0;
   const hasReviewTargets = totalMoves > 0;
   const hasFullCoverage = hasReviewTargets && coverage >= 0.999;
+  const phaseLabel = getPhaseLabel(phaseFilter);
+  const reviewMoveRange = useMemo(() => getPhaseAnalysisMoveRange(boardSize, phaseFilter), [boardSize, phaseFilter]);
+  const reviewScopeLabel = phaseFilter === 'all' ? 'fast review' : `${phaseLabel.toLowerCase()} review`;
   const reviewButtonLabel = isGameAnalysisRunning
     ? `Stop ${gameAnalysisType ?? 'analysis'}${gameAnalysisTotal > 0 ? ` (${gameAnalysisDone}/${gameAnalysisTotal})` : ''}`
     : hasFullCoverage
-      ? 'Re-run fast review'
+      ? `Re-run ${reviewScopeLabel}`
       : hasReviewTargets
-      ? 'Run fast review'
+      ? `Run ${reviewScopeLabel}`
       : 'No moves to review';
   const coveragePercent = totalMoves > 0 ? Math.round(coverage * 100) : 0;
   const analysisStatusTitle = isGameAnalysisRunning
@@ -432,7 +436,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     : hasFullCoverage
       ? 'Every move in this filter has consecutive analysis, so the report is complete.'
       : hasReviewTargets
-        ? `${analyzedMoves}/${totalMoves} moves have report-grade consecutive analysis. Run fast review to fill the gaps.`
+        ? `${analyzedMoves}/${totalMoves} moves have report-grade consecutive analysis. Run ${reviewScopeLabel} to fill the gaps.`
         : 'Load or play a game with moves before running a report review.';
   const playerFilterLabel = playerFilter === 'all' ? 'All players' : playerNames[playerFilter];
   const statsPlayers: Array<Player> = playerFilter === 'all' ? ['black', 'white'] : [playerFilter];
@@ -485,7 +489,6 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const policyFilterLabel = policyFilter ? policyCategoryLabel(policyFilter) : null;
   const mistakeSortLabel = mistakeSort === 'policy' ? 'Quality' : 'Loss';
 
-  const phaseLabel = getPhaseLabel(phaseFilter);
   const activeFilterLabels = useMemo(() => {
     const labels = [phaseLabel, playerFilterLabel];
     if (bucketFilterLabel) labels.push(`Loss ${bucketFilterLabel}`);
@@ -595,6 +598,11 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
 
   const handlePrintReport = () => {
     void preparePrint();
+  };
+
+  const handleReviewClick = () => {
+    if (isGameAnalysisRunning) stopGameAnalysis();
+    else startFastGameAnalysis({ moveRange: reviewMoveRange });
   };
 
   const startReviewQueue = (entries: MoveReportEntry[]) => {
@@ -942,7 +950,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
               </div>
               <button
                 type="button"
-                onClick={isGameAnalysisRunning ? stopGameAnalysis : startFastGameAnalysis}
+                onClick={handleReviewClick}
                 disabled={isPreparingPdf || (!isGameAnalysisRunning && !hasReviewTargets)}
                 className={[
                   'shrink-0 rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-60',
@@ -1735,7 +1743,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={isGameAnalysisRunning ? stopGameAnalysis : startFastGameAnalysis}
+              onClick={handleReviewClick}
               className={[
                 'px-4 py-2 rounded-lg font-semibold disabled:opacity-60',
                 isGameAnalysisRunning

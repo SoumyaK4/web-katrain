@@ -49,7 +49,7 @@ interface AnalysisPanelProps {
   gameAnalysisDone: number;
   gameAnalysisTotal: number;
   startQuickGameAnalysis: () => void;
-  startFastGameAnalysis: () => void;
+  startFastGameAnalysis: (opts?: { moveRange?: [number, number] | null }) => void;
   stopGameAnalysis: () => void;
   clearAnalysisCache: () => void;
   analysisCacheSize: number;

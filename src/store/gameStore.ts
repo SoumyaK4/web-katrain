@@ -144,7 +144,7 @@ interface GameStore extends GameState {
   selfplayToEnd: () => void;
   stopSelfplayToEnd: () => void;
   startQuickGameAnalysis: () => void;
-  startFastGameAnalysis: () => void;
+  startFastGameAnalysis: (opts?: { moveRange?: [number, number] | null }) => void;
   startFullGameAnalysis: (opts: { visits: number; moveRange?: [number, number] | null; mistakesOnly?: boolean }) => void;
   stopGameAnalysis: () => void;
   updateSettings: (newSettings: Partial<GameSettings>) => void;
@@ -1785,12 +1785,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })();
   },
 
-  startFastGameAnalysis: () => {
+  startFastGameAnalysis: (opts) => {
     const token = ++gameAnalysisToken;
     analysisQueue.cancelGroup('game-analysis');
     const state = get();
+    const moveRangeRaw = opts?.moveRange ?? null;
+    const moveRange: [number, number] | null = moveRangeRaw
+      ? [Math.min(moveRangeRaw[0]!, moveRangeRaw[1]!), Math.max(moveRangeRaw[0]!, moveRangeRaw[1]!)]
+      : null;
 
-    const nodes = getCurrentLineNodes(state.rootNode, state.activeBranchChildIds);
+    const nodes = getCurrentLineNodes(state.rootNode, state.activeBranchChildIds).filter((node) => {
+      if (!moveRange) return true;
+      return nodeIsInMoveRange(node, moveRange) || nodeIsParentOfMoveInRange(node, moveRange);
+    });
 
     const total = nodes.length;
     if (total <= 1) {

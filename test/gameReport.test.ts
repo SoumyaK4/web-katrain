@@ -5,6 +5,7 @@ import {
   classifyMoveByRankAndPolicy,
   computeGameReport,
   describeReportSwing,
+  getPhaseAnalysisMoveRange,
   getMovePhase,
   getPhaseThresholds,
   getPointLossBucket,
@@ -349,6 +350,13 @@ describe('computeGameReport', () => {
     expect(getMovePhase(51, 19)).toBe('middleGame');
     expect(getMovePhase(150, 19)).toBe('middleGame');
     expect(getMovePhase(151, 19)).toBe('endgame');
+  });
+
+  it('converts report phases to 0-indexed analysis ranges', () => {
+    expect(getPhaseAnalysisMoveRange(9, 'all')).toBeNull();
+    expect(getPhaseAnalysisMoveRange(9, 'opening')).toEqual([0, 14]);
+    expect(getPhaseAnalysisMoveRange(9, 'middleGame')).toEqual([15, 39]);
+    expect(getPhaseAnalysisMoveRange(9, 'endgame')).toEqual([40, Number.MAX_SAFE_INTEGER]);
   });
 
   it('maps point loss values to labeled report buckets', () => {

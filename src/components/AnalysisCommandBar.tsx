@@ -47,7 +47,7 @@ interface AnalysisCommandBarProps {
   gameAnalysisType: string | null;
   gameAnalysisDone: number;
   gameAnalysisTotal: number;
-  startFastGameAnalysis: () => void;
+  startFastGameAnalysis: (opts?: { moveRange?: [number, number] | null }) => void;
   stopGameAnalysis: () => void;
   onOpenGameReport: () => void;
 }
@@ -311,7 +311,10 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         <button
           type="button"
           className={['analysis-command-bar__button', isGameAnalysisRunning ? 'danger active' : ''].join(' ')}
-          onClick={isGameAnalysisRunning ? stopGameAnalysis : startFastGameAnalysis}
+          onClick={() => {
+            if (isGameAnalysisRunning) stopGameAnalysis();
+            else startFastGameAnalysis();
+          }}
           title={isGameAnalysisRunning ? 'Stop game analysis' : 'Run a fast MCTS review of the game'}
         >
           {isGameAnalysisRunning ? <FaSquare size={12} aria-hidden="true" /> : <FaRobot size={12} aria-hidden="true" />}
