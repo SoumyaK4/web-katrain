@@ -8,6 +8,7 @@ import {
   runPwaInstallPrompt,
   setPwaInstallDismissed,
 } from '../utils/pwa';
+import { getResizeObserverConstructor } from '../utils/resizeObserver';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -73,7 +74,8 @@ export const PwaInstallBanner: React.FC = () => {
       root.style.setProperty('--pwa-banner-height', `${Math.ceil(height + 12)}px`);
     };
     updateHeight();
-    if (typeof ResizeObserver === 'undefined' || !bannerRef.current) {
+    const ResizeObserverConstructor = getResizeObserverConstructor();
+    if (!ResizeObserverConstructor || !bannerRef.current) {
       window.addEventListener('resize', updateHeight);
       return () => {
         window.removeEventListener('resize', updateHeight);
@@ -81,7 +83,7 @@ export const PwaInstallBanner: React.FC = () => {
         root.style.removeProperty('--pwa-banner-height');
       };
     }
-    const observer = new ResizeObserver(updateHeight);
+    const observer = new ResizeObserverConstructor(updateHeight);
     observer.observe(bannerRef.current);
     window.addEventListener('resize', updateHeight);
     return () => {

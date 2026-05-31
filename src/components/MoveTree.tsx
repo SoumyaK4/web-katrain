@@ -17,6 +17,7 @@ import {
 } from '../utils/moveTreeLayout';
 import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 import { getWorkerConstructor } from '../utils/browserWorker';
+import { getResizeObserverConstructor } from '../utils/resizeObserver';
 
 type LayoutWorkerResponse =
   | { requestId: number; ok: true; layout: MoveTreeLayout }
@@ -170,7 +171,8 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
 
     update();
     container.addEventListener('scroll', update, { passive: true });
-    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    const ResizeObserverConstructor = getResizeObserverConstructor();
+    const resizeObserver = ResizeObserverConstructor ? new ResizeObserverConstructor(update) : null;
     resizeObserver?.observe(container);
     return () => {
       cancelAnimationFrame(frame);

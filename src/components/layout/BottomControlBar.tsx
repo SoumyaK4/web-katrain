@@ -19,6 +19,7 @@ import { STONE_SIZE } from './types';
 import { publicUrl } from '../../utils/publicUrl';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import { formatGameInfoPlayer } from '../../utils/gameInfoDisplay';
+import { getResizeObserverConstructor } from '../../utils/resizeObserver';
 
 const BOTTOM_CONTROL_SHORTCUT_IDS = [
   'pass',
@@ -118,8 +119,9 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     if (!el) return;
     const update = () => setPassBtnHeight(el.getBoundingClientRect().height);
     update();
-    if (typeof ResizeObserver === 'undefined') return;
-    const obs = new ResizeObserver(() => update());
+    const ResizeObserverConstructor = getResizeObserverConstructor();
+    if (!ResizeObserverConstructor) return;
+    const obs = new ResizeObserverConstructor(() => update());
     obs.observe(el);
     return () => obs.disconnect();
   }, []);

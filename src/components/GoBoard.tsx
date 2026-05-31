@@ -20,6 +20,7 @@ import { formatBoardMoveLabel } from '../utils/playedMoveQuality';
 import { setTimedNotification, type TimedNotificationType } from '../utils/timedNotification';
 import { getTapConfirmAction, TAP_CONFIRM_TIMEOUT_MS, type TapConfirmPoint } from '../utils/tapConfirm';
 import { playNavigationHaptic, playStoneHaptic } from '../utils/haptics';
+import { getResizeObserverConstructor } from '../utils/resizeObserver';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const OWNERSHIP_COLORS = {
@@ -323,8 +324,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       setContainerSize({ width: rect.width, height: rect.height });
     };
     update();
-    if (typeof ResizeObserver === 'undefined') return;
-    const obs = new ResizeObserver(() => update());
+    const ResizeObserverConstructor = getResizeObserverConstructor();
+    if (!ResizeObserverConstructor) return;
+    const obs = new ResizeObserverConstructor(() => update());
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
