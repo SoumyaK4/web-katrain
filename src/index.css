@@ -915,6 +915,107 @@
     flex-direction: column;
   }
 
+  .move-tree-floating-controls {
+    position: sticky;
+    top: 0.375rem;
+    right: 0.375rem;
+    z-index: 8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    height: 0;
+    padding-right: 0.375rem;
+    pointer-events: none;
+  }
+
+  .move-tree-control-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--ui-text-muted);
+    background: color-mix(in srgb, var(--ui-panel) 94%, transparent);
+    border: 1px solid var(--ui-border);
+    border-radius: 6px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+    pointer-events: auto;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .move-tree-control-button:hover,
+  .move-tree-control-button.active {
+    color: var(--ui-accent);
+    background: var(--ui-accent-soft);
+    border-color: var(--ui-accent);
+  }
+
+  .move-tree-minimap {
+    position: sticky;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 7;
+    display: flex;
+    justify-content: flex-end;
+    height: 0;
+    padding-right: 0.5rem;
+    pointer-events: none;
+  }
+
+  .move-tree-minimap svg {
+    cursor: crosshair;
+    pointer-events: auto;
+    filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.3));
+  }
+
+  .move-tree-minimap-bg {
+    fill: color-mix(in srgb, var(--ui-panel) 92%, transparent);
+    stroke: var(--ui-border-strong);
+    stroke-width: 1;
+  }
+
+  .move-tree-minimap-edge {
+    fill: none;
+    stroke: var(--ui-text-faint);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.65;
+  }
+
+  .move-tree-minimap-node {
+    stroke-width: 1.5;
+  }
+
+  .move-tree-minimap-node.root {
+    fill: none;
+    stroke: var(--ui-text-muted);
+  }
+
+  .move-tree-minimap-node.black {
+    fill: #05070a;
+    stroke: #dbeafe;
+  }
+
+  .move-tree-minimap-node.white {
+    fill: #f8fafc;
+    stroke: #020617;
+  }
+
+  .move-tree-minimap-node.current {
+    stroke: var(--ui-accent);
+    stroke-width: 3;
+  }
+
+  .move-tree-minimap-viewport {
+    fill: color-mix(in srgb, var(--ui-accent) 16%, transparent);
+    stroke: var(--ui-accent);
+    stroke-width: 1.5;
+  }
+
   .library-tree-node {
     display: flex;
     align-items: center;
@@ -1609,6 +1710,7 @@
   }
 
   .panel-compact-tree {
+    height: clamp(8.25rem, 18dvh, 11.25rem);
     max-height: 180px;
   }
 

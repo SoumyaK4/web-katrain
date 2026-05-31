@@ -1,12 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
+import { FaCompressArrowsAlt, FaCrosshairs, FaMapMarkedAlt } from 'react-icons/fa';
 import { useGameStore } from '../store/gameStore';
 import type { GameNode } from '../types';
 import {
   MOVE_TREE_LAYOUT_WORKER_THRESHOLD,
   computeMoveTreeLayout,
   flattenMoveTree,
+  getMoveTreeMinimapViewportRect,
+  getMoveTreeMinimapTransform,
   getVisibleMoveTreeItems,
+  shouldShowMoveTreeMinimap,
   type MoveTreeLayout,
   type MoveTreeViewport,
 } from '../utils/moveTreeLayout';
@@ -16,6 +20,8 @@ type LayoutWorkerResponse =
   | { requestId: number; ok: false; error: string };
 
 const EMPTY_VIEWPORT: MoveTreeViewport = { left: 0, top: 0, width: 640, height: 220 };
+const MINIMAP_SIZE = { width: 156, height: 88 };
+const MINIMAP_STORAGE_KEY = 'web-katrain:move_tree_minimap:v1';
 
 function indexNodes(root: GameNode): Map<string, GameNode> {
   const map = new Map<string, GameNode>();
@@ -50,6 +56,10 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     status: 'worker' | 'fallback';
   } | null>(null);
   const [viewport, setViewport] = useState<MoveTreeViewport>(EMPTY_VIEWPORT);
+  const [showMinimap, setShowMinimap] = useState(() => {
+    if (typeof localStorage === 'undefined') return true;
+    return localStorage.getItem(MINIMAP_STORAGE_KEY) !== 'false';
+  });
 
   const flatTree = useMemo(() => {
     void treeVersion;
@@ -74,6 +84,22 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
       ? workerResult.status
       : 'working'
     : 'sync';
+
+  const centerCurrentNode = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const container = containerRef.current;
+    const activeLayout = syncLayout ?? (shouldUseWorker && workerResult?.key === layoutKey ? workerResult.layout : null);
+    if (!container || !activeLayout) return;
+    const pos = activeLayout.nodes.find((node) => node.id === currentNode.id);
+    if (!pos) return;
+    const targetLeft = Math.max(0, pos.x - container.clientWidth * 0.5);
+    const targetTop = Math.max(0, pos.y - container.clientHeight * 0.5);
+    container.scrollTo({ left: targetLeft, top: targetTop, behavior });
+  }, [currentNode.id, layoutKey, shouldUseWorker, syncLayout, workerResult]);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(MINIMAP_STORAGE_KEY, String(showMinimap));
+  }, [showMinimap]);
 
   useEffect(() => {
     if (!shouldUseWorker) return;
@@ -144,17 +170,33 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   }, []);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !layout) return;
-    const pos = layout.nodes.find((node) => node.id === currentNode.id);
-    if (!pos) return;
-
-    const targetLeft = Math.max(0, pos.x - container.clientWidth * 0.5);
-    const targetTop = Math.max(0, pos.y - container.clientHeight * 0.5);
-    container.scrollTo({ left: targetLeft, top: targetTop, behavior: 'smooth' });
-  }, [currentNode, layout]);
+    centerCurrentNode('smooth');
+  }, [centerCurrentNode]);
 
   const visible = useMemo(() => (layout ? getVisibleMoveTreeItems(layout, viewport) : null), [layout, viewport]);
+  const minimapViewport = useMemo(
+    () => (layout ? getMoveTreeMinimapViewportRect(layout, viewport, MINIMAP_SIZE) : null),
+    [layout, viewport]
+  );
+  const minimapTransform = useMemo(() => (layout ? getMoveTreeMinimapTransform(layout, MINIMAP_SIZE) : null), [layout]);
+  const shouldRenderMinimap = useMemo(
+    () => (layout ? shouldShowMoveTreeMinimap(layout, viewport, MINIMAP_SIZE) : false),
+    [layout, viewport]
+  );
+
+  const handleMinimapClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    const container = containerRef.current;
+    if (!container || !layout || !minimapTransform) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const { scale, offsetX, offsetY } = minimapTransform;
+    const x = Math.max(0, Math.min(layout.width, (event.clientX - rect.left - offsetX) / scale));
+    const y = Math.max(0, Math.min(layout.height, (event.clientY - rect.top - offsetY) / scale));
+    container.scrollTo({
+      left: Math.max(0, x - container.clientWidth / 2),
+      top: Math.max(0, y - container.clientHeight / 2),
+      behavior: 'smooth',
+    });
+  };
 
   if (!layout || !visible) {
     return (
@@ -168,6 +210,29 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-auto ui-surface" data-tree-layout={layoutStatus}>
+      <div className="move-tree-floating-controls">
+        <button
+          type="button"
+          className="move-tree-control-button"
+          onClick={() => centerCurrentNode('smooth')}
+          title="Center current move"
+          aria-label="Center current move"
+        >
+          <FaCrosshairs size={11} />
+        </button>
+        {shouldRenderMinimap && (
+          <button
+            type="button"
+            className={['move-tree-control-button', showMinimap ? 'active' : ''].join(' ')}
+            onClick={() => setShowMinimap((prev) => !prev)}
+            title={showMinimap ? 'Hide tree map' : 'Show tree map'}
+            aria-label={showMinimap ? 'Hide tree map' : 'Show tree map'}
+            aria-pressed={showMinimap}
+          >
+            {showMinimap ? <FaCompressArrowsAlt size={11} /> : <FaMapMarkedAlt size={11} />}
+          </button>
+        )}
+      </div>
       <svg width={layout.width} height={layout.height} viewBox={`0 0 ${layout.width} ${layout.height}`}>
         {visible.edges.map((l) => (
           <polyline
@@ -222,6 +287,46 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
       {layoutStatus === 'working' && (
         <div className="pointer-events-none sticky bottom-1 left-1 inline-flex rounded bg-[var(--ui-surface)]/90 px-2 py-1 text-[10px] uppercase tracking-wide ui-text-muted">
           Laying out {flatTree.length} nodes
+        </div>
+      )}
+      {showMinimap && shouldRenderMinimap && minimapViewport && minimapTransform && (
+        <div className="move-tree-minimap" data-move-tree-minimap="true">
+          <svg
+            width={MINIMAP_SIZE.width}
+            height={MINIMAP_SIZE.height}
+            viewBox={`0 0 ${MINIMAP_SIZE.width} ${MINIMAP_SIZE.height}`}
+            onClick={handleMinimapClick}
+            role="button"
+            aria-label="Pan move tree minimap"
+          >
+            <rect x="0" y="0" width={MINIMAP_SIZE.width} height={MINIMAP_SIZE.height} rx="6" className="move-tree-minimap-bg" />
+            <g transform={`translate(${minimapTransform.offsetX} ${minimapTransform.offsetY}) scale(${minimapTransform.scale})`}>
+              {layout.edges.map((edge) => (
+                <polyline key={edge.id} points={edge.points} className="move-tree-minimap-edge" />
+              ))}
+              {layout.nodes.map((node) => (
+                <circle
+                  key={node.id}
+                  cx={node.x}
+                  cy={node.y}
+                  r={node.id === currentNode.id ? layout.radius + 2 : layout.radius}
+                  className={[
+                    'move-tree-minimap-node',
+                    node.player === 'white' ? 'white' : node.player === 'black' ? 'black' : 'root',
+                    node.id === currentNode.id ? 'current' : '',
+                  ].join(' ')}
+                />
+              ))}
+            </g>
+            <rect
+              x={minimapViewport.x}
+              y={minimapViewport.y}
+              width={minimapViewport.width}
+              height={minimapViewport.height}
+              rx="3"
+              className="move-tree-minimap-viewport"
+            />
+          </svg>
         </div>
       )}
     </div>

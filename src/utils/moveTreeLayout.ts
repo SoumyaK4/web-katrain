@@ -45,6 +45,21 @@ export type MoveTreeViewport = {
   height: number;
 };
 
+export type MoveTreeMinimapRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type MoveTreeMinimapTransform = {
+  scale: number;
+  renderedWidth: number;
+  renderedHeight: number;
+  offsetX: number;
+  offsetY: number;
+};
+
 export const MOVE_TREE_LAYOUT_WORKER_THRESHOLD = 240;
 
 const NODE_RADIUS = 6;
@@ -173,4 +188,48 @@ export function getVisibleMoveTreeItems(
   );
 
   return { nodes, edges };
+}
+
+export function getMoveTreeMinimapViewportRect(
+  layout: Pick<MoveTreeLayout, 'width' | 'height'>,
+  viewport: MoveTreeViewport,
+  minimap: { width: number; height: number }
+): MoveTreeMinimapRect {
+  const { scale, renderedWidth, renderedHeight, offsetX, offsetY } = getMoveTreeMinimapTransform(layout, minimap);
+  const rectWidth = Math.min(renderedWidth, Math.max(6, viewport.width * scale));
+  const rectHeight = Math.min(renderedHeight, Math.max(6, viewport.height * scale));
+  const maxX = offsetX + renderedWidth - rectWidth;
+  const maxY = offsetY + renderedHeight - rectHeight;
+
+  return {
+    x: Math.min(maxX, Math.max(offsetX, offsetX + viewport.left * scale)),
+    y: Math.min(maxY, Math.max(offsetY, offsetY + viewport.top * scale)),
+    width: rectWidth,
+    height: rectHeight,
+  };
+}
+
+export function getMoveTreeMinimapTransform(
+  layout: Pick<MoveTreeLayout, 'width' | 'height'>,
+  minimap: { width: number; height: number }
+): MoveTreeMinimapTransform {
+  const scale = Math.min(minimap.width / Math.max(layout.width, 1), minimap.height / Math.max(layout.height, 1));
+  const renderedWidth = Math.max(1, layout.width * scale);
+  const renderedHeight = Math.max(1, layout.height * scale);
+  const offsetX = Math.max(0, (minimap.width - renderedWidth) / 2);
+  const offsetY = Math.max(0, (minimap.height - renderedHeight) / 2);
+
+  return { scale, renderedWidth, renderedHeight, offsetX, offsetY };
+}
+
+export function shouldShowMoveTreeMinimap(
+  layout: Pick<MoveTreeLayout, 'width' | 'height'>,
+  viewport: MoveTreeViewport,
+  minimap: { width: number; height: number },
+  padding = 24
+): boolean {
+  const needsMap = layout.width > viewport.width + 2 || layout.height > viewport.height + 2;
+  const hasRoom = viewport.width >= minimap.width + padding && viewport.height >= minimap.height + padding;
+
+  return needsMap && hasRoom;
 }

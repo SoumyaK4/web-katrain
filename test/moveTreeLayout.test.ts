@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeMoveTreeLayout,
+  getMoveTreeMinimapViewportRect,
+  getMoveTreeMinimapTransform,
   getVisibleMoveTreeItems,
+  shouldShowMoveTreeMinimap,
   type MoveTreeLayoutItem,
 } from '../src/utils/moveTreeLayout';
 
@@ -51,5 +54,40 @@ describe('move tree layout', () => {
     expect(visible.nodes.length).toBeLessThan(layout.nodes.length);
     expect(visible.nodes.some((node) => node.id === 'root')).toBe(true);
     expect(visible.edges.length).toBeLessThan(layout.edges.length);
+  });
+
+  it('maps the scrolled viewport onto a bounded minimap rect', () => {
+    expect(getMoveTreeMinimapTransform({ width: 1000, height: 250 }, { width: 200, height: 100 })).toEqual({
+      scale: 0.2,
+      renderedWidth: 200,
+      renderedHeight: 50,
+      offsetX: 0,
+      offsetY: 25,
+    });
+
+    const rect = getMoveTreeMinimapViewportRect(
+      { width: 1000, height: 500 },
+      { left: 250, top: 125, width: 500, height: 250 },
+      { width: 200, height: 100 }
+    );
+
+    expect(rect).toEqual({ x: 50, y: 25, width: 100, height: 50 });
+
+    const clamped = getMoveTreeMinimapViewportRect(
+      { width: 1000, height: 500 },
+      { left: 900, top: 450, width: 500, height: 250 },
+      { width: 200, height: 100 }
+    );
+
+    expect(clamped.x + clamped.width).toBeLessThanOrEqual(200);
+    expect(clamped.y + clamped.height).toBeLessThanOrEqual(100);
+  });
+
+  it('only shows the minimap for scrollable trees with enough viewport room', () => {
+    const minimap = { width: 156, height: 88 };
+
+    expect(shouldShowMoveTreeMinimap({ width: 60, height: 44 }, { left: 0, top: 0, width: 280, height: 44 }, minimap)).toBe(false);
+    expect(shouldShowMoveTreeMinimap({ width: 1000, height: 500 }, { left: 0, top: 0, width: 280, height: 44 }, minimap)).toBe(false);
+    expect(shouldShowMoveTreeMinimap({ width: 1000, height: 500 }, { left: 0, top: 0, width: 280, height: 180 }, minimap)).toBe(true);
   });
 });
