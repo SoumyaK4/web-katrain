@@ -6,6 +6,7 @@ import {
   findCurrentLineMoveTarget,
   findSiblingBranchTarget,
   getBranchInfo,
+  getCurrentLineNodes,
   getCurrentLineMoveCount,
 } from '../src/utils/branchNavigation';
 
@@ -135,6 +136,18 @@ describe('branch navigation', () => {
     expect(getCurrentLineMoveCount(root, active)).toBe(2);
     expect(findCurrentLineMoveTarget(root, 1, active)?.id).toBe('b');
     expect(findCurrentLineMoveTarget(root, 2, active)?.id).toBe('b1');
+  });
+
+  it('builds a navigable current line from root through the active continuation', () => {
+    const root = makeNode('root', null);
+    const a = makeNode('a', root, { x: 0, y: 0, player: 'black' });
+    makeNode('a1', a, { x: 0, y: 0, player: 'white' });
+    const b = makeNode('b', root, { x: 0, y: 0, player: 'black' });
+    const b1 = makeNode('b1', b, { x: 0, y: 0, player: 'white' });
+    makeNode('b2', b1, { x: 0, y: 0, player: 'black' });
+
+    expect(getCurrentLineNodes(root).map((node) => node.id)).toEqual(['root', 'a', 'a1']);
+    expect(getCurrentLineNodes(root, { [root.id]: b.id, [b.id]: b1.id }).map((node) => node.id)).toEqual(['root', 'b', 'b1', 'b2']);
   });
 
   it('returns null when the current path has no sibling branch', () => {

@@ -26,7 +26,7 @@ import type { AnalysisControlsState, UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
 import { SectionHeader } from './ui';
 import { formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
-import { getBranchInfo } from '../../utils/branchNavigation';
+import { getBranchInfo, getCurrentLineNodes } from '../../utils/branchNavigation';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 
 const RIGHT_PANEL_SHORTCUT_IDS = [
@@ -183,15 +183,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     action();
   };
 
-  const pathNodes = React.useMemo(() => {
-    const nodes: GameNode[] = [];
-    let node: GameNode | null = currentNode;
-    while (node) {
-      nodes.push(node);
-      node = node.parent;
-    }
-    return nodes.reverse();
-  }, [currentNode]);
+  const activeBranchChildIds = useGameStore((state) => state.activeBranchChildIds);
+  const treeListNodes = React.useMemo(() => {
+    void treeVersion;
+    return getCurrentLineNodes(currentNode, activeBranchChildIds);
+  }, [activeBranchChildIds, currentNode, treeVersion]);
 
   const branchInfo = React.useMemo(() => {
     void treeVersion;
@@ -591,11 +587,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       }} />
                     ) : (
                       <div className="divide-y divide-[var(--ui-border)]">
-                        {pathNodes.map((node, idx) => {
+                        {treeListNodes.map((node) => {
                           const move = node.move;
                           const isCurrent = node.id === currentNode.id;
                           const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : 'Root';
                           const player = move ? playerToShort(move.player) : '—';
+                          const moveNumber = node.gameState.moveHistory.length;
                           const hasNote = !!node.note?.trim();
                           return (
                             <button
@@ -615,7 +612,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               title={isInsertMode ? 'Finish inserting before navigating.' : 'Jump to move'}
                             >
                               <span className="w-10 text-[10px] font-mono text-slate-500">
-                                {idx === 0 ? 'Root' : idx}
+                                {move ? moveNumber : 'Root'}
                               </span>
                               <span
                                 className={[
