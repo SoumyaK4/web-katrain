@@ -6,6 +6,7 @@ import {
   GAME_REPORT_PHASES,
   MOVE_POLICY_CATEGORIES,
   computeGameReport,
+  describeReportSwing,
   getPhaseLabel,
   getPhaseMoveRange,
   getPointLossBucket,
@@ -120,11 +121,6 @@ function policyCategoryColor(category: MovePolicyCategory): string {
     case 'blunder':
       return '#fb7185';
   }
-}
-
-function swingGainLabel(entry: MoveReportEntry): string {
-  const side = entry.scoreDelta >= 0 ? 'Black' : 'White';
-  return `${side} +${entry.scoreSwing.toFixed(1)}`;
 }
 
 export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setReportHoverMove }) => {
@@ -1192,7 +1188,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                       Win {fmtWinSwing(entry.winRateSwing)}
                     </span>
                     <span className={['font-mono font-semibold', entry.scoreDelta >= 0 ? 'text-slate-100' : 'text-slate-300'].join(' ')}>
-                      {swingGainLabel(entry)}
+                      {describeReportSwing(entry)}
                     </span>
                     {entry.policy && (
                       <span className={[
@@ -1242,7 +1238,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                       Win {fmtWinSwing(entry.winRateSwing)}
                     </span>
                     <span className="font-mono font-semibold text-emerald-300">
-                      {entry.player === 'black' ? 'Black' : 'White'} +{fmtNum(entry.pointsGained, 1)}
+                      {describeReportSwing(entry)}
                     </span>
                     {entry.policy && (
                       <span className={[
@@ -1616,7 +1612,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                           {fmtSigned(entry.scoreBefore)} {'->'} {fmtSigned(entry.scoreAfter)}
                         </div>
                         <div className="font-mono text-slate-700">Win {fmtWinSwing(entry.winRateSwing)}</div>
-                        <div className="font-semibold text-slate-900">{swingGainLabel(entry)}</div>
+                        <div className="font-semibold text-slate-900">{describeReportSwing(entry)}</div>
                       </div>
                     ))}
                   </div>
@@ -1645,7 +1641,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                         </div>
                         <div className="font-mono text-slate-700">Win {fmtWinSwing(entry.winRateSwing)}</div>
                         <div className="font-semibold text-slate-900">
-                          {entry.player === 'black' ? 'Black' : 'White'} +{fmtNum(entry.pointsGained, 1)}
+                          {describeReportSwing(entry)}
                         </div>
                       </div>
                     ))}

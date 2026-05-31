@@ -4,6 +4,7 @@ import { parseSgf } from '../src/utils/sgf';
 import {
   classifyMoveByRankAndPolicy,
   computeGameReport,
+  describeReportSwing,
   getMovePhase,
   getPhaseThresholds,
   getPointLossBucket,
@@ -448,6 +449,31 @@ describe('computeGameReport', () => {
     ];
 
     expect(getReportRecoveries(entries, 1.5, 3).map((entry) => entry.moveNumber)).toEqual([2, 4, 3]);
+  });
+
+  it('describes swings from the player perspective', () => {
+    expect(describeReportSwing(reportEntry({ moveNumber: 1, pointsLost: 5, scoreSwing: -5 }))).toBe(
+      'Black loses 5.0 points'
+    );
+    expect(
+      describeReportSwing({
+        ...reportEntry({ moveNumber: 2, pointsLost: 0, pointsGained: 1, scoreSwing: -1 }),
+        player: 'white',
+        scoreBefore: -5,
+        scoreAfter: -6,
+        scoreDelta: -1,
+        scoreSwing: 1,
+      })
+    ).toBe('White gains 1.0 points');
+    expect(
+      describeReportSwing({
+        ...reportEntry({ moveNumber: 3, pointsLost: 0, pointsGained: 3, scoreSwing: 3 }),
+        scoreBefore: -1,
+        scoreAfter: 2,
+        scoreDelta: 3,
+        scoreSwing: 3,
+      })
+    ).toBe('Black takes the lead');
   });
 
   it('filters report totals and top mistakes by phase', () => {

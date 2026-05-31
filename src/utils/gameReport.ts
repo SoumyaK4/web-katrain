@@ -244,6 +244,28 @@ export type GameReport = {
   movesInFilter: number;
 };
 
+function playerLabel(player: Player): string {
+  return player === 'black' ? 'Black' : 'White';
+}
+
+export function describeReportSwing(entry: MoveReportEntry): string {
+  const player = playerLabel(entry.player);
+  const wasLeadingBefore =
+    (entry.player === 'black' && entry.scoreBefore > 0) ||
+    (entry.player === 'white' && entry.scoreBefore < 0);
+  const isLeadingAfter =
+    (entry.player === 'black' && entry.scoreAfter > 0) ||
+    (entry.player === 'white' && entry.scoreAfter < 0);
+
+  if (!wasLeadingBefore && isLeadingAfter) return `${player} takes the lead`;
+  if (wasLeadingBefore && !isLeadingAfter) return `${player} loses the lead`;
+  if (entry.pointsLost > 0) return `${player} loses ${entry.pointsLost.toFixed(1)} points`;
+  if (entry.pointsGained > 0) return `${player} gains ${entry.pointsGained.toFixed(1)} points`;
+
+  const side = entry.scoreDelta >= 0 ? 'Black' : 'White';
+  return `${side} gains ${entry.scoreSwing.toFixed(1)} points`;
+}
+
 const POLICY_CATEGORY_SEVERITY: Record<MovePolicyCategory, number> = {
   aiMove: 0,
   good: 1,
