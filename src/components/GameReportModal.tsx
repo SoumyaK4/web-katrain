@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaBullseye, FaTimes } from 'react-icons/fa';
+import { FaBullseye, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import {
@@ -32,6 +32,13 @@ interface GameReportModalProps {
 const DEFAULT_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0];
 const HISTOGRAM_COLORS = ['#fb7185', '#f97316', '#f59e0b', '#84cc16', '#38bdf8', '#94a3b8'];
 const CRITICAL_SWING_THRESHOLD = 5;
+const POLICY_GUIDE: Array<{ category: MovePolicyCategory; detail: string }> = [
+  { category: 'aiMove', detail: 'Engine top choice, or effectively tied with the top policy move.' },
+  { category: 'good', detail: 'Rank 2-3, or at least 50% of the top move policy.' },
+  { category: 'inaccuracy', detail: 'Rank 4-10, or at least 10% of the top move policy.' },
+  { category: 'mistake', detail: 'Rank 11-20, or at least 2% of the top move policy.' },
+  { category: 'blunder', detail: 'Outside the top 20 and below 2% of the top move policy.' },
+];
 
 function fmtPct(x: number | undefined): string {
   if (typeof x !== 'number' || !Number.isFinite(x)) return '--';
@@ -151,6 +158,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const [isPreparingPdf, setIsPreparingPdf] = useState(false);
   const [pdfSnapshots, setPdfSnapshots] = useState<Array<{ id: string; dataUrl: string | null; entry: MoveReportEntry }>>([]);
   const [graphTick, setGraphTick] = useState(0);
+  const [showReportGuide, setShowReportGuide] = useState(false);
   const snapshotTimerRef = useRef<number | null>(null);
   const boardSize = normalizeBoardSize(currentNode.gameState.board.length, DEFAULT_BOARD_SIZE);
   const sectionClass =
@@ -487,6 +495,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
       value: (p) => fmtPct(report.stats[p].aiApprovedMove),
     },
   ];
+  const lossBucketGuide = useMemo(
+    () =>
+      report.labels.map((label, idx) => ({
+        label,
+        color: HISTOGRAM_COLORS[idx] ?? HISTOGRAM_COLORS[HISTOGRAM_COLORS.length - 1]!,
+      })),
+    [report.labels]
+  );
 
   const graphRange = useMemo(() => {
     return getPhaseMoveRange(boardSize, phaseFilter);
@@ -713,6 +729,15 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
 
   useEffect(() => () => setReportHoverMove(null), [setReportHoverMove]);
 
+  useEffect(() => {
+    if (!showReportGuide) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowReportGuide(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showReportGuide]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 report-overlay p-3 sm:p-6 mobile-safe-inset mobile-safe-area-bottom">
       <div className="ui-panel rounded-2xl shadow-2xl w-[92vw] max-w-[56rem] max-h-[90dvh] overflow-hidden flex flex-col report-print border">
@@ -721,9 +746,27 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
             <div className="text-xs uppercase tracking-[0.2em] ui-text-faint">KaTrain Report</div>
             <h2 className="text-lg font-semibold text-[var(--ui-text)]">Game Analysis Summary</h2>
           </div>
-          <button onClick={onClose} className="ui-text-faint hover:text-white print-hide" title="Close">
-            <FaTimes />
-          </button>
+          <div className="flex items-center gap-2 print-hide">
+            <button
+              type="button"
+              onClick={() => setShowReportGuide(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
+              title="Open report guide"
+              aria-label="Open report guide"
+            >
+              <FaInfoCircle aria-hidden="true" />
+              <span className="hidden sm:inline">Guide</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="ui-text-faint hover:text-white"
+              title="Close"
+              aria-label="Close game report"
+            >
+              <FaTimes aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className="px-5 py-4 space-y-4 overflow-y-auto overscroll-contain report-scroll">
@@ -1518,6 +1561,99 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
           </button>
         </div>
       </div>
+      {showReportGuide && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 print-hide"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-guide-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowReportGuide(false);
+          }}
+        >
+          <div className="ui-panel flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border shadow-2xl">
+            <div className="flex items-center justify-between gap-4 border-b border-[var(--ui-border)] px-5 py-4 ui-bar">
+              <div>
+                <div className={sectionTitleClass}>Report Guide</div>
+                <h3 id="report-guide-title" className="text-lg font-semibold text-[var(--ui-text)]">
+                  Reading this report
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReportGuide(false)}
+                className="ui-text-faint hover:text-white"
+                aria-label="Close report guide"
+                title="Close report guide"
+              >
+                <FaTimes aria-hidden="true" />
+              </button>
+            </div>
+            <div className="space-y-5 overflow-y-auto px-5 py-4 text-sm">
+              <section>
+                <div className={sectionTitleClass}>Policy Quality</div>
+                <div className="mt-3 divide-y divide-[var(--ui-border)] rounded-lg border border-[var(--ui-border)]">
+                  {POLICY_GUIDE.map(({ category, detail }) => (
+                    <div key={category} className="grid gap-2 px-3 py-2 sm:grid-cols-[8rem_1fr]">
+                      <div className="inline-flex items-center gap-2 font-semibold text-[var(--ui-text)]">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: policyCategoryColor(category) }}
+                          aria-hidden="true"
+                        />
+                        {policyCategoryLabel(category)}
+                      </div>
+                      <div className="text-[var(--ui-text-muted)]">{detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <div className={sectionTitleClass}>Point Loss Buckets</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {lossBucketGuide.map(({ label, color }) => (
+                    <span
+                      key={label}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-1 font-mono text-xs text-[var(--ui-text)]"
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-[var(--ui-text-muted)]">
+                  Point loss uses consecutive analyzed positions, so gaps in analysis are excluded from the report.
+                </p>
+              </section>
+
+              <section>
+                <div className={sectionTitleClass}>Core Metrics</div>
+                <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <dt className="font-semibold text-[var(--ui-text)]">Accuracy</dt>
+                    <dd className="mt-1 text-xs text-[var(--ui-text-muted)]">
+                      Score-loss accuracy weighted by position difficulty.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[var(--ui-text)]">Policy accuracy</dt>
+                    <dd className="mt-1 text-xs text-[var(--ui-text-muted)]">
+                      Average quality score from the policy category distribution.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[var(--ui-text)]">Complexity</dt>
+                    <dd className="mt-1 text-xs text-[var(--ui-text-muted)]">
+                      How much policy mass sits on point-losing alternatives.
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
