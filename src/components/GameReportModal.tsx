@@ -867,7 +867,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                       {MOVE_POLICY_CATEGORIES.map((category) => {
                         const count = distribution?.[category] ?? 0;
                         const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                        const active = policyFilter === category;
+                        const active = policyFilter === category && (playerFilter === 'all' || playerFilter === player);
                         const playerLabel = player === 'black' ? 'Black' : 'White';
                         const categoryLabel = policyCategoryLabel(category);
                         const moveWord = count === 1 ? 'move' : 'moves';
