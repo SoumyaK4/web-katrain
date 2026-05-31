@@ -15,6 +15,7 @@ import {
 } from '../utils/wheelNavigation';
 import { getActiveChild } from '../utils/branchNavigation';
 import { fuzzyStoneOffset } from '../utils/fuzzyPlacement';
+import { formatBoardMoveLabel } from '../utils/playedMoveQuality';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const OWNERSHIP_COLORS = {
@@ -484,15 +485,16 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       : null;
   const territory = (scoringMode ? scoreTerritory : null) ?? analysisTerritory ?? parentTerritory ?? null;
   const shouldShowHints = hasAnalysisOverlay && !!visibleAnalysis && settings.analysisShowHints && !settings.analysisShowPolicy;
-  const hintMoveMap = useMemo(() => {
-    if (!shouldShowHints || !visibleAnalysis) return null;
+  const canHoverAnalysisMove = hasAnalysisOverlay && !!visibleAnalysis && (shouldShowHints || settings.analysisShowPolicy);
+  const hoverMoveMap = useMemo(() => {
+    if (!canHoverAnalysisMove || !visibleAnalysis) return null;
     const map = new Map<string, CandidateMove>();
     for (const move of visibleAnalysis.moves) {
       if (move.x < 0 || move.y < 0) continue;
       map.set(`${move.x},${move.y}`, move);
     }
     return map;
-  }, [shouldShowHints, visibleAnalysis]);
+  }, [canHoverAnalysisMove, visibleAnalysis]);
 
   const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
     null
@@ -500,8 +502,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({
   const [cursorPt, setCursorPt] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    if (!shouldShowHints && hoveredMove) onHoverMove(null);
-  }, [hoveredMove, onHoverMove, shouldShowHints]);
+    if (!canHoverAnalysisMove && hoveredMove) onHoverMove(null);
+  }, [canHoverAnalysisMove, hoveredMove, onHoverMove]);
 
   useEffect(() => {
     const canvas = gridCanvasRef.current;
@@ -1246,13 +1248,16 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       return;
     }
     if (!isSelectingRegionOfInterest) {
-      if (shouldShowHints && hintMoveMap && pt) {
-        const move = hintMoveMap.get(`${pt.x},${pt.y}`) ?? null;
+      if (canHoverAnalysisMove && hoverMoveMap && pt) {
+        const move = hoverMoveMap.get(`${pt.x},${pt.y}`) ?? null;
         if (move) {
           const isBest = move.order === 0;
           const lowVisitsThreshold = Math.max(1, settings.trainerLowVisits);
-          const uncertain = move.visits < lowVisitsThreshold && !isBest && !childMoveCoords.has(`${move.x},${move.y}`);
-          const scale = uncertain ? UNCERTAIN_HINT_SCALE : HINT_SCALE;
+          const uncertain =
+            shouldShowHints && move.visits < lowVisitsThreshold && !isBest && !childMoveCoords.has(`${move.x},${move.y}`);
+          const policyPrior = visibleAnalysis?.policy?.[move.y * boardSize + move.x] ?? move.prior ?? 0;
+          const policyScale = policyPrior > 0.01 * 0.01 ? 0.95 : 0.5;
+          const scale = shouldShowHints ? (uncertain ? UNCERTAIN_HINT_SCALE : HINT_SCALE) : HINT_SCALE * policyScale;
           const radius = cellSize * STONE_SIZE * scale;
           const d = toDisplay(move.x, move.y);
           const cx = originX + d.x * cellSize;
@@ -2069,7 +2074,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
         />
 
         {/* Tooltip */}
-        {isAnalysisMode && hoveredMove && hoveredMove.x >= 0 && hoveredMove.y >= 0 && (
+        {hasAnalysisOverlay && hoveredMove && hoveredMove.x >= 0 && hoveredMove.y >= 0 && (
           (() => {
             const d = toDisplay(hoveredMove.x, hoveredMove.y);
             return (
@@ -2082,7 +2087,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
                   maxWidth: '240px'
                 }}
               >
-                <div className="font-bold mb-1">Move: {String.fromCharCode(65 + (hoveredMove.x >= 8 ? hoveredMove.x + 1 : hoveredMove.x))}{19 - hoveredMove.y}</div>
+                <div className="font-bold mb-1">Move: {formatBoardMoveLabel(hoveredMove, boardSize)}</div>
                 <div>Win Rate: {(hoveredMove.winRate * 100).toFixed(1)}%</div>
                 <div>Score: {hoveredMove.scoreLead > 0 ? '+' : ''}{hoveredMove.scoreLead.toFixed(1)}</div>
                 {typeof hoveredMove.scoreStdev === 'number' && (
