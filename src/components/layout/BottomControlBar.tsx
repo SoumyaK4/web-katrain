@@ -18,6 +18,7 @@ import { IconButton } from './ui';
 import { STONE_SIZE } from './types';
 import { publicUrl } from '../../utils/publicUrl';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
+import { formatGameInfoPlayer } from '../../utils/gameInfoDisplay';
 
 const BOTTOM_CONTROL_SHORTCUT_IDS = [
   'pass',
@@ -48,6 +49,12 @@ interface BottomControlBarProps {
   totalMovesInCurrentLine: number;
   boardSize: number;
   handicap: number;
+  blackName?: string;
+  whiteName?: string;
+  blackRank?: string;
+  whiteRank?: string;
+  capturedBlack?: number;
+  capturedWhite?: number;
   isInsertMode: boolean;
   passPolicyColor: string | null;
   passPv: { idx: number; player: Player } | null;
@@ -73,6 +80,12 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   totalMovesInCurrentLine,
   boardSize,
   handicap,
+  blackName = 'Black',
+  whiteName = 'White',
+  blackRank = '',
+  whiteRank = '',
+  capturedBlack = 0,
+  capturedWhite = 0,
   isInsertMode,
   passPolicyColor,
   passPv,
@@ -91,6 +104,14 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   const skipMoveNumberBlurCommit = useRef(false);
   const shortcutLabels = useShortcutLabels(BOTTOM_CONTROL_SHORTCUT_IDS);
   const withShortcut = (label: string, id: BottomControlShortcutId) => `${label} (${shortcutLabels[id]})`;
+  const blackPlayerLabel = formatGameInfoPlayer(blackName, blackRank, 'Black');
+  const whitePlayerLabel = formatGameInfoPlayer(whiteName, whiteRank, 'White');
+  const blackCaptures = capturedWhite;
+  const whiteCaptures = capturedBlack;
+  const currentPlayerLabel = currentPlayer === 'black' ? blackPlayerLabel : whitePlayerLabel;
+  const currentCaptureCount = currentPlayer === 'black' ? blackCaptures : whiteCaptures;
+  const currentPlayerName = currentPlayer === 'black' ? 'Black' : 'White';
+  const matchupSummary = `Black: ${blackPlayerLabel}, ${blackCaptures} captured. White: ${whitePlayerLabel}, ${whiteCaptures} captured. ${currentPlayerName} to play.`;
 
   useEffect(() => {
     const el = passBtnRef.current;
@@ -209,14 +230,25 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           )}
         </div>
 
-        <div className="flex-1 flex items-center justify-center gap-1">
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-1">
           <IconButton title={withShortcut('Back', 'nav-back')} onClick={navigateBack} disabled={isInsertMode}>
             <FaChevronLeft />
           </IconButton>
-          <div className="mobile-bottom-meta px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[10px] sm:text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1">
-            <span className={['mobile-bottom-meta-player', currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'].join(' ')}>B</span>
-            <span className="mobile-bottom-meta-divider text-slate-600">·</span>
-            <span className={['mobile-bottom-meta-player', currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'].join(' ')}>W</span>
+          <div
+            className="mobile-bottom-meta min-w-0 max-w-full overflow-hidden px-2 py-1 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[10px] sm:text-xs font-mono text-[var(--ui-text-muted)] flex items-center gap-1"
+            title={matchupSummary}
+            aria-label={matchupSummary}
+          >
+            <span className="mobile-bottom-turn-chip inline-flex min-w-0 items-center gap-1">
+              <span
+                className={['mobile-bottom-stone', currentPlayer === 'black' ? 'mobile-bottom-stone-black' : 'mobile-bottom-stone-white'].join(' ')}
+                aria-hidden="true"
+              />
+              <span className="mobile-bottom-current-player min-w-0 truncate font-sans font-semibold text-[var(--ui-text)]">
+                {currentPlayerLabel}
+              </span>
+              <span className="mobile-bottom-current-captures text-[var(--ui-text-faint)]">C{currentCaptureCount}</span>
+            </span>
             <span className="mobile-bottom-meta-divider text-slate-600 mx-1">|</span>
             <span className="ui-text-faint">{boardSize}×{boardSize}</span>
             {handicap > 0 && (
@@ -523,10 +555,14 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         </IconButton>
 
         {/* Move counter */}
-        <div className="px-3 py-1.5 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-sm text-[var(--ui-text-muted)] font-mono flex items-center gap-2 min-w-[138px] justify-center">
-          <span className={currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'}>B</span>
+        <div
+          className="px-3 py-1.5 rounded-md bg-[var(--ui-surface)] border border-[var(--ui-border)] text-sm text-[var(--ui-text-muted)] font-mono flex items-center gap-2 min-w-[138px] justify-center"
+          title={matchupSummary}
+          aria-label={matchupSummary}
+        >
+          <span className={currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'} title={`Black: ${blackPlayerLabel}, ${blackCaptures} captured`}>B</span>
           <span className="text-slate-600">·</span>
-          <span className={currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'}>W</span>
+          <span className={currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'} title={`White: ${whitePlayerLabel}, ${whiteCaptures} captured`}>W</span>
           <span className="text-slate-600 mx-1">|</span>
           {isMoveNumberEditing ? (
             <span className="inline-flex items-center gap-1">

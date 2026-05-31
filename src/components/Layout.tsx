@@ -1648,6 +1648,8 @@ export const Layout: React.FC = () => {
 
   const blackName = getRootProp('PB') || 'Black';
   const whiteName = getRootProp('PW') || 'White';
+  const blackRank = getRootProp('BR');
+  const whiteRank = getRootProp('WR');
   const moveName = currentNode.move
     ? `Move ${moveHistory.length}: ${playerToShort(currentNode.move.player)} ${formatMoveLabel(currentNode.move.x, currentNode.move.y, boardSize)}`
     : 'Root';
@@ -2183,6 +2185,12 @@ export const Layout: React.FC = () => {
               totalMovesInCurrentLine={totalMovesInCurrentLine}
               boardSize={boardSize}
               handicap={handicap}
+              blackName={blackName}
+              whiteName={whiteName}
+              blackRank={blackRank}
+              whiteRank={whiteRank}
+              capturedBlack={capturedBlack}
+              capturedWhite={capturedWhite}
               isInsertMode={isInsertMode}
               passPolicyColor={passPolicyColor}
               passPv={passPv}
@@ -2350,6 +2358,12 @@ export const Layout: React.FC = () => {
                     totalMovesInCurrentLine={totalMovesInCurrentLine}
                     boardSize={boardSize}
                     handicap={handicap}
+                    blackName={blackName}
+                    whiteName={whiteName}
+                    blackRank={blackRank}
+                    whiteRank={whiteRank}
+                    capturedBlack={capturedBlack}
+                    capturedWhite={capturedWhite}
                     isInsertMode={isInsertMode}
                     passPolicyColor={passPolicyColor}
                     passPv={passPv}
@@ -2385,8 +2399,8 @@ export const Layout: React.FC = () => {
           moveInsight={currentMoveInsight}
           blackName={blackName}
           whiteName={whiteName}
-          blackRank={getRootProp('BR')}
-          whiteRank={getRootProp('WR')}
+          blackRank={blackRank}
+          whiteRank={whiteRank}
           komi={komi}
           boardSize={boardSize}
           handicap={handicap}
