@@ -1508,6 +1508,11 @@ export const Layout: React.FC = () => {
     toast(`Result: ${result}`, 'info');
   };
 
+  const handleDisableGamepadNavigation = useCallback(() => {
+    updateSettings({ gamepadNavigation: false });
+    toast('Gamepad navigation disabled.', 'info');
+  }, [toast, updateSettings]);
+
   const gamepadStatus = useGamepadNavigation({
     enabled:
       settings.gamepadNavigation &&
@@ -2150,6 +2155,7 @@ export const Layout: React.FC = () => {
         capturedWhite={capturedWhite}
         endResult={endResult}
         gamepadName={gamepadStatus.connected ? gamepadStatus.name : null}
+        onGamepadNavigationDisable={handleDisableGamepadNavigation}
         loadedFileName={loadedLibraryFileName}
         onLoadedFileRename={renameLoadedLibraryFile}
         unsavedChanges={currentGameDirty}

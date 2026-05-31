@@ -22,6 +22,7 @@ interface StatusBarProps {
   capturedWhite: number;
   endResult: string | null;
   gamepadName?: string | null;
+  onGamepadNavigationDisable?: () => void;
   loadedFileName?: string | null;
   onLoadedFileRename?: (name: string) => void;
   unsavedChanges?: boolean;
@@ -44,6 +45,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   capturedWhite,
   endResult,
   gamepadName,
+  onGamepadNavigationDisable,
   loadedFileName = null,
   onLoadedFileRename,
   unsavedChanges = false,
@@ -215,18 +217,21 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       )}
 
       {gamepadName && (
-        <div
-          className="px-2 py-1 rounded bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border border-[var(--ui-accent)] shadow-sm hidden lg:flex max-w-[280px] items-center gap-1.5 truncate"
-          title={`Gamepad navigation: ${gamepadName}`}
-          aria-label={`Gamepad navigation connected: ${gamepadName}`}
+        <button
+          type="button"
+          className="px-2 py-1 rounded bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border border-[var(--ui-accent)] shadow-sm hidden lg:flex max-w-[280px] items-center gap-1.5 truncate hover:bg-[var(--ui-accent)] hover:text-[var(--ui-accent-contrast)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)] focus:ring-offset-1 focus:ring-offset-[var(--ui-bg)] disabled:pointer-events-none"
+          title={`Gamepad navigation: ${gamepadName}. Click to disable.`}
+          aria-label={`Gamepad navigation connected: ${gamepadName}. Click to disable.`}
           data-gamepad-status="connected"
+          onClick={onGamepadNavigationDisable}
+          disabled={!onGamepadNavigationDisable}
         >
           <FaGamepad aria-hidden="true" />
           <span className="font-semibold">Gamepad</span>
           <span className="min-w-0 truncate font-mono text-[var(--ui-text-muted)]">
             {formatGamepadLabel(gamepadName)}
           </span>
-        </div>
+        </button>
       )}
       </div>
       <div className="ml-auto hidden xl:flex items-center gap-2">
