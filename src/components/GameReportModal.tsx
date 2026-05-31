@@ -430,6 +430,63 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     if (policyFilterLabel) labels.push(`Quality ${policyFilterLabel}`);
     return labels;
   }, [bucketFilterLabel, phaseLabel, playerFilterLabel, policyFilterLabel]);
+  const keyStatRows: Array<{ label: string; description: string; value: (p: Player) => string }> = [
+    {
+      label: 'Moves',
+      description: 'Analyzed moves included by the current phase, player, loss, and policy filters.',
+      value: (p) => String(report.stats[p].numMoves),
+    },
+    {
+      label: 'Accuracy',
+      description: 'KaTrain-style score-loss accuracy; higher values mean less weighted point loss.',
+      value: (p) => fmtNum(report.stats[p].accuracy, 1),
+    },
+    {
+      label: 'Policy accuracy',
+      description: 'Move quality score from policy rank and relative policy probability.',
+      value: (p) => fmtNum(report.stats[p].policyAccuracy, 1),
+    },
+    {
+      label: 'Complexity',
+      description: 'Average policy-weighted difficulty of the positions analyzed.',
+      value: (p) => fmtPct(report.stats[p].complexity),
+    },
+    {
+      label: 'Mean point loss',
+      description: 'Average points lost per analyzed move.',
+      value: (p) => fmtNum(report.stats[p].meanPtLoss, 2),
+    },
+    {
+      label: 'Weighted point loss',
+      description: 'Point loss weighted by position difficulty, matching KaTrain report semantics.',
+      value: (p) => fmtNum(report.stats[p].weightedPtLoss, 2),
+    },
+    {
+      label: 'Total point loss',
+      description: 'Sum of point loss across analyzed moves in the active filters.',
+      value: (p) => fmtNum(report.stats[p].totalPtLoss, 2),
+    },
+    {
+      label: 'Max point loss',
+      description: 'Largest single-move point loss in the active filters.',
+      value: (p) => fmtNum(report.stats[p].maxPtLoss, 2),
+    },
+    {
+      label: 'AI top move',
+      description: 'Share of moves that exactly matched the engine top choice.',
+      value: (p) => fmtPct(report.stats[p].aiTopMove),
+    },
+    {
+      label: 'AI top5 move',
+      description: 'Share of moves that ranked inside the engine top five policy candidates.',
+      value: (p) => fmtPct(report.stats[p].aiTop5Move),
+    },
+    {
+      label: 'AI approved',
+      description: 'Share of moves accepted by KaTrain’s looser top-move or low-loss approval rule.',
+      value: (p) => fmtPct(report.stats[p].aiApprovedMove),
+    },
+  ];
 
   const graphRange = useMemo(() => {
     return getPhaseMoveRange(boardSize, phaseFilter);
@@ -787,26 +844,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 </div>
               ))}
 
-              {(
-                [
-                  ['Moves', (p: Player) => String(report.stats[p].numMoves)],
-                  ['Accuracy', (p: Player) => fmtNum(report.stats[p].accuracy, 1)],
-                  ['Policy accuracy', (p: Player) => fmtNum(report.stats[p].policyAccuracy, 1)],
-                  ['Complexity', (p: Player) => fmtPct(report.stats[p].complexity)],
-                  ['Mean point loss', (p: Player) => fmtNum(report.stats[p].meanPtLoss, 2)],
-                  ['Weighted point loss', (p: Player) => fmtNum(report.stats[p].weightedPtLoss, 2)],
-                  ['Total point loss', (p: Player) => fmtNum(report.stats[p].totalPtLoss, 2)],
-                  ['Max point loss', (p: Player) => fmtNum(report.stats[p].maxPtLoss, 2)],
-                  ['AI top move', (p: Player) => fmtPct(report.stats[p].aiTopMove)],
-                  ['AI top5 move', (p: Player) => fmtPct(report.stats[p].aiTop5Move)],
-                  ['AI approved', (p: Player) => fmtPct(report.stats[p].aiApprovedMove)],
-                ] as Array<[string, (p: Player) => string]>
-              ).map(([label, valueFn]) => (
+              {keyStatRows.map(({ label, description, value }) => (
                 <React.Fragment key={label}>
-                  <div className={labelClass}>{label}</div>
+                  <div className={labelClass} title={description} aria-label={`${label}. ${description}`}>
+                    {label}
+                  </div>
                   {statsPlayers.map((player) => (
                     <div key={`${label}-${player}`} className="text-center font-mono text-slate-200">
-                      {valueFn(player)}
+                      {value(player)}
                     </div>
                   ))}
                 </React.Fragment>
