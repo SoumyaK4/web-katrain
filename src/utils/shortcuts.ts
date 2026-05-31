@@ -80,6 +80,7 @@ const shortcutById = new Map(SHORTCUT_DEFINITIONS.map((shortcut) => [shortcut.id
 const normalizeKey = (key: string): string => {
   if (key === ' ') return 'Space';
   if (key === 'Spacebar') return 'Space';
+  if (key === 'Esc') return 'Escape';
   return key.length === 1 ? key.toLowerCase() : key;
 };
 
@@ -171,6 +172,9 @@ export const eventToShortcutBinding = (event: KeyboardEvent | React.KeyboardEven
     alt: event.altKey,
   };
 };
+
+export const isShortcutRecordingCancelKey = (event: KeyboardEvent | React.KeyboardEvent): boolean =>
+  normalizeKey(event.key) === 'Escape';
 
 export const eventMatchesBinding = (event: KeyboardEvent, binding: ShortcutBinding): boolean => {
   const b = normalizeBinding(binding);

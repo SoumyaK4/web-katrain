@@ -6,6 +6,7 @@ import {
   findShortcutCollision,
   getShortcutBindings,
   getShortcutGroups,
+  isShortcutRecordingCancelKey,
   loadShortcutOverrides,
   replaceShortcutCollisionOverride,
   resetAllShortcutOverrides,
@@ -30,16 +31,23 @@ export const ShortcutSettingsPanel: React.FC = () => {
   const [recordingId, setRecordingId] = React.useState<string | null>(null);
   const [collision, setCollision] = React.useState<ShortcutCollisionState | null>(null);
 
-  const refresh = () => setOverrides(loadShortcutOverrides());
+  const refresh = React.useCallback(() => setOverrides(loadShortcutOverrides()), []);
 
-  const handleRecord = (id: string, event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (recordingId !== id) return;
+  const handleRecordEvent = React.useCallback((event: KeyboardEvent | React.KeyboardEvent) => {
+    const id = recordingId;
+    if (!id) return;
     event.preventDefault();
     event.stopPropagation();
+    if (isShortcutRecordingCancelKey(event)) {
+      setRecordingId(null);
+      setCollision(null);
+      return;
+    }
     const binding = eventToShortcutBinding(event);
     if (isBindingEmpty(binding)) return;
     const conflict = findShortcutCollision(binding, id, overrides);
     if (conflict) {
+      setRecordingId(null);
       setCollision({
         binding,
         conflictId: conflict.id,
@@ -53,7 +61,14 @@ export const ShortcutSettingsPanel: React.FC = () => {
     setRecordingId(null);
     setCollision(null);
     refresh();
-  };
+  }, [overrides, recordingId, refresh]);
+
+  React.useEffect(() => {
+    if (!recordingId) return;
+    const handleKeyDown = (event: KeyboardEvent) => handleRecordEvent(event);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [handleRecordEvent, recordingId]);
 
   const handleDisable = (id: string) => {
     setShortcutOverride(id, null);
@@ -180,7 +195,6 @@ export const ShortcutSettingsPanel: React.FC = () => {
                         setRecordingId(shortcut.id);
                         setCollision(null);
                       }}
-                      onKeyDown={(event) => handleRecord(shortcut.id, event)}
                     >
                       {isRecording ? 'Press keys' : 'Record'}
                     </button>

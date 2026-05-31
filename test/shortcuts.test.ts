@@ -5,6 +5,7 @@ import {
   eventMatchesBinding,
   findShortcutCollision,
   getShortcutBindings,
+  isShortcutRecordingCancelKey,
   SHORTCUT_DEFINITIONS,
   shortcutDisplay,
   type ShortcutBinding,
@@ -55,6 +56,12 @@ describe('shortcut utilities', () => {
   it('supports disabled and overridden bindings', () => {
     expect(getShortcutBindings('save-sgf', { 'save-sgf': null })).toBe(null);
     expect(getShortcutBindings('save-sgf', { 'save-sgf': [{ key: 'F9' }] })).toEqual([{ key: 'F9', ctrl: false, shift: false, alt: false }]);
+  });
+
+  it('treats Escape as a shortcut recording cancel key', () => {
+    expect(isShortcutRecordingCancelKey(keyboardEvent('Escape'))).toBe(true);
+    expect(isShortcutRecordingCancelKey(keyboardEvent('Esc'))).toBe(true);
+    expect(isShortcutRecordingCancelKey(keyboardEvent('s', { ctrlKey: true }))).toBe(false);
   });
 
   it('builds replacement overrides when resolving a shortcut collision', () => {
