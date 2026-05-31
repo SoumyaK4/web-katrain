@@ -46,6 +46,7 @@ import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { SectionHeader } from './layout/ui';
 import { panelCardBase, panelCardClosed, panelCardOpen } from './layout/ui-utils';
 import { getIndexedDB, readLocalStorage, writeLocalStorage } from '../utils/storage';
+import { isMobileLayoutViewport } from '../utils/responsiveLayout';
 
 const isFolder = (item: LibraryItem): item is LibraryFolder => item.type === 'folder';
 const isFile = (item: LibraryItem): item is LibraryFile => item.type === 'file';
@@ -960,7 +961,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       onLoadedFileChange?.(item.id, item.name);
       setCurrentFolderId(item.parentId ?? null);
       onToast(`Loaded "${item.name}".`, 'success');
-      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+      if (isMobileLayoutViewport()) {
         onClose();
       }
     } catch {

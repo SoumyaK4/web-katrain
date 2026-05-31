@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FaChevronRight, FaChevronLeft, FaChevronUp, FaChevronDown } from 'react-icons/fa';
+import { mediaQueryMatches } from '../../utils/mediaQuery';
 
 // Parse title like "Back (←)" into { label: "Back", shortcut: "←" }
 function parseTitle(title: string): { label: string; shortcut?: string } {
@@ -49,9 +50,7 @@ export const IconButton: React.FC<{
   children: React.ReactNode;
 }> = ({ title, onClick, disabled, className, children }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const isCoarsePointer = typeof window !== 'undefined'
-    ? window.matchMedia('(pointer: coarse)').matches
-    : false;
+  const isCoarsePointer = mediaQueryMatches('(pointer: coarse)');
   const { label, shortcut } = parseTitle(title);
 
   return (
@@ -86,9 +85,7 @@ export const TogglePill: React.FC<{
   onToggle: () => void;
 }> = ({ label, shortcut, active, disabled, onToggle }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const isCoarsePointer = typeof window !== 'undefined'
-    ? window.matchMedia('(pointer: coarse)').matches
-    : false;
+  const isCoarsePointer = mediaQueryMatches('(pointer: coarse)');
 
   return (
     <div className="relative">
@@ -176,9 +173,7 @@ export const PanelHeaderButton: React.FC<{
   onClick: () => void;
 }> = ({ label, colorClass, active, onClick }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const isCoarsePointer = typeof window !== 'undefined'
-    ? window.matchMedia('(pointer: coarse)').matches
-    : false;
+  const isCoarsePointer = mediaQueryMatches('(pointer: coarse)');
 
   return (
     <div className="relative">

@@ -72,8 +72,9 @@ import { UnsavedChangesModal, type UnsavedChangesChoice } from './UnsavedChanges
 import { getCurrentLineMoveCount } from '../utils/branchNavigation';
 import { ResignConfirmModal } from './ResignConfirmModal';
 import { getResignResult } from '../utils/resign';
-import { DESKTOP_LAYOUT_MEDIA, isDesktopLayoutViewport, isMobileLayoutViewport } from '../utils/responsiveLayout';
+import { DESKTOP_LAYOUT_MEDIA, isDesktopLayoutSize, isDesktopLayoutViewport, isMobileLayoutViewport } from '../utils/responsiveLayout';
 import { readLocalStorage, writeLocalStorage } from '../utils/storage';
+import { getMediaQueryList, subscribeMediaQueryList } from '../utils/mediaQuery';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -837,11 +838,14 @@ export const Layout: React.FC = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const mq = window.matchMedia(DESKTOP_LAYOUT_MEDIA);
-    const update = () => setIsDesktop(mq.matches);
+    const mq = getMediaQueryList(DESKTOP_LAYOUT_MEDIA);
+    const update = () => setIsDesktop(
+      mq?.matches ?? isDesktopLayoutSize(window.innerWidth, window.innerHeight)
+    );
     update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
+    if (mq) return subscribeMediaQueryList(mq, update);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
   }, []);
 
   useEffect(() => {

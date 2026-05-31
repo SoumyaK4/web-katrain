@@ -1,4 +1,5 @@
 import { getLocalStorage } from './storage';
+import { mediaQueryMatches } from './mediaQuery';
 
 export const PWA_OFFLINE_READY_EVENT = 'web-katrain:pwa-offline-ready';
 export const PWA_UPDATE_READY_EVENT = 'web-katrain:pwa-update-ready';
@@ -19,8 +20,9 @@ export function getServiceWorkerUrl(baseUrl: string): string {
 export function isStandalonePwa(): boolean {
   if (typeof window === 'undefined') return false;
   return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
+    mediaQueryMatches('(display-mode: standalone)') ||
+    (typeof navigator !== 'undefined' &&
+      (navigator as Navigator & { standalone?: boolean }).standalone === true)
   );
 }
 
