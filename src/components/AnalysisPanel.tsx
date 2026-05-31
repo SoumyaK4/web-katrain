@@ -24,6 +24,7 @@ import {
   mergeVisitPresets,
   visitPresetLabel,
 } from '../utils/visitPresets';
+import { formatAnalysisScoreLead, summarizePointsLost } from '../utils/analysisSummary';
 
 interface AnalysisPanelProps {
   mode: UiMode;
@@ -67,6 +68,13 @@ type EvalColor = readonly [number, number, number, number];
 
 function evalColorToCss(color: EvalColor): string {
   return `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${color[3]})`;
+}
+
+function pointsSummaryClass(tone: ReturnType<typeof summarizePointsLost>['tone']): string {
+  if (tone === 'success') return 'text-[var(--ui-success)]';
+  if (tone === 'warning') return 'text-[var(--ui-warning)]';
+  if (tone === 'danger') return 'text-[var(--ui-danger)]';
+  return 'text-[var(--ui-text-muted)]';
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
@@ -143,6 +151,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     () => mergeVisitPresets(ANALYSIS_VISIT_PRESETS, liveVisits),
     [liveVisits]
   );
+  const scoreLeadLabel = formatAnalysisScoreLead(scoreLead);
+  const pointsSummary = summarizePointsLost(pointsLost);
+  const pointsSummaryToneClass = pointsSummaryClass(pointsSummary.tone);
   const applyLiveVisits = React.useCallback((visits: number) => {
     const nextVisits = clampAnalysisVisits(visits);
     if (nextVisits === liveVisits) return;
@@ -297,13 +308,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       <div className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
         <div className="ui-text-faint">Score</div>
         <div className="font-mono text-sm text-[var(--ui-warning)]">
-          {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+          {scoreLeadLabel}
         </div>
       </div>
       <div className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
-        <div className="ui-text-faint">{pointsLost != null && pointsLost < 0 ? 'Gained' : 'Lost'}</div>
-        <div className="font-mono text-sm text-[var(--ui-danger)]">
-          {pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}
+        <div className="ui-text-faint">Quality</div>
+        <div className={['font-mono text-sm', pointsSummaryToneClass].join(' ')}>
+          {pointsSummary.label}
         </div>
       </div>
     </div>
@@ -521,15 +532,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               <div className="px-2 py-1.5">
                 <div className="text-[11px] ui-text-faint">Score</div>
                 <div className="font-mono text-sm text-[var(--ui-warning)]">
-                  {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+                  {scoreLeadLabel}
                 </div>
               </div>
               <div className="px-2 py-1.5">
-                <div className="text-[11px] ui-text-faint">
-                  {pointsLost != null && pointsLost < 0 ? 'Gained' : 'Lost'}
-                </div>
-                <div className="font-mono text-sm text-[var(--ui-danger)]">
-                  {pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}
+                <div className="text-[11px] ui-text-faint">Quality</div>
+                <div className={['font-mono text-sm', pointsSummaryToneClass].join(' ')}>
+                  {pointsSummary.label}
                 </div>
               </div>
             </div>
@@ -552,15 +561,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             <div className="px-2 py-1.5">
               <div className="text-[11px] ui-text-faint">Score</div>
               <div className="font-mono text-sm text-[var(--ui-warning)]">
-                {typeof scoreLead === 'number' ? `${scoreLead > 0 ? '+' : ''}${scoreLead.toFixed(1)}` : '-'}
+                {scoreLeadLabel}
               </div>
             </div>
             <div className="px-2 py-1.5">
-              <div className="text-[11px] ui-text-faint">
-                {pointsLost != null && pointsLost < 0 ? 'Gained' : 'Lost'}
-              </div>
-              <div className="font-mono text-sm text-[var(--ui-danger)]">
-                {pointsLost != null ? Math.abs(pointsLost).toFixed(1) : '-'}
+              <div className="text-[11px] ui-text-faint">Quality</div>
+              <div className={['font-mono text-sm', pointsSummaryToneClass].join(' ')}>
+                {pointsSummary.label}
               </div>
             </div>
           </div>
