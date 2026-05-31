@@ -366,6 +366,7 @@ export const Layout: React.FC = () => {
   const [manualDeadStones, setManualDeadStones] = useState<Set<string>>(() => new Set());
   const [manualScoreMode, setManualScoreMode] = useState<'manual' | 'estimate'>('manual');
   const fileDragCounter = useRef(0);
+  const fileDragResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cleanGameSgfRef = useRef<string | null>(null);
   const unsavedChangesResolveRef = useRef<((choice: UnsavedChangesChoice) => void) | null>(null);
   const autoSaveRecoveryCheckedRef = useRef(false);
@@ -1544,9 +1545,22 @@ export const Layout: React.FC = () => {
     return Boolean(target.closest('[data-dropzone="library"]'));
   };
 
+  const resetFileDragState = useCallback(() => {
+    fileDragCounter.current = 0;
+    if (fileDragResetTimer.current) {
+      clearTimeout(fileDragResetTimer.current);
+      fileDragResetTimer.current = null;
+    }
+    setIsFileDragActive(false);
+  }, []);
+
   const handleAppDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
     if (!isFileDragEvent(event) || isDragOverLibrary(event.target)) return;
     event.preventDefault();
+    if (fileDragResetTimer.current) {
+      clearTimeout(fileDragResetTimer.current);
+      fileDragResetTimer.current = null;
+    }
     fileDragCounter.current += 1;
     setIsFileDragActive(true);
   };
@@ -1555,29 +1569,32 @@ export const Layout: React.FC = () => {
     if (isDragOverLibrary(event.target)) return;
     fileDragCounter.current = Math.max(0, fileDragCounter.current - 1);
     if (fileDragCounter.current === 0) {
-      setIsFileDragActive(false);
+      resetFileDragState();
     }
   };
 
   const handleAppDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     if (!isFileDragEvent(event) || isDragOverLibrary(event.target)) return;
     event.preventDefault();
+    if (fileDragResetTimer.current) {
+      clearTimeout(fileDragResetTimer.current);
+    }
+    fileDragResetTimer.current = setTimeout(() => {
+      resetFileDragState();
+    }, 350);
   };
 
   const handleAppDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     if (event.defaultPrevented) {
-      fileDragCounter.current = 0;
-      setIsFileDragActive(false);
+      resetFileDragState();
       return;
     }
     if (!isFileDragEvent(event) || isDragOverLibrary(event.target)) {
-      fileDragCounter.current = 0;
-      setIsFileDragActive(false);
+      resetFileDragState();
       return;
     }
     event.preventDefault();
-    fileDragCounter.current = 0;
-    setIsFileDragActive(false);
+    resetFileDragState();
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
     if (isKataGoModelWeightsFile(file)) {
@@ -1600,6 +1617,12 @@ export const Layout: React.FC = () => {
       toast('Failed to load the dropped SGF file.', 'error');
     }
   };
+
+  useEffect(() => () => {
+    if (fileDragResetTimer.current) {
+      clearTimeout(fileDragResetTimer.current);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1896,7 +1919,7 @@ export const Layout: React.FC = () => {
       <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept={mainFileInputAccept} />
 
       {isFileDragActive && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
+        <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
           <div className="rounded-xl border-2 border-dashed border-[var(--ui-accent)] px-6 py-4 text-center ui-panel">
             <div className="text-sm font-semibold text-[var(--ui-accent)]">Drop SGF, board photo, or model weights</div>
             <div className="text-xs ui-text-faint">Release to load a game, trace a photo, or switch browser KataGo weights.</div>
