@@ -1193,6 +1193,17 @@ export const Layout: React.FC = () => {
     setIsNewGameOpen(true);
   }, [prepareForGameReplacement]);
 
+  const loadLocalSgfText = async (text: string, sourceName: string): Promise<boolean> => {
+    const parsed = parseSgf(text);
+    if (!(await prepareForGameReplacement())) return false;
+    loadGame(parsed);
+    setLoadedLibraryFile(null);
+    setLoadedExternalFile({ kind: 'file', name: sourceName || getImportedSgfName(parsed, 'Loaded SGF') });
+    markCurrentGameCleanAndClearAutoSave();
+    toast(`Loaded "${sourceName || 'SGF'}".`, 'success');
+    return true;
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1207,13 +1218,7 @@ export const Layout: React.FC = () => {
         return;
       }
       const text = await file.text();
-      const parsed = parseSgf(text);
-      if (!(await prepareForGameReplacement())) return;
-      loadGame(parsed);
-      setLoadedLibraryFile(null);
-      setLoadedExternalFile({ kind: 'file', name: file.name || getImportedSgfName(parsed, 'Loaded SGF') });
-      markCurrentGameCleanAndClearAutoSave();
-      toast(`Loaded "${file.name || 'SGF'}".`, 'success');
+      await loadLocalSgfText(text, file.name);
     } catch {
       toast('Failed to parse SGF file.', 'error');
     } finally {
@@ -1449,9 +1454,9 @@ export const Layout: React.FC = () => {
     }
     try {
       const text = await file.text();
-      await handleOpenSgfFromText(text);
+      await loadLocalSgfText(text, file.name);
     } catch {
-      toast('Failed to read the dropped SGF file.', 'error');
+      toast('Failed to load the dropped SGF file.', 'error');
     }
   };
 
