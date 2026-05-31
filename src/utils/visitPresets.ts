@@ -13,6 +13,24 @@ export function mergeVisitPresets(...values: Array<readonly number[] | number>):
   return Array.from(new Set(normalized.map(clampAnalysisVisits))).sort((a, b) => a - b);
 }
 
+export function nextVisitPreset(currentVisits: number, presets: readonly number[] = ANALYSIS_VISIT_PRESETS): number {
+  const current = clampAnalysisVisits(currentVisits);
+  const options = mergeVisitPresets(presets, current);
+  return options.find((preset) => preset > current) ?? options[0] ?? ANALYSIS_MIN_VISITS;
+}
+
+export function formatVisitCount(visits: number): string {
+  const clamped = clampAnalysisVisits(visits);
+  if (clamped < 1000) return String(clamped);
+
+  const thousands = clamped / 1000;
+  if (clamped < 10000 && clamped % 1000 !== 0) {
+    return `${thousands.toFixed(1).replace(/\.0$/, '')}k`;
+  }
+
+  return `${Math.round(thousands)}k`;
+}
+
 export function visitPresetLabel(visits: number, defaultVisits?: number): string {
   if (defaultVisits !== undefined && visits === clampAnalysisVisits(defaultVisits)) return 'Default';
   if (visits <= 16) return 'Fast';

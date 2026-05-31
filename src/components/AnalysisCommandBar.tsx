@@ -6,12 +6,21 @@ import {
   FaMap,
   FaPlay,
   FaRobot,
+  FaSearch,
   FaSquare,
 } from 'react-icons/fa';
 import type { AnalysisControlsState, UiMode } from './layout/types';
 import { formatAnalysisScoreLead, formatAnalysisWinRate, summarizePointsLost } from '../utils/analysisSummary';
 import { useGameStore } from '../store/gameStore';
 import { getTopMoveMetricLabel, nextTopMoveMetric } from '../utils/topMoveMetric';
+import {
+  ANALYSIS_MIN_VISITS,
+  ANALYSIS_VISIT_PRESETS,
+  clampAnalysisVisits,
+  formatVisitCount,
+  nextVisitPreset,
+  visitPresetLabel,
+} from '../utils/visitPresets';
 
 interface AnalysisCommandBarProps {
   mode: UiMode;
@@ -57,6 +66,7 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   onOpenGameReport,
 }) => {
   const topMoveMetric = useGameStore((state) => state.settings.trainerTopMovesShow);
+  const katagoVisits = useGameStore((state) => state.settings.katagoVisits);
   const updateSettings = useGameStore((state) => state.updateSettings);
   const shouldShow =
     mode === 'analyze' ||
@@ -96,6 +106,18 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   };
   const topMoveMetricLabel = getTopMoveMetricLabel(topMoveMetric, 'short');
   const topMovesHiddenByPolicy = analysisControls.analysisShowPolicy;
+  const liveVisits = clampAnalysisVisits(katagoVisits);
+  const liveVisitLabel = visitPresetLabel(liveVisits);
+  const liveVisitCountLabel = formatVisitCount(liveVisits);
+  const cycleLiveVisits = () => {
+    const nextVisits = nextVisitPreset(liveVisits, ANALYSIS_VISIT_PRESETS);
+    updateSettings({ katagoVisits: nextVisits });
+    if (isAnalysisMode) {
+      window.setTimeout(() => {
+        void useGameStore.getState().runAnalysis({ force: true, visits: nextVisits });
+      }, 0);
+    }
+  };
 
   return (
     <div className="analysis-command-bar" data-analysis-command-bar="true">
@@ -144,6 +166,22 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         >
           {isGameAnalysisRunning ? <FaSquare size={12} aria-hidden="true" /> : <FaRobot size={12} aria-hidden="true" />}
           <span>{gameButtonLabel}</span>
+        </button>
+        <button
+          type="button"
+          className={['analysis-command-bar__button', liveVisits > ANALYSIS_MIN_VISITS ? 'active' : ''].join(' ')}
+          onClick={cycleLiveVisits}
+          disabled={isGameAnalysisRunning}
+          data-analysis-live-depth="true"
+          title={
+            isGameAnalysisRunning
+              ? 'Stop game analysis before changing live depth'
+              : `Live analysis depth: ${liveVisits} visits (${liveVisitLabel}). Click to cycle.`
+          }
+          aria-label={`Live analysis depth ${liveVisits} visits`}
+        >
+          <FaSearch size={12} aria-hidden="true" />
+          <span>Depth: {liveVisitCountLabel}</span>
         </button>
         <button
           type="button"

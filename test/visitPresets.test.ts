@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ANALYSIS_VISIT_PRESETS,
   clampAnalysisVisits,
+  formatVisitCount,
   mergeVisitPresets,
+  nextVisitPreset,
   visitPresetLabel,
 } from '../src/utils/visitPresets';
 
@@ -23,5 +25,20 @@ describe('visit preset utilities', () => {
     expect(visitPresetLabel(16, 5000)).toBe('Fast');
     expect(visitPresetLabel(250, 5000)).toBe('Balanced');
     expect(visitPresetLabel(1000, 5000)).toBe('Deep');
+  });
+
+  it('cycles to the next merged live preset', () => {
+    expect(nextVisitPreset(16)).toBe(250);
+    expect(nextVisitPreset(750)).toBe(1000);
+    expect(nextVisitPreset(5000)).toBe(16);
+    expect(nextVisitPreset(50000, [16, 250, 1000, 5000, 50000])).toBe(16);
+  });
+
+  it('formats visit counts for compact controls', () => {
+    expect(formatVisitCount(250)).toBe('250');
+    expect(formatVisitCount(1000)).toBe('1k');
+    expect(formatVisitCount(2500)).toBe('2.5k');
+    expect(formatVisitCount(5000)).toBe('5k');
+    expect(formatVisitCount(50000)).toBe('50k');
   });
 });
