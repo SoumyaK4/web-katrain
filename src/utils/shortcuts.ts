@@ -49,6 +49,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'toggle-policy', category: 'Visualization', label: 'Toggle policy', defaultBindings: [{ key: 'r' }] },
   { id: 'cycle-policy-metric', category: 'Visualization', label: 'Cycle policy metric', defaultBindings: [{ key: 'r', shift: true }] },
   { id: 'toggle-territory', category: 'Visualization', label: 'Toggle territory', defaultBindings: [{ key: 't' }] },
+  { id: 'toggle-next-move-preview', category: 'Visualization', label: 'Toggle next move preview', defaultBindings: [{ key: 'v' }] },
   { id: 'toggle-coordinates', category: 'Visualization', label: 'Toggle coordinates', defaultBindings: [{ key: 'k' }] },
   { id: 'toggle-move-numbers', category: 'Visualization', label: 'Toggle move numbers', defaultBindings: [{ key: 'm' }] },
   { id: 'toggle-analysis', category: 'Analysis', label: 'Toggle analysis mode', defaultBindings: [{ key: 'Tab' }] },

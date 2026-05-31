@@ -240,6 +240,11 @@ export function useKeyboardShortcuts({
         updateSettings({ showMoveNumbers: !settings.showMoveNumbers });
         return;
       }
+      if (matches('toggle-next-move-preview')) {
+        e.preventDefault();
+        updateSettings({ showNextMovePreview: !settings.showNextMovePreview });
+        return;
+      }
 
       // Visualization toggles
       if (matches('toggle-children')) {
@@ -464,6 +469,7 @@ export function useKeyboardShortcuts({
     openPasteSgf,
     settings.showCoordinates,
     settings.showMoveNumbers,
+    settings.showNextMovePreview,
     settings.analysisShowChildren,
     settings.analysisShowEval,
     settings.analysisShowHints,

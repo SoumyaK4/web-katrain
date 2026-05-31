@@ -60,6 +60,10 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('save-sgf', { 'save-sgf': [{ key: 'F9' }] })).toEqual([{ key: 'F9', ctrl: false, shift: false, alt: false }]);
   });
 
+  it('exposes a default shortcut for next move preview', () => {
+    expect(getShortcutBindings('toggle-next-move-preview', {})).toEqual([{ key: 'v', ctrl: false, shift: false, alt: false }]);
+  });
+
   it('treats Escape as a shortcut recording cancel key', () => {
     expect(isShortcutRecordingCancelKey(keyboardEvent('Escape'))).toBe(true);
     expect(isShortcutRecordingCancelKey(keyboardEvent('Esc'))).toBe(true);
