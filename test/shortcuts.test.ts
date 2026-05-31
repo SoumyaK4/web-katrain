@@ -66,6 +66,14 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('toggle-next-move-preview', {})).toEqual([{ key: 'v', ctrl: false, shift: false, alt: false }]);
   });
 
+  it('exposes pro edit history shortcuts', () => {
+    expect(getShortcutBindings('edit-undo', {})).toEqual([{ key: 'z', ctrl: true, shift: false, alt: false }]);
+    expect(getShortcutBindings('edit-redo', {})).toEqual([
+      { key: 'z', ctrl: true, shift: true, alt: false },
+      { key: 'y', ctrl: true, shift: false, alt: false },
+    ]);
+  });
+
   it('treats Escape as a shortcut recording cancel key', () => {
     expect(isShortcutRecordingCancelKey(keyboardEvent('Escape'))).toBe(true);
     expect(isShortcutRecordingCancelKey(keyboardEvent('Esc'))).toBe(true);
@@ -107,6 +115,7 @@ describe('shortcut utilities', () => {
     ]);
     expect(flatten('make-main-branch').map((shortcut) => shortcut.label)).toEqual(['Make current branch main']);
     expect(flatten('ctrl+s').map((shortcut) => shortcut.label)).toEqual(['Save SGF']);
+    expect(flatten('ctrl+z').map((shortcut) => shortcut.label)).toEqual(['Undo edit']);
     expect(filterShortcutGroups(groups, 'visualization').map((group) => group.title)).toEqual(['Visualization']);
   });
 

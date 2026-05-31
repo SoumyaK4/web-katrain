@@ -61,6 +61,10 @@ export function useKeyboardShortcuts({
     undoToBranchPoint,
     undoToMainBranch,
     makeCurrentNodeMainBranch,
+    undoEdit,
+    redoEdit,
+    editUndoCount,
+    editRedoCount,
     findMistake,
     analyzeExtra,
     resetCurrentAnalysis,
@@ -88,6 +92,10 @@ export function useKeyboardShortcuts({
       undoToBranchPoint: state.undoToBranchPoint,
       undoToMainBranch: state.undoToMainBranch,
       makeCurrentNodeMainBranch: state.makeCurrentNodeMainBranch,
+      undoEdit: state.undoEdit,
+      redoEdit: state.redoEdit,
+      editUndoCount: state.editUndoCount,
+      editRedoCount: state.editRedoCount,
       findMistake: state.findMistake,
       analyzeExtra: state.analyzeExtra,
       resetCurrentAnalysis: state.resetCurrentAnalysis,
@@ -166,6 +174,20 @@ export function useKeyboardShortcuts({
       if (matches('new-game')) {
         e.preventDefault();
         openNewGame();
+        return;
+      }
+
+      // Edit history
+      if (matches('edit-redo')) {
+        e.preventDefault();
+        if (editRedoCount > 0) redoEdit();
+        else toast('No edit to redo.', 'info');
+        return;
+      }
+      if (matches('edit-undo')) {
+        e.preventDefault();
+        if (editUndoCount > 0) undoEdit();
+        else toast('No edit to undo.', 'info');
         return;
       }
 
@@ -492,6 +514,10 @@ export function useKeyboardShortcuts({
     undoToBranchPoint,
     undoToMainBranch,
     makeCurrentNodeMainBranch,
+    undoEdit,
+    redoEdit,
+    editUndoCount,
+    editRedoCount,
     sgfExportOptions,
     saveSgf,
     openSgf,

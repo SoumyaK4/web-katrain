@@ -2,6 +2,7 @@ import { readLocalStorage, writeLocalStorage } from './storage';
 
 export type ShortcutCategory =
   | 'Navigation'
+  | 'Edit'
   | 'Game Control'
   | 'Visualization'
   | 'Analysis'
@@ -42,6 +43,8 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'make-main-branch', category: 'Navigation', label: 'Make current branch main', defaultBindings: [{ key: 'PageUp' }] },
   { id: 'undo-branch-point', category: 'Navigation', label: 'Undo to branch point', defaultBindings: [{ key: 'b' }] },
   { id: 'undo-main-branch', category: 'Navigation', label: 'Undo to main branch', defaultBindings: [{ key: 'b', shift: true }] },
+  { id: 'edit-undo', category: 'Edit', label: 'Undo edit', defaultBindings: [{ key: 'z', ctrl: true }] },
+  { id: 'edit-redo', category: 'Edit', label: 'Redo edit', defaultBindings: [{ key: 'z', ctrl: true, shift: true }, { key: 'y', ctrl: true }] },
   { id: 'pass', category: 'Game Control', label: 'Pass', defaultBindings: [{ key: 'p' }] },
   { id: 'ai-move', category: 'Game Control', label: 'AI move', defaultBindings: [{ key: 'Enter' }] },
   { id: 'selfplay', category: 'Game Control', label: 'Selfplay to end', defaultBindings: [{ key: 'l' }] },
@@ -197,13 +200,16 @@ export const filterShortcutGroups = (groups: ShortcutGroup[], query: string): Sh
     .map((group) => ({
       ...group,
       shortcuts: group.shortcuts.filter((shortcut) => {
-        const haystack = [
+        const textHaystack = [
           group.title,
           shortcut.label,
           shortcut.id,
-          shortcutDisplay(shortcut.bindings),
         ].join(' ').toLowerCase();
-        return haystack.includes(normalizedQuery);
+        const bindingDisplay = shortcutDisplay(shortcut.bindings).toLowerCase();
+        const bindingMatches = normalizedQuery.includes('+')
+          ? bindingDisplay.split('/').some((binding) => binding.trim() === normalizedQuery)
+          : bindingDisplay.includes(normalizedQuery);
+        return textHaystack.includes(normalizedQuery) || bindingMatches;
       }),
     }))
     .filter((group) => group.shortcuts.length > 0);
