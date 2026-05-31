@@ -59,7 +59,7 @@ const DEFAULT_TRAINER_CONFIG: KaTrainSgfExportTrainerConfig = {
     evalThresholds: [12, 6, 3, 1.5, 0.5, 0],
     saveFeedback: [true, true, true, true, false, false],
     saveCommentsPlayer: { black: true, white: true },
-    saveAnalysis: false,
+    saveAnalysis: true,
     saveMarks: false,
 };
 

@@ -854,7 +854,7 @@ const defaultSettings: GameSettings = {
   trainerTopMovesShow: 'top_move_delta_score',
   trainerTopMovesShowSecondary: 'top_move_visits',
   trainerExtraPrecision: false,
-  trainerSaveAnalysis: false,
+  trainerSaveAnalysis: true,
   trainerSaveMarks: false,
   trainerLockAi: false,
   analysisShowChildren: true,

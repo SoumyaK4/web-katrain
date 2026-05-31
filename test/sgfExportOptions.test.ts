@@ -65,6 +65,30 @@ describe('SGF export trainer options', () => {
     expect(sgfYes).toContain('KT[');
   });
 
+  it('saves portable analysis blobs by default', () => {
+    const store = useGameStore.getState();
+    store.resetGame();
+
+    store.playMove(3, 3); // B
+    const root = useGameStore.getState().rootNode;
+    const n1 = root.children[0]!;
+
+    root.analysis = analysis({
+      rootScoreLead: 0,
+      rootWinRate: 0.5,
+      moves: [
+        { x: 15, y: 15, winRate: 0.55, scoreLead: 1.2, visits: 100, pointsLost: 0, order: 0, prior: 0.42 },
+      ],
+    });
+    n1.analysis = analysis({ rootScoreLead: -1, rootWinRate: 0.5 });
+
+    const sgf = generateSgfFromTree(root);
+
+    expect(sgf).toContain('KA[');
+    expect(sgf).toContain('KT[');
+    expect(sgf).toContain('"m":"Q4"');
+  });
+
   it('adds KaTrain-style SGF marks (MA/SQ) when save_marks is enabled', () => {
     const store = useGameStore.getState();
     store.resetGame();

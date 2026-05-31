@@ -845,9 +845,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className={rowClass}>
-                                                    <label className={labelClass}>Cache analysis to SGF</label>
+                                                    <label
+                                                        className={labelClass}
+                                                        title="Embed KT and KA analysis data when exporting SGF so reviewed games reopen with cached analysis."
+                                                    >
+                                                        Save analysis in SGF
+                                                    </label>
                                                     <input
                                                         type="checkbox"
+                                                        aria-label="Save analysis in SGF"
                                                         checked={settings.trainerSaveAnalysis}
                                                         onChange={(e) => updateSettings({ trainerSaveAnalysis: e.target.checked })}
                                                         className="toggle"
