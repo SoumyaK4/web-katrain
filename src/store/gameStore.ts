@@ -1046,8 +1046,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           });
       }
       if (!quiet) {
-          set({ notification: { message: next ? 'Continuous analysis on' : 'Continuous analysis off', type: 'info' } });
-          setTimeout(() => set({ notification: null }), 1200);
+          const notification = { message: next ? 'Continuous analysis on' : 'Continuous analysis off', type: 'info' as const };
+          set({ notification });
+          setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1200);
       }
       if (!next) {
           continuousToken++;
@@ -1099,6 +1100,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearAnalysisCache: () => {
       const removed = getAnalysisCacheSize(get().rootNode);
+      const notification = {
+        message: removed > 0 ? `Cleared ${removed} cached ${removed === 1 ? 'analysis' : 'analyses'}.` : 'No cached analysis to clear.',
+        type: 'info' as const,
+      };
       continuousToken++;
       selfplayToken++;
       gameAnalysisToken++;
@@ -1116,13 +1121,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           engineStatus: 'idle',
           engineError: null,
           treeVersion: state.treeVersion + 1,
-          notification: {
-            message: removed > 0 ? `Cleared ${removed} cached ${removed === 1 ? 'analysis' : 'analyses'}.` : 'No cached analysis to clear.',
-            type: 'info',
-          },
+          notification,
         };
       });
-      setTimeout(() => set({ notification: null }), 1800);
+      setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1800);
   },
 
   toggleTeachMode: () => set((state) => {
@@ -1184,8 +1186,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const longTimeMs = Math.min(ENGINE_MAX_TIME_MS, 60_000);
 
     const toast = (message: string) => {
-      set({ notification: { message, type: 'info' } });
-      setTimeout(() => set({ notification: null }), 1600);
+      const notification = { message, type: 'info' as const };
+      set({ notification });
+      setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1600);
     };
 
     if (mode === 'extra') {
@@ -1245,14 +1248,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const s = get();
     if (!s.isInsertMode) {
       if (s.currentNode.children.length === 0) {
-        set({ notification: { message: 'Insert mode: no continuation to insert into.', type: 'error' } });
-        setTimeout(() => set({ notification: null }), 2000);
+        const notification = { message: 'Insert mode: no continuation to insert into.', type: 'error' as const };
+        set({ notification });
+        setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 2000);
         return;
       }
       const insertAfter = getActiveChild(s.currentNode, s.activeBranchChildIds);
       if (!insertAfter) {
-        set({ notification: { message: 'Insert mode: no continuation to insert into.', type: 'error' } });
-        setTimeout(() => set({ notification: null }), 2000);
+        const notification = { message: 'Insert mode: no continuation to insert into.', type: 'error' as const };
+        set({ notification });
+        setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 2000);
         return;
       }
       set((state) => ({
@@ -1367,14 +1372,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       from = getActiveChild(from, s.activeBranchChildIds);
     }
 
+    const notification = numCopied > 0 ? { message: `Insert mode ended: copied ${numCopied} moves.`, type: 'info' as const } : null;
     set((state) => ({
       isInsertMode: false,
       insertAfterNodeId: null,
       insertAnchorNodeId: null,
       treeVersion: state.treeVersion + 1,
-      notification: numCopied > 0 ? { message: `Insert mode ended: copied ${numCopied} moves.`, type: 'info' } : state.notification,
+      notification: notification ?? state.notification,
     }));
-    if (numCopied > 0) setTimeout(() => set({ notification: null }), 1800);
+    if (notification) {
+      setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 1800);
+    }
   },
 
   toggleEditMode: () =>
@@ -1594,8 +1602,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           return;
         }
         if (safety++ > 2000) {
-          set({ isSelfplayToEnd: false, notification: { message: 'Selfplay stopped (move limit).', type: 'error' } });
-          setTimeout(() => set({ notification: null }), 2000);
+          const notification = { message: 'Selfplay stopped (move limit).', type: 'error' as const };
+          set({ isSelfplayToEnd: false, notification });
+          setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 2000);
           return;
         }
 
@@ -2395,13 +2404,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 ? 'Pass'
                 : `${String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x))}${boardSize - move.y}`;
 
-            set({
-              notification: {
-                message: `Teaching undo: ${moveLabel} (${pointsLost.toFixed(1)} points lost)`,
-                type: 'info',
-              },
-            });
-            setTimeout(() => set({ notification: null }), 3000);
+            const notification = {
+              message: `Teaching undo: ${moveLabel} (${pointsLost.toFixed(1)} points lost)`,
+              type: 'info' as const,
+            };
+            set({ notification });
+            setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 3000);
             latestState.navigateBack();
           };
 
@@ -2410,12 +2418,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         .catch((err: unknown) => {
           if (isAnalysisCanceled(err)) return;
           const msg = err instanceof Error ? err.message : String(err);
+          const notification = { message: `Analysis error: ${msg}`, type: 'error' as const };
           set({
             engineStatus: 'error',
             engineError: msg,
-            notification: { message: `Analysis error: ${msg}`, type: 'error' },
+            notification,
           });
-          setTimeout(() => set({ notification: null }), 3000);
+          setTimeout(() => set((state) => (state.notification === notification ? { notification: null } : {})), 3000);
         });
   },
 

@@ -540,8 +540,11 @@ export const Layout: React.FC = () => {
 
   // Toast helper
   const toast = useCallback((message: string, type: 'info' | 'error' | 'success' = 'info') => {
-    useGameStore.setState({ notification: { message, type } });
-    window.setTimeout(() => useGameStore.setState({ notification: null }), 2500);
+    const notification = { message, type };
+    useGameStore.setState({ notification });
+    window.setTimeout(() => {
+      useGameStore.setState((state) => (state.notification === notification ? { notification: null } : {}));
+    }, 2500);
   }, []);
 
   const toggleScoringMode = useCallback(() => {
