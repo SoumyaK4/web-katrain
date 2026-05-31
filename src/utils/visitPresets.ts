@@ -62,3 +62,11 @@ export function visitPresetLabel(visits: number, defaultVisits?: number): string
   if (visits <= 1000) return 'Deep';
   return 'Thorough';
 }
+
+export function visitPresetDescription(visits: number): string {
+  const clamped = clampAnalysisVisits(visits);
+  if (clamped <= 16) return 'Quick shape checks with minimal waiting.';
+  if (clamped <= 250) return 'Everyday review depth for steady feedback.';
+  if (clamped <= 1000) return 'Deeper reading for fights and close choices.';
+  return 'Maximum confidence; slower on large positions.';
+}

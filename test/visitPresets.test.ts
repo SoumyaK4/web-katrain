@@ -10,6 +10,7 @@ import {
   sliderValueToVisitCount,
   snapVisitCount,
   visitCountToSliderValue,
+  visitPresetDescription,
   visitPresetLabel,
   visitSliderFillPercent,
 } from '../src/utils/visitPresets';
@@ -32,6 +33,13 @@ describe('visit preset utilities', () => {
     expect(visitPresetLabel(250, 5000)).toBe('Balanced');
     expect(visitPresetLabel(1000, 5000)).toBe('Deep');
     expect(visitPresetLabel(5000)).toBe('Thorough');
+  });
+
+  it('describes preset depth tradeoffs for the live selector', () => {
+    expect(visitPresetDescription(16)).toMatch(/minimal waiting/i);
+    expect(visitPresetDescription(250)).toMatch(/steady feedback/i);
+    expect(visitPresetDescription(1000)).toMatch(/deeper reading/i);
+    expect(visitPresetDescription(5000)).toMatch(/slower/i);
   });
 
   it('cycles to the next merged live preset', () => {

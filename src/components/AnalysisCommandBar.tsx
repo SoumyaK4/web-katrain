@@ -32,6 +32,7 @@ import {
   mergeVisitPresets,
   sliderValueToVisitCount,
   visitCountToSliderValue,
+  visitPresetDescription,
   visitPresetLabel,
   visitSliderFillPercent,
 } from '../utils/visitPresets';
@@ -91,6 +92,7 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   const depthPopoverRef = React.useRef<HTMLDivElement>(null);
   const [depthPopoverOpen, setDepthPopoverOpen] = React.useState(false);
   const [depthDraft, setDepthDraft] = React.useState('');
+  const [depthHintVisits, setDepthHintVisits] = React.useState<number | null>(null);
   const [reviewStartedAt, setReviewStartedAt] = React.useState<number | null>(null);
   const [reviewNow, setReviewNow] = React.useState(0);
   const shouldShow =
@@ -165,6 +167,9 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   const liveVisits = clampAnalysisVisits(katagoVisits);
   const liveVisitLabel = visitPresetLabel(liveVisits);
   const liveVisitCountLabel = formatVisitCount(liveVisits);
+  const depthHintValue = depthHintVisits ?? liveVisits;
+  const depthHintLabel = visitPresetLabel(depthHintValue);
+  const depthHintDescription = visitPresetDescription(depthHintValue);
   const liveVisitPresets = React.useMemo(
     () => mergeVisitPresets(ANALYSIS_VISIT_PRESETS, liveVisits),
     [liveVisits]
@@ -192,10 +197,18 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
 
   React.useEffect(() => {
     setDepthDraft(String(liveVisits));
-  }, [liveVisits]);
+    if (depthPopoverOpen) setDepthHintVisits(liveVisits);
+  }, [depthPopoverOpen, liveVisits]);
 
   React.useEffect(() => {
-    if (isGameAnalysisRunning) setDepthPopoverOpen(false);
+    if (!depthPopoverOpen) setDepthHintVisits(null);
+  }, [depthPopoverOpen]);
+
+  React.useEffect(() => {
+    if (isGameAnalysisRunning) {
+      setDepthPopoverOpen(false);
+      setDepthHintVisits(null);
+    }
   }, [isGameAnalysisRunning]);
 
   React.useEffect(() => {
@@ -263,6 +276,10 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
               role="radio"
               aria-checked={active}
               className={['analysis-command-bar__depth-option', active ? 'active' : ''].join(' ')}
+              aria-label={`${formatVisitCount(preset)} visits, ${visitPresetLabel(preset)}. ${visitPresetDescription(preset)}`}
+              title={visitPresetDescription(preset)}
+              onMouseEnter={() => setDepthHintVisits(preset)}
+              onFocus={() => setDepthHintVisits(preset)}
               onClick={() => applyLiveVisits(preset)}
               data-analysis-live-depth-option={preset}
             >
@@ -272,6 +289,10 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
           );
         })}
       </div>
+      <p className="analysis-command-bar__depth-help" aria-live="polite">
+        <span>{depthHintLabel}</span>
+        {depthHintDescription}
+      </p>
       <div className="analysis-command-bar__depth-custom">
         <input
           type="range"
