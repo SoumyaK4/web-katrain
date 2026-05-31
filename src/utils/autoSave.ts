@@ -1,3 +1,5 @@
+import { getLocalStorage } from './storage';
+
 export type AutoSavedGame = {
   version: 1;
   savedAt: number;
@@ -9,8 +11,7 @@ type AutoSaveStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export const AUTO_SAVED_GAME_KEY = 'web-katrain:auto_saved_game:v1';
 
 const getDefaultStorage = (): AutoSaveStorage | null => {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage;
+  return getLocalStorage();
 };
 
 export function readAutoSavedGame(storage: AutoSaveStorage | null = getDefaultStorage()): AutoSavedGame | null {

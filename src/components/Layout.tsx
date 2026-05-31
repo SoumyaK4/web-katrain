@@ -72,6 +72,7 @@ import { getCurrentLineMoveCount } from '../utils/branchNavigation';
 import { ResignConfirmModal } from './ResignConfirmModal';
 import { getResignResult } from '../utils/resign';
 import { DESKTOP_LAYOUT_MEDIA, isDesktopLayoutViewport, isMobileLayoutViewport } from '../utils/responsiveLayout';
+import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -297,26 +298,22 @@ export const Layout: React.FC = () => {
   const [lastRightTab, setLastRightTab] = useState<MobileTab>('tree');
   const [uiState, setUiState] = useState<UiState>(() => loadUiState());
   const [libraryOpen, setLibraryOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return false;
-    return localStorage.getItem('web-katrain:library_open:v1') === 'true';
+    return readLocalStorage('web-katrain:library_open:v1') === 'true';
   });
   const [showSidebar, setShowSidebar] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:sidebar_open:v1') !== 'false';
+    return readLocalStorage('web-katrain:sidebar_open:v1') !== 'false';
   });
   const [topBarOpen, setTopBarOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:top_bar_open:v1') !== 'false';
+    return readLocalStorage('web-katrain:top_bar_open:v1') !== 'false';
   });
   const [bottomBarOpen, setBottomBarOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:bottom_bar_open:v1') !== 'false';
+    return readLocalStorage('web-katrain:bottom_bar_open:v1') !== 'false';
   });
   const layoutShortcutLabels = useShortcutLabels(LAYOUT_SHORTCUT_IDS);
   const withLayoutShortcut = (label: string, id: LayoutShortcutId) => `${label} (${layoutShortcutLabels[id]})`;
   const [mobileHomeOpen, setMobileHomeOpen] = useState(() => {
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return false;
-    return isMobileLayoutViewport() && localStorage.getItem(MOBILE_HOME_DISMISSED_KEY) !== 'true';
+    if (typeof window === 'undefined') return false;
+    return isMobileLayoutViewport() && readLocalStorage(MOBILE_HOME_DISMISSED_KEY) !== 'true';
   });
 
   useEffect(() => {
@@ -328,14 +325,12 @@ export const Layout: React.FC = () => {
     return isDesktopLayoutViewport();
   });
   const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
-    if (typeof localStorage === 'undefined') return 300;
-    const raw = localStorage.getItem('web-katrain:left_panel_width:v1');
+    const raw = readLocalStorage('web-katrain:left_panel_width:v1');
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
     return Number.isFinite(parsed) ? parsed : 300;
   });
   const [rightPanelWidth, setRightPanelWidth] = useState(() => {
-    if (typeof localStorage === 'undefined') return 360;
-    const raw = localStorage.getItem('web-katrain:right_panel_width:v1');
+    const raw = readLocalStorage('web-katrain:right_panel_width:v1');
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
     return Number.isFinite(parsed) ? parsed : 360;
   });
@@ -814,33 +809,27 @@ export const Layout: React.FC = () => {
   }, [uiState]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_open:v1', String(libraryOpen));
+    writeLocalStorage('web-katrain:library_open:v1', String(libraryOpen));
   }, [libraryOpen]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:sidebar_open:v1', String(showSidebar));
+    writeLocalStorage('web-katrain:sidebar_open:v1', String(showSidebar));
   }, [showSidebar]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:top_bar_open:v1', String(topBarOpen));
+    writeLocalStorage('web-katrain:top_bar_open:v1', String(topBarOpen));
   }, [topBarOpen]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:bottom_bar_open:v1', String(bottomBarOpen));
+    writeLocalStorage('web-katrain:bottom_bar_open:v1', String(bottomBarOpen));
   }, [bottomBarOpen]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:left_panel_width:v1', String(leftPanelWidth));
+    writeLocalStorage('web-katrain:left_panel_width:v1', String(leftPanelWidth));
   }, [leftPanelWidth]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:right_panel_width:v1', String(rightPanelWidth));
+    writeLocalStorage('web-katrain:right_panel_width:v1', String(rightPanelWidth));
   }, [rightPanelWidth]);
 
   useEffect(() => {
@@ -1180,9 +1169,7 @@ export const Layout: React.FC = () => {
   }, [isDesktop]);
 
   const closeMobileHome = () => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(MOBILE_HOME_DISMISSED_KEY, 'true');
-    }
+    writeLocalStorage(MOBILE_HOME_DISMISSED_KEY, 'true');
     setMobileHomeOpen(false);
   };
 

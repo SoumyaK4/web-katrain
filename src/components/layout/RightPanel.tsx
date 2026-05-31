@@ -29,6 +29,7 @@ import { SectionHeader } from './ui';
 import { formatMoveLabel, formatPositionSummary, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
 import { getBranchInfo, getCurrentLineNodes } from '../../utils/branchNavigation';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
+import { readLocalStorage, writeLocalStorage } from '../../utils/storage';
 
 const RIGHT_PANEL_SHORTCUT_IDS = [
   'nav-back',
@@ -308,24 +309,21 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     );
   };
 
-  const storedTreeView = typeof localStorage === 'undefined' ? null : localStorage.getItem('web-katrain:tree_view:v1');
+  const storedTreeView = readLocalStorage('web-katrain:tree_view:v1');
   const [treeView, setTreeView] = React.useState<'tree' | 'list'>(() => {
     if (storedTreeView === 'list' || storedTreeView === 'tree') return storedTreeView;
     return isMobile ? 'list' : 'tree';
   });
   const [notesListOpen, setNotesListOpen] = React.useState(() => {
-    if (typeof localStorage === 'undefined') return false;
-    return localStorage.getItem('web-katrain:notes_list_open:v1') === 'true';
+    return readLocalStorage('web-katrain:notes_list_open:v1') === 'true';
   });
 
   React.useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:tree_view:v1', treeView);
+    writeLocalStorage('web-katrain:tree_view:v1', treeView);
   }, [treeView]);
 
   React.useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:notes_list_open:v1', String(notesListOpen));
+    writeLocalStorage('web-katrain:notes_list_open:v1', String(notesListOpen));
   }, [notesListOpen]);
 
   return (

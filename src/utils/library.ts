@@ -1,4 +1,5 @@
 import { PRELOADED_GAMES } from '../data/preloadedGames';
+import { readLocalStorage, writeLocalStorage } from './storage';
 
 export type LibraryBase = {
   id: string;
@@ -302,19 +303,13 @@ const safeParse = (raw: string | null): LibraryItem[] => {
 };
 
 const getPreloadedVersion = (): number => {
-  if (typeof localStorage === 'undefined') return 0;
-  const raw = localStorage.getItem(PRELOADED_VERSION_KEY);
+  const raw = readLocalStorage(PRELOADED_VERSION_KEY);
   const parsed = raw ? Number.parseInt(raw, 10) : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const setPreloadedVersion = (version: number): void => {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(PRELOADED_VERSION_KEY, String(version));
-  } catch {
-    // Ignore quota/permission errors.
-  }
+  writeLocalStorage(PRELOADED_VERSION_KEY, String(version));
 };
 
 const createPreloadedLibrary = (): LibraryItem[] => {
@@ -441,11 +436,7 @@ const saveToIndexedDb = async (items: LibraryItem[]): Promise<void> => {
 
 const loadFallbackLibrary = (): LibraryItem[] => {
   if (memoryItems) return memoryItems;
-  if (typeof localStorage === 'undefined') {
-    memoryItems = createPreloadedLibrary();
-    return memoryItems;
-  }
-  const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+  const raw = readLocalStorage(LEGACY_STORAGE_KEY);
   if (raw === null) {
     memoryItems = createPreloadedLibrary();
   } else {
@@ -458,12 +449,7 @@ const loadFallbackLibrary = (): LibraryItem[] => {
 
 const saveFallbackLibrary = (items: LibraryItem[]): void => {
   memoryItems = normalizeLibraryItems(items);
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(memoryItems));
-  } catch {
-    // Ignore quota/permission errors.
-  }
+  writeLocalStorage(LEGACY_STORAGE_KEY, JSON.stringify(memoryItems));
 };
 
 export const loadLibrary = async (): Promise<LibraryItem[]> => {
@@ -473,15 +459,15 @@ export const loadLibrary = async (): Promise<LibraryItem[]> => {
 
   try {
     let items = await loadFromIndexedDb();
-    const legacyRaw = typeof localStorage === 'undefined' ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
-    const hasMigrated = typeof localStorage !== 'undefined' && localStorage.getItem(MIGRATION_FLAG_KEY) === 'true';
+    const legacyRaw = readLocalStorage(LEGACY_STORAGE_KEY);
+    const hasMigrated = readLocalStorage(MIGRATION_FLAG_KEY) === 'true';
 
     if (items.length === 0 && legacyRaw !== null && !hasMigrated) {
       items = safeParse(legacyRaw);
       const ensured = ensurePreloadedLibrary(items);
       items = ensured.items;
       await saveToIndexedDb(items);
-      localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+      writeLocalStorage(MIGRATION_FLAG_KEY, 'true');
       return items;
     }
 

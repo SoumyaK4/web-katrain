@@ -1,3 +1,5 @@
+import { readLocalStorage, writeLocalStorage } from '../../utils/storage';
+
 export type UiMode = 'play' | 'analyze';
 
 export type AnalysisControlsState = {
@@ -82,9 +84,8 @@ export function defaultUiState(): UiState {
 }
 
 export function loadUiState(): UiState {
-  if (typeof localStorage === 'undefined') return defaultUiState();
   try {
-    const raw = localStorage.getItem(UI_STATE_KEY);
+    const raw = readLocalStorage(UI_STATE_KEY);
     if (!raw) return defaultUiState();
     const parsed = JSON.parse(raw) as Partial<UiState> | null;
     if (!parsed || typeof parsed !== 'object') return defaultUiState();
@@ -123,10 +124,5 @@ export function loadUiState(): UiState {
 }
 
 export function saveUiState(state: UiState): void {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(UI_STATE_KEY, JSON.stringify(state));
-  } catch {
-    // Ignore quota/permission errors.
-  }
+  writeLocalStorage(UI_STATE_KEY, JSON.stringify(state));
 }

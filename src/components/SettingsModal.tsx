@@ -30,6 +30,7 @@ import {
     syncUploadedModelUrl,
     validateModelUploadFile,
 } from '../utils/modelUpload';
+import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 
 const OFFICIAL_MODELS: Array<{
     label: string;
@@ -141,26 +142,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const shortcutLabels = useShortcutLabels(ANALYSIS_OVERLAY_SHORTCUT_IDS);
 
     const [activeTab, setActiveTab] = React.useState<SettingsTabId>(() => {
-        // Initialize from localStorage if available, otherwise default to "general"
         if (typeof window === 'undefined') {
             return 'general';
         }
-        try {
-            const stored = window.localStorage.getItem('settingsModalActiveTab');
-            return isSettingsTabId(stored) ? stored : 'general';
-        } catch {
-            return 'general';
-        }
+        const stored = readLocalStorage('settingsModalActiveTab');
+        return isSettingsTabId(stored) ? stored : 'general';
     });
     React.useEffect(() => {
         if (typeof window === 'undefined') {
             return;
         }
-        try {
-            window.localStorage.setItem('settingsModalActiveTab', activeTab);
-        } catch {
-            // Ignore storage errors to avoid breaking the settings modal
-        }
+        writeLocalStorage('settingsModalActiveTab', activeTab);
     }, [activeTab]);
     const DEFAULT_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0];
     const DEFAULT_SHOW_DOTS = [true, true, true, true, true, true];

@@ -15,6 +15,7 @@ import {
   type MoveTreeLayoutDirection,
   type MoveTreeViewport,
 } from '../utils/moveTreeLayout';
+import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 
 type LayoutWorkerResponse =
   | { requestId: number; ok: true; layout: MoveTreeLayout }
@@ -59,12 +60,10 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   } | null>(null);
   const [viewport, setViewport] = useState<MoveTreeViewport>(EMPTY_VIEWPORT);
   const [showMinimap, setShowMinimap] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem(MINIMAP_STORAGE_KEY) !== 'false';
+    return readLocalStorage(MINIMAP_STORAGE_KEY) !== 'false';
   });
   const [layoutDirection, setLayoutDirection] = useState<MoveTreeLayoutDirection>(() => {
-    if (typeof localStorage === 'undefined') return 'horizontal';
-    return localStorage.getItem(LAYOUT_DIRECTION_STORAGE_KEY) === 'vertical' ? 'vertical' : 'horizontal';
+    return readLocalStorage(LAYOUT_DIRECTION_STORAGE_KEY) === 'vertical' ? 'vertical' : 'horizontal';
   });
 
   const flatTree = useMemo(() => {
@@ -103,13 +102,11 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   }, [currentNode.id, layoutKey, shouldUseWorker, syncLayout, workerResult]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(MINIMAP_STORAGE_KEY, String(showMinimap));
+    writeLocalStorage(MINIMAP_STORAGE_KEY, String(showMinimap));
   }, [showMinimap]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(LAYOUT_DIRECTION_STORAGE_KEY, layoutDirection);
+    writeLocalStorage(LAYOUT_DIRECTION_STORAGE_KEY, layoutDirection);
   }, [layoutDirection]);
 
   useEffect(() => {

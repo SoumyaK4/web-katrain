@@ -28,6 +28,7 @@ import {
   type ActiveBranchMap,
 } from '../utils/branchNavigation';
 import { getResignResult } from '../utils/resign';
+import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 
 type BranchClipboardNode = {
   move: Move | null;
@@ -229,12 +230,11 @@ const resolveModelUrlForFetch = (value: string): string => {
 };
 
 const loadStoredSettings = (): Partial<GameSettings> | null => {
-  if (typeof localStorage === 'undefined') return null;
   try {
-    const rawCurrent = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const rawCurrent = readLocalStorage(SETTINGS_STORAGE_KEY);
     const legacyEntry = rawCurrent
       ? null
-      : LEGACY_SETTINGS_STORAGE_KEYS.map((key) => ({ key, raw: localStorage.getItem(key) })).find((entry) => entry.raw);
+      : LEGACY_SETTINGS_STORAGE_KEYS.map((key) => ({ key, raw: readLocalStorage(key) })).find((entry) => entry.raw);
     const raw = rawCurrent ?? legacyEntry?.raw;
     if (!raw) return null;
     const isLegacySettings = legacyEntry != null;
@@ -289,12 +289,7 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
 };
 
 const saveStoredSettings = (settings: GameSettings): void => {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    // Ignore quota/permission errors.
-  }
+  writeLocalStorage(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 };
 
 const rulesToSgfRu = (rules: GameRules): string => {

@@ -1,3 +1,5 @@
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from './storage';
+
 export const MAX_BROWSER_MODEL_UPLOAD_BYTES = 128 * 1024 * 1024;
 export const MAX_BROWSER_MODEL_UPLOAD_LABEL = '128 MB';
 
@@ -126,22 +128,12 @@ const openUploadedModelDb = (): Promise<IDBDatabase> =>
   });
 
 const setUploadedModelSelected = (selected: boolean): void => {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    if (selected) localStorage.setItem(UPLOADED_MODEL_SELECTED_KEY, 'true');
-    else localStorage.removeItem(UPLOADED_MODEL_SELECTED_KEY);
-  } catch {
-    // Ignore storage errors.
-  }
+  if (selected) writeLocalStorage(UPLOADED_MODEL_SELECTED_KEY, 'true');
+  else removeLocalStorage(UPLOADED_MODEL_SELECTED_KEY);
 };
 
 const isPersistedUploadedModelSelected = (): boolean => {
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem(UPLOADED_MODEL_SELECTED_KEY) === 'true';
-  } catch {
-    return false;
-  }
+  return readLocalStorage(UPLOADED_MODEL_SELECTED_KEY) === 'true';
 };
 
 export const savePersistedUploadedModel = async (file: Blob & ModelFileLike): Promise<boolean> => {

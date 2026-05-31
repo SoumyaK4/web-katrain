@@ -1,3 +1,5 @@
+import { readLocalStorage, writeLocalStorage } from './storage';
+
 export type ShortcutCategory =
   | 'Navigation'
   | 'Game Control'
@@ -139,9 +141,8 @@ export const shortcutDisplay = (bindings: ShortcutBinding[] | null): string =>
   bindings === null ? 'Disabled' : bindings.map(bindingToDisplay).join(' / ');
 
 export const loadShortcutOverrides = (): ShortcutOverrides => {
-  if (typeof localStorage === 'undefined') return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = readLocalStorage(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return {};
@@ -163,12 +164,10 @@ export const loadShortcutOverrides = (): ShortcutOverrides => {
 };
 
 export const saveShortcutOverrides = (overrides: ShortcutOverrides): void => {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-    window.dispatchEvent(new CustomEvent(SHORTCUTS_UPDATED_EVENT));
-  } catch {
-    // Ignore storage errors.
+  if (writeLocalStorage(STORAGE_KEY, JSON.stringify(overrides))) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(SHORTCUTS_UPDATED_EVENT));
+    }
   }
 };
 

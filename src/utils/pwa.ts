@@ -1,3 +1,5 @@
+import { getLocalStorage } from './storage';
+
 export const PWA_OFFLINE_READY_EVENT = 'web-katrain:pwa-offline-ready';
 export const PWA_UPDATE_READY_EVENT = 'web-katrain:pwa-update-ready';
 export const PWA_INSTALL_DISMISSED_KEY = 'web-katrain:pwa-install-dismissed:v1';
@@ -6,8 +8,7 @@ type PwaStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 function getStorage(storage?: PwaStorage | null): PwaStorage | null {
   if (storage !== undefined) return storage;
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage;
+  return getLocalStorage();
 }
 
 export function getServiceWorkerUrl(baseUrl: string): string {

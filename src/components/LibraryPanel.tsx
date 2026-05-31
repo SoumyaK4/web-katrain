@@ -45,6 +45,7 @@ import { PHOTO_BOARD_IMAGE_EXTENSIONS, isPhotoBoardImageFile } from '../utils/ph
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { SectionHeader } from './layout/ui';
 import { panelCardBase, panelCardClosed, panelCardOpen } from './layout/ui-utils';
+import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 
 const isFolder = (item: LibraryItem): item is LibraryFolder => item.type === 'folder';
 const isFile = (item: LibraryItem): item is LibraryFile => item.type === 'file';
@@ -280,13 +281,11 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
-    if (typeof localStorage === 'undefined') return null;
-    const raw = localStorage.getItem('web-katrain:library_current_folder:v1');
+    const raw = readLocalStorage('web-katrain:library_current_folder:v1');
     return raw || null;
   });
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(() => {
-    if (typeof localStorage === 'undefined') return new Set();
-    const raw = localStorage.getItem('web-katrain:library_folders_expanded:v1');
+    const raw = readLocalStorage('web-katrain:library_folders_expanded:v1');
     if (!raw) return new Set();
     try {
       const parsed = JSON.parse(raw);
@@ -318,13 +317,11 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const analysisActionClass =
     'panel-icon-button disabled:opacity-50 disabled:cursor-not-allowed';
   const [sortKey, setSortKey] = useState(() => {
-    if (typeof localStorage === 'undefined') return 'recent';
-    return localStorage.getItem('web-katrain:library_sort:v1') ?? 'recent';
+    return readLocalStorage('web-katrain:library_sort:v1') ?? 'recent';
   });
   const [graphOptions] = useState(() => {
-    if (typeof localStorage === 'undefined') return { score: true, winrate: true };
     try {
-      const raw = localStorage.getItem('web-katrain:library_graph_opts:v1');
+      const raw = readLocalStorage('web-katrain:library_graph_opts:v1');
       if (!raw) return { score: true, winrate: true };
       const parsed = JSON.parse(raw) as { score?: boolean; winrate?: boolean };
       return { score: parsed.score !== false, winrate: parsed.winrate !== false };
@@ -333,12 +330,10 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     }
   });
   const [listOpen, setListOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:library_list_open:v1') !== 'false';
+    return readLocalStorage('web-katrain:library_list_open:v1') !== 'false';
   });
   const [analysisOpen, setAnalysisOpen] = useState(() => {
-    if (typeof localStorage === 'undefined') return true;
-    return localStorage.getItem('web-katrain:library_analysis_open:v1') !== 'false';
+    return readLocalStorage('web-katrain:library_analysis_open:v1') !== 'false';
   });
 
   useEffect(() => {
@@ -439,34 +434,28 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   }, [expandedFolderIds, items]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_current_folder:v1', activeFolderId ?? '');
+    writeLocalStorage('web-katrain:library_current_folder:v1', activeFolderId ?? '');
   }, [activeFolderId]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
     const arr = Array.from(visibleExpandedFolderIds.values());
-    localStorage.setItem('web-katrain:library_folders_expanded:v1', JSON.stringify(arr));
+    writeLocalStorage('web-katrain:library_folders_expanded:v1', JSON.stringify(arr));
   }, [visibleExpandedFolderIds]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_sort:v1', String(sortKey));
+    writeLocalStorage('web-katrain:library_sort:v1', String(sortKey));
   }, [sortKey]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_graph_opts:v1', JSON.stringify(graphOptions));
+    writeLocalStorage('web-katrain:library_graph_opts:v1', JSON.stringify(graphOptions));
   }, [graphOptions]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_list_open:v1', String(listOpen));
+    writeLocalStorage('web-katrain:library_list_open:v1', String(listOpen));
   }, [listOpen]);
 
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem('web-katrain:library_analysis_open:v1', String(analysisOpen));
+    writeLocalStorage('web-katrain:library_analysis_open:v1', String(analysisOpen));
   }, [analysisOpen]);
 
   useEffect(() => {
