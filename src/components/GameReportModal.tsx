@@ -116,8 +116,11 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     jumpToNode,
     gameAnalysisDone,
     gameAnalysisTotal,
+    gameAnalysisType,
     isGameAnalysisRunning,
     isInsertMode,
+    startFastGameAnalysis,
+    stopGameAnalysis,
   } = useGameStore(
     (state) => ({
       currentNode: state.currentNode,
@@ -127,8 +130,11 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
       jumpToNode: state.jumpToNode,
       gameAnalysisDone: state.gameAnalysisDone,
       gameAnalysisTotal: state.gameAnalysisTotal,
+      gameAnalysisType: state.gameAnalysisType,
       isGameAnalysisRunning: state.isGameAnalysisRunning,
       isInsertMode: state.isInsertMode,
+      startFastGameAnalysis: state.startFastGameAnalysis,
+      stopGameAnalysis: state.stopGameAnalysis,
     }),
     shallow
   );
@@ -361,6 +367,15 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const analyzedMoves = report.stats.black.numMoves + report.stats.white.numMoves;
   const totalMoves = report.movesInFilter;
   const coverage = totalMoves > 0 ? analyzedMoves / totalMoves : 0;
+  const hasReviewTargets = totalMoves > 0;
+  const hasFullCoverage = hasReviewTargets && coverage >= 0.999;
+  const reviewButtonLabel = isGameAnalysisRunning
+    ? `Stop ${gameAnalysisType ?? 'analysis'}${gameAnalysisTotal > 0 ? ` (${gameAnalysisDone}/${gameAnalysisTotal})` : ''}`
+    : hasFullCoverage
+      ? 'Re-run fast review'
+      : hasReviewTargets
+      ? 'Run fast review'
+      : 'No moves to review';
   const playerFilterLabel = playerFilter === 'all' ? 'All players' : playerFilter === 'black' ? 'Black' : 'White';
   const statsPlayers: Array<Player> = playerFilter === 'all' ? ['black', 'white'] : [playerFilter];
   const filteredReportEntries = useMemo(() => {
@@ -1347,17 +1362,34 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
           </div>
         </div>
 
-        <div className="px-5 py-4 ui-bar border-t border-[var(--ui-border)] flex items-center justify-between print-hide">
-          <button
-            type="button"
-            onClick={handlePrintReport}
-            className="px-4 py-2 bg-[var(--ui-surface-2)] hover:brightness-110 text-white rounded-lg font-semibold disabled:opacity-60"
-            disabled={isPreparingPdf}
-          >
-            {isPreparingPdf
-              ? 'Preparing print...'
-              : 'Print / Save PDF'}
-          </button>
+        <div className="px-5 py-4 ui-bar border-t border-[var(--ui-border)] flex flex-wrap items-center justify-between gap-3 print-hide">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={isGameAnalysisRunning ? stopGameAnalysis : startFastGameAnalysis}
+              className={[
+                'px-4 py-2 rounded-lg font-semibold disabled:opacity-60',
+                isGameAnalysisRunning
+                  ? 'bg-rose-600/80 hover:bg-rose-500 text-white'
+                  : hasFullCoverage
+                    ? 'bg-[var(--ui-surface-2)] hover:brightness-110 text-white'
+                    : 'ui-accent-bg hover:brightness-110',
+              ].join(' ')}
+              disabled={isPreparingPdf || (!isGameAnalysisRunning && !hasReviewTargets)}
+            >
+              {reviewButtonLabel}
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintReport}
+              className="px-4 py-2 bg-[var(--ui-surface-2)] hover:brightness-110 text-white rounded-lg font-semibold disabled:opacity-60"
+              disabled={isPreparingPdf}
+            >
+              {isPreparingPdf
+                ? 'Preparing print...'
+                : 'Print / Save PDF'}
+            </button>
+          </div>
           <button
             type="button"
             onClick={onClose}
