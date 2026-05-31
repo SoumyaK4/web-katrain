@@ -6,6 +6,7 @@ import type { CandidateMove, FloatArray, Move, Player } from '../types';
 import { formatRootInfoText } from '../utils/gameInfoText';
 import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment } from '../utils/notePreview';
 import { getVisualViewport } from '../utils/visualViewport';
+import { getMoveInsight, getMoveInsightCoach } from '../utils/moveInsight';
 
 function moveToLabel(move: Move | null, boardSize: number): string {
   if (!move) return 'Root';
@@ -176,6 +177,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
 
   const move = currentNode.move;
   const boardSize = currentNode.gameState.board.length;
+  const moveInsight = useMemo(() => getMoveInsight(move, boardSize), [boardSize, move]);
+  const moveInsightCoach = useMemo(() => (moveInsight ? getMoveInsightCoach(moveInsight) : null), [moveInsight]);
   const parent = currentNode.parent;
   const parentPolicy = parent?.analysis?.policy;
   const depth = currentNode.gameState.moveHistory.length;
@@ -209,6 +212,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
 
   const showInfoBlock = showInfo || detailed;
   const showNotesBlock = showNotes;
+  const hasShapeCoach = Boolean(moveInsight && moveInsightCoach);
   const currentNote = currentNode.note ?? '';
   const noteHasContent = currentNote.trim().length > 0;
   const [isEditingNote, setIsEditingNote] = React.useState(() => !noteHasContent);
@@ -332,10 +336,52 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
         </div>
       )}
 
-      {showNotesBlock && (
+      {moveInsight && moveInsightCoach && (
         <div
           className={[
             showInfoBlock ? 'border-t border-[var(--ui-border)]' : '',
+            showNotesBlock ? 'border-b border-[var(--ui-border)]' : '',
+            'px-2 py-2 text-xs',
+          ].join(' ')}
+          data-shape-coach={moveInsight.tone}
+        >
+          <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wide ui-text-faint">Shape coach</div>
+              <div className="truncate font-semibold text-[var(--ui-text)]">{moveInsight.label}</div>
+            </div>
+            <span className="shrink-0 rounded border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold capitalize text-[var(--ui-accent)]">
+              {moveInsight.tone}
+            </span>
+          </div>
+          <div className="grid gap-1.5">
+            <div>
+              <span className="font-semibold text-[var(--ui-text)]">Beginner: </span>
+              <span className="ui-text-muted">{moveInsightCoach.beginner}</span>
+            </div>
+            {detailed && (
+              <div>
+                <span className="font-semibold text-[var(--ui-text)]">Pro: </span>
+                <span className="ui-text-muted">{moveInsightCoach.pro}</span>
+              </div>
+            )}
+          </div>
+          {detailed && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {moveInsightCoach.checks.map((check) => (
+                <span key={check} className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-1.5 py-0.5 text-[10px] ui-text-faint">
+                  {check}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showNotesBlock && (
+        <div
+          className={[
+            showInfoBlock && !hasShapeCoach ? 'border-t border-[var(--ui-border)]' : '',
             'p-2 flex flex-col gap-2 min-h-0',
           ].join(' ')}
         >

@@ -8,6 +8,12 @@ export interface MoveInsight {
   tone: MoveInsightTone;
 }
 
+export interface MoveInsightCoach {
+  beginner: string;
+  pro: string;
+  checks: string[];
+}
+
 type EdgeName = 'left' | 'right' | 'top' | 'bottom' | 'center';
 
 const CORNER_PATTERNS: Record<string, { label: string; detail: string }> = {
@@ -157,5 +163,64 @@ export function getMoveInsight(move: Move | null, boardSize: number): MoveInsigh
     label: 'Center-area move',
     detail: `${region}; ${lineRole(sideLine)}.`,
     tone: 'center',
+  };
+}
+
+export function getMoveInsightCoach(insight: MoveInsight): MoveInsightCoach {
+  if (insight.tone === 'pass') {
+    return {
+      beginner: 'Passing is usually right when both players have no valuable moves left.',
+      pro: 'Check ko threats, dame, sente endgame, and whether passing changes life-and-death status.',
+      checks: ['Endgame left?', 'Ko threats?', 'Life and death?'],
+    };
+  }
+
+  if (insight.tone === 'center') {
+    return {
+      beginner: 'Center moves build influence, but they need nearby stones or weak groups to matter.',
+      pro: 'Look for targets, sector lines, and whether the move turns outside strength into profit.',
+      checks: ['Targets', 'Direction', 'Follow-up'],
+    };
+  }
+
+  if (insight.tone === 'side') {
+    const lowSide = insight.label.includes('2nd-line') || insight.label.includes('3rd-line');
+    return {
+      beginner: lowSide
+        ? 'Low side moves are about territory and stability along the edge.'
+        : 'High side moves are about influence, pressure, and building a framework.',
+      pro: 'Check extension distance, nearby thickness, cut points, and whether the side move is sente.',
+      checks: ['Extension', 'Cuts', 'Sente'],
+    };
+  }
+
+  if (insight.label.includes('3-3')) {
+    return {
+      beginner: 'The 3-3 point secures corner territory quickly, often giving the opponent outside influence.',
+      pro: 'Before invading, count outside strength and confirm the opponent cannot profit twice.',
+      checks: ['Corner secure', 'Outside influence', 'Sente'],
+    };
+  }
+
+  if (insight.label.includes('4-4')) {
+    return {
+      beginner: 'The 4-4 point develops quickly and keeps many follow-ups open.',
+      pro: 'Choose approach direction by checking ladders, pincers, and which side is more important.',
+      checks: ['Approach side', 'Pincer', 'Ladders'],
+    };
+  }
+
+  if (insight.label.includes('3-4')) {
+    return {
+      beginner: 'The 3-4 point leans toward territory and has a clear direction for enclosure or extension.',
+      pro: 'Read approach pressure, shimari value, and whether the outside direction fits the board.',
+      checks: ['Shimari', 'Approach', 'Direction'],
+    };
+  }
+
+  return {
+    beginner: 'Corner moves trade territory, influence, and speed. Start by asking what this corner wants.',
+    pro: 'Check local joseki direction, outside strength, ladders, and who keeps sente after the exchange.',
+    checks: ['Joseki aim', 'Outside strength', 'Sente'],
   };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getMoveInsight } from '../src/utils/moveInsight';
+import { getMoveInsight, getMoveInsightCoach } from '../src/utils/moveInsight';
 import type { Move } from '../src/types';
 
 const blackMove = (x: number, y: number): Move => ({ x, y, player: 'black' });
@@ -45,5 +45,24 @@ describe('move insights', () => {
   it('returns null for root or out-of-board moves', () => {
     expect(getMoveInsight(null, 19)).toBeNull();
     expect(getMoveInsight(blackMove(19, 3), 19)).toBeNull();
+  });
+
+  it('adds beginner and pro coach cues for common shapes', () => {
+    const starPoint = getMoveInsight(blackMove(3, 15), 19);
+    const sideMove = getMoveInsight(blackMove(9, 16), 19);
+    const pass = getMoveInsight(blackMove(-1, -1), 19);
+
+    expect(starPoint && getMoveInsightCoach(starPoint)).toMatchObject({
+      beginner: expect.stringContaining('develops quickly'),
+      checks: expect.arrayContaining(['Approach side']),
+    });
+    expect(sideMove && getMoveInsightCoach(sideMove)).toMatchObject({
+      beginner: expect.stringContaining('territory'),
+      checks: expect.arrayContaining(['Extension']),
+    });
+    expect(pass && getMoveInsightCoach(pass)).toMatchObject({
+      pro: expect.stringContaining('ko threats'),
+      checks: expect.arrayContaining(['Life and death?']),
+    });
   });
 });
