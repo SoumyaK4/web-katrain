@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANALYSIS_VISIT_PRESETS,
+  ANALYSIS_VISIT_SLIDER_MAX,
+  ANALYSIS_VISIT_SLIDER_MIN,
   clampAnalysisVisits,
   formatVisitCount,
   mergeVisitPresets,
   nextVisitPreset,
+  sliderValueToVisitCount,
+  snapVisitCount,
+  visitCountToSliderValue,
   visitPresetLabel,
+  visitSliderFillPercent,
 } from '../src/utils/visitPresets';
 
 describe('visit preset utilities', () => {
@@ -41,5 +47,16 @@ describe('visit preset utilities', () => {
     expect(formatVisitCount(2500)).toBe('2.5k');
     expect(formatVisitCount(5000)).toBe('5k');
     expect(formatVisitCount(50000)).toBe('50k');
+  });
+
+  it('maps visit counts to a log slider with readable snapping', () => {
+    expect(snapVisitCount(236)).toBe(240);
+    expect(snapVisitCount(1260)).toBe(1300);
+    expect(sliderValueToVisitCount(visitCountToSliderValue(250))).toBe(250);
+    expect(sliderValueToVisitCount(Number.NaN)).toBe(16);
+    expect(sliderValueToVisitCount(ANALYSIS_VISIT_SLIDER_MIN - 1)).toBe(16);
+    expect(sliderValueToVisitCount(ANALYSIS_VISIT_SLIDER_MAX + 1)).toBe(50000);
+    expect(visitSliderFillPercent(16)).toBeCloseTo(0);
+    expect(visitSliderFillPercent(50000)).toBeCloseTo(100);
   });
 });

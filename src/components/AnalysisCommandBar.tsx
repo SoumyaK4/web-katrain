@@ -8,6 +8,7 @@ import {
   FaRobot,
   FaSearch,
   FaSquare,
+  FaTimes,
 } from 'react-icons/fa';
 import type { AnalysisControlsState, UiMode } from './layout/types';
 import { formatAnalysisScoreLead, formatAnalysisWinRate, summarizePointsLost } from '../utils/analysisSummary';
@@ -16,11 +17,17 @@ import { getTopMoveMetricLabel, nextTopMoveMetric } from '../utils/topMoveMetric
 import {
   ANALYSIS_MIN_VISITS,
   ANALYSIS_VISIT_PRESETS,
+  ANALYSIS_VISIT_SLIDER_MAX,
+  ANALYSIS_VISIT_SLIDER_MIN,
   clampAnalysisVisits,
   formatVisitCount,
-  nextVisitPreset,
+  mergeVisitPresets,
+  sliderValueToVisitCount,
+  visitCountToSliderValue,
   visitPresetLabel,
+  visitSliderFillPercent,
 } from '../utils/visitPresets';
+import { ENGINE_MAX_VISITS } from '../engine/katago/limits';
 
 interface AnalysisCommandBarProps {
   mode: UiMode;
@@ -68,14 +75,16 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   const topMoveMetric = useGameStore((state) => state.settings.trainerTopMovesShow);
   const katagoVisits = useGameStore((state) => state.settings.katagoVisits);
   const updateSettings = useGameStore((state) => state.updateSettings);
+  const depthButtonRef = React.useRef<HTMLButtonElement>(null);
+  const depthPopoverRef = React.useRef<HTMLDivElement>(null);
+  const [depthPopoverOpen, setDepthPopoverOpen] = React.useState(false);
+  const [depthDraft, setDepthDraft] = React.useState('');
   const shouldShow =
     mode === 'analyze' ||
     isAnalysisMode ||
     isGameAnalysisRunning ||
     typeof winRate === 'number' ||
     typeof scoreLead === 'number';
-
-  if (!shouldShow) return null;
 
   const pointsSummary = summarizePointsLost(pointsLost);
   const gameProgress =
@@ -109,15 +118,146 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   const liveVisits = clampAnalysisVisits(katagoVisits);
   const liveVisitLabel = visitPresetLabel(liveVisits);
   const liveVisitCountLabel = formatVisitCount(liveVisits);
-  const cycleLiveVisits = () => {
-    const nextVisits = nextVisitPreset(liveVisits, ANALYSIS_VISIT_PRESETS);
+  const liveVisitPresets = React.useMemo(
+    () => mergeVisitPresets(ANALYSIS_VISIT_PRESETS, liveVisits),
+    [liveVisits]
+  );
+  const applyLiveVisits = React.useCallback((visits: number) => {
+    const nextVisits = clampAnalysisVisits(visits);
+    if (nextVisits === liveVisits) return;
     updateSettings({ katagoVisits: nextVisits });
     if (isAnalysisMode) {
       window.setTimeout(() => {
         void useGameStore.getState().runAnalysis({ force: true, visits: nextVisits });
       }, 0);
     }
+  }, [isAnalysisMode, liveVisits, updateSettings]);
+  const commitDepthDraft = React.useCallback((raw: string) => {
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed)) {
+      setDepthDraft(String(liveVisits));
+      return;
+    }
+    const nextVisits = clampAnalysisVisits(parsed);
+    setDepthDraft(String(nextVisits));
+    applyLiveVisits(nextVisits);
+  }, [applyLiveVisits, liveVisits]);
+
+  React.useEffect(() => {
+    setDepthDraft(String(liveVisits));
+  }, [liveVisits]);
+
+  React.useEffect(() => {
+    if (isGameAnalysisRunning) setDepthPopoverOpen(false);
+  }, [isGameAnalysisRunning]);
+
+  React.useEffect(() => {
+    if (!depthPopoverOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (depthPopoverRef.current?.contains(target)) return;
+      if (depthButtonRef.current?.contains(target)) return;
+      setDepthPopoverOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDepthPopoverOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [depthPopoverOpen]);
+
+  const depthPopover = depthPopoverOpen && !isGameAnalysisRunning ? (
+    <div
+      ref={depthPopoverRef}
+      className="analysis-command-bar__depth-popover"
+      role="dialog"
+      aria-label="Live analysis depth selector"
+      data-analysis-live-depth-popover="true"
+    >
+      <div className="analysis-command-bar__depth-header">
+        <div>
+          <div className="analysis-command-bar__depth-title">Live MCTS depth</div>
+          <div className="analysis-command-bar__depth-subtitle">{liveVisits} visits - {liveVisitLabel}</div>
+        </div>
+        <button
+          type="button"
+          className="analysis-command-bar__depth-close"
+          onClick={() => setDepthPopoverOpen(false)}
+          aria-label="Close live depth selector"
+        >
+          <FaTimes size={12} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="analysis-command-bar__depth-options" role="radiogroup" aria-label="Depth presets">
+        {liveVisitPresets.map((preset) => {
+          const active = preset === liveVisits;
+          return (
+            <button
+              key={preset}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              className={['analysis-command-bar__depth-option', active ? 'active' : ''].join(' ')}
+              onClick={() => applyLiveVisits(preset)}
+              data-analysis-live-depth-option={preset}
+            >
+              <span className="analysis-command-bar__depth-option-value">{formatVisitCount(preset)}</span>
+              <span className="analysis-command-bar__depth-option-label">{visitPresetLabel(preset)}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="analysis-command-bar__depth-custom">
+        <input
+          type="range"
+          min={ANALYSIS_VISIT_SLIDER_MIN}
+          max={ANALYSIS_VISIT_SLIDER_MAX}
+          step={0.01}
+          value={visitCountToSliderValue(liveVisits)}
+          className="analysis-command-bar__depth-slider"
+          aria-label="Live analysis depth slider"
+          aria-valuetext={`${liveVisits} visits`}
+          style={{ '--analysis-depth-fill': `${visitSliderFillPercent(liveVisits)}%` } as React.CSSProperties}
+          onChange={(event) => applyLiveVisits(sliderValueToVisitCount(Number.parseFloat(event.currentTarget.value)))}
+        />
+        <input
+          type="number"
+          min={ANALYSIS_MIN_VISITS}
+          max={ENGINE_MAX_VISITS}
+          step={1}
+          value={depthDraft}
+          className="analysis-command-bar__depth-input"
+          aria-label="Exact live analysis visits"
+          onChange={(event) => setDepthDraft(event.currentTarget.value)}
+          onBlur={(event) => commitDepthDraft(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+            if (event.key === 'Escape') {
+              setDepthDraft(String(liveVisits));
+              setDepthPopoverOpen(false);
+            }
+          }}
+        />
+      </div>
+      <div className="analysis-command-bar__depth-scale" aria-hidden="true">
+        <span>{ANALYSIS_MIN_VISITS}</span>
+        <span>{formatVisitCount(ENGINE_MAX_VISITS)}</span>
+      </div>
+    </div>
+  ) : null;
+
+  const toggleDepthPopover = () => {
+    setDepthPopoverOpen((open) => !open);
   };
+
+  if (!shouldShow) return null;
 
   return (
     <div className="analysis-command-bar" data-analysis-command-bar="true">
@@ -168,15 +308,18 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
           <span>{gameButtonLabel}</span>
         </button>
         <button
+          ref={depthButtonRef}
           type="button"
           className={['analysis-command-bar__button', liveVisits > ANALYSIS_MIN_VISITS ? 'active' : ''].join(' ')}
-          onClick={cycleLiveVisits}
+          onClick={toggleDepthPopover}
           disabled={isGameAnalysisRunning}
           data-analysis-live-depth="true"
+          aria-haspopup="dialog"
+          aria-expanded={depthPopoverOpen}
           title={
             isGameAnalysisRunning
               ? 'Stop game analysis before changing live depth'
-              : `Live analysis depth: ${liveVisits} visits (${liveVisitLabel}). Click to cycle.`
+              : `Live analysis depth: ${liveVisits} visits (${liveVisitLabel}).`
           }
           aria-label={`Live analysis depth ${liveVisits} visits`}
         >
@@ -224,6 +367,8 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
           <span>Report</span>
         </button>
       </div>
+
+      {depthPopover}
 
       {isGameAnalysisRunning && gameAnalysisTotal > 0 && (
         <div className="analysis-command-bar__progress" aria-hidden="true">

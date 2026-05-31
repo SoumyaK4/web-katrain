@@ -661,7 +661,7 @@
 
   .analysis-command-bar {
     position: relative;
-    z-index: 12;
+    z-index: 30;
     display: grid;
     grid-template-columns: minmax(8rem, auto) minmax(17rem, 1fr);
     align-items: center;
@@ -670,7 +670,7 @@
     min-height: 3.25rem;
     margin: 0 auto 0.75rem;
     padding: 0.5rem 0.625rem;
-    overflow: hidden;
+    overflow: visible;
     color: var(--ui-text);
     background: color-mix(in srgb, var(--ui-panel) 94%, transparent);
     border: 1px solid var(--ui-border);
@@ -833,6 +833,209 @@
     border-color: var(--ui-danger);
   }
 
+  .analysis-command-bar__depth-popover {
+    position: absolute;
+    right: 0.625rem;
+    top: calc(100% + 0.5rem);
+    bottom: auto;
+    z-index: 40;
+    width: min(22rem, calc(100vw - 1rem));
+    padding: 0.75rem;
+    color: var(--ui-text);
+    background: color-mix(in srgb, var(--ui-panel) 98%, black);
+    border: 1px solid var(--ui-border-strong);
+    border-radius: 8px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+  }
+
+  .analysis-command-bar__depth-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .analysis-command-bar__depth-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .analysis-command-bar__depth-subtitle {
+    margin-top: 0.25rem;
+    color: var(--ui-text-faint);
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+
+  .analysis-command-bar__depth-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--ui-text-muted);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 6px;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .analysis-command-bar__depth-close:hover {
+    color: var(--ui-text);
+    background: var(--ui-surface-2);
+  }
+
+  .analysis-command-bar__depth-options {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.375rem;
+  }
+
+  .analysis-command-bar__depth-option {
+    display: flex;
+    min-width: 0;
+    min-height: 3rem;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.125rem;
+    padding: 0.5rem;
+    color: var(--ui-text-muted);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 6px;
+    text-align: left;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .analysis-command-bar__depth-option:hover {
+    color: var(--ui-text);
+    background: var(--ui-surface-2);
+    border-color: var(--ui-border-strong);
+  }
+
+  .analysis-command-bar__depth-option.active {
+    color: var(--ui-accent);
+    background: var(--ui-accent-soft);
+    border-color: var(--ui-accent);
+  }
+
+  .analysis-command-bar__depth-option-value {
+    font-family: var(--ui-font-mono);
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .analysis-command-bar__depth-option-label {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.5625rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .analysis-command-bar__depth-custom {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-top: 0.75rem;
+  }
+
+  .analysis-command-bar__depth-slider {
+    flex: 1;
+    min-width: 0;
+    height: 1.25rem;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    --analysis-depth-fill: 0%;
+  }
+
+  .analysis-command-bar__depth-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--ui-accent) 0%,
+      var(--ui-accent) var(--analysis-depth-fill),
+      var(--ui-border-strong) var(--analysis-depth-fill),
+      var(--ui-border-strong) 100%
+    );
+  }
+
+  .analysis-command-bar__depth-slider::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--ui-border-strong);
+  }
+
+  .analysis-command-bar__depth-slider::-moz-range-progress {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--ui-accent);
+  }
+
+  .analysis-command-bar__depth-slider::-webkit-slider-thumb {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-top: -0.3125rem;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--ui-accent);
+    border: 2px solid var(--ui-panel);
+    border-radius: 999px;
+  }
+
+  .analysis-command-bar__depth-slider::-moz-range-thumb {
+    width: 0.875rem;
+    height: 0.875rem;
+    background: var(--ui-accent);
+    border: 2px solid var(--ui-panel);
+    border-radius: 999px;
+  }
+
+  .analysis-command-bar__depth-input {
+    width: 5.5rem;
+    min-height: 2rem;
+    padding: 0.375rem 0.5rem;
+    color: var(--ui-text);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 6px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .analysis-command-bar__depth-input:focus {
+    border-color: var(--ui-accent);
+    outline: none;
+  }
+
+  .analysis-command-bar__depth-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    color: var(--ui-text-faint);
+    font-family: var(--ui-font-mono);
+    font-size: 0.625rem;
+  }
+
   .analysis-command-bar__progress {
     position: absolute;
     right: 0;
@@ -912,6 +1115,19 @@
       min-height: 2.5rem;
       padding-inline: 0.5rem;
       font-size: 0.6875rem;
+    }
+
+    .analysis-command-bar__depth-popover {
+      right: 0.375rem;
+      left: 0.375rem;
+      top: calc(100% + 0.625rem);
+      bottom: auto;
+      width: auto;
+      padding: 0.625rem;
+    }
+
+    .analysis-command-bar__depth-options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
