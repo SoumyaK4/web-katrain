@@ -122,6 +122,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const [reportGraph, setReportGraph] = useState({ score: true, winrate: true });
   const [playerFilter, setPlayerFilter] = useState<'all' | Player>('all');
   const [bucketFilter, setBucketFilter] = useState<number | null>(null);
+  const [policyFilter, setPolicyFilter] = useState<MovePolicyCategory | null>(null);
   const [reviewQueue, setReviewQueue] = useState<MoveReportEntry[]>([]);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
@@ -351,11 +352,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     const entries = report.moveEntries.filter((entry) => {
       if (playerFilter !== 'all' && entry.player !== playerFilter) return false;
       if (bucketFilter != null && getPointLossBucket(entry.pointsLost, report.thresholds) !== bucketFilter) return false;
+      if (policyFilter && entry.policy?.category !== policyFilter) return false;
       return true;
     });
     entries.sort((a, b) => b.pointsLost - a.pointsLost);
     return entries;
-  }, [bucketFilter, playerFilter, report.moveEntries, report.thresholds]);
+  }, [bucketFilter, playerFilter, policyFilter, report.moveEntries, report.thresholds]);
   const topMistakes = useMemo(() => allMistakes.slice(0, 10), [allMistakes]);
   const pdfMistakes = topMistakes;
   const maxHist = Math.max(
@@ -382,8 +384,15 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     });
   }, [report.histogram, report.labels]);
   const bucketFilterLabel = bucketFilter == null ? null : report.labels[bucketFilter] ?? null;
+  const policyFilterLabel = policyFilter ? policyCategoryLabel(policyFilter) : null;
 
   const phaseLabel = getPhaseLabel(phaseFilter);
+  const activeFilterLabels = useMemo(() => {
+    const labels = [phaseLabel, playerFilterLabel];
+    if (bucketFilterLabel) labels.push(`Loss ${bucketFilterLabel}`);
+    if (policyFilterLabel) labels.push(`Quality ${policyFilterLabel}`);
+    return labels;
+  }, [bucketFilterLabel, phaseLabel, playerFilterLabel, policyFilterLabel]);
 
   const graphRange = useMemo(() => {
     return getPhaseMoveRange(boardSize, phaseFilter);
@@ -589,10 +598,11 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
 
   useEffect(() => {
     setPdfSnapshots([]);
-  }, [bucketFilter, playerFilter, phaseFilter, treeVersion]);
+  }, [bucketFilter, playerFilter, phaseFilter, policyFilter, treeVersion]);
 
   useEffect(() => {
     setBucketFilter(null);
+    setPolicyFilter(null);
   }, [phaseFilter]);
 
   useEffect(() => {
@@ -605,7 +615,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     setReviewQueue([]);
     setReviewIndex(0);
     setReportHoverMove(null);
-  }, [bucketFilter, phaseFilter, playerFilter, setReportHoverMove, treeVersion]);
+  }, [bucketFilter, phaseFilter, playerFilter, policyFilter, setReportHoverMove, treeVersion]);
 
   useEffect(() => () => setReportHoverMove(null), [setReportHoverMove]);
 
@@ -687,6 +697,19 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 title="Clear loss bucket filter"
               >
                 Loss {bucketFilterLabel} x
+              </button>
+            )}
+            {policyFilter && policyFilterLabel && (
+              <button
+                type="button"
+                onClick={() => setPolicyFilter(null)}
+                className={[
+                  'px-3 py-1.5 rounded-full text-xs font-semibold border',
+                  policyCategoryClass(policyFilter),
+                ].join(' ')}
+                title="Clear policy quality filter"
+              >
+                Quality {policyFilterLabel} x
               </button>
             )}
           </div>
@@ -806,20 +829,46 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                       {MOVE_POLICY_CATEGORIES.map((category) => {
                         const count = distribution?.[category] ?? 0;
                         const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                        const active = policyFilter === category;
+                        const playerLabel = player === 'black' ? 'Black' : 'White';
+                        const categoryLabel = policyCategoryLabel(category);
                         return (
-                          <span
+                          <button
+                            type="button"
                             key={`${player}-${category}-legend`}
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-700/60 bg-slate-900/60 px-2 py-1 text-[10px] text-slate-300"
+                            onClick={() => {
+                              setPlayerFilter(player);
+                              setPolicyFilter((prev) => (prev === category && playerFilter === player ? null : category));
+                            }}
+                            disabled={count === 0}
+                            aria-pressed={active}
+                            aria-label={
+                              count === 0
+                                ? `${playerLabel} ${categoryLabel}: no moves`
+                                : `Filter ${playerLabel} policy quality ${categoryLabel}: ${count} moves, ${pct}%`
+                            }
+                            title={
+                              count === 0
+                                ? `No ${categoryLabel} moves for ${playerLabel}`
+                                : `Filter ${playerLabel} mistakes to ${categoryLabel}`
+                            }
+                            className={[
+                              'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] transition-colors',
+                              active
+                                ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] ring-1 ring-[var(--ui-accent)]'
+                                : 'border-slate-700/60 bg-slate-900/60 text-slate-300 hover:bg-slate-800/80',
+                              count === 0 ? 'opacity-45 cursor-not-allowed hover:bg-slate-900/60' : '',
+                            ].join(' ')}
                           >
                             <span
                               className="h-2 w-2 rounded-full"
                               style={{ backgroundColor: policyCategoryColor(category) }}
                               aria-hidden="true"
                             />
-                            <span>{policyCategoryLabel(category)}</span>
+                            <span>{categoryLabel}</span>
                             <span className="font-mono text-slate-400">{count}</span>
                             <span className="font-mono text-slate-500">{pct}%</span>
-                          </span>
+                          </button>
                         );
                       })}
                     </div>
@@ -970,7 +1019,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
               </div>
             )}
             {topMistakes.length === 0 ? (
-              <div className="mt-2 text-sm text-slate-500">No analyzed moves in this range.</div>
+              <div className="mt-2 text-sm text-slate-500">No moves match these filters.</div>
             ) : (
               <div className="mt-3 grid grid-cols-12 gap-2 text-xs text-slate-400">
                 <div className="col-span-2 uppercase tracking-wide text-[10px]">Move</div>
@@ -1124,7 +1173,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 </div>
               </div>
               <div className="mt-6 text-sm text-slate-700">
-                Filters: {phaseLabel} - {playerFilterLabel} • Showing top {pdfMistakes.length} mistakes
+                Filters: {activeFilterLabels.join(' - ')} • Showing top {pdfMistakes.length} mistakes
               </div>
             </div>
 
