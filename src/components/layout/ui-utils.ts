@@ -14,6 +14,27 @@ export function playerToShort(p: 'black' | 'white'): string {
   return p === 'black' ? 'B' : 'W';
 }
 
+export function formatPositionSummary(args: {
+  move: { x: number; y: number; player: 'black' | 'white' } | null;
+  currentPlayer: 'black' | 'white';
+  moveNumber: number;
+  boardSize?: number;
+}): { playerLabel: string; moveNumberLabel: string; pointLabel: string; title: string } {
+  const player = args.move?.player ?? args.currentPlayer;
+  const playerLabel = playerToShort(player);
+  const pointLabel = args.move
+    ? formatMoveLabel(args.move.x, args.move.y, args.boardSize)
+    : 'Root';
+  return {
+    playerLabel,
+    moveNumberLabel: String(args.moveNumber),
+    pointLabel,
+    title: args.move
+      ? `${player === 'black' ? 'Black' : 'White'} played ${pointLabel}`
+      : `${player === 'black' ? 'Black' : 'White'} to play at root`,
+  };
+}
+
 export const panelCardBase = 'panel-section';
 export const panelCardOpen = '';
 export const panelCardClosed = '';

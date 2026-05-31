@@ -26,7 +26,7 @@ import type { AnalysisControlsState, UiMode, UiState } from './types';
 import type { MobileTab } from './MobileTabBar';
 import type { MoveInsight } from '../../utils/moveInsight';
 import { SectionHeader } from './ui';
-import { formatMoveLabel, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
+import { formatMoveLabel, formatPositionSummary, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
 import { getBranchInfo, getCurrentLineNodes } from '../../utils/branchNavigation';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 
@@ -262,6 +262,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     }
     return out;
   }, [rootNode, treeVersion]);
+
+  const currentPositionSummary = formatPositionSummary({
+    move: currentNode.move,
+    currentPlayer,
+    moveNumber: moveHistory.length,
+    boardSize: currentNode.gameState.board.length,
+  });
 
   const renderSection = (args: {
     show: boolean;
@@ -698,14 +705,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               children: (
                 <div className="flex flex-col min-h-0">
                   <div className="panel-toolbar text-[11px] ui-text-faint">
-                    <div className="truncate text-xs text-[var(--ui-text)]">
-                      <span className="font-mono">{playerToShort(currentPlayer)}</span> ·{' '}
-                      <span className="font-mono">{moveHistory.length}</span> ·{' '}
-                      <span className="font-mono">
-                        {currentNode.move
-                          ? formatMoveLabel(currentNode.move.x, currentNode.move.y, currentNode.gameState.board.length)
-                          : 'Root'}
-                      </span>
+                    <div className="truncate text-xs text-[var(--ui-text)]" title={currentPositionSummary.title}>
+                      <span className="font-mono">{currentPositionSummary.playerLabel}</span> ·{' '}
+                      <span className="font-mono">{currentPositionSummary.moveNumberLabel}</span> ·{' '}
+                      <span className="font-mono">{currentPositionSummary.pointLabel}</span>
                     </div>
                     {currentMoveInsight && (
                       <div
