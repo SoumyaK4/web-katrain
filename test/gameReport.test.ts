@@ -144,6 +144,10 @@ describe('computeGameReport', () => {
 
     expect(report.stats.black.aiTopMove).toBe(1);
     expect(report.stats.white.aiTopMove).toBe(1);
+    expect(report.stats.black.aiTop5Move).toBe(1);
+    expect(report.stats.white.aiTop5Move).toBe(1);
+    expect(report.stats.black.aiApprovedMove).toBe(1);
+    expect(report.stats.white.aiApprovedMove).toBe(1);
     expect(report.stats.black.policyAccuracy).toBe(100);
     expect(report.stats.white.policyAccuracy).toBe(100);
     expect(report.stats.black.policyDistribution).toMatchObject({ aiMove: 1, total: 1 });
@@ -379,6 +383,8 @@ describe('computeGameReport', () => {
     });
     expect(report.moveEntries[0]?.policy?.relativePrior).toBeCloseTo(0.55);
     expect(report.stats.black.policyAccuracy).toBe(80);
+    expect(report.stats.black.aiTop5Move).toBe(1);
+    expect(report.stats.black.aiApprovedMove).toBe(0);
     expect(report.stats.black.policyDistribution).toMatchObject({
       good: 1,
       total: 1,

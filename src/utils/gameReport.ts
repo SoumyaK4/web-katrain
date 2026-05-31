@@ -199,6 +199,7 @@ export type PlayerReportStats = {
   maxPtLoss?: number;
   aiTopMove?: number;
   aiTop5Move?: number;
+  aiApprovedMove?: number;
   policyAccuracy?: number;
   policyDistribution?: MovePolicyDistribution;
 };
@@ -321,6 +322,7 @@ export function computeGameReport(args: {
 
   const histogram: Array<Record<Player, number>> = thresholds.map(() => ({ black: 0, white: 0 }));
   const aiTopMoveCount: Record<Player, number> = { black: 0, white: 0 };
+  const aiTop5MoveCount: Record<Player, number> = { black: 0, white: 0 };
   const aiApprovedMoveCount: Record<Player, number> = { black: 0, white: 0 };
   const playerPtLoss: Record<Player, number[]> = { black: [], white: [] };
   const weights: Record<Player, Array<{ weight: number; adj: number }>> = { black: [], white: [] };
@@ -383,6 +385,7 @@ export function computeGameReport(args: {
 
     const policy = policyClassification({ move, candidates: cands, topCandidate: top });
     if (policy) {
+      if (policy.rank >= 1 && policy.rank <= 5) aiTop5MoveCount[player] += 1;
       policyDistributions[player][policy.category] += 1;
       policyDistributions[player].total += 1;
       policyScores[player].push(POLICY_CATEGORY_ACCURACY[policy.category]);
@@ -432,7 +435,8 @@ export function computeGameReport(args: {
       totalPtLoss,
       maxPtLoss: Math.max(...pts),
       aiTopMove: aiTopMoveCount[player] / pts.length,
-      aiTop5Move: aiApprovedMoveCount[player] / pts.length,
+      aiTop5Move: aiTop5MoveCount[player] / pts.length,
+      aiApprovedMove: aiApprovedMoveCount[player] / pts.length,
       policyAccuracy: policy.length > 0 ? policy.reduce((a, score) => a + score, 0) / policy.length : undefined,
       policyDistribution: { ...policyDistributions[player] },
     };
