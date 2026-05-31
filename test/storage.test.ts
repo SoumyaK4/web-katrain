@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { defaultUiState, loadUiState, saveUiState, UI_STATE_KEY } from '../src/components/layout/types';
 import {
+  getIndexedDB,
   getLocalStorage,
   readLocalStorage,
   removeLocalStorage,
@@ -8,12 +9,21 @@ import {
 } from '../src/utils/storage';
 
 const originalLocalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+const originalIndexedDB = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
 
 function restoreLocalStorage() {
   if (originalLocalStorage) {
     Object.defineProperty(globalThis, 'localStorage', originalLocalStorage);
   } else {
     Reflect.deleteProperty(globalThis, 'localStorage');
+  }
+}
+
+function restoreIndexedDB() {
+  if (originalIndexedDB) {
+    Object.defineProperty(globalThis, 'indexedDB', originalIndexedDB);
+  } else {
+    Reflect.deleteProperty(globalThis, 'indexedDB');
   }
 }
 
@@ -42,6 +52,7 @@ function installMemoryStorage() {
 
 afterEach(() => {
   restoreLocalStorage();
+  restoreIndexedDB();
 });
 
 describe('safe localStorage helpers', () => {
@@ -66,6 +77,17 @@ describe('safe localStorage helpers', () => {
     expect(readLocalStorage('key')).toBeNull();
     expect(writeLocalStorage('key', 'value')).toBe(false);
     expect(removeLocalStorage('key')).toBe(false);
+  });
+
+  it('swallows IndexedDB access exceptions', () => {
+    Object.defineProperty(globalThis, 'indexedDB', {
+      configurable: true,
+      get: () => {
+        throw new Error('indexedDB blocked');
+      },
+    });
+
+    expect(getIndexedDB()).toBeNull();
   });
 });
 

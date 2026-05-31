@@ -1,4 +1,4 @@
-import { readLocalStorage, removeLocalStorage, writeLocalStorage } from './storage';
+import { getIndexedDB, readLocalStorage, removeLocalStorage, writeLocalStorage } from './storage';
 
 export const MAX_BROWSER_MODEL_UPLOAD_BYTES = 128 * 1024 * 1024;
 export const MAX_BROWSER_MODEL_UPLOAD_LABEL = '128 MB';
@@ -112,11 +112,12 @@ const transactionDone = (tx: IDBTransaction): Promise<void> =>
 
 const openUploadedModelDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
+    const indexedDb = getIndexedDB();
+    if (!indexedDb) {
       reject(new Error('IndexedDB is unavailable'));
       return;
     }
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDb.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(MODEL_STORE)) {
@@ -137,7 +138,7 @@ const isPersistedUploadedModelSelected = (): boolean => {
 };
 
 export const savePersistedUploadedModel = async (file: Blob & ModelFileLike): Promise<boolean> => {
-  if (typeof indexedDB === 'undefined') return false;
+  if (!getIndexedDB()) return false;
   const model: PersistedUploadedModel = {
     blob: file,
     name: file.name?.trim() || 'Uploaded weights',
@@ -164,7 +165,7 @@ export const savePersistedUploadedModel = async (file: Blob & ModelFileLike): Pr
 
 export const loadPersistedUploadedModel = async (): Promise<PersistedUploadedModel | null> => {
   if (!isPersistedUploadedModelSelected()) return null;
-  if (typeof indexedDB === 'undefined') return null;
+  if (!getIndexedDB()) return null;
 
   let db: IDBDatabase | null = null;
   try {
@@ -205,7 +206,7 @@ export const restorePersistedUploadedModelUrl = async (currentModelUrl: string):
 
 export const deletePersistedUploadedModel = async (): Promise<void> => {
   setUploadedModelSelected(false);
-  if (typeof indexedDB === 'undefined') return;
+  if (!getIndexedDB()) return;
 
   let db: IDBDatabase | null = null;
   try {

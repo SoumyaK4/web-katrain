@@ -10,10 +10,21 @@ import {
   validateModelUploadFile,
 } from '../src/utils/modelUpload';
 
+const originalIndexedDB = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+
+function restoreIndexedDB() {
+  if (originalIndexedDB) {
+    Object.defineProperty(globalThis, 'indexedDB', originalIndexedDB);
+  } else {
+    Reflect.deleteProperty(globalThis, 'indexedDB');
+  }
+}
+
 describe('model upload helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     resetModelUploadStateForTests();
+    restoreIndexedDB();
   });
 
   it('recognizes KataGo weight file names', () => {
@@ -50,6 +61,18 @@ describe('model upload helpers', () => {
   });
 
   it('gracefully skips persistent upload storage when IndexedDB is unavailable', async () => {
+    expect(await savePersistedUploadedModel(new Blob(['weights'], { type: 'application/gzip' }))).toBe(false);
+    await expect(restorePersistedUploadedModelUrl('/models/katago-small.bin.gz')).resolves.toBeNull();
+  });
+
+  it('gracefully skips persistent upload storage when IndexedDB access throws', async () => {
+    Object.defineProperty(globalThis, 'indexedDB', {
+      configurable: true,
+      get: () => {
+        throw new Error('indexedDB blocked');
+      },
+    });
+
     expect(await savePersistedUploadedModel(new Blob(['weights'], { type: 'application/gzip' }))).toBe(false);
     await expect(restorePersistedUploadedModelUrl('/models/katago-small.bin.gz')).resolves.toBeNull();
   });

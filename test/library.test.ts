@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   createLibraryBackup,
   createLibraryFolder,
@@ -11,12 +11,28 @@ import {
   getLibraryFolderOptions,
   getLibraryStats,
   librarySgfDownloadFilename,
+  loadLibrary,
   normalizeLibraryItems,
   parseLibraryBackup,
+  saveLibrary,
   suggestLibraryItemNameFromSgf,
   updateLibraryFileSgf,
   updateLibraryItem,
 } from '../src/utils/library';
+
+const originalIndexedDB = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+
+function restoreIndexedDB() {
+  if (originalIndexedDB) {
+    Object.defineProperty(globalThis, 'indexedDB', originalIndexedDB);
+  } else {
+    Reflect.deleteProperty(globalThis, 'indexedDB');
+  }
+}
+
+afterEach(() => {
+  restoreIndexedDB();
+});
 
 describe('library storage helpers', () => {
   const sgf = '(;GM[1]FF[4]SZ[19]KM[6.5]GN[Title Game]PB[Black Player]PW[White Player]DT[2024-01-02]RE[B+R];B[pd];W[dd])';
@@ -235,5 +251,18 @@ describe('library storage helpers', () => {
       { id: 'year', name: '2026', depth: 1 },
       { id: 'orphan', name: 'Orphan', depth: 0 },
     ]);
+  });
+
+  it('falls back to local storage when IndexedDB access throws', async () => {
+    Object.defineProperty(globalThis, 'indexedDB', {
+      configurable: true,
+      get: () => {
+        throw new Error('indexedDB blocked');
+      },
+    });
+    const item = createLibraryItem('Fallback Game', sgf, null, 900);
+
+    await expect(saveLibrary([item])).resolves.toBeUndefined();
+    await expect(loadLibrary()).resolves.toEqual([item]);
   });
 });

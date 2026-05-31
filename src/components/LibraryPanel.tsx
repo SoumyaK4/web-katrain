@@ -45,7 +45,7 @@ import { PHOTO_BOARD_IMAGE_EXTENSIONS, isPhotoBoardImageFile } from '../utils/ph
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import { SectionHeader } from './layout/ui';
 import { panelCardBase, panelCardClosed, panelCardOpen } from './layout/ui-utils';
-import { readLocalStorage, writeLocalStorage } from '../utils/storage';
+import { getIndexedDB, readLocalStorage, writeLocalStorage } from '../utils/storage';
 
 const isFolder = (item: LibraryItem): item is LibraryFolder => item.type === 'folder';
 const isFile = (item: LibraryItem): item is LibraryFile => item.type === 'file';
@@ -278,6 +278,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [libraryStatus, setLibraryStatus] = useState<'loading' | 'ready' | 'saving' | 'error'>('loading');
   const [libraryError, setLibraryError] = useState<string | null>(null);
+  const indexedDbAvailable = useMemo(() => getIndexedDB() !== null, []);
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
@@ -524,6 +525,19 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     : loadedLibraryFile
       ? `Update "${loadedLibraryFile.name}" in Library`
       : 'Save current game to Library';
+  const libraryStorageBadge = libraryStatus === 'loading'
+    ? 'Loading'
+    : libraryStatus === 'saving'
+      ? 'Saving'
+      : libraryStatus === 'error'
+        ? 'Error'
+        : indexedDbAvailable
+          ? 'IndexedDB'
+          : 'Local';
+  const libraryStorageTitle = libraryError
+    ?? (indexedDbAvailable
+      ? 'IndexedDB library storage'
+      : 'Using local fallback storage because IndexedDB is unavailable');
   const libraryStatsText = [
     `${libraryStats.files} game${libraryStats.files === 1 ? '' : 's'}`,
     `${libraryStats.folders} folder${libraryStats.folders === 1 ? '' : 's'}`,
@@ -1490,11 +1504,14 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                 ? 'ui-danger-soft text-[var(--ui-danger)] border-[var(--ui-danger)]'
                 : libraryStatus === 'saving'
                   ? 'bg-[var(--ui-warning-soft)] text-[var(--ui-warning)] border-[var(--ui-warning)]'
-                  : 'ui-success-soft text-[var(--ui-success)] border-[var(--ui-success)]',
+                  : !indexedDbAvailable
+                    ? 'bg-[var(--ui-warning-soft)] text-[var(--ui-warning)] border-[var(--ui-warning)]'
+                    : 'ui-success-soft text-[var(--ui-success)] border-[var(--ui-success)]',
             ].join(' ')}
-            title={libraryError ?? 'IndexedDB library storage'}
+            title={libraryStorageTitle}
+            data-library-storage-badge="true"
           >
-            {libraryStatus === 'loading' ? 'Loading' : libraryStatus === 'saving' ? 'Saving' : libraryStatus === 'error' ? 'Error' : 'IndexedDB'}
+            {libraryStorageBadge}
           </div>
           <div className="flex flex-wrap items-center gap-1 ml-auto">
             <button

@@ -1,5 +1,5 @@
 import { PRELOADED_GAMES } from '../data/preloadedGames';
-import { readLocalStorage, writeLocalStorage } from './storage';
+import { getIndexedDB, readLocalStorage, writeLocalStorage } from './storage';
 
 export type LibraryBase = {
   id: string;
@@ -387,11 +387,12 @@ const transactionDone = (tx: IDBTransaction): Promise<void> =>
 
 const openLibraryDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
+    const indexedDb = getIndexedDB();
+    if (!indexedDb) {
       reject(new Error('IndexedDB is unavailable'));
       return;
     }
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDb.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(ITEM_STORE)) {
@@ -453,7 +454,7 @@ const saveFallbackLibrary = (items: LibraryItem[]): void => {
 };
 
 export const loadLibrary = async (): Promise<LibraryItem[]> => {
-  if (typeof indexedDB === 'undefined') {
+  if (!getIndexedDB()) {
     return loadFallbackLibrary();
   }
 
@@ -491,7 +492,7 @@ export const loadLibrary = async (): Promise<LibraryItem[]> => {
 
 export const saveLibrary = async (items: LibraryItem[]): Promise<void> => {
   const normalized = normalizeLibraryItems(items);
-  if (typeof indexedDB === 'undefined') {
+  if (!getIndexedDB()) {
     saveFallbackLibrary(normalized);
     return;
   }

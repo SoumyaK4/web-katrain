@@ -6,6 +6,14 @@ export function getLocalStorage(): Storage | null {
   }
 }
 
+export function getIndexedDB(): IDBFactory | null {
+  try {
+    return typeof globalThis.indexedDB === 'undefined' ? null : globalThis.indexedDB;
+  } catch {
+    return null;
+  }
+}
+
 export function readLocalStorage(key: string): string | null {
   try {
     return getLocalStorage()?.getItem(key) ?? null;
