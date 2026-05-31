@@ -192,12 +192,17 @@ async function evaluate(cdp, expression) {
 }
 
 async function waitForBoard(cdp) {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 120; i++) {
     const hasBoard = await evaluate(cdp, '!!document.querySelector("[data-board-snapshot=true]")');
     if (hasBoard) return;
     await sleep(150);
   }
-  throw new Error('Board did not render');
+  const diagnostic = await evaluate(cdp, `(() => ({
+    readyState: document.readyState,
+    url: location.href,
+    text: document.body.innerText.slice(0, 240),
+  }))()`).catch(() => null);
+  throw new Error(`Board did not render${diagnostic ? ` (${JSON.stringify(diagnostic)})` : ''}`);
 }
 
 function assertViewport(result) {
