@@ -30,5 +30,15 @@ describe('GameStore resign', () => {
     expect(useGameStore.getState().currentNode.endState).toBe('B+R');
     expect(useGameStore.getState().rootNode.properties?.RE?.[0]).toBe('B+R');
   });
-});
 
+  it('can resign a frozen player from a confirmation flow', () => {
+    const store = useGameStore.getState();
+    store.resetGame();
+    store.playMove(3, 3);
+    expect(useGameStore.getState().currentPlayer).toBe('white');
+
+    store.resign('black');
+    expect(useGameStore.getState().currentNode.endState).toBe('W+R');
+    expect(useGameStore.getState().rootNode.properties?.RE?.[0]).toBe('W+R');
+  });
+});

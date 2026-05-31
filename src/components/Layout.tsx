@@ -69,6 +69,8 @@ import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { useGamepadNavigation } from '../hooks/useGamepadNavigation';
 import { UnsavedChangesModal, type UnsavedChangesChoice } from './UnsavedChangesModal';
 import { getCurrentLineMoveCount } from '../utils/branchNavigation';
+import { ResignConfirmModal } from './ResignConfirmModal';
+import { getResignResult } from '../utils/resign';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -285,6 +287,7 @@ export const Layout: React.FC = () => {
   const [isPasteSgfOpen, setIsPasteSgfOpen] = useState(false);
   const [saveToLibraryDialog, setSaveToLibraryDialog] = useState<SaveToLibraryDialogState | null>(null);
   const [isUnsavedChangesOpen, setIsUnsavedChangesOpen] = useState(false);
+  const [pendingResignPlayer, setPendingResignPlayer] = useState<Player | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [analysisMenuOpen, setAnalysisMenuOpen] = useState(false);
@@ -410,7 +413,7 @@ export const Layout: React.FC = () => {
     settings.trainerSaveMarks,
   ]);
 
-  const endResult = useMemo(() => {
+  const endResult = (() => {
     const nodeEnd = currentNode.endState;
     if (nodeEnd && nodeEnd.includes('+')) return nodeEnd;
     const rootEnd = rootNode.properties?.RE?.[0];
@@ -446,7 +449,7 @@ export const Layout: React.FC = () => {
       return 'Game ended';
     }
     return null;
-  }, [board, capturedBlack, capturedWhite, currentNode, komi, rootNode, settings.gameRules]);
+  })();
 
   useEffect(() => {
     setManualDeadStones(new Set());
@@ -1659,10 +1662,20 @@ export const Layout: React.FC = () => {
   };
 
   const handleResign = () => {
-    const result = currentPlayer === 'black' ? 'W+R' : 'B+R';
-    resign();
-    toast(`Result: ${result}`, 'info');
+    setPendingResignPlayer(currentPlayer);
   };
+
+  const confirmResign = useCallback(() => {
+    const resigningPlayer = pendingResignPlayer ?? currentPlayer;
+    const result = getResignResult(resigningPlayer);
+    setPendingResignPlayer(null);
+    resign(resigningPlayer);
+    toast(`Result: ${result}`, 'info');
+  }, [currentPlayer, pendingResignPlayer, resign, toast]);
+
+  const cancelResign = useCallback(() => {
+    setPendingResignPlayer(null);
+  }, []);
 
   const handleDisableGamepadNavigation = useCallback(() => {
     updateSettings({ gamepadNavigation: false });
@@ -1683,7 +1696,8 @@ export const Layout: React.FC = () => {
       !isNewGameOpen &&
       !isPhotoBoardOpen &&
       !isPasteSgfOpen &&
-      !isUnsavedChangesOpen,
+      !isUnsavedChangesOpen &&
+      !pendingResignPlayer,
     handlers: {
       back: mode === 'play' ? handleUndo : navigateBack,
       forward: navigateForward,
@@ -2358,6 +2372,13 @@ export const Layout: React.FC = () => {
           </div>
         )}
       </div>
+      {pendingResignPlayer && (
+        <ResignConfirmModal
+          player={pendingResignPlayer}
+          onCancel={cancelResign}
+          onConfirm={confirmResign}
+        />
+      )}
       {!isMobile && (
         <StatusBar
           moveName={moveName}

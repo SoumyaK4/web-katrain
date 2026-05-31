@@ -27,6 +27,7 @@ import {
   rememberActiveBranchPath,
   type ActiveBranchMap,
 } from '../utils/branchNavigation';
+import { getResignResult } from '../utils/resign';
 
 type BranchClipboardNode = {
   move: Move | null;
@@ -113,7 +114,7 @@ interface GameStore extends GameState {
   resetGame: () => void;
   loadGame: (sgf: ParsedSgf) => void;
   passTurn: () => void;
-  resign: () => void;
+  resign: (player?: Player) => void;
   runAnalysis: (opts?: {
     force?: boolean;
     visits?: number;
@@ -4314,10 +4315,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (after.isAnalysisMode && !after.isSelfplayToEnd) setTimeout(() => void after.runAnalysis(), 0);
   },
 
-  resign: () => {
+  resign: (player) => {
     const state = get();
-    const winner = state.currentPlayer === 'black' ? 'W' : 'B';
-    const endState = `${winner}+R`;
+    const endState = getResignResult(player ?? state.currentPlayer);
     state.currentNode.endState = endState;
 
     if (!state.rootNode.properties) state.rootNode.properties = {};
