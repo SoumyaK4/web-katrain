@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AUTO_SAVE_MAX_BYTES,
   AUTO_SAVED_GAME_KEY,
   clearAutoSavedGame,
   readAutoSavedGame,
@@ -23,7 +24,7 @@ describe('auto-save helpers', () => {
   it('round trips an SGF snapshot', () => {
     const storage = makeStorage();
 
-    expect(writeAutoSavedGame('(;GM[1]SZ[19];B[pd])', storage, 123)).toBe(true);
+    expect(writeAutoSavedGame('(;GM[1]SZ[19];B[pd])', storage, 123)).toBe('saved');
     expect(readAutoSavedGame(storage)).toEqual({
       version: 1,
       savedAt: 123,
@@ -34,11 +35,23 @@ describe('auto-save helpers', () => {
   it('ignores malformed snapshots and blank games', () => {
     const storage = makeStorage();
 
-    expect(writeAutoSavedGame('   ', storage, 123)).toBe(false);
+    expect(writeAutoSavedGame('   ', storage, 123)).toBe('failed');
     storage.setItem(AUTO_SAVED_GAME_KEY, '{"version":1,"savedAt":123,"sgf":"   "}');
     expect(readAutoSavedGame(storage)).toBeNull();
     storage.setItem(AUTO_SAVED_GAME_KEY, '{not json');
     expect(readAutoSavedGame(storage)).toBeNull();
+  });
+
+  it('skips oversized snapshots and clears stale recovery data', () => {
+    const storage = makeStorage();
+
+    expect(writeAutoSavedGame('(;GM[1]SZ[19];B[pd])', storage, 123)).toBe('saved');
+    expect(storage.getItem(AUTO_SAVED_GAME_KEY)).not.toBeNull();
+
+    const oversizedSgf = `(;GM[1]SZ[19]C[${'x'.repeat(AUTO_SAVE_MAX_BYTES)}])`;
+
+    expect(writeAutoSavedGame(oversizedSgf, storage, 124)).toBe('too-large');
+    expect(storage.getItem(AUTO_SAVED_GAME_KEY)).toBeNull();
   });
 
   it('clears snapshots', () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaBug, FaCheckCircle, FaExclamationTriangle, FaGamepad, FaSyncAlt } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
+import { AUTO_SAVE_MAX_LABEL } from '../../utils/autoSave';
 import { formatGameInfoPlayer } from '../../utils/gameInfoDisplay';
 import { formatGamepadLabel } from '../../utils/gamepadLabel';
 import type { MoveInsight } from '../../utils/moveInsight';
@@ -8,7 +9,7 @@ import type { MoveInsight } from '../../utils/moveInsight';
 const ISSUE_REPORT_URL = 'https://github.com/Sir-Teo/web-katrain/issues/new/choose';
 
 export type AutoSaveStatus = {
-  state: 'pending' | 'saved' | 'failed';
+  state: 'pending' | 'saved' | 'failed' | 'too-large';
   savedAt?: number;
 };
 
@@ -228,9 +229,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             'px-2 py-1 rounded font-semibold border shadow-sm hidden sm:flex items-center gap-1.5',
             autoSaveStatus.state === 'failed'
               ? 'bg-[var(--ui-danger-soft)] text-[var(--ui-danger)] border-[var(--ui-danger)]'
-              : autoSaveStatus.state === 'pending'
-                ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border-[var(--ui-accent)]'
-                : 'bg-[var(--ui-success-soft)] text-[var(--ui-success)] border-[var(--ui-success)]',
+              : autoSaveStatus.state === 'too-large'
+                ? 'bg-[var(--ui-warning-soft)] text-[var(--ui-warning)] border-[var(--ui-warning)]'
+                : autoSaveStatus.state === 'pending'
+                  ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border-[var(--ui-accent)]'
+                  : 'bg-[var(--ui-success-soft)] text-[var(--ui-success)] border-[var(--ui-success)]',
           ].join(' ')}
           data-autosave-status={autoSaveStatus.state}
           role={autoSaveStatus.state === 'failed' ? 'alert' : 'status'}
@@ -238,6 +241,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           title={
             autoSaveStatus.state === 'failed'
               ? 'Recovery auto-save failed.'
+              : autoSaveStatus.state === 'too-large'
+                ? `Game is too large for recovery auto-save (${AUTO_SAVE_MAX_LABEL}). Save to Library or download SGF to keep changes.`
               : autoSaveStatus.state === 'pending'
                 ? 'Recovery auto-save is updating.'
                 : autoSaveStatus.savedAt
@@ -245,7 +250,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                   : 'Recovery auto-saved.'
           }
         >
-          {autoSaveStatus.state === 'failed' ? (
+          {autoSaveStatus.state === 'failed' || autoSaveStatus.state === 'too-large' ? (
             <FaExclamationTriangle aria-hidden="true" />
           ) : autoSaveStatus.state === 'pending' ? (
             <FaSyncAlt className="animate-spin" aria-hidden="true" />
@@ -255,6 +260,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           <span>
             {autoSaveStatus.state === 'failed'
               ? 'Autosave failed'
+              : autoSaveStatus.state === 'too-large'
+                ? 'Autosave skipped'
               : autoSaveStatus.state === 'pending'
                 ? 'Autosaving'
                 : 'Auto-saved'}

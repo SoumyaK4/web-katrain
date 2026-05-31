@@ -6,13 +6,28 @@ export type AutoSavedGame = {
   sgf: string;
 };
 
+export type AutoSaveWriteResult = 'saved' | 'too-large' | 'failed';
+
 type AutoSaveStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export const AUTO_SAVED_GAME_KEY = 'web-katrain:auto_saved_game:v1';
+export const AUTO_SAVE_MAX_BYTES = 5 * 1024 * 1024;
+export const AUTO_SAVE_MAX_LABEL = '5 MB';
 
 const getDefaultStorage = (): AutoSaveStorage | null => {
   return getLocalStorage();
 };
+
+function getSerializedByteLength(value: string): number {
+  try {
+    if (typeof TextEncoder !== 'undefined') {
+      return new TextEncoder().encode(value).byteLength;
+    }
+  } catch {
+    // Fall back to UTF-16 length if TextEncoder is unavailable or blocked.
+  }
+  return value.length;
+}
 
 export function readAutoSavedGame(storage: AutoSaveStorage | null = getDefaultStorage()): AutoSavedGame | null {
   if (!storage) return null;
@@ -33,14 +48,19 @@ export function writeAutoSavedGame(
   sgf: string,
   storage: AutoSaveStorage | null = getDefaultStorage(),
   savedAt = Date.now()
-): boolean {
-  if (!storage || !sgf.trim()) return false;
+): AutoSaveWriteResult {
+  if (!storage || !sgf.trim()) return 'failed';
   try {
     const snapshot: AutoSavedGame = { version: 1, savedAt, sgf };
-    storage.setItem(AUTO_SAVED_GAME_KEY, JSON.stringify(snapshot));
-    return true;
+    const serialized = JSON.stringify(snapshot);
+    if (getSerializedByteLength(serialized) > AUTO_SAVE_MAX_BYTES) {
+      storage.removeItem(AUTO_SAVED_GAME_KEY);
+      return 'too-large';
+    }
+    storage.setItem(AUTO_SAVED_GAME_KEY, serialized);
+    return 'saved';
   } catch {
-    return false;
+    return 'failed';
   }
 }
 

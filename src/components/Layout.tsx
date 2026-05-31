@@ -8,7 +8,7 @@ import { EditToolbar } from './EditToolbar';
 import { ManualScorePanel } from './ManualScorePanel';
 import type { GameInfoValues, AiConfigValues, TimerConfigValues } from './NewGameModal';
 import { downloadSgfFromTree, formatSgfDate, generateSgfFromTree, getSgfDownloadFilenameFromProperties, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
-import { clearAutoSavedGame, readAutoSavedGame, writeAutoSavedGame, type AutoSavedGame } from '../utils/autoSave';
+import { AUTO_SAVE_MAX_LABEL, clearAutoSavedGame, readAutoSavedGame, writeAutoSavedGame, type AutoSavedGame } from '../utils/autoSave';
 import {
   createLibraryItem,
   getLibraryFolderOptions,
@@ -370,6 +370,7 @@ export const Layout: React.FC = () => {
   const cleanGameSgfRef = useRef<string | null>(null);
   const unsavedChangesResolveRef = useRef<((choice: UnsavedChangesChoice) => void) | null>(null);
   const autoSaveRecoveryCheckedRef = useRef(false);
+  const autoSaveTooLargeToastShownRef = useRef(false);
   const uploadedModelRestorePromiseRef = useRef<ReturnType<typeof restorePersistedUploadedModelUrl> | null>(null);
   const uploadedModelRestoreHandledRef = useRef(false);
   const [autoSaveRecovery, setAutoSaveRecovery] = useState<AutoSavedGame | null>(null);
@@ -704,16 +705,28 @@ export const Layout: React.FC = () => {
     if (!hasUnsavedChanges()) {
       clearAutoSavedGame();
       setAutoSaveStatus(null);
+      autoSaveTooLargeToastShownRef.current = false;
       return;
     }
     setAutoSaveStatus((current) => (current?.state === 'pending' ? current : { state: 'pending' }));
     const timeout = window.setTimeout(() => {
       const savedAt = Date.now();
-      const saved = writeAutoSavedGame(generateCurrentSgf(), undefined, savedAt);
-      setAutoSaveStatus(saved ? { state: 'saved', savedAt } : { state: 'failed' });
+      const result = writeAutoSavedGame(generateCurrentSgf(), undefined, savedAt);
+      if (result === 'saved') {
+        autoSaveTooLargeToastShownRef.current = false;
+        setAutoSaveStatus({ state: 'saved', savedAt });
+      } else if (result === 'too-large') {
+        setAutoSaveStatus({ state: 'too-large' });
+        if (!autoSaveTooLargeToastShownRef.current) {
+          autoSaveTooLargeToastShownRef.current = true;
+          toast(`Game is too large for recovery auto-save (${AUTO_SAVE_MAX_LABEL}). Save to Library or download SGF to keep changes.`, 'info');
+        }
+      } else {
+        setAutoSaveStatus({ state: 'failed' });
+      }
     }, 500);
     return () => window.clearTimeout(timeout);
-  }, [autoSaveRecovery, autoSaveRecoveryChecked, generateCurrentSgf, hasUnsavedChanges, treeVersion]);
+  }, [autoSaveRecovery, autoSaveRecoveryChecked, generateCurrentSgf, hasUnsavedChanges, toast, treeVersion]);
 
   const dismissAutoSaveRecovery = useCallback(() => {
     clearAutoSavedGame();
