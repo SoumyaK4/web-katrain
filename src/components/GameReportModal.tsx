@@ -10,6 +10,7 @@ import {
   getPointLossBucket,
   type GameReportPhaseFilter,
   type MoveReportEntry,
+  type MovePolicyCategory,
 } from '../utils/gameReport';
 import type { CandidateMove, Player } from '../types';
 import { DEFAULT_BOARD_SIZE } from '../types';
@@ -35,6 +36,45 @@ function fmtPct(x: number | undefined): string {
 function fmtNum(x: number | undefined, digits = 2): string {
   if (typeof x !== 'number' || !Number.isFinite(x)) return '--';
   return x.toFixed(digits);
+}
+
+function fmtPolicyPct(value: number | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  return `${Math.round(value * 100)}%`;
+}
+
+function policyCategoryLabel(category: MovePolicyCategory | undefined): string {
+  switch (category) {
+    case 'aiMove':
+      return 'AI move';
+    case 'good':
+      return 'Good';
+    case 'inaccuracy':
+      return 'Inaccuracy';
+    case 'mistake':
+      return 'Mistake';
+    case 'blunder':
+      return 'Blunder';
+    default:
+      return 'Unranked';
+  }
+}
+
+function policyCategoryClass(category: MovePolicyCategory | undefined): string {
+  switch (category) {
+    case 'aiMove':
+      return 'text-sky-300 border-sky-400/40 bg-sky-400/10';
+    case 'good':
+      return 'text-emerald-300 border-emerald-400/40 bg-emerald-400/10';
+    case 'inaccuracy':
+      return 'text-amber-300 border-amber-400/40 bg-amber-400/10';
+    case 'mistake':
+      return 'text-orange-300 border-orange-400/40 bg-orange-400/10';
+    case 'blunder':
+      return 'text-rose-300 border-rose-400/40 bg-rose-400/10';
+    default:
+      return 'text-slate-400 border-slate-700/60 bg-slate-900/50';
+  }
 }
 
 export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setReportHoverMove }) => {
@@ -383,6 +423,11 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const renderMistakeRows = (entries: MoveReportEntry[], showJump: boolean) => {
     return entries.map((entry) => {
       const previewMove = entry.topCandidate ?? null;
+      const policy = entry.policy;
+      const policyRank = policy?.rank ? `#${policy.rank}` : 'unranked';
+      const policyTitle = policy
+        ? `Policy rank ${policyRank}; played prior ${fmtPolicyPct(policy.playedPrior)}; top prior ${fmtPolicyPct(policy.topPrior)}; ${fmtPolicyPct(policy.relativePrior)} of top move`
+        : 'Policy data unavailable';
       return (
         <div
           key={`${entry.node.id}-${entry.moveNumber}`}
@@ -424,7 +469,18 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
             )}
           </div>
           <div className="col-span-12 text-[10px] text-slate-500 font-mono print-muted">
-            PV: {formatPv(entry.pv)}
+            <div className="flex flex-wrap items-center gap-2">
+              <span title={policyTitle}>
+                Policy: <span className={[
+                  'inline-flex items-center rounded-full border px-1.5 py-0.5 font-semibold',
+                  policyCategoryClass(policy?.category),
+                ].join(' ')}>
+                  {policyCategoryLabel(policy?.category)}
+                </span>{' '}
+                {policyRank} · {fmtPolicyPct(policy?.relativePrior)} of top
+              </span>
+              <span>PV: {formatPv(entry.pv)}</span>
+            </div>
           </div>
         </div>
       );
@@ -732,6 +788,14 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                     Move {activeReview.moveNumber} · {activeReview.player === 'black' ? 'Black' : 'White'} · {activeReview.move}
                   </span>
                   <span className="font-mono text-rose-300">-{fmtNum(activeReview.pointsLost, 2)}</span>
+                  {activeReview.policy && (
+                    <span className={[
+                      'rounded-full border px-2 py-0.5 font-semibold',
+                      policyCategoryClass(activeReview.policy.category),
+                    ].join(' ')}>
+                      {policyCategoryLabel(activeReview.policy.category)} #{activeReview.policy.rank || '?'} · {fmtPolicyPct(activeReview.policy.relativePrior)}
+                    </span>
+                  )}
                   <div className="ml-auto flex items-center gap-2">
                     <button
                       type="button"

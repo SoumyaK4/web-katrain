@@ -5,6 +5,19 @@ const ADDITIONAL_MOVE_ORDER = 999; // KaTrain core/constants.py
 const OPENING_BOARD_AREA_FRACTION = 0.16;
 const MIDDLE_GAME_BOARD_AREA_FRACTION = 0.5;
 
+export type MovePolicyCategory = 'aiMove' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
+
+const POLICY_CATEGORY_ORDER: MovePolicyCategory[] = ['aiMove', 'good', 'inaccuracy', 'mistake', 'blunder'];
+
+const POLICY_CLASSIFICATION_THRESHOLDS = {
+  goodMaxRank: 3,
+  inaccuracyMaxRank: 10,
+  mistakeMaxRank: 20,
+  goodMinRelativePrior: 0.5,
+  inaccuracyMinRelativePrior: 0.1,
+  mistakeMinRelativePrior: 0.02,
+} as const;
+
 export type GameReportPhase = 'opening' | 'middleGame' | 'endgame';
 export type GameReportPhaseFilter = 'all' | GameReportPhase;
 
@@ -88,6 +101,58 @@ function bestCandidateMove(moves: CandidateMove[] | undefined): CandidateMove | 
   return moves.find((m) => m.order === 0) ?? moves[0] ?? null;
 }
 
+function candidateRank(candidate: CandidateMove, candidates: CandidateMove[]): number {
+  if (Number.isFinite(candidate.order) && candidate.order >= 0) return Math.floor(candidate.order) + 1;
+  const index = candidates.indexOf(candidate);
+  return index >= 0 ? index + 1 : 1;
+}
+
+export function classifyMoveByRankAndPolicy(rank: number, relativePrior: number): MovePolicyCategory {
+  if (rank === 1) return 'aiMove';
+
+  let rankCategory: MovePolicyCategory;
+  if (rank === 0) rankCategory = 'blunder';
+  else if (rank <= POLICY_CLASSIFICATION_THRESHOLDS.goodMaxRank) rankCategory = 'good';
+  else if (rank <= POLICY_CLASSIFICATION_THRESHOLDS.inaccuracyMaxRank) rankCategory = 'inaccuracy';
+  else if (rank <= POLICY_CLASSIFICATION_THRESHOLDS.mistakeMaxRank) rankCategory = 'mistake';
+  else rankCategory = 'blunder';
+
+  let priorCategory: MovePolicyCategory;
+  if (relativePrior >= 1) priorCategory = 'aiMove';
+  else if (relativePrior >= POLICY_CLASSIFICATION_THRESHOLDS.goodMinRelativePrior) priorCategory = 'good';
+  else if (relativePrior >= POLICY_CLASSIFICATION_THRESHOLDS.inaccuracyMinRelativePrior) priorCategory = 'inaccuracy';
+  else if (relativePrior >= POLICY_CLASSIFICATION_THRESHOLDS.mistakeMinRelativePrior) priorCategory = 'mistake';
+  else priorCategory = 'blunder';
+
+  const rankIndex = POLICY_CATEGORY_ORDER.indexOf(rankCategory);
+  const priorIndex = POLICY_CATEGORY_ORDER.indexOf(priorCategory);
+  return POLICY_CATEGORY_ORDER[Math.min(rankIndex, priorIndex)] ?? 'blunder';
+}
+
+function finitePrior(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function policyClassification(args: {
+  move: { x: number; y: number };
+  candidates: CandidateMove[];
+  topCandidate: CandidateMove | null;
+}): MoveReportEntry['policy'] | undefined {
+  const playedCandidate = args.candidates.find((candidate) => candidate.x === args.move.x && candidate.y === args.move.y) ?? null;
+  const topPrior = finitePrior(args.topCandidate?.prior);
+  const playedPrior = finitePrior(playedCandidate?.prior);
+  const relativePrior = topPrior > 0 ? playedPrior / topPrior : 0;
+  const rank = playedCandidate ? candidateRank(playedCandidate, args.candidates) : 0;
+
+  return {
+    rank,
+    playedPrior,
+    topPrior,
+    relativePrior,
+    category: classifyMoveByRankAndPolicy(rank, relativePrior),
+  };
+}
+
 function xyToGtp(x: number, y: number, boardSize: number): string {
   if (x < 0 || y < 0) return 'pass';
   const col = x >= 8 ? x + 1 : x;
@@ -122,6 +187,13 @@ export type MoveReportEntry = {
   topCandidate?: CandidateMove;
   isTopMove?: boolean;
   pv?: string[];
+  policy?: {
+    rank: number;
+    playedPrior: number;
+    topPrior: number;
+    relativePrior: number;
+    category: MovePolicyCategory;
+  };
 };
 
 export type GameReport = {
@@ -216,6 +288,7 @@ export function computeGameReport(args: {
       topCandidate: top ?? undefined,
       isTopMove: top ? top.x === move.x && top.y === move.y : undefined,
       pv: top?.pv,
+      policy: policyClassification({ move, candidates: cands, topCandidate: top }),
     });
   }
 

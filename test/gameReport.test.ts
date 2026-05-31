@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../src/store/gameStore';
 import { parseSgf } from '../src/utils/sgf';
-import { computeGameReport, getMovePhase, getPhaseThresholds, getPointLossBucket } from '../src/utils/gameReport';
+import {
+  classifyMoveByRankAndPolicy,
+  computeGameReport,
+  getMovePhase,
+  getPhaseThresholds,
+  getPointLossBucket,
+} from '../src/utils/gameReport';
 import type { AnalysisResult, CandidateMove } from '../src/types';
 
 const EMPTY_TERRITORY: number[][] = Array.from({ length: 19 }, () => Array.from({ length: 19 }, () => 0));
@@ -111,6 +117,13 @@ describe('computeGameReport', () => {
       x: 0,
       y: 0,
       order: 0,
+    });
+    expect(report.moveEntries.find((entry) => entry.moveNumber === 1)?.policy).toMatchObject({
+      rank: 1,
+      category: 'aiMove',
+      playedPrior: 0.6,
+      topPrior: 0.6,
+      relativePrior: 1,
     });
     const blackTotal = report.histogram.reduce((acc, row) => acc + row.black, 0);
     const whiteTotal = report.histogram.reduce((acc, row) => acc + row.white, 0);
@@ -270,6 +283,54 @@ describe('computeGameReport', () => {
     expect(getPointLossBucket(5.9, thresholds)).toBe(2);
     expect(getPointLossBucket(0.4, thresholds)).toBe(5);
     expect(getPointLossBucket(-2, thresholds)).toBe(5);
+  });
+
+  it('classifies policy quality using the better of rank and relative probability', () => {
+    expect(classifyMoveByRankAndPolicy(1, 0.2)).toBe('aiMove');
+    expect(classifyMoveByRankAndPolicy(5, 0.55)).toBe('good');
+    expect(classifyMoveByRankAndPolicy(12, 0.15)).toBe('inaccuracy');
+    expect(classifyMoveByRankAndPolicy(21, 0.03)).toBe('mistake');
+    expect(classifyMoveByRankAndPolicy(0, 0)).toBe('blunder');
+  });
+
+  it('adds policy rank and relative-prior cues to report entries', () => {
+    const store = useGameStore.getState();
+    store.resetGame();
+
+    store.playMove(15, 3); // B Q16
+
+    const root = useGameStore.getState().rootNode;
+    const n1 = root.children[0]!;
+
+    root.analysis = analysis({
+      rootScoreLead: 0,
+      rootWinRate: 0.5,
+      moves: [
+        { x: 3, y: 15, winRate: 0.55, scoreLead: 1, visits: 100, pointsLost: 0, order: 0, prior: 0.4 },
+        { x: 10, y: 10, winRate: 0.54, scoreLead: 0.4, visits: 80, pointsLost: 0.2, order: 1, prior: 0.3 },
+        { x: 11, y: 10, winRate: 0.53, scoreLead: 0.2, visits: 70, pointsLost: 0.4, order: 2, prior: 0.26 },
+        { x: 12, y: 10, winRate: 0.52, scoreLead: 0.1, visits: 60, pointsLost: 0.5, order: 3, prior: 0.24 },
+        { x: 15, y: 3, winRate: 0.51, scoreLead: -2.4, visits: 50, pointsLost: 2.4, order: 4, prior: 0.22 },
+      ],
+    });
+    n1.analysis = analysis({
+      rootScoreLead: -2.4,
+      rootWinRate: 0.5,
+      rootVisits: 100,
+    });
+
+    const report = computeGameReport({ currentNode: root, thresholds: [12, 6, 3, 1.5, 0.5, 0] });
+    expect(report.moveEntries[0]).toMatchObject({
+      move: 'Q16',
+      topMove: 'D4',
+      policy: {
+        rank: 5,
+        category: 'good',
+        playedPrior: 0.22,
+        topPrior: 0.4,
+      },
+    });
+    expect(report.moveEntries[0]?.policy?.relativePrior).toBeCloseTo(0.55);
   });
 
   it('filters report totals and top mistakes by phase', () => {
