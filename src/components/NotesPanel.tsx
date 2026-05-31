@@ -157,6 +157,9 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
           <textarea
             value={currentNode.note ?? ''}
             onChange={(e) => setCurrentNodeNote(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            aria-label="User note"
+            data-note-editor="true"
             placeholder="Write a note for this position…"
             className="w-full min-h-[72px] max-h-44 ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono resize-y"
           />

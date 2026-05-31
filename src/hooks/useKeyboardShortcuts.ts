@@ -5,6 +5,7 @@ import { generateSgfFromTree, type KaTrainSgfExportOptions } from '../utils/sgf'
 import type { UiMode } from '../components/layout/types';
 import { eventMatchesShortcut, loadShortcutOverrides } from '../utils/shortcuts';
 import { toggleAppFullscreen } from '../utils/fullscreen';
+import { isEditableKeyboardTarget } from '../utils/keyboardTarget';
 
 interface UseKeyboardShortcutsOptions {
   mode: UiMode;
@@ -104,14 +105,7 @@ export function useKeyboardShortcuts({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const active = document.activeElement as HTMLElement | null;
-      const isTyping =
-        !!active &&
-        (active.tagName === 'INPUT' ||
-          active.tagName === 'TEXTAREA' ||
-          active.tagName === 'SELECT' ||
-          active.isContentEditable);
-      if (isTyping) return;
+      if (isEditableKeyboardTarget(document.activeElement)) return;
 
       const shift = e.shiftKey;
       const overrides = loadShortcutOverrides();

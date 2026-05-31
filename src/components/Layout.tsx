@@ -20,6 +20,7 @@ import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { normalizeBoardSize } from '../utils/boardSize';
 import { PHOTO_BOARD_IMAGE_EXTENSIONS, isPhotoBoardImageFile } from '../utils/photoBoard';
+import { isEditableKeyboardTarget } from '../utils/keyboardTarget';
 import {
   createUploadedModelUrl,
   isKataGoModelWeightsFile,
@@ -515,6 +516,7 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     if (!scoringMode) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isEditableKeyboardTarget(event.target)) return;
       if (event.key === 'Escape') setScoringMode(false);
     };
     window.addEventListener('keydown', onKeyDown);
