@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FaCheck } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { DEFAULT_BOARD_SIZE, type CandidateMove, type GameNode } from '../types';
@@ -17,6 +18,7 @@ import { getActiveChild } from '../utils/branchNavigation';
 import { fuzzyStoneOffset } from '../utils/fuzzyPlacement';
 import { formatBoardMoveLabel } from '../utils/playedMoveQuality';
 import { setTimedNotification, type TimedNotificationType } from '../utils/timedNotification';
+import { getTapConfirmAction, TAP_CONFIRM_TIMEOUT_MS, type TapConfirmPoint } from '../utils/tapConfirm';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const OWNERSHIP_COLORS = {
@@ -189,10 +191,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({
   );
   const wheelDeltaRef = useRef(0);
   const wheelThrottleRef = useRef<number | null>(null);
+  const tapConfirmTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (wheelThrottleRef.current !== null) window.clearTimeout(wheelThrottleRef.current);
+      if (tapConfirmTimerRef.current !== null) window.clearTimeout(tapConfirmTimerRef.current);
     };
   }, []);
 
@@ -277,6 +281,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
   const [topMoveTextureVersion, setTopMoveTextureVersion] = useState(0);
   const [stoneTextureVersion, setStoneTextureVersion] = useState(0);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [pendingTap, setPendingTap] = useState<TapConfirmPoint | null>(null);
 
   const evalThresholds: readonly number[] = settings.trainerEvalThresholds?.length ? settings.trainerEvalThresholds : KATRAN_EVAL_THRESHOLDS;
   const boardTheme = useMemo(() => getBoardTheme(settings.boardTheme), [settings.boardTheme]);
@@ -291,6 +296,22 @@ export const GoBoard: React.FC<GoBoardProps> = ({
 
   const toast = useCallback((message: string, type: TimedNotificationType = 'info') => {
     setTimedNotification(message, type, 2500);
+  }, []);
+
+  const clearPendingTap = useCallback(() => {
+    if (tapConfirmTimerRef.current !== null) {
+      window.clearTimeout(tapConfirmTimerRef.current);
+      tapConfirmTimerRef.current = null;
+    }
+    setPendingTap(null);
+  }, []);
+
+  const schedulePendingTapClear = useCallback(() => {
+    if (tapConfirmTimerRef.current !== null) window.clearTimeout(tapConfirmTimerRef.current);
+    tapConfirmTimerRef.current = window.setTimeout(() => {
+      tapConfirmTimerRef.current = null;
+      setPendingTap(null);
+    }, TAP_CONFIRM_TIMEOUT_MS);
   }, []);
 
   useEffect(() => {
@@ -967,8 +988,13 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       return;
     }
 
+    if (pendingTap && pendingTap.player === currentPlayer && !board[pendingTap.y]?.[pendingTap.x]) {
+      drawGhost(pendingTap.x, pendingTap.y, pendingTap.player, 0.72);
+    }
+
     if (cursorPt && !board[cursorPt.y]?.[cursorPt.x]) {
-      drawGhost(cursorPt.x, cursorPt.y, currentPlayer, 0.6);
+      const isPendingPoint = pendingTap && pendingTap.x === cursorPt.x && pendingTap.y === cursorPt.y;
+      if (!isPendingPoint) drawGhost(cursorPt.x, cursorPt.y, currentPlayer, 0.6);
     }
 
     if (pvOverlayEnabled && hoveredMove && (!hoveredMove.pv || hoveredMove.pv.length === 0)) {
@@ -996,6 +1022,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     isSelectingRegionOfInterest,
     originX,
     originY,
+    pendingTap,
     pvOverlayEnabled,
     setupOverlayCanvas,
     stoneTextureVersion,
@@ -1129,6 +1156,42 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     b: { x: number; y: number } | null
   ): boolean => (a?.x === b?.x && a?.y === b?.y);
 
+  const tryPlayPoint = useCallback(
+    (pt: { x: number; y: number }): boolean => {
+      // KaTrain minimal_time_use enforcement in byo-yomi (Play mode only).
+      const isAiTurn = isAiPlaying && aiColor === currentPlayer;
+      const { timerPaused: isTimerPaused, timerMainTimeUsedSeconds } = useGameStore.getState();
+      if (uiMode === 'play' && !isAiTurn && !isTimerPaused && currentNode.children.length === 0) {
+        const mainSeconds = Math.max(0, Math.floor((settings.timerMainTimeMinutes ?? 0) * 60));
+        const mainRemaining = mainSeconds - Math.max(0, timerMainTimeUsedSeconds ?? 0);
+        const minUse = Math.max(0, Math.floor(settings.timerMinimalUseSeconds ?? 0));
+        const used = Math.max(0, currentNode.timeUsedSeconds ?? 0);
+        if (minUse > 0 && mainRemaining <= 0 && used < minUse) {
+          toast(`Think for at least ${minUse} seconds before playing.`, 'info');
+          clearPendingTap();
+          return false;
+        }
+      }
+
+      playMove(pt.x, pt.y);
+      clearPendingTap();
+      return true;
+    },
+    [
+      aiColor,
+      clearPendingTap,
+      currentNode.children.length,
+      currentNode.timeUsedSeconds,
+      currentPlayer,
+      isAiPlaying,
+      playMove,
+      settings.timerMainTimeMinutes,
+      settings.timerMinimalUseSeconds,
+      toast,
+      uiMode,
+    ]
+  );
+
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (scoringMode || isEditMode || isSelectingRegionOfInterest || e.touches.length !== 1) {
       swipeStartRef.current = null;
@@ -1169,17 +1232,48 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       isEditMode,
       isSelectingRegionOfInterest,
     });
-    if (!action) return;
+    if (action) {
+      e.preventDefault();
+      e.stopPropagation();
+      suppressNextClickRef.current = true;
+      clearPendingTap();
+      if (action === 'next') navigateForward();
+      else navigateBack();
+      return;
+    }
 
+    if (uiMode !== 'play' || scoringMode || isEditMode || isSelectingRegionOfInterest) return;
+
+    const tapDistance = Math.hypot(endX - start.x, endY - start.y);
     e.preventDefault();
     e.stopPropagation();
     suppressNextClickRef.current = true;
-    if (action === 'next') navigateForward();
-    else navigateBack();
+
+    if (tapDistance > Math.max(10, cellSize * 0.35)) {
+      clearPendingTap();
+      return;
+    }
+
+    const pt = eventToInternal({ clientX: endX, clientY: endY, currentTarget: e.currentTarget });
+    if (!pt || board[pt.y]?.[pt.x]) {
+      clearPendingTap();
+      return;
+    }
+
+    const confirmAction = getTapConfirmAction(pendingTap, pt, currentPlayer, Date.now());
+    if (confirmAction.type === 'commit') {
+      tryPlayPoint(pt);
+      return;
+    }
+
+    setCursorPt(pt);
+    setPendingTap(confirmAction.pending);
+    schedulePendingTapClear();
   };
 
   const handleTouchCancel = () => {
     swipeStartRef.current = null;
+    clearPendingTap();
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1201,21 +1295,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       return;
     }
 
-    // KaTrain minimal_time_use enforcement in byo-yomi (Play mode only).
-    const isAiTurn = isAiPlaying && aiColor === currentPlayer;
-    const { timerPaused: isTimerPaused, timerMainTimeUsedSeconds } = useGameStore.getState();
-    if (uiMode === 'play' && !isAiTurn && !isTimerPaused && currentNode.children.length === 0) {
-      const mainSeconds = Math.max(0, Math.floor((settings.timerMainTimeMinutes ?? 0) * 60));
-      const mainRemaining = mainSeconds - Math.max(0, timerMainTimeUsedSeconds ?? 0);
-      const minUse = Math.max(0, Math.floor(settings.timerMinimalUseSeconds ?? 0));
-      const used = Math.max(0, currentNode.timeUsedSeconds ?? 0);
-      if (minUse > 0 && mainRemaining <= 0 && used < minUse) {
-        toast(`Think for at least ${minUse} seconds before playing.`, 'info');
-        return;
-      }
-    }
-
-    playMove(pt.x, pt.y);
+    tryPlayPoint(pt);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -1815,6 +1895,19 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     return { cx, cy, size };
   }, [boardHeight, boardWidth, boardSize, cellSize, lastMove, originX, originY]);
 
+  const pendingTapMarker = useMemo(() => {
+    if (!pendingTap) return null;
+    if (pendingTap.player !== currentPlayer) return null;
+    if (board[pendingTap.y]?.[pendingTap.x]) return null;
+    const d = toDisplay(pendingTap.x, pendingTap.y);
+    const size = Math.max(22, Math.min(34, cellSize * 0.72));
+    return {
+      left: originX + d.x * cellSize + cellSize * 0.18,
+      top: originY + d.y * cellSize - cellSize * 0.82,
+      size,
+    };
+  }, [board, cellSize, currentPlayer, originX, originY, pendingTap, toDisplay]);
+
   return (
     <div ref={containerRef} className="w-full h-full min-w-0 max-w-full overflow-hidden flex items-center justify-center">
       <div
@@ -1942,6 +2035,23 @@ export const GoBoard: React.FC<GoBoardProps> = ({
             zIndex: 5,
           }}
         />
+
+        {pendingTapMarker && (
+          <div
+            className="absolute pointer-events-none grid place-items-center rounded-full border border-white/75 bg-emerald-500 text-white shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
+            data-tap-confirm="true"
+            aria-hidden="true"
+            style={{
+              left: pendingTapMarker.left,
+              top: pendingTapMarker.top,
+              width: pendingTapMarker.size,
+              height: pendingTapMarker.size,
+              zIndex: 22,
+            }}
+          >
+            <FaCheck size={Math.max(10, pendingTapMarker.size * 0.48)} aria-hidden="true" />
+          </div>
+        )}
 
         {/* Policy Overlay (KaTrain-style) */}
         <canvas
