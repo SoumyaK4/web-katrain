@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaBug, FaCheckCircle, FaExclamationTriangle, FaGamepad, FaSyncAlt } from 'react-icons/fa';
-import { APP_BUILD_LABEL } from '../../utils/appInfo';
+import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { formatGamepadLabel } from '../../utils/gamepadLabel';
 
 const ISSUE_REPORT_URL = 'https://github.com/Sir-Teo/web-katrain/issues/new/choose';
@@ -247,12 +247,26 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           <FaBug aria-hidden="true" />
           <span>Report</span>
         </a>
-        <div
-          className="flex items-center px-2 py-1 rounded bg-[var(--ui-surface)] text-[var(--ui-text-faint)] border border-[var(--ui-border)] shadow-sm"
-          title={APP_BUILD_LABEL}
-        >
-          {APP_BUILD_LABEL}
-        </div>
+        {APP_COMMIT_URL ? (
+          <a
+            href={APP_COMMIT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center px-2 py-1 rounded bg-[var(--ui-surface)] text-[var(--ui-text-faint)] border border-[var(--ui-border)] shadow-sm hover:text-[var(--ui-text)] hover:border-[var(--ui-accent)] transition-colors"
+            title={`Open build commit: ${APP_BUILD_LABEL}`}
+            aria-label={`Open build commit ${APP_BUILD_LABEL}`}
+            data-status-build-link="true"
+          >
+            {APP_BUILD_LABEL}
+          </a>
+        ) : (
+          <div
+            className="flex items-center px-2 py-1 rounded bg-[var(--ui-surface)] text-[var(--ui-text-faint)] border border-[var(--ui-border)] shadow-sm"
+            title={APP_BUILD_LABEL}
+          >
+            {APP_BUILD_LABEL}
+          </div>
+        )}
       </div>
     </div>
   );

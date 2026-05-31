@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera } from 'react-icons/fa';
-import { APP_BUILD_LABEL } from '../../utils/appInfo';
+import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 
 const MENU_DRAWER_SHORTCUT_IDS = [
@@ -218,7 +218,21 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
         )}
 
         <div className="mt-4 border-t border-[var(--ui-border)] pt-3 px-3 text-[11px] ui-text-faint">
-          {APP_BUILD_LABEL}
+          {APP_COMMIT_URL ? (
+            <a
+              href={APP_COMMIT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[var(--ui-text)]"
+              title={`Open build commit: ${APP_BUILD_LABEL}`}
+              aria-label={`Open build commit ${APP_BUILD_LABEL}`}
+              data-menu-build-link="true"
+            >
+              {APP_BUILD_LABEL}
+            </a>
+          ) : (
+            APP_BUILD_LABEL
+          )}
         </div>
 
       </div>
