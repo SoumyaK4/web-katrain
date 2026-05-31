@@ -24,6 +24,7 @@ interface PhotoBoardModalProps {
 
 type TraceTool = Player | 'erase';
 type PhotoFit = 'cover' | 'contain';
+type MobilePhotoBoardTab = 'photo' | 'trace';
 
 const makeEmptyStones = (boardSize: BoardSize): PhotoBoardStone[] =>
   Array.from({ length: boardSize * boardSize }, () => null);
@@ -65,6 +66,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [photoUnderlay, setPhotoUnderlay] = React.useState(true);
   const [photoOpacity, setPhotoOpacity] = React.useState(0.45);
   const [photoFit, setPhotoFit] = React.useState<PhotoFit>('cover');
+  const [mobileTab, setMobileTab] = React.useState<MobilePhotoBoardTab>('photo');
 
   const currentBoardSize = React.useMemo<BoardSize | null>(() => {
     const size = currentBoard?.length;
@@ -132,6 +134,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setPhotoName(file.name || 'Camera photo');
     setPhotoUrl(objectUrl);
     setPhotoUnderlay(true);
+    setMobileTab('trace');
   }, []);
 
   React.useEffect(() => {
@@ -188,11 +191,17 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
       ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]'
       : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
   ].join(' ');
+  const mobileTabClass = (tab: MobilePhotoBoardTab) => [
+    'flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 px-2 text-sm font-semibold transition-colors',
+    mobileTab === tab
+      ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]'
+      : 'border-transparent text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+  ].join(' ');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-2 sm:p-4">
-      <div className="ui-panel flex h-full max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border shadow-xl">
-        <div className="ui-bar flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-0 mobile-safe-inset mobile-safe-area-bottom md:p-2 lg:p-4">
+      <div className="ui-panel flex h-full max-h-none w-full max-w-5xl flex-col overflow-hidden rounded-none border shadow-xl md:max-h-[94vh] md:rounded-lg">
+        <div className="ui-bar flex items-center justify-between border-b border-[var(--ui-border)] px-3 py-2 sm:px-4 sm:py-3">
           <h2 className="text-lg font-semibold text-[var(--ui-text)]">Photo Board</h2>
           <button
             type="button"
@@ -204,8 +213,41 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(260px,0.75fr)_minmax(360px,1fr)]">
-          <section className="space-y-3">
+        <div className="grid border-b border-[var(--ui-border)] bg-[var(--ui-bar)] md:hidden" data-photo-board-mobile-tabs="true">
+          <div className="grid grid-cols-2">
+            <button
+              type="button"
+              className={mobileTabClass('photo')}
+              onClick={() => setMobileTab('photo')}
+              aria-pressed={mobileTab === 'photo'}
+              aria-controls="photo-board-photo-panel"
+              data-photo-board-mobile-tab="photo"
+            >
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--ui-surface)] text-[11px]">1</span>
+              <span>Photo</span>
+              {photoUrl && <span className="rounded-full bg-[var(--ui-success-soft)] px-1.5 py-0.5 text-[10px] text-[var(--ui-success)]">set</span>}
+            </button>
+            <button
+              type="button"
+              className={mobileTabClass('trace')}
+              onClick={() => setMobileTab('trace')}
+              aria-pressed={mobileTab === 'trace'}
+              aria-controls="photo-board-trace-panel"
+              data-photo-board-mobile-tab="trace"
+            >
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--ui-surface)] text-[11px]">2</span>
+              <span>Trace</span>
+              <span className="rounded-full bg-[var(--ui-surface)] px-1.5 py-0.5 text-[10px] text-[var(--ui-text-muted)]">{counts.total}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 md:gap-4 md:p-4 lg:grid-cols-[minmax(260px,0.75fr)_minmax(360px,1fr)]">
+          <section
+            id="photo-board-photo-panel"
+            className={[mobileTab === 'photo' ? 'space-y-3' : 'hidden space-y-3 md:block'].join(' ')}
+            data-photo-board-panel="photo"
+          >
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -291,7 +333,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
             </div>
           </section>
 
-          <section className="min-w-0 space-y-3">
+          <section
+            id="photo-board-trace-panel"
+            className={[mobileTab === 'trace' ? 'min-w-0 space-y-3' : 'hidden min-w-0 space-y-3 md:block'].join(' ')}
+            data-photo-board-panel="trace"
+          >
             <div className="grid grid-cols-3 gap-2" role="group" aria-label="Trace tool">
               <button
                 type="button"
@@ -453,7 +499,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
           </section>
         </div>
 
-        <div className="ui-bar flex flex-wrap items-center justify-between gap-2 border-t border-[var(--ui-border)] px-4 py-3">
+        <div className="ui-bar flex flex-wrap items-center justify-between gap-2 border-t border-[var(--ui-border)] px-3 py-2 sm:px-4 sm:py-3">
           <button
             type="button"
             className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]"
@@ -461,7 +507,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
           >
             <span className="inline-flex items-center gap-2"><FaTrash /> Clear</span>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
