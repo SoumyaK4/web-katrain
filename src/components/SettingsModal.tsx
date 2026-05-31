@@ -280,9 +280,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-6 mobile-safe-inset mobile-safe-area-bottom">
-            <div className="w-full max-w-[960px] h-[92dvh] sm:h-auto sm:max-h-[92dvh] ui-panel rounded-2xl shadow-2xl border overflow-hidden flex flex-col">
+            <div
+                className="w-full max-w-[960px] h-[92dvh] sm:h-auto sm:max-h-[92dvh] ui-panel rounded-2xl shadow-2xl border overflow-hidden flex flex-col"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="settings-title"
+            >
                 <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-4 border-b ui-bar backdrop-blur">
-                    <h2 className="text-lg sm:text-xl font-semibold text-[var(--ui-text)]">Settings</h2>
+                    <h2 id="settings-title" className="text-lg sm:text-xl font-semibold text-[var(--ui-text)]">Settings</h2>
                     <button
                         type="button"
                         onClick={onClose}

@@ -1,8 +1,10 @@
 import React from 'react';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 import {
   bindingToDisplay,
   createShortcutCollisionReplacement,
   eventToShortcutBinding,
+  filterShortcutGroups,
   findShortcutCollision,
   getShortcutBindings,
   getShortcutGroups,
@@ -31,9 +33,17 @@ export const ShortcutSettingsPanel: React.FC = () => {
   const [recordingId, setRecordingId] = React.useState<string | null>(null);
   const [collision, setCollision] = React.useState<ShortcutCollisionState | null>(null);
   const [confirmResetAll, setConfirmResetAll] = React.useState(false);
+  const [query, setQuery] = React.useState('');
 
   const refresh = React.useCallback(() => setOverrides(loadShortcutOverrides()), []);
   const hasCustomizations = Object.keys(overrides).length > 0;
+  const shortcutGroups = React.useMemo(() => getShortcutGroups(overrides), [overrides]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleShortcutGroups = React.useMemo(
+    () => filterShortcutGroups(shortcutGroups, normalizedQuery),
+    [normalizedQuery, shortcutGroups]
+  );
+  const visibleShortcutCount = visibleShortcutGroups.reduce((count, group) => count + group.shortcuts.length, 0);
 
   React.useEffect(() => {
     if (!hasCustomizations) setConfirmResetAll(false);
@@ -202,9 +212,40 @@ export const ShortcutSettingsPanel: React.FC = () => {
             </div>
           </div>
         )}
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="relative flex-1 min-w-0">
+            <FaSearch
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ui-text-faint)]"
+              aria-hidden="true"
+              size={12}
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              className="ui-input h-10 w-full rounded-lg border py-2 pl-8 pr-9 text-sm text-[var(--ui-text)]"
+              placeholder="Search shortcuts"
+              aria-label="Search shortcuts"
+              data-shortcut-search="true"
+            />
+            {query && (
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]"
+                onClick={() => setQuery('')}
+                aria-label="Clear shortcut search"
+              >
+                <FaTimes aria-hidden="true" size={11} />
+              </button>
+            )}
+          </label>
+          <div className="text-xs font-semibold ui-text-muted" aria-live="polite" data-shortcut-search-count="true">
+            {visibleShortcutCount} command{visibleShortcutCount === 1 ? '' : 's'}
+          </div>
+        </div>
       </div>
 
-      {getShortcutGroups(overrides).map((group) => (
+      {visibleShortcutGroups.map((group) => (
         <div key={group.title} className="rounded-xl border ui-surface overflow-hidden">
           <div className="px-4 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-surface-2)] text-xs font-semibold ui-text-muted tracking-[0.12em] uppercase">
             {group.title}
@@ -267,6 +308,11 @@ export const ShortcutSettingsPanel: React.FC = () => {
           </div>
         </div>
       ))}
+      {normalizedQuery && visibleShortcutGroups.length === 0 && (
+        <div className="rounded-xl border ui-surface p-4 text-sm ui-text-muted" data-shortcut-search-empty="true">
+          No shortcuts match "{query.trim()}".
+        </div>
+      )}
     </div>
   );
 };

@@ -22,6 +22,8 @@ export type ShortcutDefinition = {
 };
 
 export type ShortcutOverrides = Record<string, ShortcutBinding[] | null>;
+export type ShortcutWithBindings = ShortcutDefinition & { bindings: ShortcutBinding[] | null };
+export type ShortcutGroup = { title: ShortcutCategory; shortcuts: ShortcutWithBindings[] };
 
 const STORAGE_KEY = 'web-katrain:shortcuts:v1';
 export const SHORTCUTS_UPDATED_EVENT = 'web-katrain:shortcuts-updated';
@@ -178,14 +180,33 @@ export const getShortcutBindings = (id: string, overrides = loadShortcutOverride
   return shortcutById.get(id)?.defaultBindings.map(normalizeBinding) ?? null;
 };
 
-export const getShortcutGroups = (overrides = loadShortcutOverrides()) => {
-  const groups = new Map<ShortcutCategory, Array<ShortcutDefinition & { bindings: ShortcutBinding[] | null }>>();
+export const getShortcutGroups = (overrides = loadShortcutOverrides()): ShortcutGroup[] => {
+  const groups = new Map<ShortcutCategory, ShortcutWithBindings[]>();
   for (const definition of SHORTCUT_DEFINITIONS) {
     const list = groups.get(definition.category) ?? [];
     list.push({ ...definition, bindings: getShortcutBindings(definition.id, overrides) });
     groups.set(definition.category, list);
   }
   return Array.from(groups.entries()).map(([title, shortcuts]) => ({ title, shortcuts }));
+};
+
+export const filterShortcutGroups = (groups: ShortcutGroup[], query: string): ShortcutGroup[] => {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      shortcuts: group.shortcuts.filter((shortcut) => {
+        const haystack = [
+          group.title,
+          shortcut.label,
+          shortcut.id,
+          shortcutDisplay(shortcut.bindings),
+        ].join(' ').toLowerCase();
+        return haystack.includes(normalizedQuery);
+      }),
+    }))
+    .filter((group) => group.shortcuts.length > 0);
 };
 
 export const eventToShortcutBinding = (event: KeyboardEvent | React.KeyboardEvent): ShortcutBinding | null => {

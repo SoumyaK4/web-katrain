@@ -3,8 +3,10 @@ import {
   bindingToDisplay,
   createShortcutCollisionReplacement,
   eventMatchesBinding,
+  filterShortcutGroups,
   findShortcutCollision,
   getShortcutBindings,
+  getShortcutGroups,
   isShortcutRecordingCancelKey,
   SHORTCUT_DEFINITIONS,
   shortcutDisplay,
@@ -92,5 +94,23 @@ describe('shortcut utilities', () => {
 
     expect(getShortcutBindings('settings-modal', next)).toEqual([{ key: '?', ctrl: false, shift: false, alt: false }]);
     expect(getShortcutBindings('keyboard-help', next)).toEqual([{ key: '/', ctrl: false, shift: true, alt: false }]);
+  });
+
+  it('filters shortcut groups by label, category, command id, and binding display', () => {
+    const groups = getShortcutGroups({});
+    const flatten = (query: string) => filterShortcutGroups(groups, query).flatMap((group) => group.shortcuts);
+
+    expect(filterShortcutGroups(groups, '   ')).toBe(groups);
+    expect(flatten('policy').map((shortcut) => shortcut.id)).toEqual([
+      'toggle-policy',
+      'cycle-policy-metric',
+    ]);
+    expect(flatten('make-main-branch').map((shortcut) => shortcut.label)).toEqual(['Make current branch main']);
+    expect(flatten('ctrl+s').map((shortcut) => shortcut.label)).toEqual(['Save SGF']);
+    expect(filterShortcutGroups(groups, 'visualization').map((group) => group.title)).toEqual(['Visualization']);
+  });
+
+  it('returns no shortcut groups when a shortcut search has no matches', () => {
+    expect(filterShortcutGroups(getShortcutGroups({}), 'zzzz-no-match')).toEqual([]);
   });
 });
