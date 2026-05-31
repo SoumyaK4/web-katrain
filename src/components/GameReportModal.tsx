@@ -28,6 +28,7 @@ import { normalizeBoardSize } from '../utils/boardSize';
 import { captureReportBoardSnapshot } from '../utils/reportBoardSnapshot';
 import { formatGameInfoPlayer, readRootInfoValue } from '../utils/gameInfoDisplay';
 import { setTimedNotification } from '../utils/timedNotification';
+import { afterAnimationFrames } from '../utils/animationFrame';
 
 interface GameReportModalProps {
   onClose: () => void;
@@ -590,7 +591,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
         entry,
       }));
       setPdfSnapshots(snapshots);
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await afterAnimationFrames(2);
       window.print();
     } finally {
       setIsPreparingPdf(false);

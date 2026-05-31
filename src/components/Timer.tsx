@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FaPause, FaPlay } from 'react-icons/fa';
 import { useGameStore } from '../store/gameStore';
 import { formatKaTrainClockSeconds, stepKaTrainTimer, type KaTrainTimerDisplay } from '../utils/katrainTimer';
+import { getAnimationNow } from '../utils/animationFrame';
 
 export const Timer: React.FC<{ variant?: 'default' | 'status' }> = ({ variant = 'default' }) => {
   const timerPaused = useGameStore((s) => s.timerPaused);
@@ -31,7 +32,7 @@ export const Timer: React.FC<{ variant?: 'default' | 'status' }> = ({ variant = 
     }
 
     const tick = () => {
-      const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const nowMs = getAnimationNow();
       const s = useGameStore.getState();
 
       if (lastUpdateMsRef.current <= 0) {

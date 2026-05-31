@@ -41,6 +41,7 @@ import {
   savePersistedUploadedModel,
   validateModelUploadFile,
 } from '../utils/modelUpload';
+import { cancelAnimationFrameSafe, getAnimationNow, requestAnimationFrameSafe, type AnimationFrameHandle } from '../utils/animationFrame';
 
 // Layout components
 import { MenuDrawer } from './layout/MenuDrawer';
@@ -979,8 +980,9 @@ export const Layout: React.FC = () => {
       setPvAnim(null);
       return;
     }
-    setPvAnim((prev) => (prev?.key === pvKey ? prev : { key: pvKey, startMs: performance.now() }));
-    setPvAnimNowMs(performance.now());
+    const now = getAnimationNow();
+    setPvAnim((prev) => (prev?.key === pvKey ? prev : { key: pvKey, startMs: now }));
+    setPvAnimNowMs(now);
   }, [pvKey, pvAnimTimeS]);
 
   const pvLen = activeHoverMove?.pv?.length ?? 0;
@@ -990,15 +992,15 @@ export const Layout: React.FC = () => {
     if (pvLen <= 0) return;
 
     const delayMs = Math.max(pvAnimTimeS, 0.1) * 1000;
-    let raf = 0;
+    let frame: AnimationFrameHandle | null = null;
     const tick = () => {
-      const now = performance.now();
+      const now = getAnimationNow();
       setPvAnimNowMs(now);
       const upToMove = Math.min(pvLen, (now - pvAnim.startMs) / delayMs);
-      if (upToMove < pvLen) raf = requestAnimationFrame(tick);
+      if (upToMove < pvLen) frame = requestAnimationFrameSafe(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    frame = requestAnimationFrameSafe(tick);
+    return () => cancelAnimationFrameSafe(frame);
   }, [pvAnim, pvAnimTimeS, pvKey, pvLen]);
 
   const pvUpToMove = useMemo(() => {

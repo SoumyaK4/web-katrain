@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cancelAnimationFrameSafe, getAnimationNow, requestAnimationFrameSafe, type AnimationFrameHandle } from '../utils/animationFrame';
 import { getConnectedGamepad } from '../utils/gamepadAccess';
 import { getGamepadNavigationInput, type GamepadNavigationCommand } from '../utils/gamepadNavigation';
 
@@ -32,7 +33,7 @@ export function useGamepadNavigation({
       return;
     }
 
-    let raf = 0;
+    let frame: AnimationFrameHandle | null = null;
     let lastKey: string | null = null;
     let lastAt = 0;
     let lastName: string | null = null;
@@ -49,7 +50,7 @@ export function useGamepadNavigation({
 
       if (gamepad) {
         const input = getGamepadNavigationInput(gamepad);
-        const now = performance.now();
+        const now = getAnimationNow();
         if (!input) {
           lastKey = null;
         } else if (input.key !== lastKey || now - lastAt >= repeatMs) {
@@ -59,7 +60,7 @@ export function useGamepadNavigation({
         }
       }
 
-      raf = window.requestAnimationFrame(tick);
+      frame = requestAnimationFrameSafe(tick);
     };
 
     const handleConnectChange = () => {
@@ -72,7 +73,7 @@ export function useGamepadNavigation({
     tick();
 
     return () => {
-      window.cancelAnimationFrame(raf);
+      cancelAnimationFrameSafe(frame);
       window.removeEventListener('gamepadconnected', handleConnectChange);
       window.removeEventListener('gamepaddisconnected', handleConnectChange);
     };

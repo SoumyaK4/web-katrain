@@ -18,6 +18,7 @@ import {
 import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 import { getWorkerConstructor } from '../utils/browserWorker';
 import { getResizeObserverConstructor } from '../utils/resizeObserver';
+import { cancelAnimationFrameSafe, requestAnimationFrameSafe, type AnimationFrameHandle } from '../utils/animationFrame';
 
 type LayoutWorkerResponse =
   | { requestId: number; ok: true; layout: MoveTreeLayout }
@@ -156,10 +157,11 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    let frame = 0;
+    let frame: AnimationFrameHandle | null = null;
     const update = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
+      cancelAnimationFrameSafe(frame);
+      frame = requestAnimationFrameSafe(() => {
+        frame = null;
         setViewport({
           left: container.scrollLeft,
           top: container.scrollTop,
@@ -175,7 +177,7 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     const resizeObserver = ResizeObserverConstructor ? new ResizeObserverConstructor(update) : null;
     resizeObserver?.observe(container);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrameSafe(frame);
       container.removeEventListener('scroll', update);
       resizeObserver?.disconnect();
     };
