@@ -89,6 +89,14 @@ const OFFICIAL_MODELS: Array<{
     },
 ];
 
+const MIN_ANALYSIS_VISITS = 16;
+const FAST_REVIEW_VISIT_PRESETS = [16, 25, 50, 100] as const;
+
+function clampSettingsVisits(value: number): number {
+    if (!Number.isFinite(value)) return MIN_ANALYSIS_VISITS;
+    return Math.max(MIN_ANALYSIS_VISITS, Math.min(ENGINE_MAX_VISITS, Math.floor(value)));
+}
+
 interface SettingsModalProps {
     onClose: () => void;
 }
@@ -1682,16 +1690,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Fast Visits</label>
+                                            <label className="text-slate-300 block text-sm">Fast review depth</label>
                                             <input
                                                 type="number"
-                                                min={16}
+                                                min={MIN_ANALYSIS_VISITS}
                                                 max={ENGINE_MAX_VISITS}
                                                 value={settings.katagoFastVisits}
-                                                onChange={(e) => updateSettings({ katagoFastVisits: Math.max(16, parseInt(e.target.value || '0', 10)) })}
+                                                aria-label="Fast review visits"
+                                                onChange={(e) => updateSettings({ katagoFastVisits: clampSettingsVisits(parseInt(e.target.value || '0', 10)) })}
                                                 className={inputClass}
                                             />
-                                            <p className={subtextClass}>KaTrain fast_visits: initial visits for Space-ponder.</p>
+                                            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Fast review depth presets">
+                                                {FAST_REVIEW_VISIT_PRESETS.map((preset) => {
+                                                    const active = settings.katagoFastVisits === preset;
+                                                    return (
+                                                        <button
+                                                            key={preset}
+                                                            type="button"
+                                                            className={[
+                                                                pillButtonClass,
+                                                                active ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-text)]' : '',
+                                                            ].join(' ')}
+                                                            aria-pressed={active}
+                                                            data-fast-review-visit-preset={preset}
+                                                            onClick={() => updateSettings({ katagoFastVisits: preset })}
+                                                        >
+                                                            {preset}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <p className={subtextClass}>Used by Fast review and load-time SGF analysis.</p>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-slate-300 block text-sm">Max Time (ms)</label>
