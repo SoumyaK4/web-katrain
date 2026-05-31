@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera, FaInfoCircle } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import type { LibraryFile } from '../../utils/library';
@@ -27,6 +27,7 @@ interface MenuDrawerProps {
   onPaste: () => void;
   onSettings: () => void;
   onKeyboardHelp: () => void;
+  onAbout: () => void;
   recentItems?: LibraryFile[];
   onOpenRecent?: (item: LibraryFile) => void;
 }
@@ -44,6 +45,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onPaste,
   onSettings,
   onKeyboardHelp,
+  onAbout,
   recentItems = [],
   onOpenRecent,
 }) => {
@@ -210,6 +212,19 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 <FaKeyboard aria-hidden="true" /> Keyboard Shortcuts
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['keyboard-help']}</kbd>
+            </button>
+            <button
+              className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+              onClick={() => {
+                onAbout();
+                onClose();
+              }}
+              aria-label="Open about dialog"
+            >
+              <span className="flex items-center gap-2">
+                <FaInfoCircle aria-hidden="true" /> About
+              </span>
+              <span className="text-xs ui-text-faint">Build</span>
             </button>
           </div>
         </nav>

@@ -41,6 +41,7 @@ import { NotificationToast } from './layout/NotificationToast';
 import { LibraryPanel } from './LibraryPanel';
 import { MobileHome } from './MobileHome';
 import { AutoSaveRecoveryModal } from './AutoSaveRecoveryModal';
+import { AboutDialog } from './AboutDialog';
 import {
   type UiMode,
   type UiState,
@@ -255,6 +256,7 @@ export const Layout: React.FC = () => {
   const [pvAnim, setPvAnim] = useState<{ key: string; startMs: number } | null>(null);
   const [pvAnimNowMs, setPvAnimNowMs] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isGameAnalysisOpen, setIsGameAnalysisOpen] = useState(false);
   const [isGameReportOpen, setIsGameReportOpen] = useState(false);
   const [isKeyboardHelpOpen, setIsKeyboardHelpOpen] = useState(false);
@@ -1585,6 +1587,7 @@ export const Layout: React.FC = () => {
     >
       <Suspense fallback={null}>
         {isSettingsOpen && <SettingsModal onClose={() => setIsSettingsOpen(false)} />}
+        {isAboutOpen && <AboutDialog onClose={() => setIsAboutOpen(false)} />}
         {autoSaveRecovery && (
           <AutoSaveRecoveryModal
             snapshot={autoSaveRecovery}
@@ -1750,6 +1753,7 @@ export const Layout: React.FC = () => {
         onPaste={handlePasteSgf}
         onSettings={() => setIsSettingsOpen(true)}
         onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
+        onAbout={() => setIsAboutOpen(true)}
         recentItems={recentLibraryItems}
         onOpenRecent={handleOpenRecent}
       />
@@ -1917,6 +1921,7 @@ export const Layout: React.FC = () => {
               onScanBoard={() => openPhotoBoard()}
               onSettings={() => setIsSettingsOpen(true)}
               onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
+              onAbout={() => setIsAboutOpen(true)}
               winRateLabel={winRateLabel}
               scoreLeadLabel={scoreLeadLabel}
               pointsLostLabel={pointsLostLabel}

@@ -21,6 +21,7 @@ import {
   FaEllipsisV,
   FaCamera,
   FaTrash,
+  FaInfoCircle,
 } from 'react-icons/fa';
 import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
@@ -100,6 +101,7 @@ interface TopControlBarProps {
   onScanBoard: () => void;
   onSettings: () => void;
   onKeyboardHelp: () => void;
+  onAbout: () => void;
   winRateLabel?: string | null;
   scoreLeadLabel?: string | null;
   pointsLostLabel?: string | null;
@@ -156,6 +158,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onScanBoard,
   onSettings,
   onKeyboardHelp,
+  onAbout,
   winRateLabel,
   scoreLeadLabel,
   pointsLostLabel,
@@ -208,6 +211,12 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           onClick={() => { onKeyboardHelp(); closeViewMenuIfMobile(); }}
         >
           <span className="flex items-center gap-2"><FaKeyboard /> Keyboard shortcuts</span><span className="text-xs ui-text-faint">{shortcutLabels['keyboard-help']}</span>
+        </button>
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
+          onClick={() => { onAbout(); closeViewMenuIfMobile(); }}
+        >
+          <span className="flex items-center gap-2"><FaInfoCircle /> About</span><span className="text-xs ui-text-faint">Build</span>
         </button>
         <div className="h-px bg-[var(--ui-border)] w-full" />
         <button
