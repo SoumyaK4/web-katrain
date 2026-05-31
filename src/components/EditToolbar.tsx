@@ -15,9 +15,11 @@ import {
   FaPaste,
   FaRegCircle,
   FaRegSquare,
+  FaRedo,
   FaStar,
   FaTimes,
   FaTrash,
+  FaUndo,
 } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
@@ -85,6 +87,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
     editTool,
     currentNode,
     copiedBranch,
+    editUndoCount,
+    editRedoCount,
     treeVersion,
     toggleEditMode,
     setEditTool,
@@ -95,6 +99,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
     shiftCurrentVariation,
     deleteCurrentNode,
     pruneCurrentBranch,
+    undoEdit,
+    redoEdit,
     copyCurrentBranch,
     pasteCopiedBranch,
   } = useGameStore(
@@ -103,6 +109,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
       editTool: state.editTool,
       currentNode: state.currentNode,
       copiedBranch: state.copiedBranch,
+      editUndoCount: state.editUndoCount,
+      editRedoCount: state.editRedoCount,
       treeVersion: state.treeVersion,
       toggleEditMode: state.toggleEditMode,
       setEditTool: state.setEditTool,
@@ -113,6 +121,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
       shiftCurrentVariation: state.shiftCurrentVariation,
       deleteCurrentNode: state.deleteCurrentNode,
       pruneCurrentBranch: state.pruneCurrentBranch,
+      undoEdit: state.undoEdit,
+      redoEdit: state.redoEdit,
       copyCurrentBranch: state.copyCurrentBranch,
       pasteCopiedBranch: state.pasteCopiedBranch,
     }),
@@ -318,6 +328,31 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
               >
                 <FaCut />
                 <span className="hidden sm:inline">Others</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-2">
+              <div className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
+                History
+              </div>
+              <button
+                type="button"
+                onClick={undoEdit}
+                disabled={editUndoCount === 0}
+                className={[toolButtonClass(false), editUndoCount === 0 ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
+                title={editUndoCount > 0 ? `Undo last edit (${editUndoCount} available)` : 'No edit to undo'}
+              >
+                <FaUndo />
+                <span className="hidden sm:inline">Undo</span>
+              </button>
+              <button
+                type="button"
+                onClick={redoEdit}
+                disabled={editRedoCount === 0}
+                className={[toolButtonClass(false), editRedoCount === 0 ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
+                title={editRedoCount > 0 ? `Redo edit (${editRedoCount} available)` : 'No edit to redo'}
+              >
+                <FaRedo />
+                <span className="hidden sm:inline">Redo</span>
               </button>
             </div>
             <button

@@ -57,6 +57,8 @@ interface GameStore extends GameState {
   isEditMode: boolean;
   editTool: EditTool;
   copiedBranch: BranchClipboardNode | null;
+  editUndoCount: number;
+  editRedoCount: number;
   isSelfplayToEnd: boolean;
   isGameAnalysisRunning: boolean;
   gameAnalysisType: 'quick' | 'fast' | 'full' | null;
@@ -107,6 +109,8 @@ interface GameStore extends GameState {
   findMistake: (direction: 'undo' | 'redo') => void;
   deleteCurrentNode: () => void;
   pruneCurrentBranch: () => void;
+  undoEdit: () => void;
+  redoEdit: () => void;
   copyCurrentBranch: () => void;
   pasteCopiedBranch: () => void;
   jumpToNode: (node: GameNode) => void; // Navigate to arbitrary node
@@ -530,6 +534,10 @@ const removeMarkupCoord = (props: Record<string, string[]>, coord: string): void
   removeValue(props, 'LB', (value) => value.split(':', 1)[0] === coord);
 };
 
+const hasMarkupCoord = (props: Record<string, string[]>, coord: string): boolean =>
+  MARKER_PROPERTIES.some((key) => props[key]?.includes(coord)) ||
+  (props.LB ?? []).some((value) => value.split(':', 1)[0] === coord);
+
 const addUniqueValue = (props: Record<string, string[]>, key: string, value: string): void => {
   const values = props[key] ?? [];
   if (!values.includes(value)) props[key] = [...values, value];
@@ -636,6 +644,84 @@ const countAnalyzedNodes = (node: GameNode): number => {
 
 const getAnalysisCacheSize = (rootNode: GameNode): number =>
   Math.max(countAnalyzedNodes(rootNode), analysisQueue.getCacheSize());
+
+type EditHistoryEntry = {
+  rootNode: GameNode;
+  currentNodeId: string;
+  activeBranchChildIds: ActiveBranchMap;
+};
+
+const EDIT_HISTORY_LIMIT = 50;
+let editUndoStack: EditHistoryEntry[] = [];
+let editRedoStack: EditHistoryEntry[] = [];
+
+const cloneMove = (move: Move | null): Move | null => (move ? { ...move } : null);
+
+const cloneGameState = (gameState: GameState): GameState => ({
+  board: cloneBoard(gameState.board),
+  currentPlayer: gameState.currentPlayer,
+  moveHistory: gameState.moveHistory.map((move) => ({ ...move })),
+  capturedBlack: gameState.capturedBlack,
+  capturedWhite: gameState.capturedWhite,
+  komi: gameState.komi,
+});
+
+const cloneGameNodeTree = (node: GameNode, parent: GameNode | null = null): GameNode => {
+  const copy = createNode(parent, cloneMove(node.move), cloneGameState(node.gameState), node.id);
+  copy.endState = node.endState;
+  copy.timeUsedSeconds = node.timeUsedSeconds;
+  copy.analysis = node.analysis;
+  copy.analysisVisitsRequested = node.analysisVisitsRequested;
+  copy.autoUndo = node.autoUndo;
+  copy.undoThreshold = node.undoThreshold;
+  copy.aiThoughts = node.aiThoughts;
+  copy.note = node.note;
+  copy.properties = cloneNodeProperties(node.properties);
+  copy.children = node.children.map((child) => cloneGameNodeTree(child, copy));
+  return copy;
+};
+
+const editHistoryCounts = () => ({
+  editUndoCount: editUndoStack.length,
+  editRedoCount: editRedoStack.length,
+});
+
+const clearEditHistory = () => {
+  editUndoStack = [];
+  editRedoStack = [];
+  return editHistoryCounts();
+};
+
+const captureEditHistory = (state: GameStore): EditHistoryEntry => ({
+  rootNode: cloneGameNodeTree(state.rootNode),
+  currentNodeId: state.currentNode.id,
+  activeBranchChildIds: { ...state.activeBranchChildIds },
+});
+
+const pushEditHistory = (state: GameStore) => {
+  editUndoStack.push(captureEditHistory(state));
+  if (editUndoStack.length > EDIT_HISTORY_LIMIT) editUndoStack.shift();
+  editRedoStack = [];
+  return editHistoryCounts();
+};
+
+const restoreEditHistory = (entry: EditHistoryEntry, state: GameStore) => {
+  const currentNode = findNodeById(entry.rootNode, entry.currentNodeId) ?? entry.rootNode;
+  return {
+    rootNode: entry.rootNode,
+    currentNode,
+    activeBranchChildIds: { ...entry.activeBranchChildIds },
+    board: currentNode.gameState.board,
+    currentPlayer: currentNode.gameState.currentPlayer,
+    moveHistory: currentNode.gameState.moveHistory,
+    capturedBlack: currentNode.gameState.capturedBlack,
+    capturedWhite: currentNode.gameState.capturedWhite,
+    komi: currentNode.gameState.komi,
+    analysisData: currentNode.analysis || null,
+    analysisCacheSize: getAnalysisCacheSize(entry.rootNode),
+    treeVersion: state.treeVersion + 1,
+  };
+};
 
 const applyKomiToSubtree = (node: GameNode, komi: number): void => {
   const stack = [node];
@@ -984,6 +1070,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isEditMode: false,
   editTool: 'setup-black',
   copiedBranch: null,
+  editUndoCount: 0,
+  editRedoCount: 0,
   isSelfplayToEnd: false,
   isGameAnalysisRunning: false,
   gameAnalysisType: null,
@@ -1408,15 +1496,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearCurrentNodeAnnotations: () =>
     set((state) => {
       const props = ensureNodeProperties(state.currentNode);
-      let changed = false;
-      for (const key of [...MARKER_PROPERTIES, 'LB']) {
-        if (props[key]?.length) {
-          delete props[key];
-          changed = true;
-        }
-      }
+      const changed = [...MARKER_PROPERTIES, 'LB'].some((key) => !!props[key]?.length);
       if (!changed) return {};
+      const history = pushEditHistory(state);
+      for (const key of [...MARKER_PROPERTIES, 'LB']) delete props[key];
       return {
+        ...history,
         treeVersion: state.treeVersion + 1,
         notification: { message: 'Cleared markers and labels on this node.', type: 'info' },
       };
@@ -1434,30 +1519,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const markerProp = editToolToMarkerProperty(tool);
 
       if (markerProp) {
+        const history = pushEditHistory(state);
         removeMarkupCoord(props, coord);
         addUniqueValue(props, markerProp, coord);
         return {
+          ...history,
           treeVersion: state.treeVersion + 1,
           notification: { message: `Added ${markerProp} marker.`, type: 'info' },
         };
       }
 
       if (tool === 'label-alpha' || tool === 'label-number') {
+        const history = pushEditHistory(state);
         removeMarkupCoord(props, coord);
         const label = tool === 'label-alpha' ? nextAlphaLabel(props) : nextNumberLabel(props);
         addUniqueValue(props, 'LB', `${coord}:${label}`);
         return {
+          ...history,
           treeVersion: state.treeVersion + 1,
           notification: { message: `Added label ${label}.`, type: 'info' },
         };
       }
 
       if (tool === 'marker-erase') {
-        const before = JSON.stringify({ TR: props.TR, SQ: props.SQ, CR: props.CR, MA: props.MA, LB: props.LB });
+        if (!hasMarkupCoord(props, coord)) return {};
+        const history = pushEditHistory(state);
         removeMarkupCoord(props, coord);
-        const after = JSON.stringify({ TR: props.TR, SQ: props.SQ, CR: props.CR, MA: props.MA, LB: props.LB });
-        if (before === after) return {};
         return {
+          ...history,
           treeVersion: state.treeVersion + 1,
           notification: { message: 'Removed marker or label.', type: 'info' },
         };
@@ -1476,6 +1565,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               ? nextAlternateSetupStone(props, currentStone)
               : null;
       if (currentStone === nextStone) return {};
+      const history = pushEditHistory(state);
       nextBoard[y]![x] = nextStone;
 
       removeSetupCoord(props, coord);
@@ -1493,6 +1583,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         nextStone === 'black' ? 'black setup stone' : nextStone === 'white' ? 'white setup stone' : 'setup stone';
       const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
       return {
+        ...history,
         currentNode: node,
         board: node.gameState.board,
         currentPlayer: node.gameState.currentPlayer,
@@ -1508,8 +1599,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearCurrentNodeSetupStones: () => set((state) => {
       const node = state.currentNode;
       const props = ensureNodeProperties(node);
+      const setupCount = SETUP_PROPERTIES.reduce((total, key) => total + (props[key]?.length ?? 0), 0);
+      if (setupCount === 0) return {};
+      const history = pushEditHistory(state);
       const removed = removeSetupProperties(props);
-      if (removed === 0) return {};
 
       if (node.parent) {
         const rebuilt = replayChildMove(node.parent, node);
@@ -1532,6 +1625,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const pruned = rebuildDescendants(node);
       const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
       return {
+        ...history,
         currentNode: node,
         board: node.gameState.board,
         currentPlayer: node.gameState.currentPlayer,
@@ -1551,6 +1645,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const node = state.currentNode;
       const props = ensureNodeProperties(node);
       const nextBoard = cloneBoard(node.gameState.board);
+      const hasChange = stones.some(
+        (stone) =>
+          stone.x >= 0 &&
+          stone.y >= 0 &&
+          stone.x < boardSize &&
+          stone.y < boardSize &&
+          (nextBoard[stone.y]?.[stone.x] ?? null) !== stone.player
+      );
+      if (!hasChange) return {};
+      const history = pushEditHistory(state);
 
       for (const stone of stones) {
         if (stone.x < 0 || stone.y < 0 || stone.x >= boardSize || stone.y >= boardSize) continue;
@@ -1573,6 +1677,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       rebuildDescendants(node);
 
       return {
+        ...history,
         currentNode: node,
         board: node.gameState.board,
         currentPlayer: node.gameState.currentPlayer,
@@ -3681,6 +3786,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   makeCurrentNodeMainBranch: () => set((state) => {
       const selected = state.currentNode;
+      let hasChange = false;
+      let cursor: GameNode | null = selected;
+      while (cursor && cursor.parent) {
+          const parent: GameNode = cursor.parent;
+          const cursorId = cursor.id;
+          const idx = parent.children.findIndex((c: GameNode) => c.id === cursorId);
+          if (idx > 0) {
+              hasChange = true;
+              break;
+          }
+          cursor = parent;
+      }
+      if (!hasChange) return { notification: { message: 'Current line is already the main branch.', type: 'info' } };
+      const history = pushEditHistory(state);
       let node: GameNode | null = selected;
       while (node && node.parent) {
           const parent: GameNode = node.parent;
@@ -3692,7 +3811,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           }
           node = parent;
       }
-      return { treeVersion: state.treeVersion + 1 };
+      return { ...history, treeVersion: state.treeVersion + 1 };
   }),
 
   shiftCurrentVariation: (direction) => set((state) => {
@@ -3706,11 +3825,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
           return { notification: { message: 'Variation is already at that edge.', type: 'info' } };
       }
 
+      const history = pushEditHistory(state);
       const swap = parent.children[targetIdx]!;
       parent.children[targetIdx] = node;
       parent.children[idx] = swap;
 
       return {
+          ...history,
           treeVersion: state.treeVersion + 1,
           notification: {
               message: direction === 'left' ? 'Moved variation earlier.' : 'Moved variation later.',
@@ -3765,11 +3886,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const node = state.currentNode;
       if (!node.parent) return {};
 
+      const history = pushEditHistory(state);
       const parent = node.parent;
       const idx = parent.children.findIndex((c) => c.id === node.id);
       if (idx >= 0) parent.children.splice(idx, 1);
 
       return {
+          ...history,
           currentNode: parent,
           board: parent.gameState.board,
           currentPlayer: parent.gameState.currentPlayer,
@@ -3789,7 +3912,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const keptNode = node;
           const siblings = parent.children.filter((child) => child.id !== keptNode.id);
           removedNodes += siblings.reduce((total, child) => total + countNodes(child), 0);
-          if (siblings.length > 0) parent.children = [keptNode];
           node = parent;
       }
 
@@ -3797,7 +3919,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
           return { notification: { message: 'No other branches on the current line.', type: 'info' } };
       }
 
+      const history = pushEditHistory(state);
+      node = state.currentNode;
+      while (node && node.parent) {
+          const parent: GameNode = node.parent;
+          const keptNode = node;
+          if (parent.children.length > 1) parent.children = [keptNode];
+          node = parent;
+      }
+
       return {
+          ...history,
           activeBranchChildIds: rememberActiveBranchPath(state.activeBranchChildIds, state.currentNode),
           notification: {
               message: `Kept current line and deleted ${removedNodes} other branch node${removedNodes === 1 ? '' : 's'}.`,
@@ -3806,6 +3938,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
           treeVersion: state.treeVersion + 1,
       };
   }),
+
+  undoEdit: () => {
+      if (editUndoStack.length === 0) {
+          set({ notification: { message: 'No edit to undo.', type: 'info' } });
+          return;
+      }
+      analysisQueue.cancelWhere(() => true, 'Undo edit');
+      set((state) => {
+          const current = captureEditHistory(state);
+          const previous = editUndoStack.pop();
+          if (!previous) return editHistoryCounts();
+          editRedoStack.push(current);
+          if (editRedoStack.length > EDIT_HISTORY_LIMIT) editRedoStack.shift();
+          return {
+              ...restoreEditHistory(previous, state),
+              ...editHistoryCounts(),
+              notification: { message: 'Undid edit.', type: 'success' },
+          };
+      });
+  },
+
+  redoEdit: () => {
+      if (editRedoStack.length === 0) {
+          set({ notification: { message: 'No edit to redo.', type: 'info' } });
+          return;
+      }
+      analysisQueue.cancelWhere(() => true, 'Redo edit');
+      set((state) => {
+          const current = captureEditHistory(state);
+          const next = editRedoStack.pop();
+          if (!next) return editHistoryCounts();
+          editUndoStack.push(current);
+          if (editUndoStack.length > EDIT_HISTORY_LIMIT) editUndoStack.shift();
+          return {
+              ...restoreEditHistory(next, state),
+              ...editHistoryCounts(),
+              notification: { message: 'Redid edit.', type: 'success' },
+          };
+      });
+  },
 
   copyCurrentBranch: () => set((state) => {
       if (!state.currentNode.parent || !state.currentNode.move) {
@@ -3831,9 +4003,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!pasted) {
           return { notification: { message: 'Cannot paste branch at this position.', type: 'error' } };
       }
+      const history = pushEditHistory(state);
       state.currentNode.children.push(pasted);
       const nodes = countClipboardNodes(source);
       return {
+          ...history,
           currentNode: pasted,
           board: pasted.gameState.board,
           currentPlayer: pasted.gameState.currentPlayer,
@@ -3937,6 +4111,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timerPaused: true,
       timerMainTimeUsedSeconds: 0,
       timerPeriodsUsed: { black: 0, white: 0 },
+      ...clearEditHistory(),
 
       rootNode: newRoot,
       currentNode: newRoot,
@@ -3988,6 +4163,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timerPaused: true,
       timerMainTimeUsedSeconds: 0,
       timerPeriodsUsed: { black: 0, white: 0 },
+      ...clearEditHistory(),
 
       // Reset Tree
       rootNode: newRoot,

@@ -143,6 +143,55 @@ describe('GameStore loadGame', () => {
         ]);
     });
 
+    it('undoes and redoes destructive branch edits', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9];B[dd](;W[ee];B[ff])(;W[cc];B[bb])(;W[gg];B[hh]))'));
+        store.navigateEnd();
+        store.switchBranch(1);
+
+        store.pruneCurrentBranch();
+        expect(useGameStore.getState().rootNode.children[0]?.children).toHaveLength(1);
+        expect(useGameStore.getState().editUndoCount).toBe(1);
+        expect(useGameStore.getState().editRedoCount).toBe(0);
+
+        store.undoEdit();
+        expect(useGameStore.getState().rootNode.children[0]?.children).toHaveLength(3);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 1, y: 1, player: 'black' });
+        expect(useGameStore.getState().editUndoCount).toBe(0);
+        expect(useGameStore.getState().editRedoCount).toBe(1);
+
+        store.redoEdit();
+        expect(useGameStore.getState().rootNode.children[0]?.children).toHaveLength(1);
+        expect(useGameStore.getState().currentNode.move).toEqual({ x: 1, y: 1, player: 'black' });
+        expect(useGameStore.getState().editUndoCount).toBe(1);
+        expect(useGameStore.getState().editRedoCount).toBe(0);
+    });
+
+    it('undoes and redoes edit-mode annotations', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        useGameStore.getState().setEditTool('marker-triangle');
+        useGameStore.getState().applyEditTool(3, 3);
+        expect(useGameStore.getState().rootNode.properties?.TR).toEqual(['dd']);
+
+        useGameStore.getState().undoEdit();
+        expect(useGameStore.getState().rootNode.properties?.TR).toBeUndefined();
+        expect(useGameStore.getState().editRedoCount).toBe(1);
+
+        useGameStore.getState().redoEdit();
+        expect(useGameStore.getState().rootNode.properties?.TR).toEqual(['dd']);
+        expect(useGameStore.getState().editRedoCount).toBe(0);
+
+        useGameStore.getState().undoEdit();
+        useGameStore.getState().setEditTool('label-alpha');
+        useGameStore.getState().applyEditTool(4, 4);
+        expect(useGameStore.getState().rootNode.properties?.LB).toEqual(['ee:A']);
+        expect(useGameStore.getState().editRedoCount).toBe(0);
+    });
+
     it('switches to a numbered branch while preserving depth', () => {
         const store = useGameStore.getState();
         store.resetGame();
