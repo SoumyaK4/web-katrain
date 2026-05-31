@@ -62,6 +62,17 @@ function fmtPolicyPct(value: number | undefined): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function fmtWinRate(value: number | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function fmtWinSwing(value: number | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  const points = value * 100;
+  return points > 0 ? `+${points.toFixed(1)}pp` : `${points.toFixed(1)}pp`;
+}
+
 function policyCategoryLabel(category: MovePolicyCategory | undefined): string {
   switch (category) {
     case 'aiMove':
@@ -660,6 +671,9 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 </span>{' '}
                 {policyRank} · {fmtPolicyPct(policy?.relativePrior)} of top
               </span>
+              <span>
+                Win: {fmtWinRate(entry.winRateBefore)} {'->'} {fmtWinRate(entry.winRateAfter)} ({fmtWinSwing(entry.winRateSwing)})
+              </span>
               <span>PV: {formatPv(entry.pv)}</span>
             </div>
           </div>
@@ -1164,6 +1178,9 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                     <span className="font-mono text-slate-400">
                       {fmtSigned(entry.scoreBefore)} {'->'} {fmtSigned(entry.scoreAfter)}
                     </span>
+                    <span className={['font-mono font-semibold', entry.winRateSwing >= 0 ? 'text-emerald-300' : 'text-rose-300'].join(' ')}>
+                      Win {fmtWinSwing(entry.winRateSwing)}
+                    </span>
                     <span className={['font-mono font-semibold', entry.scoreDelta >= 0 ? 'text-slate-100' : 'text-slate-300'].join(' ')}>
                       {swingGainLabel(entry)}
                     </span>
@@ -1210,6 +1227,9 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                     </span>
                     <span className="font-mono text-slate-400">
                       {fmtSigned(entry.scoreBefore)} {'->'} {fmtSigned(entry.scoreAfter)}
+                    </span>
+                    <span className={['font-mono font-semibold', entry.winRateSwing >= 0 ? 'text-emerald-300' : 'text-rose-300'].join(' ')}>
+                      Win {fmtWinSwing(entry.winRateSwing)}
                     </span>
                     <span className="font-mono font-semibold text-emerald-300">
                       {entry.player === 'black' ? 'Black' : 'White'} +{fmtNum(entry.pointsGained, 1)}
@@ -1585,6 +1605,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                         <div className="font-mono text-slate-700">
                           {fmtSigned(entry.scoreBefore)} {'->'} {fmtSigned(entry.scoreAfter)}
                         </div>
+                        <div className="font-mono text-slate-700">Win {fmtWinSwing(entry.winRateSwing)}</div>
                         <div className="font-semibold text-slate-900">{swingGainLabel(entry)}</div>
                       </div>
                     ))}
@@ -1612,6 +1633,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                         <div className="font-mono text-slate-700">
                           {fmtSigned(entry.scoreBefore)} {'->'} {fmtSigned(entry.scoreAfter)}
                         </div>
+                        <div className="font-mono text-slate-700">Win {fmtWinSwing(entry.winRateSwing)}</div>
                         <div className="font-semibold text-slate-900">
                           {entry.player === 'black' ? 'Black' : 'White'} +{fmtNum(entry.pointsGained, 1)}
                         </div>
@@ -1641,7 +1663,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                         Move {entry.moveNumber} - {entry.player === 'black' ? 'Black' : 'White'}
                       </div>
                       <div className="text-sm text-slate-700">
-                        Played {entry.move} • Best {entry.topMove ?? '-'} • Loss {fmtNum(entry.pointsLost, 2)}
+                        Played {entry.move} • Best {entry.topMove ?? '-'} • Loss {fmtNum(entry.pointsLost, 2)} • Win {fmtWinSwing(entry.winRateSwing)}
                       </div>
                     </div>
                     <div className="text-xs text-slate-600">

@@ -215,6 +215,10 @@ export type MoveReportEntry = {
   scoreAfter: number;
   scoreDelta: number;
   scoreSwing: number;
+  winRateBefore: number;
+  winRateAfter: number;
+  winRateDelta: number;
+  winRateSwing: number;
   phase: GameReportPhase;
   topMove?: string;
   topCandidate?: CandidateMove;
@@ -364,13 +368,18 @@ export function computeGameReport(args: {
     const parent = n.parent;
     const parentScore = parent.analysis?.rootScoreLead;
     const childScore = n.analysis?.rootScoreLead;
+    const parentWinRate = parent.analysis?.rootWinRate;
+    const childWinRate = n.analysis?.rootWinRate;
     if (typeof parentScore !== 'number' || typeof childScore !== 'number') continue;
+    if (typeof parentWinRate !== 'number' || typeof childWinRate !== 'number') continue;
     const pointsLost = Math.max(0, pointsLostRaw);
     const pointsGained = Math.max(0, -pointsLostRaw);
     const scoreDelta = childScore - parentScore;
     const scoreSwing = Math.abs(scoreDelta);
+    const winRateDelta = childWinRate - parentWinRate;
     const bucket = getPointLossBucket(pointsLost, thresholds);
     const player: Player = move.player;
+    const winRateSwing = player === 'black' ? winRateDelta : -winRateDelta;
 
     const cands = parent?.analysis?.moves;
     if (!parent || !cands || cands.length === 0) continue;
@@ -417,6 +426,10 @@ export function computeGameReport(args: {
       scoreAfter: childScore,
       scoreDelta,
       scoreSwing,
+      winRateBefore: parentWinRate,
+      winRateAfter: childWinRate,
+      winRateDelta,
+      winRateSwing,
       phase,
       topMove: top ? xyToGtp(top.x, top.y, boardSize) : undefined,
       topCandidate: top ?? undefined,

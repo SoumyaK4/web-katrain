@@ -71,6 +71,7 @@ function reportEntry(args: {
   moveNumber: number;
   pointsLost: number;
   pointsGained?: number;
+  winRateSwing?: number;
   scoreSwing?: number;
   category?: MovePolicyCategory;
   relativePrior?: number;
@@ -87,6 +88,10 @@ function reportEntry(args: {
     scoreAfter: args.scoreSwing ?? args.pointsLost,
     scoreDelta: args.scoreSwing ?? args.pointsLost,
     scoreSwing: Math.abs(args.scoreSwing ?? args.pointsLost),
+    winRateBefore: 0.5,
+    winRateAfter: 0.5 + (args.winRateSwing ?? 0),
+    winRateDelta: args.winRateSwing ?? 0,
+    winRateSwing: args.winRateSwing ?? 0,
     phase: 'opening',
     policy: args.category
       ? {
@@ -126,7 +131,7 @@ describe('computeGameReport', () => {
     });
     n1.analysis = analysis({
       rootScoreLead: -5,
-      rootWinRate: 0.5,
+      rootWinRate: 0.42,
       moves: [
         { x: 1, y: 0, winRate: 0.52, scoreLead: -5.0, visits: 80, pointsLost: 0, order: 0, prior: 0.7 },
         { x: -1, y: -1, winRate: 0.51, scoreLead: -4.8, visits: 20, pointsLost: 0.2, order: 1, prior: 0.3 },
@@ -134,7 +139,7 @@ describe('computeGameReport', () => {
     });
     n2.analysis = analysis({
       rootScoreLead: -6,
-      rootWinRate: 0.5,
+      rootWinRate: 0.47,
       rootVisits: 100,
     });
 
@@ -171,13 +176,25 @@ describe('computeGameReport', () => {
       topPrior: 0.6,
       relativePrior: 1,
     });
-    expect(report.moveEntries.find((entry) => entry.moveNumber === 1)).toMatchObject({
+    const blackEntry = report.moveEntries.find((entry) => entry.moveNumber === 1);
+    expect(blackEntry).toMatchObject({
       pointsGained: 0,
       scoreBefore: 0,
       scoreAfter: -5,
       scoreDelta: -5,
       scoreSwing: 5,
+      winRateBefore: 0.5,
+      winRateAfter: 0.42,
     });
+    expect(blackEntry?.winRateDelta).toBeCloseTo(-0.08);
+    expect(blackEntry?.winRateSwing).toBeCloseTo(-0.08);
+    const whiteEntry = report.moveEntries.find((entry) => entry.moveNumber === 2);
+    expect(whiteEntry).toMatchObject({
+      winRateBefore: 0.42,
+      winRateAfter: 0.47,
+    });
+    expect(whiteEntry?.winRateDelta).toBeCloseTo(0.05);
+    expect(whiteEntry?.winRateSwing).toBeCloseTo(-0.05);
     const blackTotal = report.histogram.reduce((acc, row) => acc + row.black, 0);
     const whiteTotal = report.histogram.reduce((acc, row) => acc + row.white, 0);
     expect(blackTotal).toBe(1);
