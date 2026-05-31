@@ -243,7 +243,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     ]
   );
 
-  const pvOverlayEnabled = isAnalysisMode || forcePvOverlay;
+  const visibleAnalysis = analysisData ?? currentNode.analysis ?? null;
+  const hasAnalysisOverlay = isAnalysisMode || !!visibleAnalysis;
+  const pvOverlayEnabled = hasAnalysisOverlay || forcePvOverlay;
   const boardSize = normalizeBoardSize(board.length, DEFAULT_BOARD_SIZE);
   const hoshiPoints = useMemo(() => getHoshiPoints(boardSize), [boardSize]);
 
@@ -459,38 +461,38 @@ export const GoBoard: React.FC<GoBoardProps> = ({
   }, [boardSize, moveHistory, settings.showMoveNumbers]);
 
   const childMoveRings = useMemo(() => {
-    if (!isAnalysisMode || !settings.analysisShowChildren) return [];
+    if (!hasAnalysisOverlay || !settings.analysisShowChildren) return [];
     return currentNode.children
       .map((c) => c.move)
       .filter((m): m is NonNullable<typeof m> => !!m && m.x >= 0 && m.y >= 0);
-  }, [currentNode, isAnalysisMode, settings.analysisShowChildren]);
+  }, [currentNode, hasAnalysisOverlay, settings.analysisShowChildren]);
 
   const bestHintMoveCoords = useMemo(() => {
-    if (!isAnalysisMode || !settings.analysisShowHints || settings.analysisShowPolicy) return null;
-    const best = analysisData?.moves.find((m) => m.order === 0 && m.x >= 0 && m.y >= 0);
+    if (!hasAnalysisOverlay || !settings.analysisShowHints || settings.analysisShowPolicy) return null;
+    const best = visibleAnalysis?.moves.find((m) => m.order === 0 && m.x >= 0 && m.y >= 0);
     return best ? { x: best.x, y: best.y } : null;
-  }, [analysisData, isAnalysisMode, settings.analysisShowHints, settings.analysisShowPolicy]);
+  }, [hasAnalysisOverlay, settings.analysisShowHints, settings.analysisShowPolicy, visibleAnalysis]);
 
-  const showOwnership = isAnalysisMode && settings.analysisShowOwnership;
+  const showOwnership = hasAnalysisOverlay && settings.analysisShowOwnership;
   const editSetupPlayer: 'black' | 'white' | null =
     editTool === 'setup-black' ? 'black' : editTool === 'setup-white' ? 'white' : null;
   const analysisTerritory =
-    showOwnership && analysisData && (analysisData.ownershipMode ?? 'root') !== 'none' ? analysisData.territory : null;
+    showOwnership && visibleAnalysis && (visibleAnalysis.ownershipMode ?? 'root') !== 'none' ? visibleAnalysis.territory : null;
   const parentTerritory =
     showOwnership && currentNode.parent?.analysis && (currentNode.parent.analysis.ownershipMode ?? 'root') !== 'none'
       ? currentNode.parent.analysis.territory
       : null;
   const territory = (scoringMode ? scoreTerritory : null) ?? analysisTerritory ?? parentTerritory ?? null;
-  const shouldShowHints = isAnalysisMode && !!analysisData && settings.analysisShowHints && !settings.analysisShowPolicy;
+  const shouldShowHints = hasAnalysisOverlay && !!visibleAnalysis && settings.analysisShowHints && !settings.analysisShowPolicy;
   const hintMoveMap = useMemo(() => {
-    if (!shouldShowHints || !analysisData) return null;
+    if (!shouldShowHints || !visibleAnalysis) return null;
     const map = new Map<string, CandidateMove>();
-    for (const move of analysisData.moves) {
+    for (const move of visibleAnalysis.moves) {
       if (move.x < 0 || move.y < 0) continue;
       map.set(`${move.x},${move.y}`, move);
     }
     return map;
-  }, [analysisData, shouldShowHints]);
+  }, [shouldShowHints, visibleAnalysis]);
 
   const [roiDrag, setRoiDrag] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(
     null
@@ -1042,7 +1044,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     if (!canvas) return;
     const ctx = setupOverlayCanvas(canvas);
     if (!ctx) return;
-    if (!isAnalysisMode || !settings.analysisShowChildren) return;
+    if (!hasAnalysisOverlay || !settings.analysisShowChildren) return;
     if (childMoveRings.length === 0) return;
 
     const strokeWidth = Math.max(1, cellSize * 0.04);
@@ -1083,7 +1085,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     bestHintMoveCoords,
     cellSize,
     childMoveRings,
-    isAnalysisMode,
+    hasAnalysisOverlay,
     originX,
     originY,
     settings.analysisShowChildren,
@@ -1304,7 +1306,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
   };
 
   const ownershipTexture = useMemo(() => {
-    if (!scoringMode && (!isAnalysisMode || !settings.analysisShowOwnership)) return null;
+    if (!scoringMode && (!hasAnalysisOverlay || !settings.analysisShowOwnership)) return null;
     if (!territory) return null;
 
     const width = boardSize + 2;
@@ -1337,7 +1339,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     }
 
     return { width, height, bytes };
-  }, [boardSize, isAnalysisMode, scoringMode, settings.analysisShowOwnership, territory, toInternal]);
+  }, [boardSize, hasAnalysisOverlay, scoringMode, settings.analysisShowOwnership, territory, toInternal]);
 
   useEffect(() => {
     const canvas = ownershipCanvasRef.current;
@@ -1481,8 +1483,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     if (!canvas) return;
     const ctx = setupOverlayCanvas(canvas);
     if (!ctx) return;
-    if (!isAnalysisMode || !settings.analysisShowPolicy) return;
-    const policy = analysisData?.policy;
+    if (!hasAnalysisOverlay || !settings.analysisShowPolicy) return;
+    const policy = visibleAnalysis?.policy;
     if (!policy) return;
 
     let best = 0;
@@ -1539,17 +1541,17 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       }
     }
   }, [
-    analysisData,
     approxBoardColor,
     boardSize,
     cellSize,
     evalColors,
-    isAnalysisMode,
+    hasAnalysisOverlay,
     originX,
     originY,
     settings.analysisShowPolicy,
     setupOverlayCanvas,
     toDisplay,
+    visibleAnalysis,
   ]);
 
   useEffect(() => {
@@ -1557,9 +1559,9 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     if (!canvas) return;
     const ctx = setupOverlayCanvas(canvas);
     if (!ctx) return;
-    if (!shouldShowHints || !analysisData) return;
+    if (!shouldShowHints || !visibleAnalysis) return;
 
-    const moves = analysisData.moves.filter((m) => m.x >= 0 && m.y >= 0);
+    const moves = visibleAnalysis.moves.filter((m) => m.x >= 0 && m.y >= 0);
     if (moves.length === 0) return;
 
     const topMoveImg = topMoveImageRef.current;
@@ -1586,7 +1588,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
           return formatWinrate(playerWinRate);
         }
         case 'top_move_delta_winrate': {
-          const winRateLost = move.winRateLost ?? sign * (analysisData.rootWinRate - move.winRate);
+          const winRateLost = move.winRateLost ?? sign * (visibleAnalysis.rootWinRate - move.winRate);
           return formatDeltaWinrate(-winRateLost);
         }
         case 'top_move_visits':
@@ -1662,7 +1664,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       }
     }
   }, [
-    analysisData,
     approxBoardColor,
     cellSize,
     childMoveCoords,
@@ -1679,6 +1680,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     shouldShowHints,
     topMoveTextureVersion,
     toDisplay,
+    visibleAnalysis,
   ]);
 
   const pvMoves = useMemo(() => {

@@ -1116,8 +1116,8 @@ export const Layout: React.FC = () => {
     return getCurrentLineMoveCount(currentNode, activeBranchChildIds);
   }, [activeBranchChildIds, currentNode, treeVersion]);
   const passPolicyColor = useMemo(() => {
-    if (!isAnalysisMode || !settings.analysisShowPolicy) return null;
-    const policy = analysisData?.policy;
+    if (!settings.analysisShowPolicy) return null;
+    const policy = (analysisData ?? currentNode.analysis)?.policy;
     if (!policy) return null;
     const passPolicy = policy[boardSize * boardSize];
     if (!Number.isFinite(passPolicy)) return null;
@@ -1125,7 +1125,7 @@ export const Layout: React.FC = () => {
     if (polOrder < 0) return null;
     const col = evalColors[Math.min(evalColors.length - 1, Math.max(0, polOrder))]!;
     return rgba(col, GHOST_ALPHA);
-  }, [analysisData, boardSize, evalColors, isAnalysisMode, settings.analysisShowPolicy]);
+  }, [analysisData, boardSize, currentNode.analysis, evalColors, settings.analysisShowPolicy]);
 
   const winRateLabel = typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : null;
   const scoreLeadLabel = typeof scoreLead === 'number' ? formatResultScoreLead(scoreLead) : null;

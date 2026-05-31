@@ -8,6 +8,7 @@ import {
   FaRobot,
   FaSearch,
   FaSquare,
+  FaThLarge,
   FaTimes,
 } from 'react-icons/fa';
 import type { AnalysisControlsState, UiMode } from './layout/types';
@@ -405,6 +406,16 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         >
           <FaChartBar size={12} aria-hidden="true" />
           <span>Hint: {topMoveMetricLabel}</span>
+        </button>
+        <button
+          type="button"
+          className={['analysis-command-bar__button', analysisControls.analysisShowPolicy ? 'active' : ''].join(' ')}
+          onClick={() => toggleOverlay('analysisShowPolicy')}
+          aria-pressed={analysisControls.analysisShowPolicy}
+          title={analysisControls.analysisShowPolicy ? 'Hide policy heatmap' : 'Show policy heatmap'}
+        >
+          <FaThLarge size={12} aria-hidden="true" />
+          <span>Policy</span>
         </button>
         <button
           type="button"
