@@ -647,6 +647,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 className="toggle"
                                             />
                                         </div>
+                                        <div className={rowClass}>
+                                            <div>
+                                                <label className={labelClass}>Touch Haptics</label>
+                                                <p className={subtextClass}>
+                                                    Short vibration on confirmed touch moves and swipe navigation.
+                                                </p>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.hapticFeedback}
+                                                onChange={(e) => updateSettings({ hapticFeedback: e.target.checked })}
+                                                className="toggle"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 

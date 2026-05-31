@@ -19,6 +19,7 @@ import { fuzzyStoneOffset } from '../utils/fuzzyPlacement';
 import { formatBoardMoveLabel } from '../utils/playedMoveQuality';
 import { setTimedNotification, type TimedNotificationType } from '../utils/timedNotification';
 import { getTapConfirmAction, TAP_CONFIRM_TIMEOUT_MS, type TapConfirmPoint } from '../utils/tapConfirm';
+import { playNavigationHaptic, playStoneHaptic } from '../utils/haptics';
 
 const KATRAN_EVAL_THRESHOLDS = [12, 6, 3, 1.5, 0.5, 0] as const;
 const OWNERSHIP_COLORS = {
@@ -1173,9 +1174,12 @@ export const GoBoard: React.FC<GoBoardProps> = ({
         }
       }
 
+      const beforeNodeId = useGameStore.getState().currentNode.id;
       playMove(pt.x, pt.y);
+      const didMove = useGameStore.getState().currentNode.id !== beforeNodeId;
+      if (didMove && settings.hapticFeedback) playStoneHaptic();
       clearPendingTap();
-      return true;
+      return didMove;
     },
     [
       aiColor,
@@ -1185,6 +1189,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       currentPlayer,
       isAiPlaying,
       playMove,
+      settings.hapticFeedback,
       settings.timerMainTimeMinutes,
       settings.timerMinimalUseSeconds,
       toast,
@@ -1237,8 +1242,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       e.stopPropagation();
       suppressNextClickRef.current = true;
       clearPendingTap();
+      const beforeNodeId = useGameStore.getState().currentNode.id;
       if (action === 'next') navigateForward();
       else navigateBack();
+      const didNavigate = useGameStore.getState().currentNode.id !== beforeNodeId;
+      if (didNavigate && settings.hapticFeedback) playNavigationHaptic();
       return;
     }
 

@@ -836,6 +836,7 @@ const defaultSettings: GameSettings = {
   uiTheme: 'noir',
   uiDensity: 'comfortable',
   gamepadNavigation: true,
+  hapticFeedback: true,
   defaultBoardSize: DEFAULT_BOARD_SIZE,
   defaultHandicap: 0,
   timerSound: true,

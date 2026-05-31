@@ -11,6 +11,10 @@ describe('settings defaults', () => {
     expect(useGameStore.getState().settings.gamepadNavigation).toBe(true);
   });
 
+  it('enables touch haptics by default when the browser supports them', () => {
+    expect(useGameStore.getState().settings.hapticFeedback).toBe(true);
+  });
+
   it('enables fuzzy stone placement by default', () => {
     expect(useGameStore.getState().settings.fuzzyStonePlacement).toBe(true);
   });
