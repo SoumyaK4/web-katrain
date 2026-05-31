@@ -38,6 +38,8 @@ export type MoveTreeLayout = {
   margin: number;
 };
 
+export type MoveTreeLayoutDirection = 'horizontal' | 'vertical';
+
 export type MoveTreeViewport = {
   left: number;
   top: number;
@@ -101,7 +103,10 @@ export function flattenMoveTree(root: GameNode): MoveTreeLayoutItem[] {
   return items;
 }
 
-export function computeMoveTreeLayout(items: MoveTreeLayoutItem[]): MoveTreeLayout {
+export function computeMoveTreeLayout(
+  items: MoveTreeLayoutItem[],
+  direction: MoveTreeLayoutDirection = 'horizontal'
+): MoveTreeLayout {
   const grid = new Map<string, { x: number; y: number }>();
   const nextY = new Map<number, number>();
   const getNextY = (x: number) => nextY.get(x) ?? 0;
@@ -129,8 +134,8 @@ export function computeMoveTreeLayout(items: MoveTreeLayoutItem[]): MoveTreeLayo
       ...item,
       gridX,
       gridY,
-      x: MARGIN + gridX * X_STEP + NODE_RADIUS,
-      y: MARGIN + gridY * Y_STEP + NODE_RADIUS,
+      x: MARGIN + (direction === 'horizontal' ? gridX * X_STEP : gridY * Y_STEP) + NODE_RADIUS,
+      y: MARGIN + (direction === 'horizontal' ? gridY * Y_STEP : gridX * X_STEP) + NODE_RADIUS,
     });
   }
 
@@ -148,7 +153,10 @@ export function computeMoveTreeLayout(items: MoveTreeLayoutItem[]): MoveTreeLayo
       id: `${parent.id}->${node.id}`,
       fromId: parent.id,
       toId: node.id,
-      points: `${parent.x},${parent.y} ${parent.x},${node.y} ${node.x},${node.y}`,
+      points:
+        direction === 'horizontal'
+          ? `${parent.x},${parent.y} ${parent.x},${node.y} ${node.x},${node.y}`
+          : `${parent.x},${parent.y} ${node.x},${parent.y} ${node.x},${node.y}`,
       minX,
       maxX: maxXEdge,
       minY,
@@ -159,11 +167,11 @@ export function computeMoveTreeLayout(items: MoveTreeLayoutItem[]): MoveTreeLayo
   return {
     nodes,
     edges,
-    width: MARGIN * 2 + maxX * X_STEP + NODE_RADIUS * 2 + 8,
-    height: MARGIN * 2 + maxY * Y_STEP + NODE_RADIUS * 2 + 8,
+    width: MARGIN * 2 + (direction === 'horizontal' ? maxX * X_STEP : maxY * Y_STEP) + NODE_RADIUS * 2 + 8,
+    height: MARGIN * 2 + (direction === 'horizontal' ? maxY * Y_STEP : maxX * X_STEP) + NODE_RADIUS * 2 + 8,
     radius: NODE_RADIUS,
-    xStep: X_STEP,
-    yStep: Y_STEP,
+    xStep: direction === 'horizontal' ? X_STEP : Y_STEP,
+    yStep: direction === 'horizontal' ? Y_STEP : X_STEP,
     margin: MARGIN,
   };
 }

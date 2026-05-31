@@ -19,13 +19,14 @@ const item = (id: string, parentId: string | null, player: 'black' | 'white' | n
 
 describe('move tree layout', () => {
   it('lays out mainline and branches with stable parent-before-child positions', () => {
-    const layout = computeMoveTreeLayout([
+    const items = [
       item('root', null),
       item('a', 'root', 'black'),
       item('b', 'a', 'white'),
       item('branch', 'a', 'white'),
       item('branch-child', 'branch', 'black'),
-    ]);
+    ];
+    const layout = computeMoveTreeLayout(items);
 
     const root = layout.nodes.find((node) => node.id === 'root');
     const a = layout.nodes.find((node) => node.id === 'a');
@@ -40,6 +41,20 @@ describe('move tree layout', () => {
     expect(layout.edges.map((edge) => edge.id)).toContain('a->branch');
     expect(layout.width).toBeGreaterThan(0);
     expect(layout.height).toBeGreaterThan(0);
+
+    const vertical = computeMoveTreeLayout(items, 'vertical');
+    const verticalRoot = vertical.nodes.find((node) => node.id === 'root');
+    const verticalA = vertical.nodes.find((node) => node.id === 'a');
+    const verticalB = vertical.nodes.find((node) => node.id === 'b');
+    const verticalBranch = vertical.nodes.find((node) => node.id === 'branch');
+
+    expect(verticalA?.x).toBe(verticalRoot?.x);
+    expect(verticalA?.y).toBeGreaterThan(verticalRoot?.y ?? 0);
+    expect(verticalBranch?.x).toBeGreaterThan(verticalB?.x ?? 0);
+    expect(vertical.height).toBeGreaterThan(vertical.width);
+    expect(vertical.edges.find((edge) => edge.id === 'a->branch')?.points).toBe(
+      `${verticalA?.x},${verticalA?.y} ${verticalBranch?.x},${verticalA?.y} ${verticalBranch?.x},${verticalBranch?.y}`
+    );
   });
 
   it('filters nodes and elbow edges to the visible viewport with overscan', () => {

@@ -1,8 +1,14 @@
-import { computeMoveTreeLayout, type MoveTreeLayout, type MoveTreeLayoutItem } from '../utils/moveTreeLayout';
+import {
+  computeMoveTreeLayout,
+  type MoveTreeLayout,
+  type MoveTreeLayoutDirection,
+  type MoveTreeLayoutItem,
+} from '../utils/moveTreeLayout';
 
 type LayoutRequest = {
   requestId: number;
   items: MoveTreeLayoutItem[];
+  direction?: MoveTreeLayoutDirection;
 };
 
 type LayoutResponse =
@@ -10,12 +16,12 @@ type LayoutResponse =
   | { requestId: number; ok: false; error: string };
 
 self.onmessage = (event: MessageEvent<LayoutRequest>) => {
-  const { requestId, items } = event.data;
+  const { requestId, items, direction } = event.data;
   try {
     const response: LayoutResponse = {
       requestId,
       ok: true,
-      layout: computeMoveTreeLayout(items),
+      layout: computeMoveTreeLayout(items, direction),
     };
     self.postMessage(response);
   } catch (err) {

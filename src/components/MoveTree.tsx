@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
-import { FaCompressArrowsAlt, FaCrosshairs, FaMapMarkedAlt } from 'react-icons/fa';
+import { FaArrowsAltH, FaArrowsAltV, FaCompressArrowsAlt, FaCrosshairs, FaMapMarkedAlt } from 'react-icons/fa';
 import { useGameStore } from '../store/gameStore';
 import type { GameNode } from '../types';
 import {
@@ -12,6 +12,7 @@ import {
   getVisibleMoveTreeItems,
   shouldShowMoveTreeMinimap,
   type MoveTreeLayout,
+  type MoveTreeLayoutDirection,
   type MoveTreeViewport,
 } from '../utils/moveTreeLayout';
 
@@ -22,6 +23,7 @@ type LayoutWorkerResponse =
 const EMPTY_VIEWPORT: MoveTreeViewport = { left: 0, top: 0, width: 640, height: 220 };
 const MINIMAP_SIZE = { width: 156, height: 88 };
 const MINIMAP_STORAGE_KEY = 'web-katrain:move_tree_minimap:v1';
+const LAYOUT_DIRECTION_STORAGE_KEY = 'web-katrain:move_tree_layout_direction:v1';
 
 function indexNodes(root: GameNode): Map<string, GameNode> {
   const map = new Map<string, GameNode>();
@@ -60,6 +62,10 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     if (typeof localStorage === 'undefined') return true;
     return localStorage.getItem(MINIMAP_STORAGE_KEY) !== 'false';
   });
+  const [layoutDirection, setLayoutDirection] = useState<MoveTreeLayoutDirection>(() => {
+    if (typeof localStorage === 'undefined') return 'horizontal';
+    return localStorage.getItem(LAYOUT_DIRECTION_STORAGE_KEY) === 'vertical' ? 'vertical' : 'horizontal';
+  });
 
   const flatTree = useMemo(() => {
     void treeVersion;
@@ -72,10 +78,10 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   }, [rootNode, treeVersion]);
 
   const shouldUseWorker = typeof Worker !== 'undefined' && flatTree.length >= MOVE_TREE_LAYOUT_WORKER_THRESHOLD;
-  const layoutKey = `${rootNode.id}:${treeVersion}:${flatTree.length}`;
+  const layoutKey = `${rootNode.id}:${treeVersion}:${flatTree.length}:${layoutDirection}`;
   const syncLayout = useMemo(
-    () => (shouldUseWorker ? null : computeMoveTreeLayout(flatTree)),
-    [flatTree, shouldUseWorker]
+    () => (shouldUseWorker ? null : computeMoveTreeLayout(flatTree, layoutDirection)),
+    [flatTree, layoutDirection, shouldUseWorker]
   );
   const workerLayout = shouldUseWorker && workerResult?.key === layoutKey ? workerResult.layout : null;
   const layout = syncLayout ?? workerLayout;
@@ -102,13 +108,18 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   }, [showMinimap]);
 
   useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(LAYOUT_DIRECTION_STORAGE_KEY, layoutDirection);
+  }, [layoutDirection]);
+
+  useEffect(() => {
     if (!shouldUseWorker) return;
 
     const requestId = ++requestIdRef.current;
     const key = layoutKey;
     const applyFallback = () => {
       if (requestId !== requestIdRef.current) return;
-      setWorkerResult({ key, layout: computeMoveTreeLayout(flatTree), status: 'fallback' });
+      setWorkerResult({ key, layout: computeMoveTreeLayout(flatTree, layoutDirection), status: 'fallback' });
     };
     try {
       if (!workerRef.current) {
@@ -129,11 +140,11 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
       worker.onerror = () => {
         applyFallback();
       };
-      worker.postMessage({ requestId, items: flatTree });
+      worker.postMessage({ requestId, items: flatTree, direction: layoutDirection });
     } catch {
       queueMicrotask(applyFallback);
     }
-  }, [flatTree, layoutKey, shouldUseWorker]);
+  }, [flatTree, layoutDirection, layoutKey, shouldUseWorker]);
 
   useEffect(() => {
     return () => {
@@ -197,6 +208,9 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
       behavior: 'smooth',
     });
   };
+  const nextLayoutDirection = layoutDirection === 'horizontal' ? 'vertical' : 'horizontal';
+  const layoutDirectionLabel =
+    layoutDirection === 'horizontal' ? 'Switch tree to vertical layout' : 'Switch tree to horizontal layout';
 
   if (!layout || !visible) {
     return (
@@ -219,6 +233,16 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
           aria-label="Center current move"
         >
           <FaCrosshairs size={11} />
+        </button>
+        <button
+          type="button"
+          className={['move-tree-control-button', layoutDirection === 'vertical' ? 'active' : ''].join(' ')}
+          onClick={() => setLayoutDirection(nextLayoutDirection)}
+          title={layoutDirectionLabel}
+          aria-label={layoutDirectionLabel}
+          aria-pressed={layoutDirection === 'vertical'}
+        >
+          {layoutDirection === 'horizontal' ? <FaArrowsAltV size={11} /> : <FaArrowsAltH size={11} />}
         </button>
         {shouldRenderMinimap && (
           <button
