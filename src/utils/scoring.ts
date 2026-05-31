@@ -92,6 +92,41 @@ export function toggleDeadStoneChain(board: BoardState, deadStones: ReadonlySet<
   return next;
 }
 
+export function estimateDeadStonesFromOwnership(
+  board: BoardState,
+  ownership: readonly (readonly number[])[],
+  threshold = 0.6
+): Set<string> {
+  const deadStones = new Set<string>();
+  const visitedChains = new Set<string>();
+  const safeThreshold = Number.isFinite(threshold) ? Math.max(0, Math.min(1, threshold)) : 0.6;
+
+  for (let y = 0; y < board.length; y++) {
+    for (let x = 0; x < (board[y]?.length ?? 0); x++) {
+      const stone = board[y]?.[x] ?? null;
+      if (!stone) continue;
+
+      const key = scoringPointKey(x, y);
+      if (visitedChains.has(key)) continue;
+
+      const chain = getConnectedStoneChain(board, x, y);
+      let opponentOwnership = 0;
+      for (const point of chain) {
+        const owner = ownership[point.y]?.[point.x] ?? 0;
+        opponentOwnership += stone === 'black' ? -owner : owner;
+      }
+      opponentOwnership /= Math.max(1, chain.length);
+
+      for (const point of chain) visitedChains.add(scoringPointKey(point.x, point.y));
+      if (opponentOwnership < safeThreshold) continue;
+
+      for (const point of chain) deadStones.add(scoringPointKey(point.x, point.y));
+    }
+  }
+
+  return deadStones;
+}
+
 function floodEmptyRegion(board: BoardState, deadStones: ReadonlySet<string>, start: Point, visited: Set<string>): Point[] {
   const region: Point[] = [];
   const stack: Point[] = [start];

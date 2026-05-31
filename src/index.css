@@ -1747,6 +1747,16 @@
     background: var(--ui-surface-2);
   }
 
+  .manual-score-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .manual-score-actions button:disabled:hover {
+    color: var(--ui-text-muted);
+    background: var(--ui-surface);
+  }
+
   .manual-score-actions button.primary {
     color: var(--ui-accent-contrast);
     background: var(--ui-accent);

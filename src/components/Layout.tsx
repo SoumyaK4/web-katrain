@@ -25,7 +25,7 @@ import type { CandidateMove, GameNode, Player } from '../types';
 import { DEFAULT_BOARD_SIZE } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundToHalf } from '../utils/manualScore';
-import { computeManualScoreEstimate, toggleDeadStoneChain } from '../utils/scoring';
+import { computeManualScoreEstimate, estimateDeadStonesFromOwnership, toggleDeadStoneChain } from '../utils/scoring';
 import { summarizePointsLost } from '../utils/analysisSummary';
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { getEngineModelLabel } from '../utils/engineLabel';
@@ -462,6 +462,14 @@ export const Layout: React.FC = () => {
       }),
     [board, capturedBlack, capturedWhite, komi, manualDeadStones]
   );
+  const manualScoreOwnership = useMemo(() => {
+    if (!currentNode.analysis || (currentNode.analysis.ownershipMode ?? 'root') === 'none') return null;
+    const ownership = currentNode.analysis.territory;
+    if (ownership.length !== board.length) return null;
+    const width = board[0]?.length ?? 0;
+    if (!ownership.every((row) => row.length === width)) return null;
+    return ownership;
+  }, [board, currentNode.analysis]);
 
   const rootProps = rootNode.properties ?? {};
   const getRootProp = (key: string) => rootProps[key]?.[0] ?? '';
@@ -542,6 +550,22 @@ export const Layout: React.FC = () => {
   const clearManualDeadStones = useCallback(() => {
     setManualDeadStones(new Set());
   }, []);
+
+  const autoEstimateDeadStones = useCallback(() => {
+    if (!manualScoreOwnership) {
+      toast('Run territory analysis before auto-estimating dead stones.', 'info');
+      return;
+    }
+
+    const nextDeadStones = estimateDeadStonesFromOwnership(board, manualScoreOwnership);
+    setManualDeadStones(nextDeadStones);
+    toast(
+      nextDeadStones.size > 0
+        ? `Auto-marked ${nextDeadStones.size} dead ${nextDeadStones.size === 1 ? 'stone' : 'stones'}.`
+        : 'No dead stones found from ownership.',
+      'info'
+    );
+  }, [board, manualScoreOwnership, toast]);
 
   const toggleManualDeadStone = useCallback((x: number, y: number) => {
     setManualDeadStones((prev) => toggleDeadStoneChain(board, prev, x, y));
@@ -2077,6 +2101,8 @@ export const Layout: React.FC = () => {
               komi={komi}
               deadStoneCount={manualDeadStones.size}
               onToggle={toggleScoringMode}
+              onAutoEstimate={autoEstimateDeadStones}
+              canAutoEstimate={!!manualScoreOwnership}
               onClear={clearManualDeadStones}
               onDone={() => setScoringMode(false)}
             />

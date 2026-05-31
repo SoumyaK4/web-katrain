@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCalculator, FaChevronDown, FaChevronUp, FaTimes, FaUndo } from 'react-icons/fa';
+import { FaCalculator, FaChevronDown, FaChevronUp, FaMagic, FaTimes, FaUndo } from 'react-icons/fa';
 import type { ManualScoreEstimate } from '../utils/scoring';
 
 interface ManualScorePanelProps {
@@ -15,6 +15,8 @@ interface ManualScorePanelProps {
   komi: number;
   deadStoneCount: number;
   onToggle: () => void;
+  onAutoEstimate?: () => void;
+  canAutoEstimate?: boolean;
   onClear: () => void;
   onDone: () => void;
 }
@@ -34,6 +36,8 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   komi,
   deadStoneCount,
   onToggle,
+  onAutoEstimate,
+  canAutoEstimate = false,
   onClear,
   onDone,
 }) => {
@@ -134,6 +138,15 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
       </div>
 
       <div className="manual-score-actions">
+        <button
+          type="button"
+          onClick={onAutoEstimate}
+          disabled={!onAutoEstimate || !canAutoEstimate}
+          title={canAutoEstimate ? 'Estimate dead stones from ownership' : 'Run territory analysis before auto-estimating'}
+        >
+          <FaMagic size={12} />
+          <span>Auto</span>
+        </button>
         <button type="button" onClick={onClear} title="Clear dead stones">
           <FaUndo size={12} />
           <span>Clear</span>

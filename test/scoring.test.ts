@@ -3,6 +3,7 @@ import type { BoardState } from '../src/types';
 import {
   calculateTerritoryScore,
   computeManualScoreEstimate,
+  estimateDeadStonesFromOwnership,
   getConnectedStoneChain,
   scoringPointKey,
   toggleDeadStoneChain,
@@ -108,5 +109,36 @@ describe('dead stone chains', () => {
 
     const unmarked = toggleDeadStoneChain(board, marked, 1, 1);
     expect(unmarked.size).toBe(0);
+  });
+});
+
+describe('ownership dead-stone estimation', () => {
+  it('marks whole chains when ownership strongly belongs to the opponent', () => {
+    const board = boardFromRows([
+      'BB.',
+      '.BW',
+      '..W',
+    ]);
+    const ownership = board.map((row) => row.map(() => 0));
+    ownership[0]![0] = -0.8;
+    ownership[0]![1] = -0.8;
+    ownership[1]![1] = -0.8;
+
+    const estimated = estimateDeadStonesFromOwnership(board, ownership);
+
+    expect(estimated).toEqual(new Set(['0,0', '1,0', '1,1']));
+  });
+
+  it('ignores weak, noisy, or same-side ownership', () => {
+    const board = boardFromRows([
+      'BB',
+      '.W',
+    ]);
+    const ownership = [
+      [-0.9, -0.1],
+      [0, -0.9],
+    ];
+
+    expect(estimateDeadStonesFromOwnership(board, ownership)).toEqual(new Set());
   });
 });
