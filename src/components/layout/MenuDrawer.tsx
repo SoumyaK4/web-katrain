@@ -54,10 +54,29 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
       <div className="absolute left-0 top-0 h-full w-[90vw] max-w-sm ui-panel border-r shadow-xl p-3 overflow-y-auto overscroll-contain mobile-safe-inset mobile-safe-area-bottom">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold" id="menu-title">Menu</h2>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold" id="menu-title">Menu</h2>
+            <div className="mt-1 text-[11px] ui-text-faint">
+              {APP_COMMIT_URL ? (
+                <a
+                  href={APP_COMMIT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block max-w-full truncate hover:text-[var(--ui-text)]"
+                  title={`Open build commit: ${APP_BUILD_LABEL}`}
+                  aria-label={`Open build commit ${APP_BUILD_LABEL}`}
+                  data-menu-build-link="true"
+                >
+                  {APP_BUILD_LABEL}
+                </a>
+              ) : (
+                <span className="block max-w-full truncate">{APP_BUILD_LABEL}</span>
+              )}
+            </div>
+          </div>
           <button
-            className="ui-text-muted hover:text-white"
+            className="shrink-0 ui-text-muted hover:text-white"
             onClick={onClose}
             aria-label="Close menu"
           >
@@ -216,24 +235,6 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </div>
           </div>
         )}
-
-        <div className="mt-4 border-t border-[var(--ui-border)] pt-3 px-3 text-[11px] ui-text-faint">
-          {APP_COMMIT_URL ? (
-            <a
-              href={APP_COMMIT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[var(--ui-text)]"
-              title={`Open build commit: ${APP_BUILD_LABEL}`}
-              aria-label={`Open build commit ${APP_BUILD_LABEL}`}
-              data-menu-build-link="true"
-            >
-              {APP_BUILD_LABEL}
-            </a>
-          ) : (
-            APP_BUILD_LABEL
-          )}
-        </div>
 
       </div>
     </div>
