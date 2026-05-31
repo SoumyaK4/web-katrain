@@ -4,6 +4,15 @@ export type NoteInlineSegment =
   | { type: 'code'; text: string }
   | { type: 'link'; text: string; href: string };
 
+export type NoteBlock =
+  | { type: 'blank' }
+  | { type: 'heading'; level: 1 | 2 | 3; text: string }
+  | { type: 'quote'; text: string }
+  | { type: 'task'; text: string; checked: boolean }
+  | { type: 'bullet'; text: string }
+  | { type: 'ordered'; number: string; text: string }
+  | { type: 'paragraph'; text: string };
+
 const INLINE_TOKEN_RE = /(`[^`\n]+`|\*\*[^*\n]+\*\*|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\)|https?:\/\/[^\s<]+)/g;
 const TRAILING_URL_PUNCTUATION_RE = /[),.;:!?]$/;
 
@@ -58,4 +67,32 @@ export function parseNoteInlinePreview(line: string): NoteInlineSegment[] {
 export function isNoteBulletLine(line: string): { text: string } | null {
   const match = line.match(/^\s*[-*]\s+(.+)$/);
   return match ? { text: match[1]! } : null;
+}
+
+export function parseNoteBlockLine(line: string): NoteBlock {
+  const normalized = line.replace(/\r$/, '');
+  if (!normalized.trim()) return { type: 'blank' };
+
+  const heading = normalized.match(/^\s{0,3}(#{1,3})\s+(.+?)\s*#*\s*$/);
+  if (heading) {
+    return { type: 'heading', level: heading[1]!.length as 1 | 2 | 3, text: heading[2]!.trim() };
+  }
+
+  const quote = normalized.match(/^\s*>\s?(.*)$/);
+  if (quote) return { type: 'quote', text: quote[1]!.trim() };
+
+  const task = normalized.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)$/);
+  if (task) return { type: 'task', checked: task[1]!.toLowerCase() === 'x', text: task[2]!.trim() };
+
+  const ordered = normalized.match(/^\s*(\d+)[.)]\s+(.+)$/);
+  if (ordered) return { type: 'ordered', number: ordered[1]!, text: ordered[2]!.trim() };
+
+  const bullet = isNoteBulletLine(normalized);
+  if (bullet) return { type: 'bullet', text: bullet.text };
+
+  return { type: 'paragraph', text: normalized.trimEnd() };
+}
+
+export function parseNoteBlocks(note: string): NoteBlock[] {
+  return note.replace(/\r\n?/g, '\n').split('\n').map(parseNoteBlockLine);
 }

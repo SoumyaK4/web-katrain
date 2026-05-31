@@ -4,7 +4,7 @@ import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import type { CandidateMove, FloatArray, Move, Player } from '../types';
 import { formatRootInfoText } from '../utils/gameInfoText';
-import { isNoteBulletLine, parseNoteInlinePreview, type NoteInlineSegment } from '../utils/notePreview';
+import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment } from '../utils/notePreview';
 
 function moveToLabel(move: Move | null, boardSize: number): string {
   if (!move) return 'Root';
@@ -77,25 +77,78 @@ function NoteInlinePreview({ segments }: { segments: NoteInlineSegment[] }) {
 }
 
 function NotePreview({ note }: { note: string }) {
-  const lines = note.replace(/\r\n?/g, '\n').split('\n');
+  const blocks = parseNoteBlocks(note);
   return (
     <div className="space-y-1.5">
-      {lines.map((line, index) => {
-        if (!line.trim()) return <div key={`blank-${index}`} className="h-2" aria-hidden="true" />;
-        const bullet = isNoteBulletLine(line);
-        if (bullet) {
+      {blocks.map((block, index) => {
+        if (block.type === 'blank') return <div key={`blank-${index}`} className="h-2" aria-hidden="true" />;
+        if (block.type === 'heading') {
+          const headingClass =
+            block.level === 1
+              ? 'text-sm font-semibold text-[var(--ui-text)]'
+              : block.level === 2
+                ? 'text-[13px] font-semibold text-[var(--ui-text)]'
+                : 'text-xs font-semibold uppercase tracking-wide text-[var(--ui-text-muted)]';
           return (
-            <div key={`line-${index}`} className="flex gap-2">
+            <div key={`line-${index}`} className={headingClass} data-note-block="heading">
+              <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
+            </div>
+          );
+        }
+        if (block.type === 'quote') {
+          return (
+            <div
+              key={`line-${index}`}
+              className="border-l-2 border-[var(--ui-accent)]/70 pl-2 italic text-[var(--ui-text-muted)]"
+              data-note-block="quote"
+            >
+              <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
+            </div>
+          );
+        }
+        if (block.type === 'task') {
+          return (
+            <div key={`line-${index}`} className="flex gap-2" data-note-block="task">
+              <span
+                className={[
+                  'mt-[0.22em] grid h-3.5 w-3.5 flex-none place-items-center rounded-sm border text-[9px] font-bold leading-none',
+                  block.checked
+                    ? 'border-[var(--ui-accent)] bg-[var(--ui-accent)] text-[var(--ui-accent-contrast)]'
+                    : 'border-[var(--ui-border)] bg-[var(--ui-surface-2)] text-transparent',
+                ].join(' ')}
+                aria-hidden="true"
+              >
+                x
+              </span>
+              <span className={['min-w-0', block.checked ? 'opacity-80 line-through' : ''].join(' ')}>
+                <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
+              </span>
+            </div>
+          );
+        }
+        if (block.type === 'ordered') {
+          return (
+            <div key={`line-${index}`} className="flex gap-2" data-note-block="ordered">
+              <span className="w-5 flex-none text-right font-mono text-[var(--ui-text-muted)]">{block.number}.</span>
+              <span className="min-w-0">
+                <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
+              </span>
+            </div>
+          );
+        }
+        if (block.type === 'bullet') {
+          return (
+            <div key={`line-${index}`} className="flex gap-2" data-note-block="bullet">
               <span className="mt-[0.45em] h-1.5 w-1.5 flex-none rounded-full bg-[var(--ui-text-muted)]" aria-hidden="true" />
               <span className="min-w-0">
-                <NoteInlinePreview segments={parseNoteInlinePreview(bullet.text)} />
+                <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
               </span>
             </div>
           );
         }
         return (
-          <p key={`line-${index}`} className="min-w-0">
-            <NoteInlinePreview segments={parseNoteInlinePreview(line)} />
+          <p key={`line-${index}`} className="min-w-0" data-note-block="paragraph">
+            <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
           </p>
         );
       })}

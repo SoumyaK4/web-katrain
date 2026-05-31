@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isNoteBulletLine, parseNoteInlinePreview } from '../src/utils/notePreview';
+import { isNoteBulletLine, parseNoteBlockLine, parseNoteBlocks, parseNoteInlinePreview } from '../src/utils/notePreview';
 
 describe('note preview helpers', () => {
   it('parses compact markdown-style inline note segments', () => {
@@ -23,5 +23,21 @@ describe('note preview helpers', () => {
 
     expect(isNoteBulletLine('- sente')).toEqual({ text: 'sente' });
     expect(isNoteBulletLine('plain note')).toBeNull();
+  });
+
+  it('parses markdown-style block notes', () => {
+    expect(parseNoteBlockLine('# Attack shape')).toEqual({ type: 'heading', level: 1, text: 'Attack shape' });
+    expect(parseNoteBlockLine('> White is thin')).toEqual({ type: 'quote', text: 'White is thin' });
+    expect(parseNoteBlockLine('2. Hane first')).toEqual({ type: 'ordered', number: '2', text: 'Hane first' });
+    expect(parseNoteBlockLine('- [x] Sente threat')).toEqual({ type: 'task', checked: true, text: 'Sente threat' });
+    expect(parseNoteBlockLine('- [ ] Follow-up')).toEqual({ type: 'task', checked: false, text: 'Follow-up' });
+  });
+
+  it('preserves blank note blocks for preview spacing', () => {
+    expect(parseNoteBlocks('First\n\n- second')).toEqual([
+      { type: 'paragraph', text: 'First' },
+      { type: 'blank' },
+      { type: 'bullet', text: 'second' },
+    ]);
   });
 });
