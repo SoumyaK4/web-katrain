@@ -968,6 +968,7 @@
 
   .analysis-command-bar__depth-slider {
     flex: 1;
+    width: 100%;
     min-width: 0;
     height: 1.25rem;
     margin: 0;
