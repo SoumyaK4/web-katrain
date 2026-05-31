@@ -10,6 +10,7 @@ export interface NotificationToastMessage {
 interface NotificationToastProps {
   notification: NotificationToastMessage;
   onClose: () => void;
+  commandBarVisible?: boolean;
 }
 
 const notificationMeta = {
@@ -33,12 +34,15 @@ const notificationMeta = {
   },
 } as const;
 
-export function NotificationToast({ notification, onClose }: NotificationToastProps) {
+export function NotificationToast({ notification, onClose, commandBarVisible = false }: NotificationToastProps) {
   const meta = notificationMeta[notification.type];
   const Icon = meta.Icon;
 
   return (
-    <div className="notification-toast-region" data-notification-region="true">
+    <div
+      className={['notification-toast-region', commandBarVisible ? 'notification-toast-region--below-command-bar' : ''].join(' ')}
+      data-notification-region="true"
+    >
       <div
         className={`notification-toast notification-toast-${notification.type}`}
         role={meta.role}

@@ -496,6 +496,23 @@ describe('GameStore loadGame', () => {
         expect(node?.analysisVisitsRequested).toBe(1000);
     });
 
+    it('loads Kaya KA analysis blobs from the root SGF node', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        const parsed = parseSgf(
+            '(;GM[1]SZ[19]KA[{"w":0.55,"s":1.5,"v":1000,"m":[{"m":"D4","p":0.54,"w":0.57,"s":2,"v":80}\\]}])'
+        );
+        store.loadGame(parsed);
+
+        const root = useGameStore.getState().rootNode;
+        expect(useGameStore.getState().currentNode).toBe(root);
+        expect(root.analysis?.rootWinRate).toBeCloseTo(0.55);
+        expect(root.analysis?.rootScoreLead).toBeCloseTo(1.5);
+        expect(root.analysis?.moves[0]).toMatchObject({ x: 3, y: 15, visits: 80, prior: 0.54 });
+        expect(useGameStore.getState().analysisData).toBe(root.analysis);
+    });
+
     it('exports Kaya KA alongside Web-KaTrain KT when analysis saving is enabled', () => {
         const store = useGameStore.getState();
         store.resetGame();

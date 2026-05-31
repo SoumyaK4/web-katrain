@@ -2057,7 +2057,11 @@ export const Layout: React.FC = () => {
           {/* Board */}
           <div className={['flex-1 flex flex-col justify-center ui-bg overflow-hidden relative', isMobile ? 'p-2 sm:p-3 pb-0' : 'p-4 xl:p-6'].join(' ')}>
             {notification && (
-              <NotificationToast notification={notification} onClose={clearNotification} />
+              <NotificationToast
+                notification={notification}
+                onClose={clearNotification}
+                commandBarVisible={showAnalysisCommandBar}
+              />
             )}
             <EditToolbar isMobile={isMobile} analysisCommandBarVisible={showAnalysisCommandBar} />
             <ManualScorePanel

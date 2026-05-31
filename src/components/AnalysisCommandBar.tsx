@@ -14,6 +14,7 @@ import type { AnalysisControlsState, UiMode } from './layout/types';
 import { formatAnalysisScoreLead, formatAnalysisWinRate, summarizePointsLost } from '../utils/analysisSummary';
 import { useGameStore } from '../store/gameStore';
 import { getTopMoveMetricLabel, nextTopMoveMetric } from '../utils/topMoveMetric';
+import { getBestMoveSummary } from '../utils/bestMoveSummary';
 import {
   ANALYSIS_MIN_VISITS,
   ANALYSIS_VISIT_PRESETS,
@@ -120,6 +121,10 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   const playedMoveQuality = React.useMemo(
     () => getPlayedMoveQuality(currentNode, pointsLost),
     [currentNode, pointsLost]
+  );
+  const bestMoveSummary = React.useMemo(
+    () => getBestMoveSummary(currentNode.analysis, currentNode.gameState.board.length),
+    [currentNode.analysis, currentNode.gameState.board.length]
   );
   const moveQualityTone = playedMoveQuality?.tone ?? pointsSummary.tone;
   const moveQualityValue = playedMoveQuality?.valueLabel ?? pointsSummary.label;
@@ -295,6 +300,14 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
           </span>
           <span className="analysis-command-bar__label">{moveQualityLabel}</span>
         </div>
+        {bestMoveSummary && (
+          <div className="analysis-command-bar__metric" title={bestMoveSummary.title} data-analysis-best-move="true">
+            <span className="analysis-command-bar__value analysis-command-bar__value--best">
+              {bestMoveSummary.moveLabel}
+            </span>
+            <span className="analysis-command-bar__label">{bestMoveSummary.detailLabel || 'Best move'}</span>
+          </div>
+        )}
       </div>
 
       <div className="analysis-command-bar__actions" aria-label="Analysis controls">
