@@ -6,9 +6,15 @@ import { ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import {
   ANALYSIS_MIN_VISITS,
   ANALYSIS_VISIT_PRESETS,
+  ANALYSIS_VISIT_SLIDER_MAX,
+  ANALYSIS_VISIT_SLIDER_MIN,
   clampAnalysisVisits,
+  formatVisitCount,
   mergeVisitPresets,
+  sliderValueToVisitCount,
+  visitCountToSliderValue,
   visitPresetLabel,
+  visitSliderFillPercent,
 } from '../utils/visitPresets';
 
 interface GameAnalysisModalProps {
@@ -86,6 +92,7 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
                 min={ANALYSIS_MIN_VISITS}
                 max={ENGINE_MAX_VISITS}
                 value={visits}
+                aria-label="Game analysis max visits"
                 onChange={(e) => setVisits(clampAnalysisVisits(clampInt(e.target.value, defaultMaxVisits)))}
                 className="w-full ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono"
               />
@@ -138,6 +145,25 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
                   </button>
                 );
               })}
+            </div>
+            <div className="pt-1">
+              <input
+                type="range"
+                min={ANALYSIS_VISIT_SLIDER_MIN}
+                max={ANALYSIS_VISIT_SLIDER_MAX}
+                step={0.01}
+                value={visitCountToSliderValue(visits)}
+                className="analysis-command-bar__depth-slider"
+                aria-label="Game analysis depth slider"
+                aria-valuetext={`${visits} visits`}
+                data-game-analysis-depth-slider="true"
+                style={{ '--analysis-depth-fill': `${visitSliderFillPercent(visits)}%` } as React.CSSProperties}
+                onChange={(event) => setVisits(sliderValueToVisitCount(Number.parseFloat(event.currentTarget.value)))}
+              />
+              <div className="analysis-command-bar__depth-scale" aria-hidden="true">
+                <span>{ANALYSIS_MIN_VISITS}</span>
+                <span>{formatVisitCount(ENGINE_MAX_VISITS)}</span>
+              </div>
             </div>
           </div>
 
