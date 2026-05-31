@@ -395,12 +395,15 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
     return GAME_REPORT_PHASES.reduce(
       (acc, phase) => {
         const phaseReport = reportsByPhase[phase.key];
+        const analyzed = (phaseReport?.stats.black.numMoves ?? 0) + (phaseReport?.stats.white.numMoves ?? 0);
+        const total = phaseReport?.movesInFilter ?? 0;
         acc[phase.key] = {
-          analyzed: (phaseReport?.stats.black.numMoves ?? 0) + (phaseReport?.stats.white.numMoves ?? 0),
+          analyzed,
+          total,
         };
         return acc;
       },
-      {} as Record<GameReportPhaseFilter, { analyzed: number }>
+      {} as Record<GameReportPhaseFilter, { analyzed: number; total: number }>
     );
   }, [reportsByPhase]);
 
@@ -780,7 +783,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   }, [phaseFilter]);
 
   useEffect(() => {
-    if (phaseFilter !== 'all' && phaseCounts[phaseFilter]?.analyzed === 0) {
+    if (phaseFilter !== 'all' && phaseCounts[phaseFilter]?.total === 0) {
       setPhaseFilter('all');
     }
   }, [phaseCounts, phaseFilter]);
@@ -848,10 +851,12 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {GAME_REPORT_PHASES.map((b) => {
                 const active = phaseFilter === b.key;
-                const count = phaseCounts[b.key]?.analyzed ?? 0;
-                const disabled = b.key !== 'all' && count === 0;
-                const moveWord = count === 1 ? 'move' : 'moves';
-                const tabLabel = disabled ? `${b.label}, no analyzed moves` : `${b.label}, ${count} analyzed ${moveWord}`;
+                const counts = phaseCounts[b.key] ?? { analyzed: 0, total: 0 };
+                const disabled = b.key !== 'all' && counts.total === 0;
+                const moveWord = counts.total === 1 ? 'move' : 'moves';
+                const tabLabel = disabled
+                  ? `${b.label}, no moves`
+                  : `${b.label}, ${counts.analyzed} of ${counts.total} analyzed ${moveWord}`;
                 return (
                   <button
                     key={b.key}
@@ -861,7 +866,11 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                     }}
                     disabled={disabled}
                     aria-label={tabLabel}
-                    title={disabled ? `No analyzed moves in ${b.label}` : `${count} analyzed ${moveWord} in ${b.label}`}
+                    title={
+                      disabled
+                        ? `No moves in ${b.label}`
+                        : `${counts.analyzed}/${counts.total} analyzed ${moveWord} in ${b.label}`
+                    }
                     className={[
                       'min-w-0 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-sm font-semibold transition-colors',
                       active
@@ -873,7 +882,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                   >
                     <span className="min-w-0 truncate">{b.label}</span>
                     <span className="shrink-0 rounded-full border border-current/20 px-1.5 py-0.5 font-mono text-[11px] leading-none opacity-80">
-                      {count}
+                      {counts.analyzed}/{counts.total}
                     </span>
                   </button>
                 );
