@@ -12,7 +12,7 @@ import {
     KATAGO_SMALL_MODEL_PATH,
 } from '../engine/katago/modelDefaults';
 import { publicUrl } from '../utils/publicUrl';
-import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
+import { BOARD_THEME_OPTIONS, getBoardTheme } from '../utils/boardThemes';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { UI_THEME_OPTIONS } from '../utils/uiThemes';
 import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
@@ -181,6 +181,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const uiThemeMeta = UI_THEME_OPTIONS.find((theme) => theme.value === settings.uiTheme);
     const uiDensityMeta = UI_DENSITY_OPTIONS.find((density) => density.value === settings.uiDensity);
     const maxHandicap = getMaxHandicap(settings.defaultBoardSize);
+    const boardThemeChoices = React.useMemo(
+        () => BOARD_THEME_OPTIONS.map((theme) => ({ ...theme, config: getBoardTheme(theme.value) })),
+        []
+    );
+    const selectedBoardThemeMeta = boardThemeChoices.find((theme) => theme.value === settings.boardTheme)?.config;
 
     React.useEffect(() => {
         syncUploadedModelUrl(settings.katagoModelUrl);
@@ -276,7 +281,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 </div>
                 <div className="px-4 sm:px-6 py-5 flex flex-col flex-1 overflow-hidden">  
                     {/* Tab Navigation */}  
-                    <div className="flex border-b border-slate-700 mb-5"
+                    <div className="flex w-full min-w-0 border-b border-slate-700 mb-5"
                         role="tablist"
                         aria-orientation="horizontal"
                     >
@@ -301,7 +306,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             setActiveTab(prev.id);
                                         }
                                     }}
-                                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                                    className={`min-w-0 flex-1 whitespace-nowrap px-2 py-2 text-sm font-medium transition-colors sm:px-4 ${
                                         isActive
                                             ? 'text-white border-b-2 border-blue-500'
                                             : 'text-slate-400 hover:text-white'
@@ -449,18 +454,82 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="ui-text-muted block">Board Theme</label>
-                                            <select
-                                                value={settings.boardTheme}
-                                                onChange={(e) => updateSettings({ boardTheme: e.target.value as GameSettings['boardTheme'] })}
-                                                className={selectClass}
+                                            <div className="flex items-center justify-between gap-3">
+                                                <label className="ui-text-muted block">Board Theme</label>
+                                                <span className="text-xs ui-text-faint">Kaya-style previews</span>
+                                            </div>
+                                            <div
+                                                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+                                                role="radiogroup"
+                                                aria-label="Board Theme"
+                                                data-board-theme-picker="true"
                                             >
-                                                {BOARD_THEME_OPTIONS.map((theme) => (
-                                                    <option key={theme.value} value={theme.value}>
-                                                        {theme.label}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                {boardThemeChoices.map((theme) => {
+                                                    const selected = settings.boardTheme === theme.value;
+                                                    const lineColor = theme.config.board.foregroundColor ?? '#000000';
+                                                    const texture = theme.config.board.texture;
+                                                    const backgroundImage = [
+                                                        texture ? `url("${texture}")` : null,
+                                                        `linear-gradient(${lineColor} 1px, transparent 1px)`,
+                                                        `linear-gradient(90deg, ${lineColor} 1px, transparent 1px)`,
+                                                    ].filter(Boolean).join(', ');
+                                                    const backgroundSize = `${texture ? '100% 100%, ' : ''}20% 20%, 20% 20%`;
+                                                    const stoneStyle = (player: 'black' | 'white'): React.CSSProperties => {
+                                                        const stone = theme.config.stones[player];
+                                                        return {
+                                                            backgroundColor: stone.backgroundColor,
+                                                            backgroundImage: stone.image ? `url("${stone.image}")` : undefined,
+                                                            backgroundPosition: 'center',
+                                                            backgroundRepeat: 'no-repeat',
+                                                            backgroundSize: 'cover',
+                                                            border: stone.borderWidth && stone.borderColor ? `${stone.borderWidth} solid ${stone.borderColor}` : undefined,
+                                                            boxShadow: stone.shadowColor && stone.shadowColor !== 'transparent'
+                                                                ? `${stone.shadowOffsetX ?? '0'} ${stone.shadowOffsetY ?? '0'} ${stone.shadowBlur ?? '0'} ${stone.shadowColor}`
+                                                                : undefined,
+                                                        };
+                                                    };
+
+                                                    return (
+                                                        <button
+                                                            key={theme.value}
+                                                            type="button"
+                                                            role="radio"
+                                                            aria-checked={selected}
+                                                            aria-label={`Board theme ${theme.label}`}
+                                                            data-board-theme-choice={theme.value}
+                                                            onClick={() => updateSettings({ boardTheme: theme.value })}
+                                                            className={[
+                                                                'group rounded-lg border p-2 text-left transition-colors',
+                                                                selected
+                                                                    ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-text)]'
+                                                                    : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+                                                            ].join(' ')}
+                                                        >
+                                                            <span
+                                                                className="relative mb-2 block h-16 overflow-hidden rounded-md border"
+                                                                style={{
+                                                                    backgroundColor: theme.config.board.backgroundColor,
+                                                                    backgroundImage,
+                                                                    backgroundSize,
+                                                                    borderColor: theme.config.board.borderColor ?? lineColor,
+                                                                }}
+                                                                aria-hidden="true"
+                                                            >
+                                                                <span className="absolute left-[21%] top-[26%] h-4 w-4 rounded-full" style={stoneStyle('black')} />
+                                                                <span className="absolute left-[55%] top-[42%] h-4 w-4 rounded-full" style={stoneStyle('white')} />
+                                                                <span className="absolute left-[35%] top-[62%] h-4 w-4 rounded-full" style={stoneStyle('black')} />
+                                                            </span>
+                                                            <span className="flex min-w-0 items-center justify-between gap-2">
+                                                                <span className="truncate text-xs font-semibold">{theme.label}</span>
+                                                                {selected ? <span className="text-[10px] font-mono text-[var(--ui-accent)]">On</span> : null}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            {selectedBoardThemeMeta?.description ? (
+                                                <p className={subtextClass}>{selectedBoardThemeMeta.description}</p>
+                                            ) : null}
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

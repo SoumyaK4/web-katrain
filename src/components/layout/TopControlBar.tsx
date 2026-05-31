@@ -208,19 +208,19 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
-          onClick={() => { onSettings(); closeViewMenuIfMobile(); }}
+          onClick={() => { closeViewMenu(); onSettings(); }}
         >
           <span className="flex items-center gap-2"><FaCog /> Settings</span><span className="text-xs ui-text-faint">{shortcutLabels['settings-modal']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
-          onClick={() => { onKeyboardHelp(); closeViewMenuIfMobile(); }}
+          onClick={() => { closeViewMenu(); onKeyboardHelp(); }}
         >
           <span className="flex items-center gap-2"><FaKeyboard /> Keyboard shortcuts</span><span className="text-xs ui-text-faint">{shortcutLabels['keyboard-help']}</span>
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
-          onClick={() => { onAbout(); closeViewMenuIfMobile(); }}
+          onClick={() => { closeViewMenu(); onAbout(); }}
         >
           <span className="flex items-center gap-2"><FaInfoCircle /> About</span><span className="text-xs ui-text-faint">Build</span>
         </button>
@@ -233,7 +233,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         </button>
         <button
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
-          onClick={() => { onPasteSgf(); closeViewMenuIfMobile(); }}
+          onClick={() => { closeViewMenu(); onPasteSgf(); }}
         >
           <span className="flex items-center gap-2"><FaPaste /> Paste SGF/OGS</span><span className="text-xs ui-text-faint">{shortcutLabels['paste-sgf']}</span>
         </button>
