@@ -1337,6 +1337,27 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
                 Filters: {activeFilterLabels.join(' - ')} • Sort: {mistakeSortLabel} • Showing top {pdfMistakes.length} mistakes
               </div>
               <div className="mt-6">
+                <div className="pdf-section-title">Key Stats</div>
+                <div className={['mt-2 grid gap-x-4 gap-y-1 text-xs', statsPlayers.length === 2 ? 'grid-cols-3' : 'grid-cols-2'].join(' ')}>
+                  <div className="font-semibold uppercase tracking-wide text-slate-500">Metric</div>
+                  {statsPlayers.map((player) => (
+                    <div key={`pdf-stats-${player}`} className="text-center font-semibold uppercase tracking-wide text-slate-500">
+                      {player === 'black' ? 'Black' : 'White'}
+                    </div>
+                  ))}
+                  {keyStatRows.map(({ label, value }) => (
+                    <React.Fragment key={`pdf-${label}`}>
+                      <div className="text-slate-600">{label}</div>
+                      {statsPlayers.map((player) => (
+                        <div key={`pdf-${label}-${player}`} className="text-center font-mono text-slate-900">
+                          {value(player)}
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6">
                 <div className="pdf-section-title">Critical Swings</div>
                 {turningPoints.length === 0 ? (
                   <div className="mt-2 text-sm text-slate-600">No major score swings match these filters.</div>
