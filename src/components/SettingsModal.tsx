@@ -18,7 +18,7 @@ import { UI_THEME_OPTIONS } from '../utils/uiThemes';
 import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { ShortcutSettingsPanel } from './ShortcutSettingsPanel';
-import { TOP_MOVE_METRIC_SELECT_OPTIONS } from '../utils/topMoveMetric';
+import { POLICY_HEATMAP_METRIC_SELECT_OPTIONS, TOP_MOVE_METRIC_SELECT_OPTIONS } from '../utils/topMoveMetric';
 import {
     clearUploadedModelUrl,
     createUploadedModelUrl,
@@ -829,6 +829,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         className={selectClass}
                                                     >
                                                         {TOP_MOVE_METRIC_SELECT_OPTIONS.map((o) => (
+                                                            <option key={o.value} value={o.value}>
+                                                                {o.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-slate-300 block text-sm">Policy Heatmap</label>
+                                                    <select
+                                                        value={settings.analysisPolicyMetric ?? 'policy'}
+                                                        onChange={(e) => updateSettings({ analysisPolicyMetric: e.target.value as GameSettings['analysisPolicyMetric'] })}
+                                                        className={selectClass}
+                                                    >
+                                                        {POLICY_HEATMAP_METRIC_SELECT_OPTIONS.map((o) => (
                                                             <option key={o.value} value={o.value}>
                                                                 {o.label}
                                                             </option>

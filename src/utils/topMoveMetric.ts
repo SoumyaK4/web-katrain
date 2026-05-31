@@ -1,6 +1,7 @@
 import type { GameSettings } from '../types';
 
 export type TopMoveMetric = GameSettings['trainerTopMovesShow'];
+export type PolicyHeatmapMetric = GameSettings['analysisPolicyMetric'];
 
 export const TOP_MOVE_METRIC_OPTIONS: Array<{ value: TopMoveMetric; label: string; shortLabel: string }> = [
   { value: 'top_move_delta_score', label: 'Delta score', shortLabel: 'Delta' },
@@ -20,6 +21,18 @@ export const TOP_MOVE_METRIC_SELECT_OPTIONS: Array<{ value: TopMoveMetric; label
   { value: 'top_move_nothing', label: 'Nothing' },
 ];
 
+export const POLICY_HEATMAP_METRIC_OPTIONS: Array<{ value: PolicyHeatmapMetric; label: string; shortLabel: string }> = [
+  { value: 'policy', label: 'Policy probability', shortLabel: 'Policy' },
+  { value: 'delta_score', label: 'Delta score', shortLabel: 'Delta' },
+  { value: 'delta_winrate', label: 'Delta winrate', shortLabel: 'Delta win' },
+];
+
+export const POLICY_HEATMAP_METRIC_SELECT_OPTIONS: Array<{ value: PolicyHeatmapMetric; label: string }> = [
+  { value: 'policy', label: 'Policy Probability' },
+  { value: 'delta_score', label: 'Delta Score' },
+  { value: 'delta_winrate', label: 'Delta Winrate' },
+];
+
 export function getTopMoveMetricLabel(metric: TopMoveMetric, variant: 'long' | 'short' = 'long'): string {
   const option = TOP_MOVE_METRIC_OPTIONS.find((item) => item.value === metric) ?? TOP_MOVE_METRIC_OPTIONS[0]!;
   return variant === 'short' ? option.shortLabel : option.label;
@@ -28,4 +41,17 @@ export function getTopMoveMetricLabel(metric: TopMoveMetric, variant: 'long' | '
 export function nextTopMoveMetric(metric: TopMoveMetric): TopMoveMetric {
   const index = TOP_MOVE_METRIC_OPTIONS.findIndex((item) => item.value === metric);
   return TOP_MOVE_METRIC_OPTIONS[(index + 1) % TOP_MOVE_METRIC_OPTIONS.length]!.value;
+}
+
+export function getPolicyHeatmapMetricLabel(
+  metric: PolicyHeatmapMetric | undefined,
+  variant: 'long' | 'short' = 'long'
+): string {
+  const option = POLICY_HEATMAP_METRIC_OPTIONS.find((item) => item.value === metric) ?? POLICY_HEATMAP_METRIC_OPTIONS[0]!;
+  return variant === 'short' ? option.shortLabel : option.label;
+}
+
+export function nextPolicyHeatmapMetric(metric: PolicyHeatmapMetric | undefined): PolicyHeatmapMetric {
+  const index = POLICY_HEATMAP_METRIC_OPTIONS.findIndex((item) => item.value === metric);
+  return POLICY_HEATMAP_METRIC_OPTIONS[(index + 1) % POLICY_HEATMAP_METRIC_OPTIONS.length]!.value;
 }

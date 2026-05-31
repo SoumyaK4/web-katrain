@@ -152,6 +152,7 @@ export interface GameSettings {
   analysisShowEval: boolean; // W
   analysisShowHints: boolean; // E
   analysisShowPolicy: boolean; // R
+  analysisPolicyMetric: 'policy' | 'delta_score' | 'delta_winrate';
   analysisShowOwnership: boolean; // T
   katagoModelUrl: string;
   katagoBackend: KataGoBackendPreference;

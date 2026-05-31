@@ -14,7 +14,12 @@ import {
 import type { AnalysisControlsState, UiMode } from './layout/types';
 import { formatAnalysisScoreLead, formatAnalysisWinRate, summarizePointsLost } from '../utils/analysisSummary';
 import { useGameStore } from '../store/gameStore';
-import { getTopMoveMetricLabel, nextTopMoveMetric } from '../utils/topMoveMetric';
+import {
+  getPolicyHeatmapMetricLabel,
+  getTopMoveMetricLabel,
+  nextPolicyHeatmapMetric,
+  nextTopMoveMetric,
+} from '../utils/topMoveMetric';
 import { getBestMoveSummary } from '../utils/bestMoveSummary';
 import { summarizeGameAnalysisProgress } from '../utils/gameAnalysisProgress';
 import {
@@ -77,6 +82,7 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   onOpenGameReport,
 }) => {
   const topMoveMetric = useGameStore((state) => state.settings.trainerTopMovesShow);
+  const policyHeatmapMetric = useGameStore((state) => state.settings.analysisPolicyMetric);
   const katagoVisits = useGameStore((state) => state.settings.katagoVisits);
   const currentNode = useGameStore((state) => state.currentNode);
   const activeBranchChildIds = useGameStore((state) => state.activeBranchChildIds);
@@ -125,7 +131,14 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
       updateControls({ analysisShowHints: true, analysisShowPolicy: false });
     }
   };
+  const cyclePolicyHeatmapMetric = () => {
+    updateSettings({ analysisPolicyMetric: nextPolicyHeatmapMetric(policyHeatmapMetric) });
+    if (!analysisControls.analysisShowPolicy) {
+      updateControls({ analysisShowPolicy: true });
+    }
+  };
   const topMoveMetricLabel = getTopMoveMetricLabel(topMoveMetric, 'short');
+  const policyHeatmapMetricLabel = getPolicyHeatmapMetricLabel(policyHeatmapMetric, 'short');
   const topMovesHiddenByPolicy = analysisControls.analysisShowPolicy;
   const playedMoveQuality = React.useMemo(
     () => getPlayedMoveQuality(currentNode, pointsLost),
@@ -416,6 +429,19 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         >
           <FaThLarge size={12} aria-hidden="true" />
           <span>Policy</span>
+        </button>
+        <button
+          type="button"
+          className={[
+            'analysis-command-bar__button',
+            analysisControls.analysisShowPolicy && policyHeatmapMetric !== 'policy' ? 'active' : '',
+          ].join(' ')}
+          onClick={cyclePolicyHeatmapMetric}
+          data-analysis-policy-metric="true"
+          title="Cycle the policy heatmap label"
+        >
+          <FaChartBar size={12} aria-hidden="true" />
+          <span>Map: {policyHeatmapMetricLabel}</span>
         </button>
         <button
           type="button"

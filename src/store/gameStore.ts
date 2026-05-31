@@ -861,6 +861,7 @@ const defaultSettings: GameSettings = {
   analysisShowEval: true,
   analysisShowHints: true,
   analysisShowPolicy: false,
+  analysisPolicyMetric: 'policy',
   analysisShowOwnership: true,
   katagoModelUrl: publicUrl(KATAGO_SMALL_MODEL_PATH),
   katagoBackend: 'webgpu',

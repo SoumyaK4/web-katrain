@@ -1501,6 +1501,25 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     ctx.textBaseline = 'middle';
     ctx.font =
       `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+    const moveMap = new Map<string, CandidateMove>();
+    for (const move of visibleAnalysis.moves) {
+      if (move.x >= 0 && move.y >= 0) moveMap.set(`${move.x},${move.y}`, move);
+    }
+    const heatmapMetric = settings.analysisPolicyMetric ?? 'policy';
+    const sign = currentPlayer === 'black' ? 1 : -1;
+    const getPolicyLabel = (x: number, y: number, p: number): string => {
+      if (heatmapMetric === 'delta_score') {
+        const move = moveMap.get(`${x},${y}`);
+        return move ? formatLoss(-move.pointsLost, settings.trainerExtraPrecision) : '';
+      }
+      if (heatmapMetric === 'delta_winrate') {
+        const move = moveMap.get(`${x},${y}`);
+        if (!move) return '';
+        const winRateLost = move.winRateLost ?? sign * (visibleAnalysis.rootWinRate - move.winRate);
+        return formatDeltaWinrate(-winRateLost);
+      }
+      return `${(100 * p).toFixed(2)}`.slice(0, 4) + '%';
+    };
 
     for (let y = 0; y < boardSize; y++) {
       for (let x = 0; x < boardSize; x++) {
@@ -1509,7 +1528,8 @@ export const GoBoard: React.FC<GoBoardProps> = ({
         const d = toDisplay(x, y);
         const polOrder = Math.max(0, 5 + Math.trunc(Math.log10(Math.max(1e-9, p - 1e-9))));
         const col = evalColors[Math.min(evalColors.length - 1, polOrder)]!;
-        const showText = p > textLb;
+        const labelRaw = getPolicyLabel(x, y, p);
+        const showText = p > textLb && labelRaw.length > 0;
         const scale = showText ? 0.95 : 0.5;
         const coloredRadius = stoneRadius * HINT_SCALE * scale;
         const isBest = best > 0 && p === best;
@@ -1534,7 +1554,6 @@ export const GoBoard: React.FC<GoBoardProps> = ({
         }
 
         if (showText) {
-          const labelRaw = `${(100 * p).toFixed(2)}`.slice(0, 4) + '%';
           ctx.fillStyle = 'black';
           ctx.fillText(labelRaw, cx, cy);
         }
@@ -1548,7 +1567,10 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     hasAnalysisOverlay,
     originX,
     originY,
+    currentPlayer,
+    settings.analysisPolicyMetric,
     settings.analysisShowPolicy,
+    settings.trainerExtraPrecision,
     setupOverlayCanvas,
     toDisplay,
     visibleAnalysis,
