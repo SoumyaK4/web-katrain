@@ -2574,6 +2574,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       clearAnalysis(state.rootNode);
 
       const rulesChanged = newSettings.gameRules !== undefined && newSettings.gameRules !== state.settings.gameRules;
+      const history = rulesChanged ? pushEditHistory(state) : {};
       if (rulesChanged) {
         state.rootNode.properties = state.rootNode.properties ?? {};
         state.rootNode.properties['RU'] = [rulesToSgfRu(nextSettings.gameRules)];
@@ -2591,6 +2592,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         isSelfplayToEnd: false,
         isGameAnalysisRunning: false,
         gameAnalysisType: null,
+        ...history,
         treeVersion: rulesChanged ? state.treeVersion + 1 : state.treeVersion,
       };
     }),
@@ -2605,9 +2607,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (sameKomi) {
       if (currentKomiText === nextKomiText) return;
       set((state) => {
+        const history = pushEditHistory(state);
         state.rootNode.properties = state.rootNode.properties ?? {};
         state.rootNode.properties.KM = [nextKomiText];
-        return { treeVersion: state.treeVersion + 1 };
+        return { ...history, treeVersion: state.treeVersion + 1 };
       });
       return;
     }
@@ -2619,6 +2622,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     analysisQueue.clearCache();
 
     set((state) => {
+      const history = pushEditHistory(state);
       state.rootNode.properties = state.rootNode.properties ?? {};
       state.rootNode.properties.KM = [nextKomiText];
       applyKomiToSubtree(state.rootNode, nextKomi);
@@ -2639,6 +2643,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameAnalysisType: null,
         engineStatus: 'idle',
         engineError: null,
+        ...history,
         treeVersion: state.treeVersion + 1,
       };
     });
@@ -2668,6 +2673,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return;
       }
       set((state) => {
+        const history = pushEditHistory(state);
         state.rootNode.properties = state.rootNode.properties ?? {};
         if (nextHandicap > 0) {
           state.rootNode.properties.HA = [nextHandicapText];
@@ -2683,7 +2689,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           rootBoardSize,
           nextHandicap
         );
-        return { rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+        return { ...history, rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
       });
       return;
     }
@@ -2695,6 +2701,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     analysisQueue.clearCache();
 
     set((state) => {
+      const history = pushEditHistory(state);
       const root = state.rootNode;
       const rootBoardSize = getBoardSizeFromBoard(root.gameState.board);
       const oldHandicap = parseHandicapProperty(root.properties, rootBoardSize);
@@ -2736,6 +2743,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameAnalysisType: null,
         engineStatus: 'idle',
         engineError: null,
+        ...history,
         treeVersion: state.treeVersion + 1,
       };
     });
@@ -2757,9 +2765,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           set((state) => {
             const currentRulesText = state.rootNode.properties?.RU?.[0] ?? '';
             if (currentRulesText === canonical) return {};
+            const history = pushEditHistory(state);
             state.rootNode.properties = state.rootNode.properties ?? {};
             state.rootNode.properties.RU = [canonical];
-            return { rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+            return { ...history, rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
           });
         } else {
           current.updateSettings({ gameRules: parsed });
@@ -2779,14 +2788,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set((state) => {
-      state.rootNode.properties = state.rootNode.properties ?? {};
       const trimmed = value.trim();
+      const currentValue = state.rootNode.properties?.[key]?.[0] ?? '';
+      if (currentValue === trimmed) return {};
+      const history = pushEditHistory(state);
+      state.rootNode.properties = state.rootNode.properties ?? {};
       if (!trimmed) {
         delete state.rootNode.properties[key];
       } else {
         state.rootNode.properties[key] = [trimmed];
       }
-      return { rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
+      return { ...history, rootNode: state.rootNode, treeVersion: state.treeVersion + 1 };
     });
   },
 

@@ -463,6 +463,34 @@ describe('GameStore loadGame', () => {
         expect(useGameStore.getState().rootNode.properties?.PB).toBeUndefined();
     });
 
+    it('undoes and redoes root metadata and komi edits', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.setRootProperty('PB', 'Black Player');
+        expect(useGameStore.getState().rootNode.properties?.PB).toEqual(['Black Player']);
+        expect(useGameStore.getState().editUndoCount).toBe(1);
+
+        store.undoEdit();
+        expect(useGameStore.getState().rootNode.properties?.PB).toBeUndefined();
+        expect(useGameStore.getState().editRedoCount).toBe(1);
+
+        store.redoEdit();
+        expect(useGameStore.getState().rootNode.properties?.PB).toEqual(['Black Player']);
+        expect(useGameStore.getState().editRedoCount).toBe(0);
+
+        store.setRootProperty('KM', '0');
+        expect(useGameStore.getState().komi).toBe(0);
+
+        store.undoEdit();
+        expect(useGameStore.getState().komi).toBe(6.5);
+        expect(useGameStore.getState().rootNode.properties?.KM).toBeUndefined();
+
+        store.redoEdit();
+        expect(useGameStore.getState().komi).toBe(0);
+        expect(useGameStore.getState().rootNode.properties?.KM).toEqual(['0']);
+    });
+
     it('only auto-starts load-time analysis when the fast-analysis setting is enabled', () => {
         const original = useGameStore.getState();
         const originalQuick = original.startQuickGameAnalysis;
