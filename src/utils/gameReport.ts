@@ -2,8 +2,11 @@ import type { CandidateMove, GameNode, Player } from '../types';
 import { getCurrentLineNodes, type ActiveBranchMap } from './branchNavigation';
 
 const ADDITIONAL_MOVE_ORDER = 999; // KaTrain core/constants.py
-const OPENING_BOARD_AREA_FRACTION = 0.16;
-const MIDDLE_GAME_BOARD_AREA_FRACTION = 0.5;
+const KAYA_PHASE_THRESHOLDS: Record<number, { openingEnd: number; middleEnd: number }> = {
+  9: { openingEnd: 15, middleEnd: 40 },
+  13: { openingEnd: 30, middleEnd: 80 },
+  19: { openingEnd: 50, middleEnd: 150 },
+};
 
 export type MovePolicyCategory = 'aiMove' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
 
@@ -30,9 +33,10 @@ export const GAME_REPORT_PHASES: Array<{ key: GameReportPhaseFilter; label: stri
 
 export function getPhaseThresholds(boardSize: number): { openingEnd: number; middleEnd: number } {
   const size = Math.max(1, Math.trunc(boardSize));
-  const boardSquares = size * size;
-  const openingEnd = Math.max(1, Math.round(boardSquares * OPENING_BOARD_AREA_FRACTION));
-  const middleEnd = Math.max(openingEnd + 1, Math.round(boardSquares * MIDDLE_GAME_BOARD_AREA_FRACTION));
+  const known = KAYA_PHASE_THRESHOLDS[size];
+  if (known) return known;
+  const openingEnd = Math.max(1, Math.round(size * size * 0.16));
+  const middleEnd = Math.max(openingEnd + 1, Math.round(size * size * 0.5));
   return { openingEnd, middleEnd };
 }
 

@@ -260,20 +260,20 @@ describe('computeGameReport', () => {
     expect(report.moveEntries).toHaveLength(0);
   });
 
-  it('computes phase buckets from board area for 9x9, 13x13, and 19x19', () => {
-    expect(getPhaseThresholds(9)).toEqual({ openingEnd: 13, middleEnd: 41 });
-    expect(getPhaseThresholds(13)).toEqual({ openingEnd: 27, middleEnd: 85 });
-    expect(getPhaseThresholds(19)).toEqual({ openingEnd: 58, middleEnd: 181 });
+  it('matches Kaya report phase cutoffs for 9x9, 13x13, and 19x19', () => {
+    expect(getPhaseThresholds(9)).toEqual({ openingEnd: 15, middleEnd: 40 });
+    expect(getPhaseThresholds(13)).toEqual({ openingEnd: 30, middleEnd: 80 });
+    expect(getPhaseThresholds(19)).toEqual({ openingEnd: 50, middleEnd: 150 });
 
-    expect(getMovePhase(13, 9)).toBe('opening');
-    expect(getMovePhase(14, 9)).toBe('middleGame');
-    expect(getMovePhase(41, 9)).toBe('middleGame');
-    expect(getMovePhase(42, 9)).toBe('endgame');
+    expect(getMovePhase(15, 9)).toBe('opening');
+    expect(getMovePhase(16, 9)).toBe('middleGame');
+    expect(getMovePhase(40, 9)).toBe('middleGame');
+    expect(getMovePhase(41, 9)).toBe('endgame');
 
-    expect(getMovePhase(58, 19)).toBe('opening');
-    expect(getMovePhase(59, 19)).toBe('middleGame');
-    expect(getMovePhase(181, 19)).toBe('middleGame');
-    expect(getMovePhase(182, 19)).toBe('endgame');
+    expect(getMovePhase(50, 19)).toBe('opening');
+    expect(getMovePhase(51, 19)).toBe('middleGame');
+    expect(getMovePhase(150, 19)).toBe('middleGame');
+    expect(getMovePhase(151, 19)).toBe('endgame');
   });
 
   it('maps point loss values to labeled report buckets', () => {
@@ -345,12 +345,12 @@ describe('computeGameReport', () => {
 
     expect(all.movesInFilter).toBe(42);
     expect(opening.movesInFilter + middle.movesInFilter + endgame.movesInFilter).toBe(all.movesInFilter);
-    expect(opening.moveEntries.map((entry) => entry.moveNumber)).toEqual(Array.from({ length: 13 }, (_, i) => i + 1));
-    expect(middle.moveEntries[0]?.moveNumber).toBe(14);
-    expect(middle.moveEntries.at(-1)?.moveNumber).toBe(41);
-    expect(endgame.moveEntries.map((entry) => entry.moveNumber)).toEqual([42]);
+    expect(opening.moveEntries.map((entry) => entry.moveNumber)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+    expect(middle.moveEntries[0]?.moveNumber).toBe(16);
+    expect(middle.moveEntries.at(-1)?.moveNumber).toBe(40);
+    expect(endgame.moveEntries.map((entry) => entry.moveNumber)).toEqual([41, 42]);
 
     const middleMistakes = [...middle.moveEntries].sort((a, b) => b.pointsLost - a.pointsLost);
-    expect(middleMistakes.slice(0, 3).map((entry) => entry.moveNumber)).toEqual([41, 40, 39]);
+    expect(middleMistakes.slice(0, 3).map((entry) => entry.moveNumber)).toEqual([40, 39, 38]);
   });
 });
