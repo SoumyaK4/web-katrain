@@ -211,6 +211,10 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
     () => mergeVisitPresets(ANALYSIS_VISIT_PRESETS, liveVisits),
     [liveVisits]
   );
+  const liveVisitDepthSegments = React.useMemo(
+    () => ANALYSIS_VISIT_PRESETS.map((preset) => ({ preset, active: liveVisits >= preset })),
+    [liveVisits]
+  );
   const applyLiveVisits = React.useCallback((visits: number) => {
     const nextVisits = clampAnalysisVisits(visits);
     if (nextVisits === liveVisits) return;
@@ -476,6 +480,22 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         >
           <FaSearch size={12} aria-hidden="true" />
           <span>Depth: {liveVisitCountLabel}</span>
+          <span
+            className="analysis-command-bar__depth-meter"
+            aria-hidden="true"
+            data-analysis-live-depth-meter="true"
+          >
+            {liveVisitDepthSegments.map((segment) => (
+              <span
+                key={segment.preset}
+                className={[
+                  'analysis-command-bar__depth-meter-segment',
+                  segment.active ? 'active' : '',
+                ].join(' ')}
+                data-analysis-live-depth-segment={segment.preset}
+              />
+            ))}
+          </span>
         </button>
         <button
           type="button"

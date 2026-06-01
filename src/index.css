@@ -944,6 +944,30 @@
     white-space: nowrap;
   }
 
+  .analysis-command-bar__depth-meter {
+    display: inline-flex;
+    flex: 0 0 2.5rem;
+    align-items: center;
+    gap: 0.125rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+    overflow: visible;
+  }
+
+  .analysis-command-bar__depth-meter-segment {
+    display: block;
+    flex: 1 1 0;
+    height: 0.3125rem;
+    min-width: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ui-text-muted) 32%, transparent);
+  }
+
+  .analysis-command-bar__depth-meter-segment.active {
+    background: var(--ui-accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-accent) 30%, transparent);
+  }
+
   .analysis-command-bar__button:hover:not(:disabled) {
     color: var(--ui-text);
     background: var(--ui-surface-2);
