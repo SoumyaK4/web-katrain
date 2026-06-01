@@ -37,6 +37,7 @@ import {
   summarizeAnalysisCoverage,
   type AnalysisCoverageSummary,
 } from '../utils/analysisCoverage';
+import { getFastMctsPanelButtonState } from '../utils/fastReviewButtonState';
 
 interface AnalysisPanelProps {
   mode: UiMode;
@@ -315,6 +316,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   const scoreLeadLabel = formatAnalysisScoreLead(scoreLead);
   const pointsSummary = summarizePointsLost(pointsLost);
   const analysisCoverage = summarizeAnalysisCoverage(getCurrentLineNodes(currentNode, activeBranchChildIds));
+  const fastMctsButton = getFastMctsPanelButtonState({
+    isGameAnalysisRunning,
+    gameAnalysisType,
+    gameAnalysisDone,
+    gameAnalysisTotal,
+    analysisCoverage,
+  });
   React.useEffect(() => {
     setEngineErrorCopied(false);
   }, [engineError]);
@@ -679,16 +687,19 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <button type="button"
             className={[
               'panel-action-button',
-              isGameAnalysisRunning && gameAnalysisType === 'fast' ? 'danger active' : '',
+              fastMctsButton.state === 'running' ? 'danger active' : '',
+              fastMctsButton.state === 'complete' ? 'active' : '',
             ].join(' ')}
             onClick={() => {
-              if (isGameAnalysisRunning && gameAnalysisType === 'fast') stopGameAnalysis();
+              if (fastMctsButton.state === 'running') stopGameAnalysis();
               else startFastGameAnalysis();
             }}
+            disabled={fastMctsButton.disabled}
+            title={fastMctsButton.title}
+            aria-label={fastMctsButton.ariaLabel}
+            data-analysis-panel-fast-review-state={fastMctsButton.state}
           >
-            {isGameAnalysisRunning && gameAnalysisType === 'fast'
-              ? `Stop fast (${gameAnalysisDone}/${gameAnalysisTotal})`
-              : 'Fast MCTS'}
+            {fastMctsButton.label}
           </button>
           <button type="button"
             className="panel-action-button danger"
