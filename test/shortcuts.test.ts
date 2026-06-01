@@ -3,6 +3,7 @@ import {
   bindingToDisplay,
   createShortcutCollisionReplacement,
   eventMatchesBinding,
+  eventToShortcutBinding,
   filterShortcutGroups,
   findShortcutCollision,
   getShortcutBindings,
@@ -28,6 +29,8 @@ describe('shortcut utilities', () => {
     expect(bindingToDisplay({ key: 's', ctrl: true })).toBe('Ctrl+S');
     expect(bindingToDisplay({ key: 'ArrowLeft', shift: true })).toBe('Shift+←');
     expect(bindingToDisplay({ key: 'Escape' })).toBe('Esc');
+    expect(bindingToDisplay({ key: '/', shift: true })).toBe('?');
+    expect(bindingToDisplay({ key: '?', shift: true })).toBe('?');
     expect(shortcutDisplay([{ key: 'ArrowLeft' }, { key: 'z' }])).toBe('← / Z');
     expect(shortcutDisplay(null)).toBe('Disabled');
   });
@@ -35,7 +38,24 @@ describe('shortcut utilities', () => {
   it('matches browser key events with normalized bindings', () => {
     expect(eventMatchesBinding(keyboardEvent('S', { metaKey: true }), { key: 's', ctrl: true })).toBe(true);
     expect(eventMatchesBinding(keyboardEvent(' ', {}), { key: 'Space' })).toBe(true);
+    expect(eventMatchesBinding(keyboardEvent('?', { shiftKey: true }), { key: '?' })).toBe(true);
+    expect(eventMatchesBinding(keyboardEvent('?', { shiftKey: true }), { key: '/', shift: true })).toBe(true);
     expect(eventMatchesBinding(keyboardEvent('s'), { key: 's', ctrl: true })).toBe(false);
+  });
+
+  it('records shifted punctuation as the visible shortcut key', () => {
+    expect(eventToShortcutBinding(keyboardEvent('?', { shiftKey: true }))).toEqual({
+      key: '?',
+      ctrl: false,
+      shift: false,
+      alt: false,
+    });
+    expect(eventToShortcutBinding(keyboardEvent('A', { shiftKey: true }))).toEqual({
+      key: 'a',
+      ctrl: false,
+      shift: true,
+      alt: false,
+    });
   });
 
   it('detects shortcut collisions against active overrides', () => {
@@ -122,6 +142,11 @@ describe('shortcut utilities', () => {
     ]);
   });
 
+  it('opens keyboard help with the advertised question-mark shortcut', () => {
+    expect(getShortcutBindings('keyboard-help', {})).toEqual([{ key: '?', ctrl: false, shift: false, alt: false }]);
+    expect(eventMatchesBinding(keyboardEvent('?', { shiftKey: true }), getShortcutBindings('keyboard-help', {})![0]!)).toBe(true);
+  });
+
   it('treats Escape as a shortcut recording cancel key', () => {
     expect(isShortcutRecordingCancelKey(keyboardEvent('Escape'))).toBe(true);
     expect(isShortcutRecordingCancelKey(keyboardEvent('Esc'))).toBe(true);
@@ -150,13 +175,13 @@ describe('shortcut utilities', () => {
   it('preserves non-conflicting bindings when replacing one binding from a multi-binding shortcut', () => {
     const next = createShortcutCollisionReplacement(
       {},
+      'open-sgf',
       'settings-modal',
-      'keyboard-help',
-      { key: '?' }
+      { key: ',', ctrl: true }
     );
 
-    expect(getShortcutBindings('settings-modal', next)).toEqual([{ key: '?', ctrl: false, shift: false, alt: false }]);
-    expect(getShortcutBindings('keyboard-help', next)).toEqual([{ key: '/', ctrl: false, shift: true, alt: false }]);
+    expect(getShortcutBindings('open-sgf', next)).toEqual([{ key: ',', ctrl: true, shift: false, alt: false }]);
+    expect(getShortcutBindings('settings-modal', next)).toEqual([{ key: 'F8', ctrl: false, shift: false, alt: false }]);
   });
 
   it('filters shortcut groups by label, category, command id, and binding display', () => {

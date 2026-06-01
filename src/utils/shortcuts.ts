@@ -108,7 +108,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'copy-sgf', category: 'File Operations', label: 'Copy SGF', defaultBindings: [{ key: 'c', ctrl: true }] },
   { id: 'paste-sgf', category: 'File Operations', label: 'Paste SGF / OGS URL', defaultBindings: [{ key: 'v', ctrl: true }] },
   { id: 'command-palette', category: 'Modals', label: 'Command palette', defaultBindings: [{ key: 'k', ctrl: true }] },
-  { id: 'keyboard-help', category: 'Modals', label: 'Keyboard shortcuts', defaultBindings: [{ key: '?' }, { key: '/', shift: true }] },
+  { id: 'keyboard-help', category: 'Modals', label: 'Keyboard shortcuts', defaultBindings: [{ key: '?' }] },
   { id: 'game-analysis-modal', category: 'Modals', label: 'Game re-analysis', defaultBindings: [{ key: 'F2' }] },
   { id: 'game-report-modal', category: 'Modals', label: 'Game report', defaultBindings: [{ key: 'F3' }] },
   { id: 'settings-modal', category: 'Modals', label: 'Settings', defaultBindings: [{ key: ',', ctrl: true }, { key: 'F8' }] },
@@ -127,12 +127,50 @@ const normalizeKey = (key: string): string => {
   return key.length === 1 ? key.toLowerCase() : key;
 };
 
-const normalizeBinding = (binding: ShortcutBinding): ShortcutBinding => ({
-  key: normalizeKey(binding.key),
-  ctrl: !!binding.ctrl,
-  shift: !!binding.shift,
-  alt: !!binding.alt,
-});
+const SHIFTED_KEY_BY_BASE_KEY: Record<string, string> = {
+  '`': '~',
+  '1': '!',
+  '2': '@',
+  '3': '#',
+  '4': '$',
+  '5': '%',
+  '6': '^',
+  '7': '&',
+  '8': '*',
+  '9': '(',
+  '0': ')',
+  '-': '_',
+  '=': '+',
+  '[': '{',
+  ']': '}',
+  '\\': '|',
+  ';': ':',
+  "'": '"',
+  ',': '<',
+  '.': '>',
+  '/': '?',
+};
+
+const SHIFT_IMPLIED_KEYS = new Set(Object.values(SHIFTED_KEY_BY_BASE_KEY));
+
+const normalizeBinding = (binding: ShortcutBinding): ShortcutBinding => {
+  let key = normalizeKey(binding.key);
+  let shift = !!binding.shift;
+
+  if (shift && SHIFTED_KEY_BY_BASE_KEY[key]) {
+    key = SHIFTED_KEY_BY_BASE_KEY[key];
+    shift = false;
+  } else if (SHIFT_IMPLIED_KEYS.has(key)) {
+    shift = false;
+  }
+
+  return {
+    key,
+    ctrl: !!binding.ctrl,
+    shift,
+    alt: !!binding.alt,
+  };
+};
 
 const displayKey = (key: string): string => {
   switch (key) {
@@ -249,14 +287,15 @@ export const filterShortcutGroups = (groups: ShortcutGroup[], query: string): Sh
 };
 
 export const eventToShortcutBinding = (event: KeyboardEvent | React.KeyboardEvent): ShortcutBinding | null => {
-  const key = normalizeKey(event.key);
-  if (key === 'Control' || key === 'Meta' || key === 'Shift' || key === 'Alt') return null;
-  return {
-    key,
+  const binding = normalizeBinding({
+    key: event.key,
     ctrl: event.ctrlKey || event.metaKey,
     shift: event.shiftKey,
     alt: event.altKey,
-  };
+  });
+  const key = binding.key;
+  if (key === 'Control' || key === 'Meta' || key === 'Shift' || key === 'Alt') return null;
+  return binding;
 };
 
 export const isShortcutRecordingCancelKey = (event: KeyboardEvent | React.KeyboardEvent): boolean =>
@@ -267,8 +306,13 @@ export const isNativePasteShortcutEvent = (event: KeyboardEvent | React.Keyboard
 
 export const eventMatchesBinding = (event: KeyboardEvent, binding: ShortcutBinding): boolean => {
   const b = normalizeBinding(binding);
-  const key = normalizeKey(event.key);
-  return key === b.key && (event.ctrlKey || event.metaKey) === !!b.ctrl && event.shiftKey === !!b.shift && event.altKey === !!b.alt;
+  const eventBinding = normalizeBinding({
+    key: event.key,
+    ctrl: event.ctrlKey || event.metaKey,
+    shift: event.shiftKey,
+    alt: event.altKey,
+  });
+  return bindingKey(eventBinding) === bindingKey(b);
 };
 
 export const eventMatchesShortcut = (event: KeyboardEvent, id: string, overrides = loadShortcutOverrides()): boolean => {
