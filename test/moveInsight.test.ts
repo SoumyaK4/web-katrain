@@ -166,6 +166,15 @@ describe('move insights', () => {
       learnMoreUrl: 'https://senseis.xmp.net/?ShoulderHit',
     });
 
+    const attachmentBoard = emptyBoard(9);
+    attachmentBoard[3]![4] = 'white';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, attachmentBoard)).toMatchObject({
+      label: 'Attachment',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?Attachment',
+    });
+
     const diagonalBoard = emptyBoard(9);
     diagonalBoard[4]![4] = 'black';
 
@@ -310,6 +319,10 @@ describe('move insights', () => {
     expect(getMoveInsightCoach({ label: 'Shoulder hit', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('leans on'),
       checks: expect.arrayContaining(['Direction']),
+    });
+    expect(getMoveInsightCoach({ label: 'Attachment', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('touches'),
+      checks: expect.arrayContaining(['Crosscut']),
     });
     expect(getMoveInsightCoach({ label: 'Diagonal (kosumi)', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('connects lightly'),

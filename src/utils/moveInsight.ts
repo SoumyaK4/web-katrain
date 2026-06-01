@@ -284,6 +284,50 @@ function getShoulderHitInsight(move: Move, board: BoardState, boardSize: number)
   return null;
 }
 
+function getAttachmentInsight(move: Move, board: BoardState, boardSize: number): MoveInsight | null {
+  const opponent = getOpponent(move.player);
+  const directions = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+  ];
+
+  for (const direction of directions) {
+    const attachedStone = { x: move.x + direction.x, y: move.y + direction.y };
+    const sideOffsets =
+      direction.x !== 0
+        ? [
+            { x: 0, y: -1 },
+            { x: direction.x, y: -1 },
+            { x: 0, y: 1 },
+            { x: direction.x, y: 1 },
+          ]
+        : [
+            { x: -1, y: 0 },
+            { x: -1, y: direction.y },
+            { x: 1, y: 0 },
+            { x: 1, y: direction.y },
+          ];
+    const sidePoints = sideOffsets.map((offset) => ({ x: move.x + offset.x, y: move.y + offset.y }));
+    const points = [attachedStone, ...sidePoints];
+    if (points.some((point) => point.x < 0 || point.y < 0 || point.x >= boardSize || point.y >= boardSize)) continue;
+    if (
+      board[attachedStone.y]?.[attachedStone.x] === opponent &&
+      sidePoints.every((point) => board[point.y]?.[point.x] === null)
+    ) {
+      return {
+        label: 'Attachment',
+        detail: 'Touches an opposing stone directly, usually asking for an immediate local response.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?Attachment',
+      };
+    }
+  }
+
+  return null;
+}
+
 function getBambooJointInsight(move: Move, board: BoardState, boardSize: number): MoveInsight | null {
   const shapes: RelativeShape[] = [
     {
@@ -606,6 +650,9 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
   const shoulderHitInsight = getShoulderHitInsight(move, nextBoard, boardSize);
   if (shoulderHitInsight) return shoulderHitInsight;
 
+  const attachmentInsight = getAttachmentInsight(move, nextBoard, boardSize);
+  if (attachmentInsight) return attachmentInsight;
+
   const emptyTriangleInsight = getEmptyTriangleInsight(move, nextBoard, boardSize);
   if (emptyTriangleInsight) return emptyTriangleInsight;
 
@@ -807,6 +854,14 @@ export function getMoveInsightCoach(insight: MoveInsight): MoveInsightCoach {
       beginner: 'A shoulder hit leans on an opposing stone to reduce its area while building outside influence.',
       pro: 'Check direction, follow-up cuts, and whether the opponent can profit by pushing through.',
       checks: ['Direction', 'Follow-up', 'Cuts'],
+    };
+  }
+
+  if (insight.label === 'Attachment') {
+    return {
+      beginner: 'An attachment touches an opposing stone, so both players usually need to read the local contact fight.',
+      pro: 'Check hane, extend, crosscut, and whether the attachment strengthens the opponent in sente.',
+      checks: ['Hane', 'Extend', 'Crosscut'],
     };
   }
 
