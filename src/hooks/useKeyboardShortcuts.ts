@@ -13,6 +13,7 @@ interface UseKeyboardShortcutsOptions {
   mode: UiMode;
   sgfExportOptions: KaTrainSgfExportOptions;
   saveSgf: () => void;
+  saveCopyToLibrary: () => void;
   openSgf: () => void;
   setIsSettingsOpen: (v: boolean) => void;
   setIsGameAnalysisOpen: (v: boolean) => void;
@@ -37,6 +38,7 @@ export function useKeyboardShortcuts({
   mode,
   sgfExportOptions,
   saveSgf,
+  saveCopyToLibrary,
   openSgf,
   setIsSettingsOpen,
   setIsGameAnalysisOpen,
@@ -150,6 +152,11 @@ export function useKeyboardShortcuts({
       if (matches('save-sgf')) {
         e.preventDefault();
         saveSgf();
+        return;
+      }
+      if (matches('save-library')) {
+        e.preventDefault();
+        saveCopyToLibrary();
         return;
       }
       if (matches('toggle-library')) {
@@ -542,6 +549,7 @@ export function useKeyboardShortcuts({
     editRedoCount,
     sgfExportOptions,
     saveSgf,
+    saveCopyToLibrary,
     openSgf,
     setIsSettingsOpen,
     setIsGameAnalysisOpen,

@@ -62,6 +62,11 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('save-sgf', { 'save-sgf': [{ key: 'F9' }] })).toEqual([{ key: 'F9', ctrl: false, shift: false, alt: false }]);
   });
 
+  it('exposes file save shortcuts for download and library copies', () => {
+    expect(getShortcutBindings('save-sgf', {})).toEqual([{ key: 's', ctrl: true, shift: false, alt: false }]);
+    expect(getShortcutBindings('save-library', {})).toEqual([{ key: 's', ctrl: true, shift: true, alt: false }]);
+  });
+
   it('exposes a default shortcut for next move preview', () => {
     expect(getShortcutBindings('toggle-next-move-preview', {})).toEqual([{ key: 'v', ctrl: false, shift: false, alt: false }]);
   });

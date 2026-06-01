@@ -43,6 +43,7 @@ const TOP_CONTROL_SHORTCUT_IDS = [
   'paste-sgf',
   'new-game',
   'save-sgf',
+  'save-library',
   'open-sgf',
   'toggle-analysis',
   'toggle-children',
@@ -517,7 +518,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <IconButton title={saveControlTitle} onClick={onSaveSgf} className={topIconClass}>
           <FaSave />
         </IconButton>
-        <IconButton title="Save copy to Library" onClick={onSaveToLibrary} className={topIconClass}>
+        <IconButton title={withShortcut('Save copy to Library', 'save-library')} onClick={onSaveToLibrary} className={topIconClass}>
           <FaBook />
         </IconButton>
         <IconButton title={withShortcut('Load SGF, board photo, or model weights', 'open-sgf')} onClick={onLoadSgf} className={topIconClass}>

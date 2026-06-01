@@ -803,6 +803,10 @@ export const Layout: React.FC = () => {
     }
   }, [generateCurrentSgf, loadedExternalFile?.name, loadedLibraryFileId, loadedLibraryFileName, toast]);
 
+  const handleOpenSaveToLibraryDialog = useCallback(() => {
+    void openSaveToLibraryDialog();
+  }, [openSaveToLibraryDialog]);
+
   const handleSaveCopyToLibrary = useCallback(async (name: string, folderId: string | null): Promise<boolean> => {
     const sgf = saveToLibraryDialog?.sgf ?? generateCurrentSgf();
     const itemName = name.trim().replace(/\.sgf$/i, '').trim() || 'Untitled';
@@ -1672,6 +1676,7 @@ export const Layout: React.FC = () => {
     mode,
     sgfExportOptions,
     saveSgf: handleSaveCurrentSgf,
+    saveCopyToLibrary: handleOpenSaveToLibraryDialog,
     openSgf: handleLoadClick,
     setIsSettingsOpen,
     setIsGameAnalysisOpen,
@@ -1731,7 +1736,8 @@ export const Layout: React.FC = () => {
         id: 'save-library',
         label: 'Save copy to library',
         category: 'File',
-        run: () => { void openSaveToLibraryDialog(); },
+        shortcutId: 'save-library',
+        run: handleOpenSaveToLibraryDialog,
         keywords: ['archive', 'collection'],
       },
       {
@@ -2149,7 +2155,7 @@ export const Layout: React.FC = () => {
         onNewGame={() => void openNewGameWithGuard()}
         onSave={handleSaveCurrentSgf}
         saveLabel={saveControlLabel}
-        onSaveToLibrary={() => void openSaveToLibraryDialog()}
+        onSaveToLibrary={handleOpenSaveToLibraryDialog}
         onLoad={handleLoadClick}
         onScanBoard={() => openPhotoBoard()}
         onCopy={handleCopySgf}
@@ -2325,7 +2331,7 @@ export const Layout: React.FC = () => {
               onNewGame={() => void openNewGameWithGuard()}
               onSaveSgf={handleSaveCurrentSgf}
               saveTitle={saveControlLabel}
-              onSaveToLibrary={() => void openSaveToLibraryDialog()}
+              onSaveToLibrary={handleOpenSaveToLibraryDialog}
               onLoadSgf={handleLoadClick}
               onOpenSidePanel={handleOpenSidePanel}
               onCopySgf={handleCopySgf}
