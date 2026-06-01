@@ -5,19 +5,12 @@ import { getCurrentLineNodes } from '../utils/branchNavigation';
 import { smoothAnalysisGraphValues } from '../utils/analysisSmoothing';
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { computeNodePointsLost, DEFAULT_EVAL_THRESHOLDS, getEvaluationClass } from '../utils/nodeAnalysis';
-import { publicUrl } from '../utils/publicUrl';
 import { isGraphKeyboardNavigationKey, nextGraphKeyboardIndex } from '../utils/graphKeyboard';
 import { hasVisibleGraphData } from '../utils/graphDataAvailability';
+import { getScoreWinrateGraphTheme } from '../utils/scoreWinrateGraphTheme';
 
 const SCORE_GRANULARITY = 5;
 const WINRATE_GRANULARITY = 10;
-const KATRAN_BOX_BG = 'rgb(46, 65, 88)';
-const KATRAN_SCORE_COLOR = 'rgb(77, 179, 230)'; // Theme.SCORE_COLOR (BLUE)
-const KATRAN_WINRATE_COLOR = 'rgb(26, 204, 26)'; // Theme.WINRATE_COLOR (GREEN)
-const KATRAN_GRAPH_DOT_COLOR = 'rgb(217, 77, 77)'; // Theme.GRAPH_DOT_COLOR
-const KATRAN_GRAPH_BG_URL = publicUrl('katrain/graph_bg.png');
-const KATRAN_SCORE_MARKER_COLOR = 'rgb(51, 153, 204)'; // Theme.SCORE_MARKER_COLOR
-const KATRAN_WINRATE_MARKER_COLOR = 'rgb(13, 179, 13)'; // Theme.WINRATE_MARKER_COLOR
 const MIN_QUALITY_MARKER_LOSS = 0.5;
 
 function computeSymmetricScale(values: number[], granularity: number): number {
@@ -77,6 +70,7 @@ export const ScoreWinrateGraph: React.FC<{
     activeBranchChildIds,
     jumpToNode,
     trainerTheme,
+    uiTheme,
     trainerEvalThresholds,
     trainerShowDots,
     treeVersion,
@@ -87,6 +81,7 @@ export const ScoreWinrateGraph: React.FC<{
       activeBranchChildIds: state.activeBranchChildIds,
       jumpToNode: state.jumpToNode,
       trainerTheme: state.settings.trainerTheme,
+      uiTheme: state.settings.uiTheme,
       trainerEvalThresholds: state.settings.trainerEvalThresholds,
       trainerShowDots: state.settings.trainerShowDots,
       treeVersion: state.treeVersion,
@@ -172,6 +167,7 @@ export const ScoreWinrateGraph: React.FC<{
   );
 
   const evalColors = useMemo(() => getKaTrainEvalColors(trainerTheme), [trainerTheme]);
+  const graphTheme = useMemo(() => getScoreWinrateGraphTheme(uiTheme), [uiTheme]);
   const evalThresholds = trainerEvalThresholds?.length ? trainerEvalThresholds : DEFAULT_EVAL_THRESHOLDS;
   const qualityMarkers = useMemo(() => {
     void treeVersion;
@@ -292,12 +288,7 @@ export const ScoreWinrateGraph: React.FC<{
       aria-describedby={hasGraphData ? undefined : emptyStateId}
       data-analysis-score-winrate-graph="true"
       data-analysis-graph-has-data={hasGraphData ? 'true' : 'false'}
-      style={{
-        backgroundColor: KATRAN_BOX_BG,
-        backgroundImage: `url('${KATRAN_GRAPH_BG_URL}')`,
-        backgroundSize: '100% 100%',
-        backgroundRepeat: 'no-repeat',
-      }}
+      style={graphTheme.boxStyle}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -311,7 +302,7 @@ export const ScoreWinrateGraph: React.FC<{
           <path
             d={scorePath}
             fill="none"
-            stroke={KATRAN_SCORE_COLOR}
+            stroke={graphTheme.scoreColor}
             strokeWidth="1.1"
             vectorEffect="non-scaling-stroke"
           />
@@ -320,7 +311,7 @@ export const ScoreWinrateGraph: React.FC<{
           <path
             d={winratePath}
             fill="none"
-            stroke={KATRAN_WINRATE_COLOR}
+            stroke={graphTheme.winrateColor}
             strokeWidth="1.1"
             vectorEffect="non-scaling-stroke"
           />
@@ -336,7 +327,7 @@ export const ScoreWinrateGraph: React.FC<{
                 cy={marker.y}
                 r={marker.radius}
                 fill={marker.color}
-                stroke="rgba(255,255,255,0.72)"
+                stroke={graphTheme.qualityMarkerStroke}
                 strokeWidth="0.7"
                 vectorEffect="non-scaling-stroke"
                 data-move-quality="true"
@@ -348,8 +339,8 @@ export const ScoreWinrateGraph: React.FC<{
         )}
 
         {/* Current dot */}
-        {showScore && <circle cx={currentX} cy={currentScoreY} r="3" fill={KATRAN_GRAPH_DOT_COLOR} stroke="none" />}
-        {showWinrate && <circle cx={currentX} cy={currentWinY} r="3" fill={KATRAN_GRAPH_DOT_COLOR} stroke="none" />}
+        {showScore && <circle cx={currentX} cy={currentScoreY} r="3" fill={graphTheme.dotColor} stroke="none" />}
+        {showWinrate && <circle cx={currentX} cy={currentWinY} r="3" fill={graphTheme.dotColor} stroke="none" />}
 
         {/* Hover indicator */}
         {hoverIndex !== null && (
@@ -359,12 +350,12 @@ export const ScoreWinrateGraph: React.FC<{
               y1="0"
               x2={hoverX}
               y2={height}
-              stroke="rgb(128,128,128)"
+              stroke={graphTheme.hoverLineColor}
               strokeWidth="1"
               vectorEffect="non-scaling-stroke"
             />
-            {showScore && <circle cx={hoverX} cy={hoverScoreY} r="3" fill={KATRAN_GRAPH_DOT_COLOR} stroke="none" />}
-            {showWinrate && <circle cx={hoverX} cy={hoverWinY} r="3" fill={KATRAN_GRAPH_DOT_COLOR} stroke="none" />}
+            {showScore && <circle cx={hoverX} cy={hoverScoreY} r="3" fill={graphTheme.dotColor} stroke="none" />}
+            {showWinrate && <circle cx={hoverX} cy={hoverWinY} r="3" fill={graphTheme.dotColor} stroke="none" />}
           </g>
         )}
       </svg>
@@ -372,10 +363,10 @@ export const ScoreWinrateGraph: React.FC<{
       {!hasGraphData && (
         <div
           id={emptyStateId}
-          className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-black/20 px-3 text-center"
+          className={graphTheme.emptyOverlayClass}
           data-analysis-graph-empty-state="true"
         >
-          <div className="rounded border border-white/15 bg-black/55 px-3 py-2 text-[11px] font-semibold text-white/85 shadow-sm">
+          <div className={graphTheme.emptyBadgeClass}>
             No analyzed moves yet
           </div>
         </div>
@@ -386,17 +377,17 @@ export const ScoreWinrateGraph: React.FC<{
         <>
           <div
             className="absolute top-1 right-1 text-[9px] pointer-events-none"
-            style={{ color: KATRAN_SCORE_MARKER_COLOR }}
+            style={{ color: graphTheme.scoreMarkerColor }}
           >{`B+${scoreScale}`}</div>
           <div
             className="absolute top-1/2 right-1 -translate-y-1/2 text-[9px] pointer-events-none"
-            style={{ color: KATRAN_SCORE_MARKER_COLOR }}
+            style={{ color: graphTheme.scoreMarkerColor }}
           >
             Jigo
           </div>
           <div
             className="absolute bottom-1 right-1 text-[9px] pointer-events-none"
-            style={{ color: KATRAN_SCORE_MARKER_COLOR }}
+            style={{ color: graphTheme.scoreMarkerColor }}
           >{`W+${scoreScale}`}</div>
         </>
       )}
@@ -406,11 +397,11 @@ export const ScoreWinrateGraph: React.FC<{
         <>
           <div
             className="absolute top-1 left-1 text-[9px] pointer-events-none"
-            style={{ color: KATRAN_WINRATE_MARKER_COLOR }}
+            style={{ color: graphTheme.winrateMarkerColor }}
           >{`${50 + winrateScale}%`}</div>
           <div
             className="absolute bottom-1 left-1 text-[9px] pointer-events-none"
-            style={{ color: KATRAN_WINRATE_MARKER_COLOR }}
+            style={{ color: graphTheme.winrateMarkerColor }}
           >{`${50 - winrateScale}%`}</div>
         </>
       )}
@@ -418,7 +409,7 @@ export const ScoreWinrateGraph: React.FC<{
       {/* Hover tooltip */}
       {hoverIndex !== null && (
         <div
-          className="absolute bg-black bg-opacity-80 text-white text-[10px] px-2 py-1 rounded pointer-events-none"
+          className={graphTheme.tooltipClass}
           aria-live="polite"
           data-analysis-graph-tooltip="true"
           style={{
