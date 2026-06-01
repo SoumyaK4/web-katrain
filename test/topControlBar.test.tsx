@@ -93,10 +93,41 @@ describe('TopControlBar', () => {
   it('labels theme selectors in the view menu', () => {
     const html = renderToStaticMarkup(<TopControlBar {...baseProps} viewMenuOpen={true} isMobile={false} />);
 
+    expect(html).toContain('data-top-view-menu="true"');
+    expect(html).toContain('role="dialog"');
+    expect(html).toContain('aria-modal="false"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toMatch(/aria-controls="[^"]+"/);
+    expect(html).toMatch(/aria-labelledby="[^"]+"/);
     for (const id of ['top-control-ui-theme', 'top-control-board-theme']) {
       expect(html).toContain(`for="${id}"`);
       expect(html).toContain(`id="${id}"`);
     }
+  });
+
+  it('exposes desktop analysis actions as a labelled popover dialog', () => {
+    const html = renderToStaticMarkup(<TopControlBar {...baseProps} analysisMenuOpen={true} isMobile={false} />);
+
+    expect(html).toContain('data-top-actions-menu="true"');
+    expect(html).toContain('Analysis actions');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('aria-modal="false"');
+    expect(html).toMatch(/aria-controls="[^"]+"/);
+    expect(html).toMatch(/aria-labelledby="[^"]+"/);
+  });
+
+  it('exposes mobile tools as a modal dialog owned by the tools button', () => {
+    const html = renderToStaticMarkup(<TopControlBar {...baseProps} viewMenuOpen={true} isMobile={true} />);
+
+    expect(html).toContain('data-mobile-tools-dialog="true"');
+    expect(html).toContain('aria-label="Tools"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('aria-modal="true"');
+    expect(html).toContain('title="Close tools"');
+    expect(html).toMatch(/aria-controls="[^"]+"/);
+    expect(html).toMatch(/aria-labelledby="[^"]+"/);
   });
 
   it('keeps desktop toolbar menus mutually exclusive', () => {

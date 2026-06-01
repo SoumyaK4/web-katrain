@@ -218,16 +218,60 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
     'border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]',
     'hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
   ].join(' ');
+  const viewMenuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const actionsMenuButtonRef = React.useRef<HTMLButtonElement>(null);
+  const mobileToolsCloseRef = React.useRef<HTMLButtonElement>(null);
+  const viewPopoverId = React.useId();
+  const viewPopoverTitleId = React.useId();
+  const mobileToolsTitleId = React.useId();
+  const actionsPopoverId = React.useId();
+  const actionsPopoverTitleId = React.useId();
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
     if (typeof document === 'undefined') return false;
     return isFullscreenActive();
   });
+
+  const closeViewMenuWithFocus = React.useCallback((restoreFocus = false) => {
+    setViewMenuOpen(false);
+    if (restoreFocus && typeof window !== 'undefined') {
+      window.setTimeout(() => viewMenuButtonRef.current?.focus({ preventScroll: true }), 0);
+    }
+  }, [setViewMenuOpen]);
+
+  const closeAnalysisMenuWithFocus = React.useCallback((restoreFocus = false) => {
+    setAnalysisMenuOpen(false);
+    if (restoreFocus && typeof window !== 'undefined') {
+      window.setTimeout(() => actionsMenuButtonRef.current?.focus({ preventScroll: true }), 0);
+    }
+  }, [setAnalysisMenuOpen]);
 
   React.useEffect(() => {
     if (typeof document === 'undefined') return;
     const handle = () => setIsFullscreen(isFullscreenActive());
     return subscribeFullscreenChange(handle);
   }, []);
+
+  React.useEffect(() => {
+    if (!viewMenuOpen && !analysisMenuOpen) return;
+    if (isMobile && viewMenuOpen) {
+      mobileToolsCloseRef.current?.focus({ preventScroll: true });
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (analysisMenuOpen) closeAnalysisMenuWithFocus(true);
+      if (viewMenuOpen) closeViewMenuWithFocus(true);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    analysisMenuOpen,
+    closeAnalysisMenuWithFocus,
+    closeViewMenuWithFocus,
+    isMobile,
+    viewMenuOpen,
+  ]);
 
   const toggleFullscreen = () => {
     if (typeof document === 'undefined') return;
@@ -680,16 +724,21 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           {isMobile ? (
             <IconButton
               title="Tools"
+              buttonRef={viewMenuButtonRef}
               onClick={() => {
                 setViewMenuOpen(!viewMenuOpen);
                 setAnalysisMenuOpen(false);
               }}
+              ariaControls={viewPopoverId}
+              ariaExpanded={viewMenuOpen}
+              ariaHasPopup="dialog"
               className={[topIconClass, 'bg-[var(--ui-surface)] border border-[var(--ui-border)]'].join(' ')}
             >
               <FaEllipsisV size={16} />
             </IconButton>
           ) : (
             <button
+              ref={viewMenuButtonRef}
               type="button"
               className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
               onClick={() => {
@@ -697,26 +746,38 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 setAnalysisMenuOpen(false);
               }}
               title="View options"
+              aria-haspopup="dialog"
+              aria-expanded={viewMenuOpen}
+              aria-controls={viewPopoverId}
             >
               <FaSlidersH size={14} /> View <FaChevronDown size={10} className="opacity-80" />
             </button>
           )}
           {viewMenuOpen && (
             isMobile ? (
-              <div className="fixed inset-0 z-50">
+              <div
+                id={viewPopoverId}
+                className="fixed inset-0 z-50"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={mobileToolsTitleId}
+                data-mobile-tools-dialog="true"
+              >
                 <button type="button"
                   className="absolute inset-0 bg-black/70"
-                  onClick={() => setViewMenuOpen(false)}
+                  onClick={() => closeViewMenuWithFocus(true)}
                   aria-label="Close tools"
                 />
                 <div className="absolute inset-0 ui-panel overflow-y-auto overscroll-contain mobile-safe-inset mobile-safe-area-bottom">
                   <div className="ui-bar ui-bar-height ui-bar-pad border-b flex items-center justify-between">
-                    <div className="text-sm font-semibold">Tools</div>
+                    <div id={mobileToolsTitleId} className="text-sm font-semibold">Tools</div>
                     <button
+                      ref={mobileToolsCloseRef}
                       type="button"
                       className="ui-control flex items-center justify-center rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
-                      onClick={() => setViewMenuOpen(false)}
+                      onClick={() => closeViewMenuWithFocus(true)}
                       aria-label="Close tools"
+                      title="Close tools"
                     >
                       <FaTimes />
                     </button>
@@ -727,7 +788,15 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="absolute right-0 top-full mt-2 w-[512px] ui-panel border rounded-lg shadow-xl overflow-hidden z-50">
+              <div
+                id={viewPopoverId}
+                className="absolute right-0 top-full mt-2 w-[512px] ui-panel border rounded-lg shadow-xl overflow-hidden z-50"
+                role="dialog"
+                aria-modal="false"
+                aria-labelledby={viewPopoverTitleId}
+                data-top-view-menu="true"
+              >
+                <div id={viewPopoverTitleId} className="sr-only">View options</div>
                 {desktopViewMenu}
               </div>
             )
@@ -753,6 +822,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         {!isMobile && (
           <div className="relative" data-menu-popover>
             <button
+              ref={actionsMenuButtonRef}
               type="button"
               className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
               onClick={() => {
@@ -760,11 +830,22 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 setViewMenuOpen(false);
               }}
               title="Analysis actions"
+              aria-haspopup="dialog"
+              aria-expanded={analysisMenuOpen}
+              aria-controls={actionsPopoverId}
             >
               Actions <FaChevronDown size={10} className="opacity-80" />
             </button>
             {analysisMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-[480px] ui-panel border rounded-lg shadow-xl overflow-hidden z-50 grid grid-cols-2 divide-x divide-[var(--ui-border)]">
+              <div
+                id={actionsPopoverId}
+                className="absolute right-0 top-full mt-2 w-[480px] ui-panel border rounded-lg shadow-xl overflow-hidden z-50 grid grid-cols-2 divide-x divide-[var(--ui-border)]"
+                role="dialog"
+                aria-modal="false"
+                aria-labelledby={actionsPopoverTitleId}
+                data-top-actions-menu="true"
+              >
+                <div id={actionsPopoverTitleId} className="sr-only">Analysis actions</div>
                 {/* Column 1 */}
                 <div className="flex flex-col">
                   <div className="border-b border-[var(--ui-border)] px-3 py-2 bg-[var(--ui-surface-2)]">
