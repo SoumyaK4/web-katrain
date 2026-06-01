@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FaSave, FaTimes } from 'react-icons/fa';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import type { LibraryFolderOption } from '../utils/library';
 
 interface SaveToLibraryDialogProps {
@@ -24,6 +25,7 @@ export const SaveToLibraryDialog: React.FC<SaveToLibraryDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedName = name.trim();
+  useEscapeToClose(onClose, open && !saving);
 
   useEffect(() => {
     if (!open) return;

@@ -17,6 +17,7 @@ import { getEngineModelLabel } from '../utils/engineLabel';
 import { UI_THEME_OPTIONS } from '../utils/uiThemes';
 import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import { ShortcutSettingsPanel } from './ShortcutSettingsPanel';
 import { POLICY_HEATMAP_METRIC_SELECT_OPTIONS, TOP_MOVE_METRIC_SELECT_OPTIONS } from '../utils/topMoveMetric';
 import {
@@ -123,6 +124,7 @@ const ANALYSIS_OVERLAY_SHORTCUT_IDS = [
 ] as const;
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
+    useEscapeToClose(onClose);
     const { settings, updateSettings, engineBackend, engineModelName } = useGameStore(
         (state) => ({
             settings: state.settings,

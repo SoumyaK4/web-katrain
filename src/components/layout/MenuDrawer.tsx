@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera, FaInfoCircle, FaBook, FaBolt, FaSearch } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
+import { useEscapeToClose } from '../../hooks/useEscapeToClose';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import type { LibraryFile } from '../../utils/library';
 
@@ -57,6 +58,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onOpenRecent,
 }) => {
   const shortcutLabels = useShortcutLabels(MENU_DRAWER_SHORTCUT_IDS);
+  useEscapeToClose(onClose, open);
 
   if (!open) return null;
 

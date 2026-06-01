@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaDownload, FaSave, FaTimes, FaTrash } from 'react-icons/fa';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 export type UnsavedChangesChoice = 'save' | 'discard' | 'cancel';
 
@@ -11,6 +12,8 @@ interface UnsavedChangesModalProps {
 export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onChoice, saveTarget = 'download' }) => {
   const savesToLibrary = saveTarget === 'library';
   const SaveIcon = savesToLibrary ? FaSave : FaDownload;
+  useEscapeToClose(() => onChoice('cancel'));
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-3 mobile-safe-inset mobile-safe-area-bottom">
       <div

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaBug, FaExternalLinkAlt, FaGithub, FaTimes } from 'react-icons/fa';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import { APP_COMMIT_URL, APP_INFO, APP_REPOSITORY_URL } from '../utils/appInfo';
 
 const ISSUE_REPORT_URL = `${APP_REPOSITORY_URL}/issues/new/choose`;
@@ -36,6 +37,7 @@ const AboutLink: React.FC<{ href: string; children: React.ReactNode; className?:
 
 export const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const buildDate = APP_INFO.commitDate || 'unknown';
+  useEscapeToClose(onClose);
 
   return (
     <div

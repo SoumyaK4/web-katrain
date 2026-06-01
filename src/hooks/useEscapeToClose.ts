@@ -5,7 +5,10 @@ export function useEscapeToClose(onClose: () => void, active = true): void {
     if (!active) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);

@@ -30,6 +30,7 @@ import { formatGameInfoPlayer, readRootInfoValue } from '../utils/gameInfoDispla
 import { setTimedNotification } from '../utils/timedNotification';
 import { afterAnimationFrames } from '../utils/animationFrame';
 import { printWindow } from '../utils/print';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 interface GameReportModalProps {
   onClose: () => void;
@@ -179,6 +180,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
   const [pdfSnapshots, setPdfSnapshots] = useState<Array<{ id: string; dataUrl: string | null; entry: MoveReportEntry }>>([]);
   const [graphTick, setGraphTick] = useState(0);
   const [showReportGuide, setShowReportGuide] = useState(false);
+  useEscapeToClose(onClose, !showReportGuide);
   const snapshotTimerRef = useRef<number | null>(null);
   const boardSize = normalizeBoardSize(currentNode.gameState.board.length, DEFAULT_BOARD_SIZE);
   const sectionClass =
