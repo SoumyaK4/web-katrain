@@ -13,4 +13,14 @@ describe('KeyboardHelpModal', () => {
     expect(html).toContain('Back/forward 10 moves');
     expect(html).toContain('Select / Start');
   });
+
+  it('documents board and move-tree wheel navigation', () => {
+    const html = renderToStaticMarkup(<KeyboardHelpModal onClose={() => undefined} />);
+
+    expect(html).toContain('data-keyboard-help-pointer="true"');
+    expect(html).toContain('Trackpad / Mouse');
+    expect(html).toContain('Previous/next move over the board or move tree');
+    expect(html).toContain('Shift + wheel');
+    expect(html).toContain('Previous/next mistake over the board or move tree');
+  });
 });
