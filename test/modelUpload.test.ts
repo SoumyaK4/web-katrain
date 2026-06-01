@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clearUploadedModelUrl,
   createUploadedModelUrl,
+  getUploadedModelInfo,
   isKataGoModelWeightsFile,
   MAX_BROWSER_MODEL_UPLOAD_BYTES,
   resetModelUploadStateForTests,
@@ -61,6 +62,11 @@ describe('model upload helpers', () => {
 
     const first = createUploadedModelUrl(new Blob(['a']), '/models/katago-small.bin.gz');
     expect(first).toBe('blob:first');
+    expect(getUploadedModelInfo()).toMatchObject({
+      name: 'Uploaded weights',
+      size: 1,
+      type: 'application/octet-stream',
+    });
 
     const second = createUploadedModelUrl(new Blob(['b']), first);
     expect(second).toBe('blob:second');
@@ -68,6 +74,20 @@ describe('model upload helpers', () => {
 
     expect(clearUploadedModelUrl('/models/fallback.bin.gz')).toBe('/models/katago-small.bin.gz');
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:second');
+    expect(getUploadedModelInfo()).toBeNull();
+  });
+
+  it('tracks uploaded file names for the engine settings summary', () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValueOnce('blob:file');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const file = new File(['weights'], 'kata1-test.bin.gz', { type: 'application/gzip' });
+
+    expect(createUploadedModelUrl(file, '/models/katago-small.bin.gz')).toBe('blob:file');
+    expect(getUploadedModelInfo()).toMatchObject({
+      name: 'kata1-test.bin.gz',
+      size: 7,
+      type: 'application/gzip',
+    });
   });
 
   it('gracefully skips persistent upload storage when IndexedDB is unavailable', async () => {

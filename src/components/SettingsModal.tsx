@@ -23,12 +23,14 @@ import { POLICY_HEATMAP_METRIC_SELECT_OPTIONS, TOP_MOVE_METRIC_SELECT_OPTIONS } 
 import {
     clearUploadedModelUrl,
     createUploadedModelUrl,
+    getUploadedModelInfo,
     isUploadedModelUrl,
     MAX_BROWSER_MODEL_UPLOAD_LABEL,
     MODEL_UPLOAD_ACCEPT,
     revokeUploadedModelUrl,
     savePersistedUploadedModel,
     syncUploadedModelUrl,
+    type UploadedModelInfo,
     validateModelUploadFile,
 } from '../utils/modelUpload';
 import { copyTextToClipboard } from '../utils/clipboard';
@@ -141,6 +143,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
     const [downloadError, setDownloadError] = React.useState<string | null>(null);
     const [modelUploadError, setModelUploadError] = React.useState<string | null>(null);
+    const [uploadedModelInfo, setUploadedModelInfo] = React.useState<UploadedModelInfo | null>(() => getUploadedModelInfo());
     const shortcutLabels = useShortcutLabels(ANALYSIS_OVERLAY_SHORTCUT_IDS);
 
     const [activeTab, setActiveTab] = React.useState<SettingsTabId>(() => {
@@ -202,6 +205,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         syncUploadedModelUrl(settings.katagoModelUrl);
     }, [settings.katagoModelUrl]);
 
+    React.useEffect(() => {
+        setUploadedModelInfo(isUploadedModel ? getUploadedModelInfo() : null);
+    }, [isUploadedModel, settings.katagoModelUrl]);
+
+    const formatModelFileSize = (size: number): string => {
+        if (!Number.isFinite(size) || size <= 0) return 'Unknown size';
+        const mb = size / (1024 * 1024);
+        return `${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)} MB`;
+    };
+
+    const uploadedModelSavedLabel = uploadedModelInfo?.updatedAt
+        ? new Date(uploadedModelInfo.updatedAt).toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+        : null;
+
     const handleModelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -215,6 +237,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         try {
             updateSettings({ katagoModelUrl: createUploadedModelUrl(file, settings.katagoModelUrl) });
             const persisted = await savePersistedUploadedModel(file);
+            setUploadedModelInfo(getUploadedModelInfo());
             if (!persisted) {
                 setModelUploadError('Loaded for this session, but browser storage could not save the upload for reload.');
             }
@@ -240,6 +263,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const handleClearUpload = () => {
         if (!isUploadedModel) return;
         setModelUploadError(null);
+        setUploadedModelInfo(null);
         updateSettings({ katagoModelUrl: clearUploadedModelUrl(SMALL_MODEL_URL) });
     };
 
@@ -254,8 +278,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 throw new Error(`Download failed (${response.status})`);
             }
             const blob = await response.blob();
-            updateSettings({ katagoModelUrl: createUploadedModelUrl(blob, settings.katagoModelUrl) });
-            const persisted = await savePersistedUploadedModel(new File([blob], url.split('/').pop() || 'downloaded-model.bin.gz', { type: blob.type }));
+            const downloadedFile = new File([blob], url.split('/').pop() || 'downloaded-model.bin.gz', { type: blob.type });
+            updateSettings({ katagoModelUrl: createUploadedModelUrl(downloadedFile, settings.katagoModelUrl) });
+            const persisted = await savePersistedUploadedModel(downloadedFile);
+            setUploadedModelInfo(getUploadedModelInfo());
             if (!persisted) {
                 setDownloadError('Loaded for this session, but browser storage could not save the download for reload.');
             }
@@ -1697,9 +1723,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 className="hidden"
                                             />
                                             {isUploadedModel ? (
-                                                <p className={subtextClass}>
-                                                    Uploaded weights are saved in this browser and restored after reload.
-                                                </p>
+                                                <div
+                                                    className="rounded-lg border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-3 py-2 text-xs text-[var(--ui-text)]"
+                                                    data-katago-uploaded-model-summary="true"
+                                                >
+                                                    <div className="font-semibold">Active browser upload</div>
+                                                    <div className="mt-1 min-w-0 truncate font-mono">
+                                                        {uploadedModelInfo?.name ?? 'Uploaded weights'}
+                                                    </div>
+                                                    <div className="mt-1 text-[var(--ui-text-muted)]">
+                                                        {uploadedModelInfo
+                                                            ? `${formatModelFileSize(uploadedModelInfo.size)}${uploadedModelSavedLabel ? ` / saved ${uploadedModelSavedLabel}` : ''}`
+                                                            : 'Saved in this browser and restored after reload.'}
+                                                    </div>
+                                                </div>
                                             ) : null}
                                             {modelUploadError ? (
                                                 <p className="text-xs text-rose-400 leading-relaxed">

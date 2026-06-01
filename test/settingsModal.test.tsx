@@ -165,5 +165,7 @@ describe('SettingsModal', () => {
     expect(source).not.toContain('aria-label="Fast review visits"');
     expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Upload weights (.bin.gz)</div>');
     expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Official KataGo models (download links)</div>');
+    expect(source).toContain('data-katago-uploaded-model-summary="true"');
+    expect(source).toContain('Active browser upload');
   });
 });

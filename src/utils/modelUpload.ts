@@ -12,9 +12,6 @@ export const MODEL_UPLOAD_ACCEPT = [
   'application/octet-stream',
 ].join(',');
 
-let uploadedModelUrl: string | null = null;
-let lastManualModelUrl: string | null = null;
-
 const DB_NAME = 'web-katrain-models';
 const DB_VERSION = 1;
 const MODEL_STORE = 'uploaded-models';
@@ -27,6 +24,13 @@ type ModelFileLike = {
   type?: string;
 };
 
+export type UploadedModelInfo = {
+  name: string;
+  size: number;
+  type: string;
+  updatedAt: number;
+};
+
 export type PersistedUploadedModel = {
   blob: Blob;
   name: string;
@@ -34,6 +38,10 @@ export type PersistedUploadedModel = {
   type: string;
   updatedAt: number;
 };
+
+let uploadedModelUrl: string | null = null;
+let uploadedModelInfo: UploadedModelInfo | null = null;
+let lastManualModelUrl: string | null = null;
 
 export type RestoredUploadedModel = {
   url: string;
@@ -54,6 +62,15 @@ export const modelUploadTooLargeMessage = (size: number): string =>
   `This model is too large for the browser engine (${(size / (1024 * 1024)).toFixed(0)} MB). ` +
   `Use the Strong b18 browser weights or another compressed model under ${MAX_BROWSER_MODEL_UPLOAD_LABEL}.`;
 
+const modelInfoFromBlob = (file: Blob & ModelFileLike): UploadedModelInfo => ({
+  name: file.name?.trim() || 'Uploaded weights',
+  size: typeof file.size === 'number' && Number.isFinite(file.size) ? file.size : 0,
+  type: file.type || 'application/octet-stream',
+  updatedAt: Date.now(),
+});
+
+export const getUploadedModelInfo = (): UploadedModelInfo | null => uploadedModelInfo;
+
 export const validateModelUploadFile = (file: ModelFileLike): string | null => {
   if (!isKataGoModelWeightsFile(file)) {
     return 'Use a KataGo .bin.gz weights file.';
@@ -66,6 +83,7 @@ export const validateModelUploadFile = (file: ModelFileLike): string | null => {
 export const revokeUploadedModelUrl = (): void => {
   revokeObjectUrl(uploadedModelUrl);
   uploadedModelUrl = null;
+  uploadedModelInfo = null;
 };
 
 export const syncUploadedModelUrl = (currentModelUrl: string): void => {
@@ -85,6 +103,7 @@ export const createUploadedModelUrl = (blob: Blob, currentModelUrl: string): str
   revokeUploadedModelUrl();
   const objectUrl = createObjectUrlOrThrow(blob);
   uploadedModelUrl = objectUrl;
+  uploadedModelInfo = modelInfoFromBlob(blob);
   return objectUrl;
 };
 
@@ -136,12 +155,10 @@ const isPersistedUploadedModelSelected = (): boolean => {
 
 export const savePersistedUploadedModel = async (file: Blob & ModelFileLike): Promise<boolean> => {
   if (!getIndexedDB()) return false;
+  const info = modelInfoFromBlob(file);
   const model: PersistedUploadedModel = {
     blob: file,
-    name: file.name?.trim() || 'Uploaded weights',
-    size: typeof file.size === 'number' && Number.isFinite(file.size) ? file.size : 0,
-    type: file.type || 'application/octet-stream',
-    updatedAt: Date.now(),
+    ...info,
   };
 
   let db: IDBDatabase | null = null;
@@ -151,6 +168,7 @@ export const savePersistedUploadedModel = async (file: Blob & ModelFileLike): Pr
     tx.objectStore(MODEL_STORE).put(model, CURRENT_MODEL_KEY);
     await transactionDone(tx);
     setUploadedModelSelected(true);
+    uploadedModelInfo = info;
     return true;
   } catch {
     setUploadedModelSelected(false);
@@ -197,6 +215,12 @@ export const restorePersistedUploadedModelUrl = async (currentModelUrl: string):
     return null;
   }
   uploadedModelUrl = url;
+  uploadedModelInfo = {
+    name: model.name,
+    size: model.size,
+    type: model.type,
+    updatedAt: model.updatedAt,
+  };
   return {
     url,
     name: model.name,
@@ -208,6 +232,7 @@ export const restorePersistedUploadedModelUrl = async (currentModelUrl: string):
 
 export const deletePersistedUploadedModel = async (): Promise<void> => {
   setUploadedModelSelected(false);
+  uploadedModelInfo = null;
   if (!getIndexedDB()) return;
 
   let db: IDBDatabase | null = null;
@@ -225,6 +250,7 @@ export const deletePersistedUploadedModel = async (): Promise<void> => {
 
 export const resetModelUploadStateForTests = (): void => {
   uploadedModelUrl = null;
+  uploadedModelInfo = null;
   lastManualModelUrl = null;
   setUploadedModelSelected(false);
 };
