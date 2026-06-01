@@ -38,6 +38,8 @@ describe('StatusBar', () => {
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain('Open Shape Coach details for 4-4 star point');
     expect(html).toContain('Click for beginner and pro study cues');
+    expect(html).toContain('min-w-[9.5rem]');
+    expect(html).toContain('data-status-move-insight-label="true"');
   });
 
   it('offers reference links inside Shape Coach details', () => {

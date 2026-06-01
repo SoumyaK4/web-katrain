@@ -175,12 +175,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         {shapeCoachEnabled && moveInsight && moveInsightCoach && (
           <div
             ref={moveInsightRef}
-            className="relative hidden lg:flex min-w-0 max-w-[260px]"
+            className="relative hidden lg:flex min-w-[9.5rem] max-w-[260px] shrink-0"
             data-status-move-insight={moveInsight.tone}
           >
             <button
               type="button"
-              className="flex min-w-0 items-center gap-1.5 rounded border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-2 py-1 text-[var(--ui-accent)] shadow-sm transition-colors hover:bg-[var(--ui-accent)] hover:text-[var(--ui-accent-contrast)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)] focus:ring-offset-1 focus:ring-offset-[var(--ui-bg)]"
+              className="flex w-full min-w-0 items-center gap-1.5 rounded border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-2 py-1 text-[var(--ui-accent)] shadow-sm transition-colors hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)] focus:ring-offset-1 focus:ring-offset-[var(--ui-bg)]"
               title={`${moveInsight.detail} Click for beginner and pro study cues.`}
               aria-label={`Open Shape Coach details for ${moveInsight.label}`}
               aria-expanded={moveInsightOpen}
@@ -188,8 +188,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               onClick={() => setMoveInsightOpen((open) => !open)}
               data-status-move-insight-toggle="true"
             >
-              <span className="opacity-75">Shape:</span>
-              <span className="min-w-0 truncate font-semibold">{moveInsight.label}</span>
+              <span className="shrink-0 opacity-75">Shape:</span>
+              <span className="min-w-0 flex-1 truncate text-left font-semibold" data-status-move-insight-label="true">
+                {moveInsight.label}
+              </span>
               <FaInfoCircle className="shrink-0" aria-hidden="true" />
             </button>
             {moveInsightOpen && (
