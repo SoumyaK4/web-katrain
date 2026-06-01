@@ -73,6 +73,11 @@ type GraphMetric = keyof UiState['panels'][UiMode]['graph'];
 type AnalysisOverlayControl = keyof AnalysisControlsState;
 type EvalColor = readonly [number, number, number, number];
 type QualityLegendItem = { label: string; range: string; color: string };
+type AnalysisStatsActionsProps = {
+  analysisCacheSize: number;
+  onOpenGameAnalysis: () => void;
+  onOpenGameReport: () => void;
+};
 
 function evalColorToCss(color: EvalColor): string {
   return `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${color[3]})`;
@@ -142,6 +147,53 @@ export const AnalysisQualityLegend: React.FC<{ items: QualityLegendItem[] }> = (
     </div>
   </div>
 );
+
+function formatAnalysisCacheLabel(count: number): string {
+  if (count === 1) return '1 cached analysis';
+  return `${count} cached analyses`;
+}
+
+export const AnalysisStatsActions: React.FC<AnalysisStatsActionsProps> = ({
+  analysisCacheSize,
+  onOpenGameAnalysis,
+  onOpenGameReport,
+}) => {
+  const cacheLabel = formatAnalysisCacheLabel(analysisCacheSize);
+  return (
+    <div
+      className="col-span-full flex flex-wrap items-center gap-1.5 border-t border-[var(--ui-border)] pt-2"
+      data-analysis-stats-actions="true"
+    >
+      <button
+        type="button"
+        className="panel-action-button"
+        onClick={onOpenGameReport}
+        title="Open game report"
+        aria-label="Open game report"
+      >
+        <FaFileAlt size={11} aria-hidden="true" />
+        <span>Report</span>
+      </button>
+      <button
+        type="button"
+        className="panel-action-button"
+        onClick={onOpenGameAnalysis}
+        title="Open analysis options"
+        aria-label="Open analysis options"
+      >
+        <FaRedoAlt size={11} aria-hidden="true" />
+        <span>Analyze</span>
+      </button>
+      <span
+        className="ml-auto rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ui-text-faint"
+        title={cacheLabel}
+        aria-label={cacheLabel}
+      >
+        {analysisCacheSize} cached
+      </span>
+    </div>
+  );
+};
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   mode,
@@ -361,6 +413,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     </button>
   );
   const qualityLegend = legendOpen ? <AnalysisQualityLegend items={qualityLegendItems} /> : null;
+  const statsActions = (
+    <AnalysisStatsActions
+      analysisCacheSize={analysisCacheSize}
+      onOpenGameAnalysis={onOpenGameAnalysis}
+      onOpenGameReport={onOpenGameReport}
+    />
+  );
   const readoutGridStyle: React.CSSProperties = {
     gridTemplateColumns: 'repeat(auto-fit, minmax(4.75rem, 1fr))',
   };
@@ -673,6 +732,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                   {scoreLeadLabel}
                 </div>
               </div>
+              {statsActions}
             </div>
           </div>
         ) : activeTab === 'graph' ? (
@@ -698,6 +758,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 {scoreLeadLabel}
               </div>
             </div>
+            {statsActions}
           </div>
         )}
       </div>
