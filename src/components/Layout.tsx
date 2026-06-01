@@ -85,6 +85,7 @@ import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
 import { EDIT_TOOL_SHORTCUT_DEFINITIONS } from '../utils/shortcuts';
 import { dispatchMoveTreeCommand, type MoveTreeCommand } from '../utils/moveTreeCommands';
 import { ANALYSIS_VISIT_PRESETS, formatVisitCount, visitPresetDescription, visitPresetLabel } from '../utils/visitPresets';
+import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } from '../utils/dragImport';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -1607,8 +1608,8 @@ export const Layout: React.FC = () => {
     setLibraryVersion((prev) => prev + 1);
   }, []);
 
-  const isFileDragEvent = (event: React.DragEvent) =>
-    Array.from(event.dataTransfer?.types ?? []).includes('Files');
+  const isGameImportDragEvent = (event: React.DragEvent) =>
+    hasPotentialGameImportDrag(event.dataTransfer);
 
   const isDragOverLibrary = (target: EventTarget | null) => {
     if (!target || !(target instanceof HTMLElement)) return false;
@@ -1625,7 +1626,7 @@ export const Layout: React.FC = () => {
   }, []);
 
   const handleAppDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!isFileDragEvent(event) || isDragOverLibrary(event.target)) return;
+    if (!isGameImportDragEvent(event) || isDragOverLibrary(event.target)) return;
     event.preventDefault();
     if (fileDragResetTimer.current) {
       clearTimeout(fileDragResetTimer.current);
@@ -1644,7 +1645,7 @@ export const Layout: React.FC = () => {
   };
 
   const handleAppDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!isFileDragEvent(event) || isDragOverLibrary(event.target)) return;
+    if (!isGameImportDragEvent(event) || isDragOverLibrary(event.target)) return;
     event.preventDefault();
     if (fileDragResetTimer.current) {
       clearTimeout(fileDragResetTimer.current);
@@ -1659,12 +1660,21 @@ export const Layout: React.FC = () => {
       resetFileDragState();
       return;
     }
-    if (!isFileDragEvent(event) || isDragOverLibrary(event.target)) {
+    if (!isGameImportDragEvent(event) || isDragOverLibrary(event.target)) {
       resetFileDragState();
       return;
     }
     event.preventDefault();
     resetFileDragState();
+    const droppedText = getDroppedSgfOrOgsText(event.dataTransfer);
+    if (!hasDraggedFiles(event.dataTransfer)) {
+      if (droppedText) {
+        await handleOpenSgfFromText(droppedText);
+      } else {
+        toast('Drop SGF text or an Online-Go game URL here.', 'error');
+      }
+      return;
+    }
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
     if (isKataGoModelWeightsFile(file)) {
@@ -1677,7 +1687,7 @@ export const Layout: React.FC = () => {
       return;
     }
     if (!file.name.toLowerCase().endsWith('.sgf')) {
-      toast('Drop an SGF file, board photo, or KataGo model weights here.', 'error');
+      toast('Drop an SGF file, OGS URL, board photo, or KataGo model weights here.', 'error');
       return;
     }
     try {
@@ -2538,8 +2548,8 @@ export const Layout: React.FC = () => {
       {isFileDragActive && (
         <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none">
           <div className="rounded-xl border-2 border-dashed border-[var(--ui-accent)] px-6 py-4 text-center ui-panel">
-            <div className="text-sm font-semibold text-[var(--ui-accent)]">Drop SGF, board photo, or model weights</div>
-            <div className="text-xs ui-text-faint">Release to load a game, trace a photo, or switch browser KataGo weights.</div>
+            <div className="text-sm font-semibold text-[var(--ui-accent)]">Drop SGF, OGS URL, board photo, or model weights</div>
+            <div className="text-xs ui-text-faint">Release to load a game, fetch Online-Go, trace a photo, or switch browser KataGo weights.</div>
           </div>
         </div>
       )}
