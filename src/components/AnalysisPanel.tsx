@@ -32,6 +32,11 @@ import { setTimedNotification } from '../utils/timedNotification';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { formatEngineErrorReport } from '../utils/engineDiagnostics';
 import { getEngineStatusSummary } from '../utils/engineStatusSummary';
+import { getCurrentLineNodes } from '../utils/branchNavigation';
+import {
+  summarizeAnalysisCoverage,
+  type AnalysisCoverageSummary,
+} from '../utils/analysisCoverage';
 
 interface AnalysisPanelProps {
   mode: UiMode;
@@ -77,6 +82,11 @@ type AnalysisStatsActionsProps = {
   analysisCacheSize: number;
   onOpenGameAnalysis: () => void;
   onOpenGameReport: () => void;
+};
+type AnalysisCoverageReadoutProps = {
+  summary: AnalysisCoverageSummary;
+  className: string;
+  labelClassName?: string;
 };
 
 function evalColorToCss(color: EvalColor): string {
@@ -195,6 +205,34 @@ export const AnalysisStatsActions: React.FC<AnalysisStatsActionsProps> = ({
   );
 };
 
+function analysisCoverageValueClass(tone: AnalysisCoverageSummary['tone']): string {
+  if (tone === 'complete') return 'text-[var(--ui-success)]';
+  if (tone === 'partial') return 'text-[var(--ui-warning)]';
+  return 'text-[var(--ui-text-muted)]';
+}
+
+export const AnalysisCoverageReadout: React.FC<AnalysisCoverageReadoutProps> = ({
+  summary,
+  className,
+  labelClassName = 'ui-text-faint',
+}) => (
+  <div
+    className={className}
+    title={summary.title}
+    data-analysis-coverage="true"
+    data-analysis-coverage-tone={summary.tone}
+    aria-label={`${summary.stateLabel}: ${summary.valueLabel} analyzed positions`}
+  >
+    <div className={labelClassName}>Analyzed</div>
+    <div className={['font-mono text-sm', analysisCoverageValueClass(summary.tone)].join(' ')}>
+      {summary.valueLabel}
+    </div>
+    <div className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide ui-text-faint">
+      {summary.stateLabel}
+    </div>
+  </div>
+);
+
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   mode,
   modePanels,
@@ -276,6 +314,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   );
   const scoreLeadLabel = formatAnalysisScoreLead(scoreLead);
   const pointsSummary = summarizePointsLost(pointsLost);
+  const analysisCoverage = summarizeAnalysisCoverage(getCurrentLineNodes(currentNode, activeBranchChildIds));
   React.useEffect(() => {
     setEngineErrorCopied(false);
   }, [engineError]);
@@ -482,6 +521,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         <div className="ui-text-faint">Move</div>
         <div className="font-mono text-sm text-[var(--ui-text)]">{currentMoveNumber}</div>
       </div>
+      <AnalysisCoverageReadout
+        summary={analysisCoverage}
+        className="min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5"
+      />
       {renderBestMoveReadout('min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5')}
       {renderMoveQualityReadout('min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5')}
       <div className="min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1.5">
@@ -732,6 +775,11 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                   {scoreLeadLabel}
                 </div>
               </div>
+              <AnalysisCoverageReadout
+                summary={analysisCoverage}
+                className="px-2 py-1.5"
+                labelClassName="text-[11px] ui-text-faint"
+              />
               {statsActions}
             </div>
           </div>
@@ -758,6 +806,11 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 {scoreLeadLabel}
               </div>
             </div>
+            <AnalysisCoverageReadout
+              summary={analysisCoverage}
+              className="px-2 py-1.5"
+              labelClassName="text-[11px] ui-text-faint"
+            />
             {statsActions}
           </div>
         )}
