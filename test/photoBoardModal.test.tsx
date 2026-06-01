@@ -64,4 +64,20 @@ describe('PhotoBoardModal', () => {
     expect(html).toContain('data-photo-board-empty-source="true"');
     expect(html).toContain('No board photo selected');
   });
+
+  it('explains unavailable footer actions before stones are traced', () => {
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(html).toContain('data-photo-board-clear="true"');
+    expect(html).toContain('title="No traced stones to clear"');
+    expect(html).toContain('data-photo-board-import="true"');
+    expect(html).toContain('title="Trace at least one stone to import a board position"');
+  });
 });

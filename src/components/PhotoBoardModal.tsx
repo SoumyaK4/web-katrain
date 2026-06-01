@@ -172,6 +172,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   );
 
   const canAddToCurrent = !!onAddSetupStones && counts.total > 0 && currentBoardSize === boardSize;
+  const canClearBoard = counts.total > 0;
+  const clearBoardTitle = canClearBoard ? 'Clear all traced stones' : 'No traced stones to clear';
+  const importBoardTitle = counts.total > 0
+    ? 'Import traced stones as a new board position'
+    : 'Trace at least one stone to import a board position';
   const addToCurrentTitle =
     counts.total === 0
       ? 'Trace at least one stone to add it to the current board'
@@ -802,8 +807,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
         <div className="ui-bar flex flex-wrap items-center justify-between gap-2 border-t border-[var(--ui-border)] px-3 py-2 sm:px-4 sm:py-3">
           <button
             type="button"
-            className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]"
+            className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canClearBoard}
             onClick={clearBoard}
+            title={clearBoardTitle}
+            data-photo-board-clear="true"
           >
             <span className="inline-flex items-center gap-2"><FaTrash /> Clear</span>
           </button>
@@ -850,6 +858,8 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               className="min-h-11 rounded-lg border border-[var(--ui-accent)] bg-[var(--ui-accent)] px-4 py-2 text-sm font-semibold text-[var(--ui-accent-contrast)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={counts.total === 0}
               onClick={importBoard}
+              title={importBoardTitle}
+              data-photo-board-import="true"
             >
               Import Position
             </button>
