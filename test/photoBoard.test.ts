@@ -3,6 +3,7 @@ import {
   buildPhotoBoardSetupSgf,
   computePhotoBoardDelta,
   findPhotoBoardMoveDelta,
+  getPhotoBoardClipboardImageFile,
   getPhotoBoardTracePaintValue,
   isPhotoBoardImageFile,
   photoBoardPointLabel,
@@ -152,6 +153,31 @@ describe('photo board SGF import', () => {
     expect(isPhotoBoardImageFile({ name: 'camera-capture', type: 'image/png' })).toBe(true);
     expect(isPhotoBoardImageFile({ name: 'game.sgf', type: 'application/x-go-sgf' })).toBe(false);
     expect(isPhotoBoardImageFile({ name: 'archive.zip', type: 'application/zip' })).toBe(false);
+  });
+
+  it('extracts pasted board images from clipboard data', () => {
+    const pastedImage = new File(['image-bytes'], 'clipboard.png', { type: 'image/png' });
+    const textFile = new File(['(;GM[1])'], 'game.sgf', { type: 'application/x-go-sgf' });
+    const fallbackImage = new File(['fallback'], 'fallback.webp', { type: '' });
+
+    expect(getPhotoBoardClipboardImageFile({
+      items: [
+        { kind: 'string', type: 'text/plain' },
+        { kind: 'file', type: 'application/x-go-sgf', getAsFile: () => textFile },
+        { kind: 'file', type: 'image/png', getAsFile: () => pastedImage },
+      ],
+      files: [fallbackImage],
+    })).toBe(pastedImage);
+
+    expect(getPhotoBoardClipboardImageFile({
+      items: [{ kind: 'file', type: 'image/png', getAsFile: () => null }],
+      files: [fallbackImage],
+    })).toBe(fallbackImage);
+
+    expect(getPhotoBoardClipboardImageFile({
+      items: [{ kind: 'file', type: 'application/x-go-sgf', getAsFile: () => textFile }],
+      files: [textFile],
+    })).toBeNull();
   });
 
   it('chooses a stable paint value for trace dragging', () => {

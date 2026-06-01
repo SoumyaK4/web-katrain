@@ -6,12 +6,40 @@ export type PhotoBoardTraceTool = Player | 'erase';
 
 export const PHOTO_BOARD_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'] as const;
 
+export interface PhotoBoardClipboardItemLike {
+  kind?: string;
+  type?: string;
+  getAsFile?: () => File | null;
+}
+
+export interface PhotoBoardClipboardDataLike {
+  items?: ArrayLike<PhotoBoardClipboardItemLike> | null;
+  files?: ArrayLike<File> | null;
+}
+
 export function isPhotoBoardImageFile(file: { name?: string; type?: string }): boolean {
   const mime = file.type?.toLowerCase() ?? '';
   if (mime.startsWith('image/')) return true;
 
   const name = file.name?.toLowerCase() ?? '';
   return PHOTO_BOARD_IMAGE_EXTENSIONS.some((extension) => name.endsWith(extension));
+}
+
+export function getPhotoBoardClipboardImageFile(data: PhotoBoardClipboardDataLike | null | undefined): File | null {
+  if (!data) return null;
+
+  for (const item of Array.from(data.items ?? [])) {
+    if (item.kind && item.kind !== 'file') continue;
+    if (!item.type?.toLowerCase().startsWith('image/')) continue;
+    const file = item.getAsFile?.() ?? null;
+    if (file && isPhotoBoardImageFile(file)) return file;
+  }
+
+  for (const file of Array.from(data.files ?? [])) {
+    if (isPhotoBoardImageFile(file)) return file;
+  }
+
+  return null;
 }
 
 export function getPhotoBoardTracePaintValue(current: PhotoBoardStone, tool: PhotoBoardTraceTool): PhotoBoardStone {

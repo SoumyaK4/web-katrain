@@ -33,7 +33,7 @@ import { getKaTrainEvalColors } from '../utils/katrainTheme';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { getEngineStatusSummary } from '../utils/engineStatusSummary';
 import { normalizeBoardSize } from '../utils/boardSize';
-import { PHOTO_BOARD_IMAGE_EXTENSIONS, isPhotoBoardImageFile } from '../utils/photoBoard';
+import { PHOTO_BOARD_IMAGE_EXTENSIONS, getPhotoBoardClipboardImageFile, isPhotoBoardImageFile } from '../utils/photoBoard';
 import { isEditableKeyboardTarget } from '../utils/keyboardTarget';
 import { getMoveInsight } from '../utils/moveInsight';
 import {
@@ -1544,10 +1544,17 @@ export const Layout: React.FC = () => {
       }
 
       const trimmed = event.clipboardData?.getData('text/plain')?.trim() ?? '';
-      if (!trimmed || (!trimmed.startsWith('(') && !isOgsUrl(trimmed))) return;
+      if (trimmed && (trimmed.startsWith('(') || isOgsUrl(trimmed))) {
+        event.preventDefault();
+        void handleOpenSgfFromText(trimmed);
+        return;
+      }
 
+      const imageFile = getPhotoBoardClipboardImageFile(event.clipboardData);
+      if (!imageFile) return;
       event.preventDefault();
-      void handleOpenSgfFromText(trimmed);
+      openPhotoBoard(imageFile);
+      toast('Opened photo board from pasted image.', 'info');
     };
 
     document.addEventListener('paste', handlePasteEvent);
