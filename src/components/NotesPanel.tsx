@@ -7,6 +7,7 @@ import { formatRootInfoText } from '../utils/gameInfoText';
 import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment } from '../utils/notePreview';
 import { getVisualViewport } from '../utils/visualViewport';
 import { getMoveInsight, getMoveInsightCoach } from '../utils/moveInsight';
+import { getNoteEditorKeyAction } from '../utils/noteEditorKeys';
 
 function moveToLabel(move: Move | null, boardSize: number): string {
   if (!move) return 'Root';
@@ -220,6 +221,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   const [noteDraft, setNoteDraft] = React.useState(currentNote);
   const noteTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const shouldFocusNoteRef = React.useRef(false);
+  const previousNoteNodeIdRef = React.useRef(currentNode.id);
 
   const scrollNoteEditorIntoView = React.useCallback(() => {
     const editor = noteTextareaRef.current;
@@ -234,14 +236,21 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   }, []);
 
   React.useEffect(() => {
+    const nodeChanged = previousNoteNodeIdRef.current !== currentNode.id;
+    previousNoteNodeIdRef.current = currentNode.id;
     setNoteDraft(currentNote);
-    setIsEditingNote(!currentNote.trim());
+    if (nodeChanged) setIsEditingNote(!currentNote.trim());
   }, [currentNode.id, currentNote]);
 
   React.useEffect(() => {
     if (!isEditingNote || !shouldFocusNoteRef.current) return;
     shouldFocusNoteRef.current = false;
-    noteTextareaRef.current?.focus();
+    const editor = noteTextareaRef.current;
+    editor?.focus();
+    if (editor) {
+      const cursor = editor.value.length;
+      editor.setSelectionRange(cursor, cursor);
+    }
     scrollNoteEditorIntoView();
   }, [isEditingNote, scrollNoteEditorIntoView]);
 
@@ -276,10 +285,18 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
 
   const handleNoteKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     event.stopPropagation();
-    if (event.key === 'Escape') {
+    const action = getNoteEditorKeyAction({
+      key: event.key,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+      shiftKey: event.shiftKey,
+      isComposing: event.nativeEvent.isComposing,
+    });
+    if (action === 'cancel') {
       event.preventDefault();
       cancelNoteEdit();
-    } else if ((event.metaKey || event.ctrlKey) && (event.key === 'Enter' || event.key.toLowerCase() === 's')) {
+    } else if (action === 'save') {
       event.preventDefault();
       saveNote();
     }
@@ -432,6 +449,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
               onKeyDown={handleNoteKeyDown}
               onFocus={scrollNoteEditorIntoView}
               aria-label="User note"
+              aria-keyshortcuts="Enter Control+S Meta+S Escape"
               data-note-editor="true"
               placeholder="Write a note for this position..."
               className="w-full min-h-[88px] max-h-44 ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono resize-y"
