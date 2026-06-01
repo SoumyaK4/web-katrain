@@ -89,6 +89,7 @@ import { dispatchMoveTreeCommand, type MoveTreeCommand } from '../utils/moveTree
 import { ANALYSIS_VISIT_PRESETS, formatVisitCount, visitPresetDescription, visitPresetLabel } from '../utils/visitPresets';
 import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } from '../utils/dragImport';
 import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
+import { appendRestoredAnalysisSummary } from '../utils/importSummary';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -1433,10 +1434,11 @@ export const Layout: React.FC = () => {
     const parsed = parseSgf(text);
     if (!(await prepareForGameReplacement())) return false;
     loadGame(parsed);
+    const restoredAnalysisCount = useGameStore.getState().analysisCacheSize;
     setLoadedLibraryFile(null);
     setLoadedExternalFile({ kind: 'file', name: sourceName || getImportedSgfName(parsed, 'Loaded SGF') });
     markCurrentGameCleanAndClearAutoSave();
-    toast(`Loaded "${sourceName || 'SGF'}".`, 'success');
+    toast(appendRestoredAnalysisSummary(`Loaded "${sourceName || 'SGF'}".`, restoredAnalysisCount), 'success');
     return true;
   };
 
@@ -1509,6 +1511,7 @@ export const Layout: React.FC = () => {
       const parsed = parseSgf(result.sgf);
       if (!(await prepareForGameReplacement())) return 'cancelled';
       loadGame(parsed);
+      const restoredAnalysisCount = useGameStore.getState().analysisCacheSize;
       setLoadedLibraryFile(null);
       setLoadedExternalFile(
         result.source === 'ogs'
@@ -1516,7 +1519,13 @@ export const Layout: React.FC = () => {
           : { kind: 'pasted', name: getImportedSgfName(parsed, 'Pasted SGF') }
       );
       markCurrentGameCleanAndClearAutoSave();
-      toast(result.source === 'ogs' ? `Downloaded OGS game ${result.gameId ?? ''}.` : 'Loaded SGF.', 'success');
+      toast(
+        appendRestoredAnalysisSummary(
+          result.source === 'ogs' ? `Downloaded OGS game ${result.gameId ?? ''}.` : 'Loaded SGF.',
+          restoredAnalysisCount
+        ),
+        'success'
+      );
       return 'loaded';
     } catch {
       toast('Failed to load SGF or OGS URL.', 'error');
@@ -1527,8 +1536,9 @@ export const Layout: React.FC = () => {
   const handleOpenRecent = async (item: LibraryFile) => {
     const loaded = await handleLoadFromLibrary(item.sgf);
     if (!loaded) return;
+    const restoredAnalysisCount = useGameStore.getState().analysisCacheSize;
     setLoadedLibraryFile(item.id, item.name);
-    toast(`Loaded "${item.name}".`, 'success');
+    toast(appendRestoredAnalysisSummary(`Loaded "${item.name}".`, restoredAnalysisCount), 'success');
   };
 
   useEffect(() => {
