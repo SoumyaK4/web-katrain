@@ -137,6 +137,26 @@ describe('move insights', () => {
       learnMoreUrl: 'https://senseis.xmp.net/?Cut',
     });
 
+    const haneBoard = emptyBoard(9);
+    haneBoard[3]![4] = 'white';
+    haneBoard[4]![4] = 'black';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, haneBoard)).toMatchObject({
+      label: 'Hane',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?Hane',
+    });
+
+    const wedgeBoard = emptyBoard(9);
+    wedgeBoard[3]![3] = 'white';
+    wedgeBoard[3]![5] = 'white';
+
+    expect(getMoveInsight(blackMove(4, 3), 9, wedgeBoard)).toMatchObject({
+      label: 'Wedge',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?Wedge',
+    });
+
     const diagonalBoard = emptyBoard(9);
     diagonalBoard[4]![4] = 'black';
 
@@ -224,6 +244,14 @@ describe('move insights', () => {
     expect(getMoveInsightCoach({ label: 'Cut', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('split'),
       checks: expect.arrayContaining(['Ladder']),
+    });
+    expect(getMoveInsightCoach({ label: 'Hane', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('bends around'),
+      checks: expect.arrayContaining(['Counter-hane']),
+    });
+    expect(getMoveInsightCoach({ label: 'Wedge', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('pushes between'),
+      checks: expect.arrayContaining(['Counter-cut']),
     });
     expect(getMoveInsightCoach({ label: 'Diagonal (kosumi)', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('connects lightly'),

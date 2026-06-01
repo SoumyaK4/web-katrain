@@ -174,12 +174,70 @@ function getCutOrDiagonalInsight(move: Move, board: BoardState, boardSize: numbe
       };
     }
 
+    if (
+      (sideAStone === opponent && sideBStone === null) ||
+      (sideBStone === opponent && sideAStone === null)
+    ) {
+      return {
+        label: 'Hane',
+        detail: 'Bends around an opposing stone from a diagonal friendly stone.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?Hane',
+      };
+    }
+
     if (sideAStone === null && sideBStone === null) {
       return {
         label: 'Diagonal (kosumi)',
         detail: 'Makes a light diagonal connection with flexible follow-ups.',
         tone: 'tactical',
         learnMoreUrl: 'https://senseis.xmp.net/?Kosumi',
+      };
+    }
+  }
+
+  return null;
+}
+
+function getWedgeInsight(move: Move, board: BoardState, boardSize: number): MoveInsight | null {
+  const opponent = getOpponent(move.player);
+  const axes = [
+    {
+      ends: [
+        { x: -1, y: 0 },
+        { x: 1, y: 0 },
+      ],
+      sides: [
+        { x: 0, y: -1 },
+        { x: 0, y: 1 },
+      ],
+    },
+    {
+      ends: [
+        { x: 0, y: -1 },
+        { x: 0, y: 1 },
+      ],
+      sides: [
+        { x: -1, y: 0 },
+        { x: 1, y: 0 },
+      ],
+    },
+  ];
+
+  for (const axis of axes) {
+    const ends = axis.ends.map((point) => ({ x: move.x + point.x, y: move.y + point.y }));
+    const sides = axis.sides.map((point) => ({ x: move.x + point.x, y: move.y + point.y }));
+    const points = [...ends, ...sides];
+    if (points.some((point) => point.x < 0 || point.y < 0 || point.x >= boardSize || point.y >= boardSize)) continue;
+    if (
+      ends.every((point) => board[point.y]?.[point.x] === opponent) &&
+      sides.every((point) => board[point.y]?.[point.x] === null)
+    ) {
+      return {
+        label: 'Wedge',
+        detail: 'Plays between two opposing stones to separate or pressure both sides.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?Wedge',
       };
     }
   }
@@ -355,6 +413,9 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
     };
   }
 
+  const wedgeInsight = getWedgeInsight(move, nextBoard, boardSize);
+  if (wedgeInsight) return wedgeInsight;
+
   const emptyTriangleInsight = getEmptyTriangleInsight(move, nextBoard, boardSize);
   if (emptyTriangleInsight) return emptyTriangleInsight;
 
@@ -529,6 +590,22 @@ export function getMoveInsightCoach(insight: MoveInsight): MoveInsightCoach {
       beginner: 'A cut tries to split opposing stones so they must live or connect separately.',
       pro: 'Read ladders, nets, counter-cuts, and whether the cutting stones have enough liberties.',
       checks: ['Ladder', 'Net', 'Liberties'],
+    };
+  }
+
+  if (insight.label === 'Hane') {
+    return {
+      beginner: 'A hane bends around contact and often creates pressure or shape at the same time.',
+      pro: 'Read the counter-hane, cuts, ladders, and whether the bend keeps enough liberties.',
+      checks: ['Counter-hane', 'Cuts', 'Liberties'],
+    };
+  }
+
+  if (insight.label === 'Wedge') {
+    return {
+      beginner: 'A wedge pushes between opposing stones, often aiming to split them.',
+      pro: 'Check whether both sides can be handled, or whether the wedge becomes a weak cutting stone.',
+      checks: ['Both sides', 'Counter-cut', 'Liberties'],
     };
   }
 
