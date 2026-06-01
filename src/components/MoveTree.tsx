@@ -28,6 +28,11 @@ import {
   getMoveTreeKeyboardTarget,
   isMoveTreeKeyboardNavigationKey,
 } from '../utils/moveTreeKeyboard';
+import {
+  getWheelNavigationAction,
+  shouldIgnoreWheelNavigationTarget,
+  WHEEL_NAVIGATION_THROTTLE_MS,
+} from '../utils/wheelNavigation';
 
 type LayoutWorkerResponse =
   | { requestId: number; ok: true; layout: MoveTreeLayout }
@@ -52,7 +57,18 @@ function indexNodes(root: GameNode): Map<string, GameNode> {
 }
 
 export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = ({ onSelectNode }) => {
-  const { rootNode, currentNode, jumpToNode, treeVersion, isInsertMode, mistakeThreshold } = useGameStore(
+  const {
+    rootNode,
+    currentNode,
+    jumpToNode,
+    treeVersion,
+    isInsertMode,
+    mistakeThreshold,
+    navigateBack,
+    navigateForward,
+    navigateNextMistake,
+    navigatePrevMistake,
+  } = useGameStore(
     (state) => ({
       rootNode: state.rootNode,
       currentNode: state.currentNode,
@@ -60,12 +76,18 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
       treeVersion: state.treeVersion,
       isInsertMode: state.isInsertMode,
       mistakeThreshold: state.settings.mistakeThreshold,
+      navigateBack: state.navigateBack,
+      navigateForward: state.navigateForward,
+      navigateNextMistake: state.navigateNextMistake,
+      navigatePrevMistake: state.navigatePrevMistake,
     }),
     shallow
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const nodeElementRefs = useRef(new Map<string, SVGGElement>());
   const workerRef = useRef<Worker | null>(null);
+  const wheelDeltaRef = useRef(0);
+  const wheelThrottleRef = useRef<number | null>(null);
   const requestIdRef = useRef(0);
   const [workerResult, setWorkerResult] = useState<{
     key: string;
@@ -149,6 +171,48 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     [focusTreeNode, isInsertMode, jumpToNode, onSelectNode]
   );
 
+  const handleWheel = useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      if (event.ctrlKey || event.metaKey) return;
+      if (isInsertMode) return;
+      if (wheelThrottleRef.current !== null) return;
+      if (shouldIgnoreWheelNavigationTarget(event.target)) return;
+
+      const { deltaX, deltaY } = event;
+      if (deltaX === 0 && deltaY === 0) return;
+
+      const dominantDelta = Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
+      wheelDeltaRef.current += dominantDelta;
+      const action = getWheelNavigationAction({
+        deltaX: 0,
+        deltaY: wheelDeltaRef.current,
+        shiftKey: event.shiftKey,
+      });
+      if (!action) return;
+
+      wheelDeltaRef.current = 0;
+      wheelThrottleRef.current = window.setTimeout(() => {
+        wheelThrottleRef.current = null;
+      }, WHEEL_NAVIGATION_THROTTLE_MS);
+
+      switch (action) {
+        case 'prevMistake':
+          navigatePrevMistake();
+          break;
+        case 'nextMistake':
+          navigateNextMistake();
+          break;
+        case 'back':
+          navigateBack();
+          break;
+        case 'forward':
+          navigateForward();
+          break;
+      }
+    },
+    [isInsertMode, navigateBack, navigateForward, navigateNextMistake, navigatePrevMistake]
+  );
+
   useEffect(() => {
     writeLocalStorage(MINIMAP_STORAGE_KEY, String(showMinimap));
   }, [showMinimap]);
@@ -195,6 +259,7 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     return () => {
       workerRef.current?.terminate();
       workerRef.current = null;
+      if (wheelThrottleRef.current !== null) window.clearTimeout(wheelThrottleRef.current);
     };
   }, []);
 
@@ -287,7 +352,12 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   }
 
   return (
-    <div ref={containerRef} className="relative w-full h-full overflow-auto ui-surface" data-tree-layout={layoutStatus}>
+    <div
+      ref={containerRef}
+      className="relative w-full h-full overflow-auto ui-surface"
+      data-tree-layout={layoutStatus}
+      onWheel={handleWheel}
+    >
       <div className="move-tree-floating-controls">
         <button
           type="button"
@@ -449,7 +519,11 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
         </div>
       )}
       {showMinimap && shouldRenderMinimap && minimapViewport && minimapTransform && (
-        <div className="move-tree-minimap" data-move-tree-minimap="true">
+        <div
+          className="move-tree-minimap"
+          data-move-tree-minimap="true"
+          data-wheel-navigation-ignore="true"
+        >
           <svg
             width={MINIMAP_SIZE.width}
             height={MINIMAP_SIZE.height}
