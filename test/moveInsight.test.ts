@@ -80,6 +80,18 @@ describe('move insights', () => {
       label: 'Connect',
       tone: 'tactical',
     });
+
+    const fillBoard = emptyBoard(9);
+    fillBoard[0]![1] = 'black';
+    fillBoard[1]![0] = 'black';
+    fillBoard[1]![2] = 'black';
+    fillBoard[2]![1] = 'black';
+
+    expect(getMoveInsight(blackMove(1, 1), 9, fillBoard)).toMatchObject({
+      label: 'Fill',
+      tone: 'tactical',
+      detail: expect.stringContaining('fully surrounded'),
+    });
   });
 
   it('returns null for root or out-of-board moves', () => {
@@ -118,6 +130,10 @@ describe('move insights', () => {
     expect(getMoveInsightCoach({ label: 'Connect', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('harder to cut'),
       checks: expect.arrayContaining(['Shape']),
+    });
+    expect(getMoveInsightCoach({ label: 'Fill', detail: '', tone: 'tactical' })).toMatchObject({
+      pro: expect.stringContaining('seki'),
+      checks: expect.arrayContaining(['Eye shape']),
     });
   });
 });

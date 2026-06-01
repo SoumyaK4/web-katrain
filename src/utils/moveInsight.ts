@@ -123,8 +123,10 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
   const capturedGroups = new Map<string, number>();
   const atariGroups = new Set<string>();
   const friendlyGroups = new Set<string>();
+  const neighbors = neighborsOf(move.x, move.y, boardSize);
+  let friendlyNeighborCount = 0;
 
-  for (const point of neighborsOf(move.x, move.y, boardSize)) {
+  for (const point of neighbors) {
     const stone = parentBoard[point.y]?.[point.x];
     if (!stone) continue;
     const { liberties, group } = getLiberties(parentBoard, point.x, point.y);
@@ -133,6 +135,7 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
       if (liberties === 1) capturedGroups.set(key, group.length);
       else if (liberties === 2) atariGroups.add(key);
     } else if (stone === move.player) {
+      friendlyNeighborCount += 1;
       friendlyGroups.add(key);
     }
   }
@@ -152,6 +155,14 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
       detail: `Puts ${atariGroups.size === 1 ? 'an opponent group' : `${atariGroups.size} opponent groups`} down to one liberty.`,
       tone: 'tactical',
       learnMoreUrl: 'https://senseis.xmp.net/?Atari',
+    };
+  }
+
+  if (neighbors.length > 0 && friendlyNeighborCount === neighbors.length) {
+    return {
+      label: 'Fill',
+      detail: 'Fills a point fully surrounded by friendly stones; often an endgame, ko, or life-and-death move.',
+      tone: 'tactical',
     };
   }
 
@@ -277,6 +288,14 @@ export function getMoveInsightCoach(insight: MoveInsight): MoveInsightCoach {
       beginner: 'Connecting stones makes them harder to cut and easier to keep alive.',
       pro: 'Compare the solid connection with forcing moves, tiger mouths, and counter-cuts.',
       checks: ['Cuts', 'Shape', 'Aji'],
+    };
+  }
+
+  if (insight.label === 'Fill') {
+    return {
+      beginner: 'Filling your own surrounded point can be right, but it often spends a move inside your shape.',
+      pro: 'Check whether the point affects life, ko, seki, dame, or final scoring before playing it.',
+      checks: ['Eye shape', 'Seki', 'Endgame'],
     };
   }
 
