@@ -25,11 +25,12 @@ import {
   FaInfoCircle,
   FaBook,
   FaBolt,
+  FaPalette,
 } from 'react-icons/fa';
 import type { GameSettings, RegionOfInterest } from '../../types';
 import type { AnalysisControlsState } from './types';
 import { EngineStatusBadge, IconButton } from './ui';
-import { BOARD_THEME_OPTIONS } from '../../utils/boardThemes';
+import { BOARD_THEME_OPTIONS, getBoardTheme } from '../../utils/boardThemes';
 import { UI_THEME_OPTIONS } from '../../utils/uiThemes';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import { isFullscreenActive, subscribeFullscreenChange, toggleAppFullscreen } from '../../utils/fullscreen';
@@ -199,6 +200,18 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   const shortcutLabels = useShortcutLabels(TOP_CONTROL_SHORTCUT_IDS);
   const withShortcut = (label: string, id: TopControlShortcutId) => `${label} (${shortcutLabels[id]})`;
   const saveControlTitle = withShortcut(stripShortcutSuffix(saveTitle), 'save-sgf');
+  const boardThemeIndex = BOARD_THEME_OPTIONS.findIndex((theme) => theme.value === settings.boardTheme);
+  const activeBoardThemeIndex = boardThemeIndex >= 0 ? boardThemeIndex : 0;
+  const activeBoardThemeOption = BOARD_THEME_OPTIONS[activeBoardThemeIndex] ?? BOARD_THEME_OPTIONS[0]!;
+  const nextBoardThemeOption =
+    BOARD_THEME_OPTIONS[(activeBoardThemeIndex + 1) % BOARD_THEME_OPTIONS.length] ?? activeBoardThemeOption;
+  const activeBoardTheme = getBoardTheme(activeBoardThemeOption.value);
+  const mobileHeaderToggleClass = [
+    topIconClass,
+    'relative flex items-center justify-center rounded-lg transition-colors touch-manipulation',
+    'border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]',
+    'hover:bg-[var(--ui-surface-2)] hover:text-white',
+  ].join(' ');
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
     if (typeof document === 'undefined') return false;
     return isFullscreenActive();
@@ -214,6 +227,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
     if (typeof document === 'undefined') return;
     void toggleAppFullscreen().catch(() => {});
   };
+  const cycleBoardTheme = () => updateSettings({ boardTheme: nextBoardThemeOption.value });
   const closeViewMenu = () => setViewMenuOpen(false);
   const closeViewMenuIfMobile = () => {
     if (isMobile) setViewMenuOpen(false);
@@ -598,6 +612,41 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
 
       {/* Right controls */}
       <div className="flex items-center gap-1.5 shrink-0">
+        {isMobile && (
+          <>
+            <button
+              type="button"
+              className={mobileHeaderToggleClass}
+              onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
+              aria-label={settings.soundEnabled ? 'Sound on. Tap to mute.' : 'Sound off. Tap to turn on.'}
+              aria-pressed={settings.soundEnabled}
+              title={settings.soundEnabled ? 'Sound on. Tap to mute.' : 'Sound off. Tap to turn on.'}
+              data-mobile-sound-toggle="true"
+            >
+              {settings.soundEnabled ? <FaVolumeUp aria-hidden="true" /> : <FaVolumeMute aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              className={mobileHeaderToggleClass}
+              onClick={cycleBoardTheme}
+              aria-label={`Board theme: ${activeBoardThemeOption.label}. Tap for ${nextBoardThemeOption.label}.`}
+              title={`Board theme: ${activeBoardThemeOption.label}. Tap for ${nextBoardThemeOption.label}.`}
+              data-mobile-board-theme-cycle="true"
+              data-current-board-theme={activeBoardThemeOption.value}
+              data-next-board-theme={nextBoardThemeOption.value}
+            >
+              <FaPalette aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border shadow-sm"
+                style={{
+                  backgroundColor: activeBoardTheme.board.backgroundColor,
+                  borderColor: activeBoardTheme.board.foregroundColor ?? 'var(--ui-border-strong)',
+                }}
+              />
+            </button>
+          </>
+        )}
         {!isMobile && (
           <IconButton
             title="Open side panel"

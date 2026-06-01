@@ -1,0 +1,85 @@
+import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { TopControlBar } from '../src/components/layout/TopControlBar';
+import { useGameStore } from '../src/store/gameStore';
+import { BOARD_THEME_OPTIONS } from '../src/utils/boardThemes';
+import type { BoardThemeId } from '../src/types';
+
+const noop = () => undefined;
+const activeTheme: BoardThemeId = 'hikaru';
+const activeThemeIndex = BOARD_THEME_OPTIONS.findIndex((theme) => theme.value === activeTheme);
+const nextTheme = BOARD_THEME_OPTIONS[(activeThemeIndex + 1) % BOARD_THEME_OPTIONS.length]!;
+const escapedNextThemeLabel = nextTheme.label.replace(/&/g, '&amp;');
+
+const baseProps = {
+  settings: { ...useGameStore.getState().settings, soundEnabled: false, boardTheme: activeTheme },
+  updateControls: noop,
+  updateSettings: noop,
+  regionOfInterest: null,
+  setRegionOfInterest: noop,
+  isInsertMode: false,
+  isEditMode: false,
+  isAnalysisMode: false,
+  toggleAnalysisMode: noop,
+  engineDot: 'bg-[var(--ui-success)]',
+  analysisMenuOpen: false,
+  setAnalysisMenuOpen: noop,
+  viewMenuOpen: false,
+  setViewMenuOpen: noop,
+  analyzeExtra: noop,
+  startSelectRegionOfInterest: noop,
+  resetCurrentAnalysis: noop,
+  clearAnalysisCache: noop,
+  analysisCacheSize: 0,
+  toggleInsertMode: noop,
+  selfplayToEnd: noop,
+  toggleContinuousAnalysis: noop,
+  makeAiMove: noop,
+  rotateBoard: noop,
+  toggleTeachMode: noop,
+  isTeachMode: false,
+  isGameAnalysisRunning: false,
+  gameAnalysisType: null,
+  gameAnalysisDone: 0,
+  gameAnalysisTotal: 0,
+  startQuickGameAnalysis: noop,
+  startFastGameAnalysis: noop,
+  stopGameAnalysis: noop,
+  setIsGameAnalysisOpen: noop,
+  setIsGameReportOpen: noop,
+  onOpenMenu: noop,
+  onQuickNewGame: noop,
+  onNewGame: noop,
+  onSaveSgf: noop,
+  onSaveToLibrary: noop,
+  onLoadSgf: noop,
+  onOpenSidePanel: noop,
+  onCopySgf: noop,
+  onPasteSgf: noop,
+  onScanBoard: noop,
+  onSettings: noop,
+  onCommandPalette: noop,
+  onKeyboardHelp: noop,
+  onAbout: noop,
+};
+
+describe('TopControlBar', () => {
+  it('keeps sound and board theme controls reachable in the mobile header', () => {
+    const html = renderToStaticMarkup(<TopControlBar {...baseProps} isMobile={true} />);
+
+    expect(html).toContain('data-mobile-sound-toggle="true"');
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain('Sound off. Tap to turn on.');
+    expect(html).toContain('data-mobile-board-theme-cycle="true"');
+    expect(html).toContain('data-current-board-theme="hikaru"');
+    expect(html).toContain(`data-next-board-theme="${nextTheme.value}"`);
+    expect(html).toContain(`Tap for ${escapedNextThemeLabel}.`);
+  });
+
+  it('does not duplicate mobile quick toggles in the desktop header', () => {
+    const html = renderToStaticMarkup(<TopControlBar {...baseProps} isMobile={false} />);
+
+    expect(html).not.toContain('data-mobile-sound-toggle="true"');
+    expect(html).not.toContain('data-mobile-board-theme-cycle="true"');
+  });
+});
