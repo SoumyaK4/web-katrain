@@ -43,6 +43,14 @@ describe('PhotoBoardModal', () => {
     expect(source).toContain('data-photo-board-source-name="true"');
   });
 
+  it('resets hidden photo inputs so the same image can be selected again', () => {
+    const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
+
+    expect(source).toContain('handlePhotoInputChange');
+    expect(source).toContain("event.currentTarget.value = ''");
+    expect(source).toContain('onChange={handlePhotoInputChange}');
+  });
+
   it('renders a clear empty state before a photo source is selected', () => {
     const html = renderToStaticMarkup(
       <PhotoBoardModal

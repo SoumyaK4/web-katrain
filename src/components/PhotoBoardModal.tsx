@@ -198,6 +198,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setMobileTab('trace');
   }, []);
 
+  const handlePhotoInputChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    choosePhoto(event.target.files?.[0]);
+    event.currentTarget.value = '';
+  }, [choosePhoto]);
+
   React.useEffect(() => {
     choosePhoto(initialPhotoFile ?? undefined);
   }, [choosePhoto, initialPhotoFile]);
@@ -419,14 +424,14 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(event) => choosePhoto(event.target.files?.[0])}
+                onChange={handlePhotoInputChange}
               />
               <input
                 ref={galleryInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(event) => choosePhoto(event.target.files?.[0])}
+                onChange={handlePhotoInputChange}
               />
             </div>
 
