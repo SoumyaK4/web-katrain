@@ -1,10 +1,10 @@
 import React from 'react';
-import { FaBug, FaCheckCircle, FaExclamationTriangle, FaGamepad, FaStar, FaSyncAlt } from 'react-icons/fa';
+import { FaBug, FaCheckCircle, FaExclamationTriangle, FaGamepad, FaInfoCircle, FaStar, FaSyncAlt } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { AUTO_SAVE_MAX_LABEL } from '../../utils/autoSave';
 import { formatGameInfoPlayer } from '../../utils/gameInfoDisplay';
 import { formatGamepadLabel } from '../../utils/gamepadLabel';
-import type { MoveInsight } from '../../utils/moveInsight';
+import { getMoveInsightCoach, type MoveInsight } from '../../utils/moveInsight';
 
 const ISSUE_REPORT_URL = 'https://github.com/Sir-Teo/web-katrain/issues/new/choose';
 
@@ -70,11 +70,38 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const [isEditingLoadedFileName, setIsEditingLoadedFileName] = React.useState(false);
   const [loadedFileNameDraft, setLoadedFileNameDraft] = React.useState(loadedFileName ?? '');
+  const [moveInsightOpen, setMoveInsightOpen] = React.useState(false);
   const finishingEditRef = React.useRef(false);
+  const moveInsightRef = React.useRef<HTMLDivElement>(null);
+  const moveInsightPopoverId = React.useId();
+  const moveInsightCoach = moveInsight ? getMoveInsightCoach(moveInsight) : null;
 
   React.useEffect(() => {
     if (!isEditingLoadedFileName) setLoadedFileNameDraft(loadedFileName ?? '');
   }, [isEditingLoadedFileName, loadedFileName]);
+
+  React.useEffect(() => {
+    setMoveInsightOpen(false);
+  }, [moveInsight?.detail, moveInsight?.label, moveInsight?.tone, shapeCoachEnabled]);
+
+  React.useEffect(() => {
+    if (!moveInsightOpen) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (moveInsightRef.current?.contains(event.target as Node)) return;
+      setMoveInsightOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoveInsightOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [moveInsightOpen]);
 
   const finishLoadedFileNameEdit = (commit: boolean) => {
     if (finishingEditRef.current) return;
@@ -139,14 +166,62 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </button>
         )}
 
-        {shapeCoachEnabled && moveInsight && (
+        {shapeCoachEnabled && moveInsight && moveInsightCoach && (
           <div
-            className="px-2 py-1 rounded bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border border-[var(--ui-accent)] shadow-sm hidden lg:flex items-center gap-1.5 max-w-[240px]"
-            title={moveInsight.detail}
+            ref={moveInsightRef}
+            className="relative hidden lg:flex min-w-0 max-w-[260px]"
             data-status-move-insight={moveInsight.tone}
           >
-            <span className="text-[var(--ui-text-faint)]">Shape:</span>
-            <span className="truncate font-semibold">{moveInsight.label}</span>
+            <button
+              type="button"
+              className="flex min-w-0 items-center gap-1.5 rounded border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-2 py-1 text-[var(--ui-accent)] shadow-sm transition-colors hover:bg-[var(--ui-accent)] hover:text-[var(--ui-accent-contrast)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)] focus:ring-offset-1 focus:ring-offset-[var(--ui-bg)]"
+              title={`${moveInsight.detail} Click for beginner and pro study cues.`}
+              aria-label={`Open Shape Coach details for ${moveInsight.label}`}
+              aria-expanded={moveInsightOpen}
+              aria-controls={moveInsightPopoverId}
+              onClick={() => setMoveInsightOpen((open) => !open)}
+              data-status-move-insight-toggle="true"
+            >
+              <span className="opacity-75">Shape:</span>
+              <span className="min-w-0 truncate font-semibold">{moveInsight.label}</span>
+              <FaInfoCircle className="shrink-0" aria-hidden="true" />
+            </button>
+            {moveInsightOpen && (
+              <div
+                id={moveInsightPopoverId}
+                role="dialog"
+                aria-label="Shape Coach details"
+                className="absolute bottom-full left-0 z-50 mb-2 w-80 max-w-[calc(100vw-2rem)] rounded border border-[var(--ui-border)] bg-[var(--ui-panel)] p-3 text-[11px] text-[var(--ui-text-muted)] shadow-2xl"
+                data-status-move-insight-popover="true"
+              >
+                <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase ui-text-faint">Shape Coach</div>
+                    <div className="truncate text-xs font-semibold text-[var(--ui-text)]">{moveInsight.label}</div>
+                  </div>
+                  <span className="shrink-0 rounded border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold capitalize text-[var(--ui-accent)]">
+                    {moveInsight.tone}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  <p>
+                    <span className="font-semibold text-[var(--ui-text)]">Beginner: </span>
+                    {moveInsightCoach.beginner}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-[var(--ui-text)]">Pro: </span>
+                    {moveInsightCoach.pro}
+                  </p>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {moveInsightCoach.checks.map((check) => (
+                    <span key={check} className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-1.5 py-0.5 text-[10px] ui-text-faint">
+                      {check}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
