@@ -1,4 +1,4 @@
-import { isOgsUrl } from './ogs';
+import { getDirectGameImportText } from './pasteSgfInput';
 
 type DragTransferLike = {
   files?: { length: number } | null;
@@ -45,7 +45,8 @@ export const getDroppedSgfOrOgsText = (dataTransfer: DragTransferLike | null | u
       continue;
     }
     const candidate = normalizeDroppedText(type, raw);
-    if (candidate.startsWith('(') || isOgsUrl(candidate)) return candidate;
+    const importText = getDirectGameImportText(candidate);
+    if (importText) return importText;
   }
   return null;
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PasteSgfModal } from '../src/components/PasteSgfModal';
-import { getPasteSgfInputInfo } from '../src/utils/pasteSgfInput';
+import { getDirectGameImportText, getPasteSgfInputInfo } from '../src/utils/pasteSgfInput';
 
 describe('PasteSgfModal', () => {
   it('explains supported SGF and OGS inputs in the empty state', () => {
@@ -50,5 +50,15 @@ describe('PasteSgfModal', () => {
     expect(urlInfo.kind).toBe('url');
     expect(urlInfo.helper).toContain('Only Online-Go game links are downloaded');
     expect(urlInfo.errorStatus).toContain('Paste raw SGF text');
+  });
+
+  it('normalizes direct paste and drop imports without accepting unrelated text', () => {
+    expect(getDirectGameImportText(' (;GM[1]FF[4]) ')).toBe('(;GM[1]FF[4])');
+    expect(getDirectGameImportText('Review this game: https://online-go.com/game/81344851')).toBe(
+      'Review this game: https://online-go.com/game/81344851'
+    );
+    expect(getDirectGameImportText('https://example.com/game/123')).toBeNull();
+    expect(getDirectGameImportText('')).toBeNull();
+    expect(getDirectGameImportText(null)).toBeNull();
   });
 });

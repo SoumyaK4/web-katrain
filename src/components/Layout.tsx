@@ -22,7 +22,7 @@ import {
   type LibraryFile,
   type LibraryFolderOption,
 } from '../utils/library';
-import { isOgsUrl, loadSgfOrOgs } from '../utils/ogs';
+import { loadSgfOrOgs } from '../utils/ogs';
 import type { CandidateMove, EditTool, GameNode, Player } from '../types';
 import { DEFAULT_BOARD_SIZE } from '../types';
 import { parseGtpMove } from '../lib/gtp';
@@ -59,7 +59,7 @@ import { MobileHome } from './MobileHome';
 import { AutoSaveRecoveryModal } from './AutoSaveRecoveryModal';
 import { AboutDialog } from './AboutDialog';
 import type { CommandPaletteCommand } from './CommandPaletteModal';
-import type { PasteSgfSubmitResult } from '../utils/pasteSgfInput';
+import { getDirectGameImportText, type PasteSgfSubmitResult } from '../utils/pasteSgfInput';
 import {
   type UiMode,
   type UiState,
@@ -1506,7 +1506,7 @@ export const Layout: React.FC = () => {
     setPhotoBoardInitialFile(null);
   }, []);
 
-  const handleOpenSgfFromText = async (text: string): Promise<PasteSgfSubmitResult> => {
+  const handleOpenSgfFromText = useCallback(async (text: string): Promise<PasteSgfSubmitResult> => {
     try {
       const result = await loadSgfOrOgs(text);
       if (!result.sgf.trim()) return 'failed';
@@ -1533,7 +1533,7 @@ export const Layout: React.FC = () => {
       toast('Failed to load SGF or OGS URL.', 'error');
       return 'failed';
     }
-  };
+  }, [markCurrentGameCleanAndClearAutoSave, prepareForGameReplacement, loadGame, setLoadedLibraryFile, toast]);
 
   const handleOpenRecent = async (item: LibraryFile) => {
     const loaded = await handleLoadFromLibrary(item.sgf);
@@ -1547,10 +1547,10 @@ export const Layout: React.FC = () => {
     const handlePasteEvent = (event: ClipboardEvent) => {
       if (isTextEntryTarget(event.target)) return;
 
-      const trimmed = event.clipboardData?.getData('text/plain')?.trim() ?? '';
-      if (trimmed && (trimmed.startsWith('(') || isOgsUrl(trimmed))) {
+      const importText = getDirectGameImportText(event.clipboardData?.getData('text/plain'));
+      if (importText) {
         event.preventDefault();
-        void handleOpenSgfFromText(trimmed);
+        void handleOpenSgfFromText(importText);
         return;
       }
 
@@ -1563,22 +1563,22 @@ export const Layout: React.FC = () => {
 
     document.addEventListener('paste', handlePasteEvent);
     return () => document.removeEventListener('paste', handlePasteEvent);
-  });
+  }, [handleOpenSgfFromText, openPhotoBoard, toast]);
 
-  const handlePasteSgfShortcut = async () => {
+  const handlePasteSgfShortcut = useCallback(async () => {
     setAnalysisMenuOpen(false);
     setViewMenuOpen(false);
     setMenuOpen(false);
 
     const clipboardText = await readClipboardText();
-    const trimmed = clipboardText?.trim() ?? '';
-    if (trimmed && (trimmed.startsWith('(') || isOgsUrl(trimmed))) {
-      await handleOpenSgfFromText(trimmed);
+    const importText = getDirectGameImportText(clipboardText);
+    if (importText) {
+      await handleOpenSgfFromText(importText);
       return;
     }
 
     setIsPasteSgfOpen(true);
-  };
+  }, [handleOpenSgfFromText]);
 
   const handlePhotoBoardImport = async (sgfText: string) => {
     try {

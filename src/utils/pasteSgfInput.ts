@@ -17,6 +17,13 @@ const looksLikeUrl = (text: string): boolean => {
   return /^(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/|\?|#|$)/i.test(text);
 };
 
+export const getDirectGameImportText = (text: string | null | undefined): string | null => {
+  const trimmed = text?.trim() ?? '';
+  if (!trimmed) return null;
+  if (trimmed.startsWith('(') || extractOgsGameId(trimmed)) return trimmed;
+  return null;
+};
+
 export const getPasteSgfInputInfo = (text: string): PasteSgfInputInfo => {
   const trimmed = text.trim();
   if (!trimmed) {
