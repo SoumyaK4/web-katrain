@@ -6,6 +6,7 @@ import {
   SHORTCUTS_UPDATED_EVENT,
   shortcutDisplay,
 } from '../utils/shortcuts';
+import { commandMatchesQuery, normalizeCommandQuery } from '../utils/commandPalette';
 
 export type CommandPaletteCommand = {
   id: string;
@@ -20,8 +21,6 @@ interface CommandPaletteModalProps {
   commands: CommandPaletteCommand[];
   onClose: () => void;
 }
-
-const normalize = (value: string): string => value.trim().toLowerCase();
 
 export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({ commands, onClose }) => {
   const [query, setQuery] = React.useState('');
@@ -49,18 +48,17 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({ comman
   }, [commands, overrides]);
 
   const filteredCommands = React.useMemo(() => {
-    const normalizedQuery = normalize(query);
+    const normalizedQuery = normalizeCommandQuery(query);
     if (!normalizedQuery) return commands;
     return commands.filter((command) => {
       const shortcut = command.shortcutId ? shortcutLabels.get(command.shortcutId) : '';
-      const haystack = [
+      return commandMatchesQuery([
         command.label,
         command.category,
         command.id,
         shortcut,
         ...(command.keywords ?? []),
-      ].join(' ').toLowerCase();
-      return haystack.includes(normalizedQuery);
+      ], normalizedQuery);
     });
   }, [commands, query, shortcutLabels]);
 
