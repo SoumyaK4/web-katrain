@@ -1804,6 +1804,14 @@ export const Layout: React.FC = () => {
         keywords: ['layout', 'navigation', 'chrome', 'focus'],
       },
       {
+        id: 'toggle-sound',
+        label: settings.soundEnabled ? 'Mute sound' : 'Enable sound',
+        category: 'View',
+        shortcutId: 'toggle-sound',
+        run: () => updateSettings({ soundEnabled: !settings.soundEnabled }),
+        keywords: ['audio', 'mute', 'volume'],
+      },
+      {
         id: 'toggle-analysis',
         label: isAnalysisMode ? 'Turn analysis off' : 'Turn analysis on',
         category: 'Analysis',

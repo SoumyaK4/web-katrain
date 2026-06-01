@@ -75,6 +75,10 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('toggle-scoring', {})).toEqual([{ key: 's', ctrl: false, shift: true, alt: false }]);
   });
 
+  it('exposes a non-conflicting shortcut for sound toggling', () => {
+    expect(getShortcutBindings('toggle-sound', {})).toEqual([{ key: 'm', ctrl: false, shift: true, alt: false }]);
+  });
+
   it('exposes view chrome shortcuts for compact review layouts', () => {
     expect(getShortcutBindings('toggle-top-bar', {})).toEqual([{ key: 'm', ctrl: true, shift: true, alt: false }]);
     expect(getShortcutBindings('toggle-bottom-bar', {})).toEqual([{ key: 'u', ctrl: true, shift: true, alt: false }]);

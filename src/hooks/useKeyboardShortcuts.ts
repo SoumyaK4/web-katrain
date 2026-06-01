@@ -275,6 +275,12 @@ export function useKeyboardShortcuts({
         return;
       }
 
+      if (matches('toggle-sound')) {
+        e.preventDefault();
+        updateSettings({ soundEnabled: !settings.soundEnabled });
+        return;
+      }
+
       if (matches('toggle-scoring')) {
         e.preventDefault();
         toggleScoringMode();
@@ -522,6 +528,7 @@ export function useKeyboardShortcuts({
     settings.showCoordinates,
     settings.showMoveNumbers,
     settings.showNextMovePreview,
+    settings.soundEnabled,
     settings.analysisShowChildren,
     settings.analysisShowEval,
     settings.analysisShowHints,

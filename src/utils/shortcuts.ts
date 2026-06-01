@@ -49,6 +49,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'ai-move', category: 'Game Control', label: 'AI move', defaultBindings: [{ key: 'Enter' }] },
   { id: 'selfplay', category: 'Game Control', label: 'Selfplay to end', defaultBindings: [{ key: 'l' }] },
   { id: 'rotate-board', category: 'Game Control', label: 'Rotate board', defaultBindings: [{ key: 'o' }] },
+  { id: 'toggle-sound', category: 'Game Control', label: 'Toggle sound', defaultBindings: [{ key: 'm', shift: true }] },
   { id: 'toggle-scoring', category: 'Game Control', label: 'Score position', defaultBindings: [{ key: 's', shift: true }] },
   { id: 'toggle-insert', category: 'Game Control', label: 'Toggle insert mode', defaultBindings: [{ key: 'i' }] },
   { id: 'toggle-children', category: 'Visualization', label: 'Toggle children', defaultBindings: [{ key: 'q' }] },

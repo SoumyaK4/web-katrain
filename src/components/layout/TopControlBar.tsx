@@ -52,6 +52,7 @@ const TOP_CONTROL_SHORTCUT_IDS = [
   'toggle-policy',
   'toggle-territory',
   'toggle-coordinates',
+  'toggle-sound',
   'toggle-next-move-preview',
   'toggle-move-numbers',
   'fullscreen',
@@ -317,9 +318,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <button type="button"
           className="w-full px-3 py-2 text-left hover:bg-[var(--ui-surface-2)] flex items-center justify-between"
           onClick={() => { updateSettings({ soundEnabled: !settings.soundEnabled }); closeViewMenuIfMobile(); }}
+          aria-label={`Sound ${settings.soundEnabled ? 'on' : 'off'}, shortcut ${shortcutLabels['toggle-sound']}`}
         >
           <span className="flex items-center gap-2">{settings.soundEnabled ? <FaVolumeUp /> : <FaVolumeMute />} Sound</span>
-          <span className="text-xs ui-text-faint">{settings.soundEnabled ? 'on' : 'off'}</span>
+          <span className="text-xs ui-text-faint">{settings.soundEnabled ? 'on' : 'off'} · {shortcutLabels['toggle-sound']}</span>
         </button>
       </div>
 
@@ -619,9 +621,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               type="button"
               className={mobileHeaderToggleClass}
               onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
-              aria-label={settings.soundEnabled ? 'Sound on. Tap to mute.' : 'Sound off. Tap to turn on.'}
+              aria-label={settings.soundEnabled ? `Sound on. Tap to mute. Shortcut ${shortcutLabels['toggle-sound']}` : `Sound off. Tap to turn on. Shortcut ${shortcutLabels['toggle-sound']}`}
               aria-pressed={settings.soundEnabled}
-              title={settings.soundEnabled ? 'Sound on. Tap to mute.' : 'Sound off. Tap to turn on.'}
+              title={settings.soundEnabled ? withShortcut('Sound on. Tap to mute.', 'toggle-sound') : withShortcut('Sound off. Tap to turn on.', 'toggle-sound')}
               data-mobile-sound-toggle="true"
             >
               {settings.soundEnabled ? <FaVolumeUp aria-hidden="true" /> : <FaVolumeMute aria-hidden="true" />}
