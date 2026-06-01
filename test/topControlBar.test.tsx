@@ -93,6 +93,21 @@ describe('TopControlBar', () => {
     }
   });
 
+  it('keeps desktop toolbar menus mutually exclusive', () => {
+    const source = readFileSync('src/components/layout/TopControlBar.tsx', 'utf8');
+
+    expect(source).toContain(`onClick={() => {
+                setViewMenuOpen(!viewMenuOpen);
+                setAnalysisMenuOpen(false);
+              }}
+              title="View options"`);
+    expect(source).toContain(`onClick={() => {
+                setAnalysisMenuOpen(!analysisMenuOpen);
+                setViewMenuOpen(false);
+              }}
+              title="Analysis actions"`);
+  });
+
   it('uses explicit button types in toolbar popovers and menus', () => {
     const source = readFileSync('src/components/layout/TopControlBar.tsx', 'utf8');
 

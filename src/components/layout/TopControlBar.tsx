@@ -690,7 +690,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
             <button
               type="button"
               className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
-              onClick={() => setViewMenuOpen(!viewMenuOpen)}
+              onClick={() => {
+                setViewMenuOpen(!viewMenuOpen);
+                setAnalysisMenuOpen(false);
+              }}
               title="View options"
             >
               <FaSlidersH size={14} /> View <FaChevronDown size={10} className="opacity-80" />
@@ -750,7 +753,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
             <button
               type="button"
               className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
-              onClick={() => setAnalysisMenuOpen(!analysisMenuOpen)}
+              onClick={() => {
+                setAnalysisMenuOpen(!analysisMenuOpen);
+                setViewMenuOpen(false);
+              }}
               title="Analysis actions"
             >
               Actions <FaChevronDown size={10} className="opacity-80" />
