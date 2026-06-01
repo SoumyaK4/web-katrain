@@ -1127,8 +1127,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <h3 className={sectionTitleClass}>AI</h3>
 
                                     <div className="mt-4 space-y-2">
-                                        <label className="text-[var(--ui-text-muted)] block">Strategy</label>
+                                        <label htmlFor="settings-ai-strategy" className="text-[var(--ui-text-muted)] block">Strategy</label>
                                         <select
+                                            id="settings-ai-strategy"
                                             value={settings.aiStrategy}
                                             onChange={(e) => updateSettings({ aiStrategy: e.target.value as GameSettings['aiStrategy'] })}
                                             className={selectClass}
@@ -1151,8 +1152,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'rank' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Kyu Rank</label>
+                                            <label htmlFor="settings-ai-rank-kyu" className="text-[var(--ui-text-muted)] block text-sm">Kyu Rank</label>
                                             <input
+                                                id="settings-ai-rank-kyu"
                                                 type="number"
                                                 step={0.5}
                                                 value={settings.aiRankKyu}
@@ -1167,8 +1169,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'scoreloss' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Strength (c)</label>
+                                            <label htmlFor="settings-ai-scoreloss-strength" className="text-[var(--ui-text-muted)] block text-sm">Strength (c)</label>
                                             <input
+                                                id="settings-ai-scoreloss-strength"
                                                 type="number"
                                                 min={0}
                                                 step={0.05}
@@ -1184,8 +1187,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'jigo' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Target Score</label>
+                                            <label htmlFor="settings-ai-jigo-target-score" className="text-[var(--ui-text-muted)] block text-sm">Target Score</label>
                                             <input
+                                                id="settings-ai-jigo-target-score"
                                                 type="number"
                                                 step={0.1}
                                                 value={settings.aiJigoTargetScore}
@@ -1201,8 +1205,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {(settings.aiStrategy === 'simple' || settings.aiStrategy === 'settle') && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Max Pt Lost</label>
+                                                <label htmlFor="settings-ai-ownership-max-points-lost" className="text-[var(--ui-text-muted)] block text-sm">Max Pt Lost</label>
                                                 <input
+                                                    id="settings-ai-ownership-max-points-lost"
                                                     type="number"
                                                     min={0}
                                                     step={0.25}
@@ -1212,8 +1217,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Settled Wt</label>
+                                                <label htmlFor="settings-ai-ownership-settled-weight" className="text-[var(--ui-text-muted)] block text-sm">Settled Wt</label>
                                                 <input
+                                                    id="settings-ai-ownership-settled-weight"
                                                     type="number"
                                                     min={0}
                                                     step={0.25}
@@ -1223,8 +1229,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Opp Fac</label>
+                                                <label htmlFor="settings-ai-ownership-opponent-factor" className="text-[var(--ui-text-muted)] block text-sm">Opp Fac</label>
                                                 <input
+                                                    id="settings-ai-ownership-opponent-factor"
                                                     type="number"
                                                     min={0}
                                                     step={0.1}
@@ -1234,8 +1241,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Min Visits</label>
+                                                <label htmlFor="settings-ai-ownership-min-visits" className="text-[var(--ui-text-muted)] block text-sm">Min Visits</label>
                                                 <input
+                                                    id="settings-ai-ownership-min-visits"
                                                     type="number"
                                                     min={0}
                                                     step={1}
@@ -1245,8 +1253,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Attach Pen</label>
+                                                <label htmlFor="settings-ai-ownership-attach-penalty" className="text-[var(--ui-text-muted)] block text-sm">Attach Pen</label>
                                                 <input
+                                                    id="settings-ai-ownership-attach-penalty"
                                                     type="number"
                                                     min={0}
                                                     step={0.25}
@@ -1256,8 +1265,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Tenuki Pen</label>
+                                                <label htmlFor="settings-ai-ownership-tenuki-penalty" className="text-[var(--ui-text-muted)] block text-sm">Tenuki Pen</label>
                                                 <input
+                                                    id="settings-ai-ownership-tenuki-penalty"
                                                     type="number"
                                                     min={0}
                                                     step={0.25}
@@ -1274,8 +1284,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'policy' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Opening Moves</label>
+                                            <label htmlFor="settings-ai-policy-opening-moves" className="text-[var(--ui-text-muted)] block text-sm">Opening Moves</label>
                                             <input
+                                                id="settings-ai-policy-opening-moves"
                                                 type="number"
                                                 min={0}
                                                 step={1}
@@ -1292,8 +1303,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'weighted' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
+                                                <label htmlFor="settings-ai-weighted-override" className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
+                                                    id="settings-ai-weighted-override"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1304,8 +1316,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Weaken</label>
+                                                <label htmlFor="settings-ai-weighted-weaken" className="text-[var(--ui-text-muted)] block text-sm">Weaken</label>
                                                 <input
+                                                    id="settings-ai-weighted-weaken"
                                                     type="number"
                                                     min={0.01}
                                                     step={0.05}
@@ -1315,8 +1328,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Lower</label>
+                                                <label htmlFor="settings-ai-weighted-lower" className="text-[var(--ui-text-muted)] block text-sm">Lower</label>
                                                 <input
+                                                    id="settings-ai-weighted-lower"
                                                     type="number"
                                                     min={0}
                                                     step={0.001}
@@ -1334,8 +1348,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'pick' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
+                                                <label htmlFor="settings-ai-pick-override" className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
+                                                    id="settings-ai-pick-override"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1346,8 +1361,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
+                                                <label htmlFor="settings-ai-pick-n" className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
+                                                    id="settings-ai-pick-n"
                                                     type="number"
                                                     min={0}
                                                     step={1}
@@ -1357,8 +1373,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
+                                                <label htmlFor="settings-ai-pick-frac" className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
+                                                    id="settings-ai-pick-frac"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1377,8 +1394,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'local' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
+                                                <label htmlFor="settings-ai-local-override" className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
+                                                    id="settings-ai-local-override"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1389,8 +1407,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Stddev</label>
+                                                <label htmlFor="settings-ai-local-stddev" className="text-[var(--ui-text-muted)] block text-sm">Stddev</label>
                                                 <input
+                                                    id="settings-ai-local-stddev"
                                                     type="number"
                                                     min={0.1}
                                                     step={0.5}
@@ -1400,8 +1419,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
+                                                <label htmlFor="settings-ai-local-endgame" className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
                                                 <input
+                                                    id="settings-ai-local-endgame"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1412,8 +1432,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
+                                                <label htmlFor="settings-ai-local-pick-n" className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
+                                                    id="settings-ai-local-pick-n"
                                                     type="number"
                                                     min={0}
                                                     step={1}
@@ -1423,8 +1444,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
+                                                <label htmlFor="settings-ai-local-pick-frac" className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
+                                                    id="settings-ai-local-pick-frac"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1443,8 +1465,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'tenuki' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
+                                                <label htmlFor="settings-ai-tenuki-override" className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
+                                                    id="settings-ai-tenuki-override"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1455,8 +1478,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Stddev</label>
+                                                <label htmlFor="settings-ai-tenuki-stddev" className="text-[var(--ui-text-muted)] block text-sm">Stddev</label>
                                                 <input
+                                                    id="settings-ai-tenuki-stddev"
                                                     type="number"
                                                     min={0.1}
                                                     step={0.5}
@@ -1466,8 +1490,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
+                                                <label htmlFor="settings-ai-tenuki-endgame" className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
                                                 <input
+                                                    id="settings-ai-tenuki-endgame"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1478,8 +1503,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
+                                                <label htmlFor="settings-ai-tenuki-pick-n" className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
+                                                    id="settings-ai-tenuki-pick-n"
                                                     type="number"
                                                     min={0}
                                                     step={1}
@@ -1489,8 +1515,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
+                                                <label htmlFor="settings-ai-tenuki-pick-frac" className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
+                                                    id="settings-ai-tenuki-pick-frac"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1509,8 +1536,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {(settings.aiStrategy === 'influence' || settings.aiStrategy === 'territory') && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
+                                                <label htmlFor="settings-ai-edge-override" className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
+                                                    id="settings-ai-edge-override"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1524,8 +1552,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Threshold</label>
+                                                <label htmlFor="settings-ai-edge-threshold" className="text-[var(--ui-text-muted)] block text-sm">Threshold</label>
                                                 <input
+                                                    id="settings-ai-edge-threshold"
                                                     type="number"
                                                     min={0}
                                                     step={0.5}
@@ -1538,8 +1567,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Line Wt</label>
+                                                <label htmlFor="settings-ai-edge-line-weight" className="text-[var(--ui-text-muted)] block text-sm">Line Wt</label>
                                                 <input
+                                                    id="settings-ai-edge-line-weight"
                                                     type="number"
                                                     min={0}
                                                     step={1}
@@ -1552,8 +1582,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
+                                                <label htmlFor="settings-ai-edge-pick-n" className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
+                                                    id="settings-ai-edge-pick-n"
                                                     type="number"
                                                     min={0}
                                                     step={1}
@@ -1566,8 +1597,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
+                                                <label htmlFor="settings-ai-edge-pick-frac" className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
+                                                    id="settings-ai-edge-pick-frac"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1581,8 +1613,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
+                                                <label htmlFor="settings-ai-edge-endgame" className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
                                                 <input
+                                                    id="settings-ai-edge-endgame"
                                                     type="number"
                                                     min={0}
                                                     max={1}
@@ -1606,7 +1639,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <h3 className={sectionTitleClass}>KataGo</h3>
 
                                     <div className="mt-4 space-y-2">
-                                        <label className="text-[var(--ui-text-muted)] block">Model URL</label>
+                                        <label htmlFor="settings-katago-model-url" className="text-[var(--ui-text-muted)] block">Model URL</label>
                                         <div className="flex flex-wrap gap-2">
                                             <button
                                                 type="button"
@@ -1626,7 +1659,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </button>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-xs text-[var(--ui-text-faint)] block">Upload weights (.bin.gz)</label>
+                                            <div className="text-xs text-[var(--ui-text-faint)]">Upload weights (.bin.gz)</div>
                                             <div className="flex flex-wrap gap-2">
                                                 <button
                                                     type="button"
@@ -1667,7 +1700,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </p>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs text-[var(--ui-text-faint)] block">Official KataGo models (download links)</label>
+                                            <div className="text-xs text-[var(--ui-text-faint)]">Official KataGo models (download links)</div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 {OFFICIAL_MODELS.map((model) => (
                                                     <div
@@ -1735,6 +1768,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </p>
                                         </div>
                                         <input
+                                            id="settings-katago-model-url"
                                             type="text"
                                             value={settings.katagoModelUrl}
                                             onChange={(e) => updateSettings({ katagoModelUrl: e.target.value })}
@@ -1745,8 +1779,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             Use a local path under <span className="font-mono">{publicUrl('models/')}</span> or a full URL (must allow CORS).
                                         </p>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Backend</label>
+                                            <label htmlFor="settings-katago-backend" className="text-[var(--ui-text-muted)] block text-sm">Backend</label>
                                             <select
+                                                id="settings-katago-backend"
                                                 value={settings.katagoBackend}
                                                 onChange={(e) => updateSettings({ katagoBackend: e.target.value as GameSettings['katagoBackend'] })}
                                                 className={selectClass}
@@ -1769,8 +1804,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Visits</label>
+                                            <label htmlFor="settings-katago-visits" className="text-[var(--ui-text-muted)] block text-sm">Visits</label>
                                             <input
+                                                id="settings-katago-visits"
                                                 type="number"
                                                 min={16}
                                                 max={ENGINE_MAX_VISITS}
@@ -1780,13 +1816,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Fast review depth</label>
+                                            <label htmlFor="settings-katago-fast-review-depth" className="text-[var(--ui-text-muted)] block text-sm">Fast review depth</label>
                                             <input
+                                                id="settings-katago-fast-review-depth"
                                                 type="number"
                                                 min={MIN_ANALYSIS_VISITS}
                                                 max={ENGINE_MAX_VISITS}
                                                 value={settings.katagoFastVisits}
-                                                aria-label="Fast review visits"
                                                 onChange={(e) => updateSettings({ katagoFastVisits: clampSettingsVisits(parseInt(e.target.value || '0', 10)) })}
                                                 className={inputClass}
                                             />
@@ -1813,8 +1849,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <p className={subtextClass}>Used by Fast review and load-time SGF analysis.</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Max Time (ms)</label>
+                                            <label htmlFor="settings-katago-max-time" className="text-[var(--ui-text-muted)] block text-sm">Max Time (ms)</label>
                                             <input
+                                                id="settings-katago-max-time"
                                                 type="number"
                                                 min={25}
                                                 max={ENGINE_MAX_TIME_MS}
@@ -1824,8 +1861,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Batch Size</label>
+                                            <label htmlFor="settings-katago-batch-size" className="text-[var(--ui-text-muted)] block text-sm">Batch Size</label>
                                             <input
+                                                id="settings-katago-batch-size"
                                                 type="number"
                                                 min={1}
                                                 max={64}
@@ -1835,8 +1873,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Max Children</label>
+                                            <label htmlFor="settings-katago-max-children" className="text-[var(--ui-text-muted)] block text-sm">Max Children</label>
                                             <input
+                                                id="settings-katago-max-children"
                                                 type="number"
                                                 min={4}
                                                 max={361}
@@ -1848,8 +1887,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     </div>
 
                                     <div className="mt-3 space-y-1">
-                                        <label className="text-[var(--ui-text-muted)] block text-sm">Top Moves</label>
+                                        <label htmlFor="settings-katago-top-moves" className="text-[var(--ui-text-muted)] block text-sm">Top Moves</label>
                                         <input
+                                            id="settings-katago-top-moves"
                                             type="number"
                                             min={1}
                                             max={50}
@@ -1861,8 +1901,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Wide Root Noise</label>
+                                            <label htmlFor="settings-katago-wide-root-noise" className="text-[var(--ui-text-muted)] block text-sm">Wide Root Noise</label>
                                             <input
+                                                id="settings-katago-wide-root-noise"
                                                 type="number"
                                                 min={0}
                                                 step={0.01}
@@ -1873,8 +1914,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <p className={subtextClass}>KaTrain default is 0.04; set 0 for strongest/most stable.</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">PV Len</label>
+                                            <label htmlFor="settings-katago-pv-len" className="text-[var(--ui-text-muted)] block text-sm">PV Len</label>
                                             <input
+                                                id="settings-katago-pv-len"
                                                 type="number"
                                                 min={0}
                                                 max={60}
@@ -1889,8 +1931,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Ownership</label>
+                                            <label htmlFor="settings-katago-ownership" className="text-[var(--ui-text-muted)] block text-sm">Ownership</label>
                                             <select
+                                                id="settings-katago-ownership"
                                                 value={settings.katagoOwnershipMode}
                                                 onChange={(e) => updateSettings({ katagoOwnershipMode: e.target.value as 'root' | 'tree' })}
                                                 className={selectClass}
@@ -1903,16 +1946,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[var(--ui-text-muted)] block text-sm">Reuse Search Tree</label>
-                                            <label className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
+                                            <label htmlFor="settings-katago-reuse-tree" className="text-[var(--ui-text-muted)] block text-sm">Reuse Search Tree</label>
+                                            <div className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
                                                 <input
+                                                    id="settings-katago-reuse-tree"
                                                     type="checkbox"
                                                     checked={settings.katagoReuseTree}
                                                     onChange={(e) => updateSettings({ katagoReuseTree: e.target.checked })}
                                                     className="rounded"
                                                 />
                                                 <span>Enable (faster)</span>
-                                            </label>
+                                            </div>
                                             <p className={subtextClass}>
                                                 Speeds up continuous analysis by continuing from previous visits.
                                             </p>
@@ -1920,32 +1964,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     </div>
 
                                     <div className="mt-3 space-y-1">
-                                        <label className="text-[var(--ui-text-muted)] block text-sm">Randomize Symmetry</label>
-                                        <label className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
+                                        <label htmlFor="settings-katago-randomize-symmetry" className="text-[var(--ui-text-muted)] block text-sm">Randomize Symmetry</label>
+                                        <div className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
                                             <input
+                                                id="settings-katago-randomize-symmetry"
                                                 type="checkbox"
                                                 checked={settings.katagoNnRandomize}
                                                 onChange={(e) => updateSettings({ katagoNnRandomize: e.target.checked })}
                                                 className="rounded"
                                             />
                                             <span>Enable (nnRandomize)</span>
-                                        </label>
+                                        </div>
                                         <p className={subtextClass}>
                                             Matches KataGo defaults; disable for deterministic/stable analysis.
                                         </p>
                                     </div>
 
                                     <div className="mt-3 space-y-1">
-                                        <label className="text-[var(--ui-text-muted)] block text-sm">Conservative Pass</label>
-                                        <label className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
+                                        <label htmlFor="settings-katago-conservative-pass" className="text-[var(--ui-text-muted)] block text-sm">Conservative Pass</label>
+                                        <div className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
                                             <input
+                                                id="settings-katago-conservative-pass"
                                                 type="checkbox"
                                                 checked={settings.katagoConservativePass}
                                                 onChange={(e) => updateSettings({ katagoConservativePass: e.target.checked })}
                                                 className="rounded"
                                             />
                                             <span>Enable (conservativePass)</span>
-                                        </label>
+                                        </div>
                                         <p className={subtextClass}>
                                             KaTrain default: suppresses “pass ends game” features at the root.
                                         </p>

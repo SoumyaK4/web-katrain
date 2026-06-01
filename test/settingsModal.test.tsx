@@ -102,4 +102,65 @@ describe('SettingsModal', () => {
     });
     expect(source).toContain('<span className="sr-only"> row {i + 1}</span>');
   });
+
+  it('binds AI and engine settings labels to their controls', () => {
+    const source = readFileSync('src/components/SettingsModal.tsx', 'utf8');
+
+    [
+      'settings-ai-strategy',
+      'settings-ai-rank-kyu',
+      'settings-ai-scoreloss-strength',
+      'settings-ai-jigo-target-score',
+      'settings-ai-ownership-max-points-lost',
+      'settings-ai-ownership-settled-weight',
+      'settings-ai-ownership-opponent-factor',
+      'settings-ai-ownership-min-visits',
+      'settings-ai-ownership-attach-penalty',
+      'settings-ai-ownership-tenuki-penalty',
+      'settings-ai-policy-opening-moves',
+      'settings-ai-weighted-override',
+      'settings-ai-weighted-weaken',
+      'settings-ai-weighted-lower',
+      'settings-ai-pick-override',
+      'settings-ai-pick-n',
+      'settings-ai-pick-frac',
+      'settings-ai-local-override',
+      'settings-ai-local-stddev',
+      'settings-ai-local-endgame',
+      'settings-ai-local-pick-n',
+      'settings-ai-local-pick-frac',
+      'settings-ai-tenuki-override',
+      'settings-ai-tenuki-stddev',
+      'settings-ai-tenuki-endgame',
+      'settings-ai-tenuki-pick-n',
+      'settings-ai-tenuki-pick-frac',
+      'settings-ai-edge-override',
+      'settings-ai-edge-threshold',
+      'settings-ai-edge-line-weight',
+      'settings-ai-edge-pick-n',
+      'settings-ai-edge-pick-frac',
+      'settings-ai-edge-endgame',
+      'settings-katago-model-url',
+      'settings-katago-backend',
+      'settings-katago-visits',
+      'settings-katago-fast-review-depth',
+      'settings-katago-max-time',
+      'settings-katago-batch-size',
+      'settings-katago-max-children',
+      'settings-katago-top-moves',
+      'settings-katago-wide-root-noise',
+      'settings-katago-pv-len',
+      'settings-katago-ownership',
+      'settings-katago-reuse-tree',
+      'settings-katago-randomize-symmetry',
+      'settings-katago-conservative-pass',
+    ].forEach((id) => {
+      expect(source).toContain(`htmlFor="${id}"`);
+      expect(source).toContain(`id="${id}"`);
+    });
+
+    expect(source).not.toContain('aria-label="Fast review visits"');
+    expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Upload weights (.bin.gz)</div>');
+    expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Official KataGo models (download links)</div>');
+  });
 });
