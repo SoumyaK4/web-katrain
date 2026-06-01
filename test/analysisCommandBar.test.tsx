@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AnalysisCommandBar } from '../src/components/AnalysisCommandBar';
 import { defaultUiState } from '../src/components/layout/types';
+import { summarizeAnalysisCoverage } from '../src/utils/analysisCoverage';
+import { getFastReviewButtonState } from '../src/utils/fastReviewButtonState';
+import type { AnalysisResult } from '../src/types';
 
 const noop = () => undefined;
 const baseProps = {
@@ -30,6 +33,17 @@ const baseProps = {
   onOpenGameReport: noop,
 };
 
+const analysis = (): AnalysisResult => ({
+  rootWinRate: 0.5,
+  rootScoreLead: 0,
+  rootScoreSelfplay: 0,
+  rootScoreStdev: 1,
+  rootVisits: 16,
+  moves: [],
+  territory: Array.from({ length: 19 }, () => Array.from({ length: 19 }, () => 0)),
+  ownershipMode: 'none',
+});
+
 describe('AnalysisCommandBar', () => {
   it('surfaces a compact engine status pill with backend and model context', () => {
     const html = renderToStaticMarkup(<AnalysisCommandBar {...baseProps} />);
@@ -56,5 +70,39 @@ describe('AnalysisCommandBar', () => {
     expect(html).toContain('analysis-command-bar__status--fallback');
     expect(html).toContain('Error fallback · CPU (WASM) · kata1-b18');
     expect(html).toContain('Copy engine error details');
+  });
+
+  it('marks fast review complete once the current line is fully analyzed', () => {
+    const state = getFastReviewButtonState({
+      isGameAnalysisRunning: false,
+      gameProgress: null,
+      analysisCoverage: summarizeAnalysisCoverage([{ analysis: analysis() }, { analysis: analysis() }]),
+    });
+
+    expect(state).toEqual({
+      state: 'complete',
+      label: 'Reviewed',
+      title: 'Current line is fully analyzed (2/2). Use Re-analyze game for a deeper pass.',
+      disabled: true,
+      ariaLabel: 'Current line fully analyzed',
+    });
+  });
+
+  it('keeps fast review as an actionable stop button while review is running', () => {
+    const state = getFastReviewButtonState({
+      isGameAnalysisRunning: true,
+      gameProgress: {
+        buttonLabel: '4/10',
+        title: 'Analyzing 4 of 10 moves',
+      },
+      analysisCoverage: summarizeAnalysisCoverage([{ analysis: analysis() }, { analysis: null }]),
+    });
+
+    expect(state).toEqual({
+      state: 'running',
+      label: 'Stop 4/10',
+      title: 'Analyzing 4 of 10 moves',
+      disabled: false,
+    });
   });
 });

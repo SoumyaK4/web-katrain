@@ -43,6 +43,9 @@ import { getNextMoveQuality, getPlayedMoveQuality } from '../utils/playedMoveQua
 import { copyTextToClipboard } from '../utils/clipboard';
 import { formatEngineErrorReport } from '../utils/engineDiagnostics';
 import { setTimedNotification } from '../utils/timedNotification';
+import { getCurrentLineNodes } from '../utils/branchNavigation';
+import { summarizeAnalysisCoverage } from '../utils/analysisCoverage';
+import { getFastReviewButtonState } from '../utils/fastReviewButtonState';
 
 interface AnalysisCommandBarProps {
   mode: UiMode;
@@ -125,10 +128,13 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         nowMs: reviewNow,
       })
     : null;
+  const analysisCoverage = summarizeAnalysisCoverage(getCurrentLineNodes(currentNode, activeBranchChildIds));
+  const fastReviewButton = getFastReviewButtonState({
+    isGameAnalysisRunning,
+    gameProgress,
+    analysisCoverage,
+  });
   const liveButtonLabel = isAnalysisMode ? 'Live on' : 'Analyze';
-  const gameButtonLabel = isGameAnalysisRunning
-    ? `Stop ${gameProgress?.buttonLabel ?? ''}`.trim()
-    : 'Fast review';
   const engineSummary = React.useMemo(() => getEngineStatusSummary({
     status: engineStatus,
     error: engineError,
@@ -452,15 +458,22 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
         </button>
         <button
           type="button"
-          className={['analysis-command-bar__button', isGameAnalysisRunning ? 'danger active' : ''].join(' ')}
+          className={[
+            'analysis-command-bar__button',
+            fastReviewButton.state === 'running' ? 'danger active' : '',
+            fastReviewButton.state === 'complete' ? 'active' : '',
+          ].join(' ')}
           onClick={() => {
             if (isGameAnalysisRunning) stopGameAnalysis();
             else startFastGameAnalysis();
           }}
-          title={isGameAnalysisRunning ? (gameProgress?.title ?? 'Stop game analysis') : 'Run a fast MCTS review of the game'}
+          disabled={fastReviewButton.disabled}
+          title={fastReviewButton.title}
+          aria-label={fastReviewButton.ariaLabel}
+          data-analysis-fast-review-state={fastReviewButton.state}
         >
           {isGameAnalysisRunning ? <FaSquare size={12} aria-hidden="true" /> : <FaRobot size={12} aria-hidden="true" />}
-          <span>{gameButtonLabel}</span>
+          <span>{fastReviewButton.label}</span>
         </button>
         <button
           ref={depthButtonRef}
