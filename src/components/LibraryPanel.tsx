@@ -1783,6 +1783,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    aria-label="Search library"
                     placeholder="Search library…"
                     className="w-full ui-input border rounded pl-8 pr-3 py-1 text-sm text-[var(--ui-text)] focus:border-[var(--ui-accent)]"
                   />
@@ -1791,6 +1792,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   value={sortKey}
                   onChange={(e) => setSortKey(e.target.value)}
                   className="ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
+                  aria-label="Sort library"
                   title="Sort"
                 >
                   <option value="recent">Recent</option>
@@ -1883,6 +1885,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
                   <select
                     value={bulkMoveTarget}
                     onChange={(e) => setBulkMoveTarget(e.target.value)}
+                    aria-label="Move selected to folder"
                     className="ml-1 ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
                   >
                     <option value="">Move to...</option>
