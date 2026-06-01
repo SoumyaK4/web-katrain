@@ -30,6 +30,7 @@ const baseProps = {
   onOpenSgf: () => undefined,
   onScanBoard: () => undefined,
   onSaveToLibrary: () => undefined,
+  onCopySgf: () => undefined,
   onPasteSgf: () => undefined,
   onOpenLibrary: () => undefined,
   onOpenReport: () => undefined,
@@ -62,10 +63,11 @@ describe('MobileHome', () => {
     expect(html).toContain('aria-label="Open board"');
   });
 
-  it('keeps saving reachable from the mobile home launcher', () => {
+  it('keeps saving and SGF copying reachable from the mobile home launcher', () => {
     const html = renderToStaticMarkup(<MobileHome {...baseProps} />);
 
     expect(html).toContain('Save Copy to Library');
+    expect(html).toContain('Copy SGF');
   });
 
   it('explains the quick new game replacement risk on mobile home', () => {

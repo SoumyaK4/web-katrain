@@ -2639,6 +2639,10 @@ export const Layout: React.FC = () => {
             closeMobileHome();
             handleOpenSaveToLibraryDialog();
           }}
+          onCopySgf={() => {
+            closeMobileHome();
+            void handleCopySgf();
+          }}
           onPasteSgf={() => {
             closeMobileHome();
             void handlePasteSgf();

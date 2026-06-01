@@ -5,6 +5,7 @@ import {
   FaChartLine,
   FaClipboard,
   FaCog,
+  FaCopy,
   FaFolderOpen,
   FaGamepad,
   FaPlay,
@@ -36,6 +37,7 @@ interface MobileHomeProps {
   onOpenSgf: () => void;
   onScanBoard: () => void;
   onSaveToLibrary: () => void;
+  onCopySgf: () => void;
   onPasteSgf: () => void;
   onOpenLibrary: () => void;
   onOpenReport: () => void;
@@ -101,6 +103,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
   onOpenSgf,
   onScanBoard,
   onSaveToLibrary,
+  onCopySgf,
   onPasteSgf,
   onOpenLibrary,
   onOpenReport,
@@ -196,6 +199,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
             />
             <HomeAction label="New Game" icon={<FaPlay />} onClick={onNewGame} />
             <HomeAction label="Save Copy to Library" icon={<FaSave />} onClick={onSaveToLibrary} />
+            <HomeAction label="Copy SGF" icon={<FaCopy />} onClick={onCopySgf} />
             <HomeAction label="Open SGF / Photo / Model" icon={<FaFolderOpen />} onClick={onOpenSgf} />
             <HomeAction label="Photo Board" icon={<FaCamera />} onClick={onScanBoard} />
             <HomeAction label="Paste SGF / OGS" icon={<FaClipboard />} onClick={onPasteSgf} />
