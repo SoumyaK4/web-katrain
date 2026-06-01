@@ -1,17 +1,20 @@
-export function getLocalStorage(): Storage | null {
+function getBrowserStorage(name: 'localStorage' | 'sessionStorage'): Storage | null {
   try {
-    return typeof globalThis.localStorage === 'undefined' ? null : globalThis.localStorage;
+    if (typeof window !== 'undefined') return window[name] ?? null;
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
+    if (!descriptor || !('value' in descriptor)) return null;
+    return (descriptor.value as Storage | undefined) ?? null;
   } catch {
     return null;
   }
 }
 
+export function getLocalStorage(): Storage | null {
+  return getBrowserStorage('localStorage');
+}
+
 export function getSessionStorage(): Storage | null {
-  try {
-    return typeof globalThis.sessionStorage === 'undefined' ? null : globalThis.sessionStorage;
-  } catch {
-    return null;
-  }
+  return getBrowserStorage('sessionStorage');
 }
 
 export function getIndexedDB(): IDBFactory | null {
