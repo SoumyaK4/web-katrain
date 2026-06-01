@@ -197,7 +197,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         () => BOARD_THEME_OPTIONS.map((theme) => ({ ...theme, config: getBoardTheme(theme.value) })),
         []
     );
-    const selectedBoardThemeMeta = boardThemeChoices.find((theme) => theme.value === settings.boardTheme)?.config;
 
     React.useEffect(() => {
         syncUploadedModelUrl(settings.katagoModelUrl);
@@ -545,13 +544,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                                 <span className="truncate text-xs font-semibold">{theme.label}</span>
                                                                 {selected ? <span className="text-[10px] font-mono text-[var(--ui-accent)]">On</span> : null}
                                                             </span>
+                                                            {theme.config.description ? (
+                                                                <span
+                                                                    className="mt-1 block truncate text-[10px] leading-tight ui-text-faint"
+                                                                    title={theme.config.description}
+                                                                >
+                                                                    {theme.config.description}
+                                                                </span>
+                                                            ) : null}
                                                         </button>
                                                     );
                                                 })}
                                             </div>
-                                            {selectedBoardThemeMeta?.description ? (
-                                                <p className={subtextClass}>{selectedBoardThemeMeta.description}</p>
-                                            ) : null}
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

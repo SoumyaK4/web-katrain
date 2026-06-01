@@ -24,4 +24,11 @@ describe('SettingsModal', () => {
     expect(source).not.toContain('text-slate-400');
     expect(source).not.toContain('border-slate-700/50');
   });
+
+  it('shows board theme descriptions in the Kaya-style picker', () => {
+    const html = renderToStaticMarkup(<SettingsModal onClose={() => undefined} />);
+
+    expect(html).toContain('Kaya-style previews');
+    expect(html).toContain('Traditional clamshell and slate stones');
+  });
 });
