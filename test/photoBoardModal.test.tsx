@@ -47,8 +47,7 @@ describe('PhotoBoardModal', () => {
   it('marks the camera source unavailable when no camera is detected', () => {
     const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
 
-    expect(source).toContain("type CameraAvailability = 'unknown' | 'available' | 'unavailable'");
-    expect(source).toContain('navigator.mediaDevices.enumerateDevices()');
+    expect(source).toContain('detectCameraAvailability');
     expect(source).toContain('data-photo-board-camera-state={cameraAvailability}');
     expect(source).toContain('disabled={cameraUnavailable}');
     expect(source).toContain('data-photo-board-camera-unavailable="true"');

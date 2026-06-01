@@ -18,6 +18,7 @@ import {
 import { createObjectUrl, revokeObjectUrl } from '../utils/objectUrl';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import { isTextEntryTarget } from '../utils/keyboardTarget';
+import { detectCameraAvailability, type CameraAvailability } from '../utils/cameraAvailability';
 
 interface PhotoBoardModalProps {
   onClose: () => void;
@@ -34,7 +35,6 @@ interface PhotoBoardModalProps {
 type TraceTool = PhotoBoardTraceTool;
 type PhotoFit = 'cover' | 'contain';
 type MobilePhotoBoardTab = 'photo' | 'trace';
-type CameraAvailability = 'unknown' | 'available' | 'unavailable';
 
 const makeEmptyStones = (boardSize: BoardSize): PhotoBoardStone[] =>
   Array.from({ length: boardSize * boardSize }, () => null);
@@ -164,17 +164,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   }, []);
 
   React.useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return undefined;
     let cancelled = false;
 
-    void navigator.mediaDevices.enumerateDevices()
-      .then((devices) => {
-        if (cancelled) return;
-        setCameraAvailability(devices.some((device) => device.kind === 'videoinput') ? 'available' : 'unavailable');
-      })
-      .catch(() => {
-        if (!cancelled) setCameraAvailability('unknown');
-      });
+    void detectCameraAvailability().then((availability) => {
+      if (!cancelled) setCameraAvailability(availability);
+    });
 
     return () => {
       cancelled = true;
