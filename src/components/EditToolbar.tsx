@@ -24,6 +24,7 @@ import {
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
+import { EDIT_TOOL_SHORTCUT_ID_BY_TOOL, EDIT_TOOL_SHORTCUT_IDS } from '../utils/shortcuts';
 import type { EditTool } from '../types';
 
 type EditToolItem = {
@@ -71,7 +72,7 @@ const TOOL_LABELS: Record<EditTool, string> = Object.fromEntries(
   TOOL_GROUPS.flatMap((group) => group.items.map((item) => [item.tool, item.label]))
 ) as Record<EditTool, string>;
 
-const EDIT_TOOLBAR_SHORTCUT_IDS = ['toggle-edit-mode'] as const;
+const EDIT_TOOLBAR_SHORTCUT_IDS = ['toggle-edit-mode', ...EDIT_TOOL_SHORTCUT_IDS] as const;
 type EditToolbarShortcutId = (typeof EDIT_TOOLBAR_SHORTCUT_IDS)[number];
 
 const toolButtonClass = (active: boolean) =>
@@ -222,21 +223,30 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 <div className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
                   {group.title}
                 </div>
-                {group.items.map((item) => (
-                  <button
-                    key={item.tool}
-                    type="button"
-                    className={toolButtonClass(editTool === item.tool)}
-                    onClick={() => setEditTool(item.tool)}
-                    title={item.title}
-                    aria-pressed={editTool === item.tool}
-                  >
-                    <span className={item.tool === 'setup-black' ? 'text-black' : item.tool === 'setup-white' ? 'text-white' : ''}>
-                      {item.icon}
-                    </span>
-                    <span className="hidden sm:inline">{item.label}</span>
-                  </button>
-                ))}
+                {group.items.map((item) => {
+                  const shortcutId = EDIT_TOOL_SHORTCUT_ID_BY_TOOL[item.tool] as EditToolbarShortcutId;
+                  const shortcutLabel = shortcutLabels[shortcutId];
+                  const title = shortcutLabel === 'Disabled' ? item.title : `${item.title} (${shortcutLabel})`;
+                  return (
+                    <button
+                      key={item.tool}
+                      type="button"
+                      className={toolButtonClass(editTool === item.tool)}
+                      onClick={() => setEditTool(item.tool)}
+                      title={title}
+                      aria-label={title}
+                      aria-pressed={editTool === item.tool}
+                    >
+                      <span className={item.tool === 'setup-black' ? 'text-black' : item.tool === 'setup-white' ? 'text-white' : ''}>
+                        {item.icon}
+                      </span>
+                      <span className="hidden sm:inline">{item.label}</span>
+                      {shortcutLabel !== 'Disabled' && (
+                        <kbd className="hidden md:inline font-mono text-[10px] ui-text-faint">{shortcutLabel}</kbd>
+                      )}
+                    </button>
+                  );
+                })}
                 {group.title === 'Setup' && (
                   <button
                     type="button"

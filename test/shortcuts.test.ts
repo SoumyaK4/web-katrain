@@ -83,6 +83,14 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('edit-note', {})).toEqual([{ key: 'c', ctrl: false, shift: false, alt: false }]);
   });
 
+  it('exposes numbered edit tool shortcuts for setup, marks, and labels', () => {
+    expect(getShortcutBindings('edit-tool-setup-black', {})).toEqual([{ key: '1', ctrl: false, shift: false, alt: false }]);
+    expect(getShortcutBindings('edit-tool-setup-white', {})).toEqual([{ key: '2', ctrl: false, shift: false, alt: false }]);
+    expect(getShortcutBindings('edit-tool-marker-triangle', {})).toEqual([{ key: '5', ctrl: false, shift: false, alt: false }]);
+    expect(getShortcutBindings('edit-tool-label-number', {})).toEqual([{ key: '0', ctrl: false, shift: false, alt: false }]);
+    expect(getShortcutBindings('edit-tool-marker-erase', {})).toEqual([{ key: '-', ctrl: false, shift: false, alt: false }]);
+  });
+
   it('exposes a non-conflicting shortcut for sound toggling', () => {
     expect(getShortcutBindings('toggle-sound', {})).toEqual([{ key: 'm', ctrl: false, shift: true, alt: false }]);
   });

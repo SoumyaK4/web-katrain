@@ -21,7 +21,7 @@ import {
   type LibraryFolderOption,
 } from '../utils/library';
 import { isOgsUrl, loadSgfOrOgs } from '../utils/ogs';
-import type { CandidateMove, GameNode, Player } from '../types';
+import type { CandidateMove, EditTool, GameNode, Player } from '../types';
 import { DEFAULT_BOARD_SIZE } from '../types';
 import { parseGtpMove } from '../lib/gtp';
 import { computeJapaneseManualScoreFromOwnership, formatResultScoreLead, roundToHalf } from '../utils/manualScore';
@@ -82,6 +82,7 @@ import { copyTextToClipboard, readClipboardText } from '../utils/clipboard';
 import { FIRST_RUN_LIBRARY_MIN_WIDTH, getInitialLibraryOpen, LIBRARY_OPEN_STORAGE_KEY } from '../utils/layoutPreferences';
 import { saveSettingsActiveTab } from '../utils/settingsTabs';
 import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
+import { EDIT_TOOL_SHORTCUT_DEFINITIONS } from '../utils/shortcuts';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -175,6 +176,7 @@ export const Layout: React.FC = () => {
     isEditMode,
     toggleInsertMode,
     toggleEditMode,
+    setEditTool,
     isSelfplayToEnd,
     selfplayToEnd,
     notification,
@@ -247,6 +249,7 @@ export const Layout: React.FC = () => {
       isEditMode: state.isEditMode,
       toggleInsertMode: state.toggleInsertMode,
       toggleEditMode: state.toggleEditMode,
+      setEditTool: state.setEditTool,
       isSelfplayToEnd: state.isSelfplayToEnd,
       selfplayToEnd: state.selfplayToEnd,
       notification: state.notification,
@@ -1297,6 +1300,14 @@ export const Layout: React.FC = () => {
     setNoteFocusRequest((request) => request + 1);
   };
 
+  const selectEditTool = (tool: EditTool) => {
+    setAnalysisMenuOpen(false);
+    setViewMenuOpen(false);
+    setMenuOpen(false);
+    if (!isEditMode) toggleEditMode();
+    setEditTool(tool);
+  };
+
   const handleCloseRightPanel = () => {
     if (isMobile) {
       setRightPanelOpen(false);
@@ -1959,6 +1970,14 @@ export const Layout: React.FC = () => {
         run: toggleEditMode,
         keywords: ['sgf', 'setup stones', 'markers', 'labels'],
       },
+      ...EDIT_TOOL_SHORTCUT_DEFINITIONS.map((shortcut) => ({
+        id: shortcut.id,
+        label: shortcut.label,
+        category: 'Edit',
+        shortcutId: shortcut.id,
+        run: () => selectEditTool(shortcut.tool),
+        keywords: ['tool', 'edit mode', shortcut.tool.replaceAll('-', ' ')],
+      })),
       {
         id: 'edit-note',
         label: 'Edit current note',

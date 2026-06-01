@@ -1,4 +1,5 @@
 import { readLocalStorage, writeLocalStorage } from './storage';
+import type { EditTool } from '../types';
 
 export type ShortcutCategory =
   | 'Navigation'
@@ -31,6 +32,27 @@ export type ShortcutGroup = { title: ShortcutCategory; shortcuts: ShortcutWithBi
 const STORAGE_KEY = 'web-katrain:shortcuts:v1';
 export const SHORTCUTS_UPDATED_EVENT = 'web-katrain:shortcuts-updated';
 
+export type EditToolShortcutDefinition = ShortcutDefinition & { tool: EditTool };
+
+export const EDIT_TOOL_SHORTCUT_DEFINITIONS: EditToolShortcutDefinition[] = [
+  { id: 'edit-tool-setup-black', category: 'Edit', label: 'Select black setup stone', tool: 'setup-black', defaultBindings: [{ key: '1' }] },
+  { id: 'edit-tool-setup-white', category: 'Edit', label: 'Select white setup stone', tool: 'setup-white', defaultBindings: [{ key: '2' }] },
+  { id: 'edit-tool-setup-alternate', category: 'Edit', label: 'Select alternate setup stones', tool: 'setup-alternate', defaultBindings: [{ key: '3' }] },
+  { id: 'edit-tool-setup-erase', category: 'Edit', label: 'Select setup eraser', tool: 'setup-erase', defaultBindings: [{ key: '4' }] },
+  { id: 'edit-tool-marker-triangle', category: 'Edit', label: 'Select triangle marker', tool: 'marker-triangle', defaultBindings: [{ key: '5' }] },
+  { id: 'edit-tool-marker-square', category: 'Edit', label: 'Select square marker', tool: 'marker-square', defaultBindings: [{ key: '6' }] },
+  { id: 'edit-tool-marker-circle', category: 'Edit', label: 'Select circle marker', tool: 'marker-circle', defaultBindings: [{ key: '7' }] },
+  { id: 'edit-tool-marker-cross', category: 'Edit', label: 'Select cross marker', tool: 'marker-cross', defaultBindings: [{ key: '8' }] },
+  { id: 'edit-tool-label-alpha', category: 'Edit', label: 'Select letter label', tool: 'label-alpha', defaultBindings: [{ key: '9' }] },
+  { id: 'edit-tool-label-number', category: 'Edit', label: 'Select number label', tool: 'label-number', defaultBindings: [{ key: '0' }] },
+  { id: 'edit-tool-marker-erase', category: 'Edit', label: 'Select marker eraser', tool: 'marker-erase', defaultBindings: [{ key: '-' }] },
+];
+
+export const EDIT_TOOL_SHORTCUT_IDS = EDIT_TOOL_SHORTCUT_DEFINITIONS.map((shortcut) => shortcut.id);
+export const EDIT_TOOL_SHORTCUT_ID_BY_TOOL = Object.fromEntries(
+  EDIT_TOOL_SHORTCUT_DEFINITIONS.map((shortcut) => [shortcut.tool, shortcut.id])
+) as Record<EditTool, string>;
+
 export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'nav-back', category: 'Navigation', label: 'Previous move', defaultBindings: [{ key: 'ArrowLeft' }, { key: 'z' }] },
   { id: 'nav-forward', category: 'Navigation', label: 'Next move', defaultBindings: [{ key: 'ArrowRight' }, { key: 'x' }] },
@@ -46,6 +68,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'edit-undo', category: 'Edit', label: 'Undo edit', defaultBindings: [{ key: 'z', ctrl: true }] },
   { id: 'edit-redo', category: 'Edit', label: 'Redo edit', defaultBindings: [{ key: 'z', ctrl: true, shift: true }, { key: 'y', ctrl: true }] },
   { id: 'edit-note', category: 'Edit', label: 'Edit current note', defaultBindings: [{ key: 'c' }] },
+  ...EDIT_TOOL_SHORTCUT_DEFINITIONS,
   { id: 'pass', category: 'Game Control', label: 'Pass', defaultBindings: [{ key: 'p' }] },
   { id: 'ai-move', category: 'Game Control', label: 'AI move', defaultBindings: [{ key: 'Enter' }] },
   { id: 'selfplay', category: 'Game Control', label: 'Selfplay to end', defaultBindings: [{ key: 'l' }] },

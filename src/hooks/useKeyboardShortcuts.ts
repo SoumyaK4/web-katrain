@@ -3,7 +3,7 @@ import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import { generateSgfFromTree, type KaTrainSgfExportOptions } from '../utils/sgf';
 import type { UiMode } from '../components/layout/types';
-import { eventMatchesShortcut, loadShortcutOverrides } from '../utils/shortcuts';
+import { EDIT_TOOL_SHORTCUT_DEFINITIONS, eventMatchesShortcut, loadShortcutOverrides } from '../utils/shortcuts';
 import { toggleAppFullscreen } from '../utils/fullscreen';
 import { shouldIgnoreKeyboardShortcutTarget } from '../utils/keyboardTarget';
 import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
@@ -86,6 +86,8 @@ export function useKeyboardShortcuts({
     isInsertMode,
     toggleInsertMode,
     toggleEditMode,
+    isEditMode,
+    setEditTool,
     selfplayToEnd,
     makeAiMove,
     rootNode,
@@ -118,6 +120,8 @@ export function useKeyboardShortcuts({
       isInsertMode: state.isInsertMode,
       toggleInsertMode: state.toggleInsertMode,
       toggleEditMode: state.toggleEditMode,
+      isEditMode: state.isEditMode,
+      setEditTool: state.setEditTool,
       selfplayToEnd: state.selfplayToEnd,
       makeAiMove: state.makeAiMove,
       rootNode: state.rootNode,
@@ -211,6 +215,14 @@ export function useKeyboardShortcuts({
         e.preventDefault();
         editCurrentNote();
         return;
+      }
+      for (const shortcut of EDIT_TOOL_SHORTCUT_DEFINITIONS) {
+        if (matches(shortcut.id)) {
+          e.preventDefault();
+          if (!isEditMode) toggleEditMode();
+          setEditTool(shortcut.tool);
+          return;
+        }
       }
 
       // Escape
@@ -560,6 +572,8 @@ export function useKeyboardShortcuts({
     isInsertMode,
     toggleInsertMode,
     toggleEditMode,
+    isEditMode,
+    setEditTool,
     selfplayToEnd,
     switchBranch,
     undoToBranchPoint,
