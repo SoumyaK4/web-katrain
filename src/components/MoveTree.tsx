@@ -33,6 +33,8 @@ import {
   shouldIgnoreWheelNavigationTarget,
   WHEEL_NAVIGATION_THROTTLE_MS,
 } from '../utils/wheelNavigation';
+import { getMoveTreeCommandFromEvent, MOVE_TREE_COMMAND_EVENT } from '../utils/moveTreeCommands';
+import { useShortcutLabels } from '../hooks/useShortcutLabels';
 
 type LayoutWorkerResponse =
   | { requestId: number; ok: true; layout: MoveTreeLayout }
@@ -42,6 +44,8 @@ const EMPTY_VIEWPORT: MoveTreeViewport = { left: 0, top: 0, width: 640, height: 
 const MINIMAP_SIZE = { width: 156, height: 88 };
 const MINIMAP_STORAGE_KEY = 'web-katrain:move_tree_minimap:v1';
 const LAYOUT_DIRECTION_STORAGE_KEY = 'web-katrain:move_tree_layout_direction:v1';
+const MOVE_TREE_SHORTCUT_IDS = ['center-move-tree', 'toggle-move-tree-layout', 'toggle-move-tree-map'] as const;
+type MoveTreeShortcutId = (typeof MOVE_TREE_SHORTCUT_IDS)[number];
 
 function indexNodes(root: GameNode): Map<string, GameNode> {
   const map = new Map<string, GameNode>();
@@ -102,6 +106,8 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     return readLocalStorage(LAYOUT_DIRECTION_STORAGE_KEY) === 'vertical' ? 'vertical' : 'horizontal';
   });
   const [keyboardFocusedNodeId, setKeyboardFocusedNodeId] = useState<string | null>(null);
+  const shortcutLabels = useShortcutLabels(MOVE_TREE_SHORTCUT_IDS);
+  const withShortcut = (label: string, id: MoveTreeShortcutId) => `${label} (${shortcutLabels[id]})`;
 
   const flatTree = useMemo(() => {
     void treeVersion;
@@ -138,6 +144,22 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
     const targetTop = Math.max(0, pos.y - container.clientHeight * 0.5);
     container.scrollTo({ left: targetLeft, top: targetTop, behavior });
   }, [currentNode.id, layoutKey, shouldUseWorker, syncLayout, workerResult]);
+
+  useEffect(() => {
+    const handleMoveTreeCommand = (event: Event) => {
+      const command = getMoveTreeCommandFromEvent(event);
+      if (!command) return;
+      if (command === 'center-current') {
+        centerCurrentNode('smooth');
+      } else if (command === 'toggle-layout') {
+        setLayoutDirection((current) => (current === 'horizontal' ? 'vertical' : 'horizontal'));
+      } else if (command === 'toggle-minimap') {
+        setShowMinimap((current) => !current);
+      }
+    };
+    window.addEventListener(MOVE_TREE_COMMAND_EVENT, handleMoveTreeCommand);
+    return () => window.removeEventListener(MOVE_TREE_COMMAND_EVENT, handleMoveTreeCommand);
+  }, [centerCurrentNode]);
 
   const setNodeElementRef = useCallback((id: string, element: SVGGElement | null) => {
     if (element) nodeElementRefs.current.set(id, element);
@@ -340,6 +362,9 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
   const nextLayoutDirection = layoutDirection === 'horizontal' ? 'vertical' : 'horizontal';
   const layoutDirectionLabel =
     layoutDirection === 'horizontal' ? 'Switch tree to vertical layout' : 'Switch tree to horizontal layout';
+  const centerCurrentLabel = withShortcut('Center current move', 'center-move-tree');
+  const layoutShortcutLabel = withShortcut(layoutDirectionLabel, 'toggle-move-tree-layout');
+  const minimapLabel = withShortcut(showMinimap ? 'Hide tree map' : 'Show tree map', 'toggle-move-tree-map');
 
   if (!layout || !visible) {
     return (
@@ -363,8 +388,8 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
           type="button"
           className="move-tree-control-button"
           onClick={() => centerCurrentNode('smooth')}
-          title="Center current move"
-          aria-label="Center current move"
+          title={centerCurrentLabel}
+          aria-label={centerCurrentLabel}
         >
           <FaCrosshairs size={11} />
         </button>
@@ -372,8 +397,8 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
           type="button"
           className={['move-tree-control-button', layoutDirection === 'vertical' ? 'active' : ''].join(' ')}
           onClick={() => setLayoutDirection(nextLayoutDirection)}
-          title={layoutDirectionLabel}
-          aria-label={layoutDirectionLabel}
+          title={layoutShortcutLabel}
+          aria-label={layoutShortcutLabel}
           aria-pressed={layoutDirection === 'vertical'}
         >
           {layoutDirection === 'horizontal' ? <FaArrowsAltV size={11} /> : <FaArrowsAltH size={11} />}
@@ -383,8 +408,8 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
             type="button"
             className={['move-tree-control-button', showMinimap ? 'active' : ''].join(' ')}
             onClick={() => setShowMinimap((prev) => !prev)}
-            title={showMinimap ? 'Hide tree map' : 'Show tree map'}
-            aria-label={showMinimap ? 'Hide tree map' : 'Show tree map'}
+            title={minimapLabel}
+            aria-label={minimapLabel}
             aria-pressed={showMinimap}
           >
             {showMinimap ? <FaCompressArrowsAlt size={11} /> : <FaMapMarkedAlt size={11} />}

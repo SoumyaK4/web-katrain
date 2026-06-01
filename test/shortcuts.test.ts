@@ -91,6 +91,12 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('edit-tool-marker-erase', {})).toEqual([{ key: '-', ctrl: false, shift: false, alt: false }]);
   });
 
+  it('exposes move tree review shortcuts', () => {
+    expect(getShortcutBindings('center-move-tree', {})).toEqual([{ key: 'c', ctrl: false, shift: true, alt: false }]);
+    expect(getShortcutBindings('toggle-move-tree-layout', {})).toEqual([{ key: 'g', ctrl: false, shift: true, alt: false }]);
+    expect(getShortcutBindings('toggle-move-tree-map', {})).toEqual([{ key: 't', ctrl: false, shift: true, alt: false }]);
+  });
+
   it('exposes a non-conflicting shortcut for sound toggling', () => {
     expect(getShortcutBindings('toggle-sound', {})).toEqual([{ key: 'm', ctrl: false, shift: true, alt: false }]);
   });

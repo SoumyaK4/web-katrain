@@ -83,6 +83,7 @@ import { FIRST_RUN_LIBRARY_MIN_WIDTH, getInitialLibraryOpen, LIBRARY_OPEN_STORAG
 import { saveSettingsActiveTab } from '../utils/settingsTabs';
 import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
 import { EDIT_TOOL_SHORTCUT_DEFINITIONS } from '../utils/shortcuts';
+import { dispatchMoveTreeCommand, type MoveTreeCommand } from '../utils/moveTreeCommands';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -1308,6 +1309,20 @@ export const Layout: React.FC = () => {
     setEditTool(tool);
   };
 
+  const runMoveTreeCommand = (command: MoveTreeCommand) => {
+    setAnalysisMenuOpen(false);
+    setViewMenuOpen(false);
+    setMenuOpen(false);
+    if (isMobile) {
+      openRightPanelForTab('tree');
+    } else {
+      setShowSidebar(true);
+      setRightPanelOpen(true);
+      updatePanels({ treeOpen: true });
+    }
+    window.setTimeout(() => dispatchMoveTreeCommand(command), 0);
+  };
+
   const handleCloseRightPanel = () => {
     if (isMobile) {
       setRightPanelOpen(false);
@@ -1722,6 +1737,7 @@ export const Layout: React.FC = () => {
     toggleSidebar: handleToggleSidebar,
     toggleScoringMode,
     editCurrentNote: openCurrentNoteEditor,
+    runMoveTreeCommand,
     toggleTopBar: handleToggleTopBar,
     toggleBottomBar: handleToggleBottomBar,
     toast,
@@ -1823,6 +1839,30 @@ export const Layout: React.FC = () => {
         shortcutId: 'toggle-sidebar',
         run: handleToggleSidebar,
         keywords: ['layout', 'panels'],
+      },
+      {
+        id: 'center-move-tree',
+        label: 'Center current move in tree',
+        category: 'View',
+        shortcutId: 'center-move-tree',
+        run: () => runMoveTreeCommand('center-current'),
+        keywords: ['game tree', 'locate', 'review'],
+      },
+      {
+        id: 'toggle-move-tree-layout',
+        label: 'Switch move tree layout',
+        category: 'View',
+        shortcutId: 'toggle-move-tree-layout',
+        run: () => runMoveTreeCommand('toggle-layout'),
+        keywords: ['game tree', 'horizontal', 'vertical'],
+      },
+      {
+        id: 'toggle-move-tree-map',
+        label: 'Toggle move tree map',
+        category: 'View',
+        shortcutId: 'toggle-move-tree-map',
+        run: () => runMoveTreeCommand('toggle-minimap'),
+        keywords: ['game tree', 'minimap', 'overview'],
       },
       {
         id: 'toggle-top-bar',

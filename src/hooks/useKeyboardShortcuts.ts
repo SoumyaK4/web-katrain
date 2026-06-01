@@ -8,6 +8,7 @@ import { toggleAppFullscreen } from '../utils/fullscreen';
 import { shouldIgnoreKeyboardShortcutTarget } from '../utils/keyboardTarget';
 import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
 import { copyTextToClipboard } from '../utils/clipboard';
+import type { MoveTreeCommand } from '../utils/moveTreeCommands';
 
 interface UseKeyboardShortcutsOptions {
   mode: UiMode;
@@ -30,6 +31,7 @@ interface UseKeyboardShortcutsOptions {
   toggleSidebar: () => void;
   toggleScoringMode: () => void;
   editCurrentNote: () => void;
+  runMoveTreeCommand: (command: MoveTreeCommand) => void;
   toggleTopBar: () => void;
   toggleBottomBar: () => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
@@ -56,6 +58,7 @@ export function useKeyboardShortcuts({
   toggleSidebar,
   toggleScoringMode,
   editCurrentNote,
+  runMoveTreeCommand,
   toggleTopBar,
   toggleBottomBar,
   toast,
@@ -223,6 +226,21 @@ export function useKeyboardShortcuts({
           setEditTool(shortcut.tool);
           return;
         }
+      }
+      if (matches('center-move-tree')) {
+        e.preventDefault();
+        runMoveTreeCommand('center-current');
+        return;
+      }
+      if (matches('toggle-move-tree-layout')) {
+        e.preventDefault();
+        runMoveTreeCommand('toggle-layout');
+        return;
+      }
+      if (matches('toggle-move-tree-map')) {
+        e.preventDefault();
+        runMoveTreeCommand('toggle-minimap');
+        return;
       }
 
       // Escape
@@ -601,6 +619,7 @@ export function useKeyboardShortcuts({
     toggleSidebar,
     toggleScoringMode,
     editCurrentNote,
+    runMoveTreeCommand,
     toggleTopBar,
     toggleBottomBar,
     toast,
