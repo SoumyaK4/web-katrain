@@ -6,7 +6,11 @@ import { getPasteSgfInputInfo } from '../src/utils/pasteSgfInput';
 describe('PasteSgfModal', () => {
   it('explains supported SGF and OGS inputs in the empty state', () => {
     const html = renderToStaticMarkup(
-      <PasteSgfModal onClose={() => undefined} onSubmit={async () => 'loaded'} />,
+      <PasteSgfModal
+        onClose={() => undefined}
+        onSubmit={async () => 'loaded'}
+        onOpenPhotoBoard={() => undefined}
+      />,
     );
 
     expect(html).toContain('SGF text or OGS game URL');
@@ -14,6 +18,9 @@ describe('PasteSgfModal', () => {
     expect(html).toContain('Paste raw SGF text or an Online-Go game URL');
     expect(html).toContain('aria-label="Open pasted SGF or OGS URL"');
     expect(html).toContain('https://online-go.com/game/12345');
+    expect(html).toContain('data-paste-sgf-photo-board="true"');
+    expect(html).toContain('Photo Board');
+    expect(html).toContain('Use a board screenshot or camera photo');
   });
 
   it('detects OGS game links and shows the exact game being downloaded', () => {

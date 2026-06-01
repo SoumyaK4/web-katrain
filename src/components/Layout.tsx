@@ -2459,6 +2459,10 @@ export const Layout: React.FC = () => {
           <PasteSgfModal
             onClose={() => setIsPasteSgfOpen(false)}
             onSubmit={handleOpenSgfFromText}
+            onOpenPhotoBoard={() => {
+              setIsPasteSgfOpen(false);
+              openPhotoBoard();
+            }}
           />
         )}
         {saveToLibraryDialog && (

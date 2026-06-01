@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaClipboard, FaTimes } from 'react-icons/fa';
+import { FaCamera, FaClipboard, FaTimes } from 'react-icons/fa';
 import { readClipboardText } from '../utils/clipboard';
 import { getPasteSgfInputInfo, type PasteSgfSubmitResult } from '../utils/pasteSgfInput';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
@@ -14,9 +14,10 @@ type PasteSgfStatus = {
 interface PasteSgfModalProps {
   onClose: () => void;
   onSubmit: (text: string) => Promise<PasteSgfSubmitResult>;
+  onOpenPhotoBoard?: () => void;
 }
 
-export const PasteSgfModal: React.FC<PasteSgfModalProps> = ({ onClose, onSubmit }) => {
+export const PasteSgfModal: React.FC<PasteSgfModalProps> = ({ onClose, onSubmit, onOpenPhotoBoard }) => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [text, setText] = React.useState('');
   const [status, setStatus] = React.useState<PasteSgfStatus | null>(null);
@@ -119,13 +120,26 @@ export const PasteSgfModal: React.FC<PasteSgfModalProps> = ({ onClose, onSubmit 
         </div>
 
         <div className="ui-bar flex flex-wrap items-center justify-between gap-2 border-t border-[var(--ui-border)] px-4 py-3">
-          <button
-            type="button"
-            onClick={readClipboard}
-            className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
-          >
-            <span className="inline-flex items-center gap-2"><FaClipboard /> Read Clipboard</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={readClipboard}
+              className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
+            >
+              <span className="inline-flex items-center gap-2"><FaClipboard /> Read Clipboard</span>
+            </button>
+            {onOpenPhotoBoard && (
+              <button
+                type="button"
+                onClick={onOpenPhotoBoard}
+                className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]"
+                title="Use a board screenshot or camera photo"
+                data-paste-sgf-photo-board="true"
+              >
+                <span className="inline-flex items-center gap-2"><FaCamera /> Photo Board</span>
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
