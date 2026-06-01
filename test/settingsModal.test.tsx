@@ -63,4 +63,43 @@ describe('SettingsModal', () => {
       expect(html).toContain(`>${label}</label>`);
     });
   });
+
+  it('binds Analysis settings labels to their controls', () => {
+    const source = readFileSync('src/components/SettingsModal.tsx', 'utf8');
+
+    [
+      ['settings-analysis-show-children', 'Show Children ('],
+      ['settings-analysis-evaluation-dots', 'Evaluation Dots ('],
+      ['settings-analysis-top-moves', 'Top Moves (Hints) ('],
+      ['settings-analysis-policy', 'Policy ('],
+      ['settings-analysis-ownership', 'Ownership (Territory) ('],
+      ['settings-analysis-evaluation-theme', 'Evaluation Theme'],
+      ['settings-analysis-low-visits-threshold', 'Low Visits Threshold'],
+      ['settings-analysis-primary-label', 'Primary Label'],
+      ['settings-analysis-secondary-label', 'Secondary Label'],
+      ['settings-analysis-policy-heatmap', 'Policy Heatmap ('],
+      ['settings-analysis-extra-precision', 'Extra Precision'],
+      ['settings-analysis-show-ai-dots', 'Show AI Dots'],
+      ['settings-analysis-save-analysis', 'Save analysis in SGF'],
+      ['settings-analysis-save-sgf-marks', 'Save SGF marks (X / square)'],
+      ['settings-analysis-lock-ai-details', 'Lock AI details (Play mode)'],
+      ['settings-analysis-last-n-eval-dots', 'Show Last N Eval Dots'],
+      ['settings-analysis-mistake-threshold', 'Mistake Threshold (Points)'],
+    ].forEach(([id, label]) => {
+      expect(source).toContain(`htmlFor="${id}"`);
+      expect(source).toContain(`id="${id}"`);
+      expect(source).toContain(label);
+    });
+
+    [
+      'settings-teach-threshold',
+      'settings-teach-undo',
+      'settings-teach-show-dots',
+      'settings-teach-save-sgf',
+    ].forEach((id) => {
+      expect(source).toContain(`htmlFor={\`${id}-${'${i}'}\`}`);
+      expect(source).toContain(`id={\`${id}-${'${i}'}\`}`);
+    });
+    expect(source).toContain('<span className="sr-only"> row {i + 1}</span>');
+  });
 });

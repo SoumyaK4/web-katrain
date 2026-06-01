@@ -763,8 +763,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="mt-4 space-y-4">
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Show Children ({shortcutLabels['toggle-children']})</label>
+                                            <label htmlFor="settings-analysis-show-children" className={labelClass}>Show Children ({shortcutLabels['toggle-children']})</label>
                                             <input
+                                                id="settings-analysis-show-children"
                                                 type="checkbox"
                                                 checked={settings.analysisShowChildren}
                                                 onChange={(e) => updateSettings({ analysisShowChildren: e.target.checked })}
@@ -773,8 +774,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Evaluation Dots ({shortcutLabels['toggle-eval']})</label>
+                                            <label htmlFor="settings-analysis-evaluation-dots" className={labelClass}>Evaluation Dots ({shortcutLabels['toggle-eval']})</label>
                                             <input
+                                                id="settings-analysis-evaluation-dots"
                                                 type="checkbox"
                                                 checked={settings.analysisShowEval}
                                                 onChange={(e) => updateSettings({ analysisShowEval: e.target.checked })}
@@ -783,8 +785,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Top Moves (Hints) ({shortcutLabels['toggle-hints']})</label>
+                                            <label htmlFor="settings-analysis-top-moves" className={labelClass}>Top Moves (Hints) ({shortcutLabels['toggle-hints']})</label>
                                             <input
+                                                id="settings-analysis-top-moves"
                                                 type="checkbox"
                                                 checked={settings.analysisShowHints}
                                                 onChange={(e) => updateSettings({ analysisShowHints: e.target.checked })}
@@ -793,8 +796,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Policy ({shortcutLabels['toggle-policy']})</label>
+                                            <label htmlFor="settings-analysis-policy" className={labelClass}>Policy ({shortcutLabels['toggle-policy']})</label>
                                             <input
+                                                id="settings-analysis-policy"
                                                 type="checkbox"
                                                 checked={settings.analysisShowPolicy}
                                                 onChange={(e) => updateSettings({ analysisShowPolicy: e.target.checked })}
@@ -803,8 +807,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className={rowClass}>
-                                            <label className={labelClass}>Ownership (Territory) ({shortcutLabels['toggle-territory']})</label>
+                                            <label htmlFor="settings-analysis-ownership" className={labelClass}>Ownership (Territory) ({shortcutLabels['toggle-territory']})</label>
                                             <input
+                                                id="settings-analysis-ownership"
                                                 type="checkbox"
                                                 checked={settings.analysisShowOwnership}
                                                 onChange={(e) => updateSettings({ analysisShowOwnership: e.target.checked })}
@@ -817,8 +822,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className="space-y-1">
-                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Evaluation Theme</label>
+                                                    <label htmlFor="settings-analysis-evaluation-theme" className="text-[var(--ui-text-muted)] block text-sm">Evaluation Theme</label>
                                                     <select
+                                                        id="settings-analysis-evaluation-theme"
                                                         value={settings.trainerTheme ?? 'theme:normal'}
                                                         onChange={(e) => updateSettings({ trainerTheme: e.target.value as GameSettings['trainerTheme'] })}
                                                         className={selectClass}
@@ -829,8 +835,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Low Visits Threshold</label>
+                                                    <label htmlFor="settings-analysis-low-visits-threshold" className="text-[var(--ui-text-muted)] block text-sm">Low Visits Threshold</label>
                                                     <input
+                                                        id="settings-analysis-low-visits-threshold"
                                                         type="number"
                                                         min={1}
                                                         step={1}
@@ -841,8 +848,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Primary Label</label>
+                                                    <label htmlFor="settings-analysis-primary-label" className="text-[var(--ui-text-muted)] block text-sm">Primary Label</label>
                                                     <select
+                                                        id="settings-analysis-primary-label"
                                                         value={settings.trainerTopMovesShow}
                                                         onChange={(e) => updateSettings({ trainerTopMovesShow: e.target.value as GameSettings['trainerTopMovesShow'] })}
                                                         className={selectClass}
@@ -856,8 +864,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Secondary Label</label>
+                                                    <label htmlFor="settings-analysis-secondary-label" className="text-[var(--ui-text-muted)] block text-sm">Secondary Label</label>
                                                     <select
+                                                        id="settings-analysis-secondary-label"
                                                         value={settings.trainerTopMovesShowSecondary}
                                                         onChange={(e) =>
                                                             updateSettings({ trainerTopMovesShowSecondary: e.target.value as GameSettings['trainerTopMovesShowSecondary'] })
@@ -873,8 +882,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Policy Heatmap ({shortcutLabels['cycle-policy-metric']})</label>
+                                                    <label htmlFor="settings-analysis-policy-heatmap" className="text-[var(--ui-text-muted)] block text-sm">Policy Heatmap ({shortcutLabels['cycle-policy-metric']})</label>
                                                     <select
+                                                        id="settings-analysis-policy-heatmap"
                                                         value={settings.analysisPolicyMetric ?? 'policy'}
                                                         onChange={(e) => updateSettings({ analysisPolicyMetric: e.target.value as GameSettings['analysisPolicyMetric'] })}
                                                         className={selectClass}
@@ -890,8 +900,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className={rowClass}>
-                                                    <label className={labelClass}>Extra Precision</label>
+                                                    <label htmlFor="settings-analysis-extra-precision" className={labelClass}>Extra Precision</label>
                                                     <input
+                                                        id="settings-analysis-extra-precision"
                                                         type="checkbox"
                                                         checked={settings.trainerExtraPrecision}
                                                         onChange={(e) => updateSettings({ trainerExtraPrecision: e.target.checked })}
@@ -900,8 +911,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className={rowClass}>
-                                                    <label className={labelClass}>Show AI Dots</label>
+                                                    <label htmlFor="settings-analysis-show-ai-dots" className={labelClass}>Show AI Dots</label>
                                                     <input
+                                                        id="settings-analysis-show-ai-dots"
                                                         type="checkbox"
                                                         checked={settings.trainerEvalShowAi}
                                                         onChange={(e) => updateSettings({ trainerEvalShowAi: e.target.checked })}
@@ -911,14 +923,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                                 <div className={rowClass}>
                                                     <label
+                                                        htmlFor="settings-analysis-save-analysis"
                                                         className={labelClass}
                                                         title="Embed KT and KA analysis data when exporting SGF so reviewed games reopen with cached analysis."
                                                     >
                                                         Save analysis in SGF
                                                     </label>
                                                     <input
+                                                        id="settings-analysis-save-analysis"
                                                         type="checkbox"
-                                                        aria-label="Save analysis in SGF"
                                                         checked={settings.trainerSaveAnalysis}
                                                         onChange={(e) => updateSettings({ trainerSaveAnalysis: e.target.checked })}
                                                         className="toggle"
@@ -926,8 +939,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className={rowClass}>
-                                                    <label className={labelClass}>Save SGF marks (X / square)</label>
+                                                    <label htmlFor="settings-analysis-save-sgf-marks" className={labelClass}>Save SGF marks (X / square)</label>
                                                     <input
+                                                        id="settings-analysis-save-sgf-marks"
                                                         type="checkbox"
                                                         checked={settings.trainerSaveMarks}
                                                         onChange={(e) => updateSettings({ trainerSaveMarks: e.target.checked })}
@@ -937,8 +951,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
 
                                             <div className={rowClass}>
-                                                <label className={labelClass}>Lock AI details (Play mode)</label>
+                                                <label htmlFor="settings-analysis-lock-ai-details" className={labelClass}>Lock AI details (Play mode)</label>
                                                 <input
+                                                    id="settings-analysis-lock-ai-details"
                                                     type="checkbox"
                                                     checked={settings.trainerLockAi}
                                                     onChange={(e) => updateSettings({ trainerLockAi: e.target.checked })}
@@ -954,9 +969,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <h3 className={sectionTitleClass}>Show Last N Eval Dots</h3>
                                     <div className="mt-4 space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-[var(--ui-text-muted)] block">Show Last N Eval Dots</label>
+                                            <label htmlFor="settings-analysis-last-n-eval-dots" className="text-[var(--ui-text-muted)] block">Show Last N Eval Dots</label>
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                                 <input
+                                                    id="settings-analysis-last-n-eval-dots"
                                                     type="range"
                                                     min="0"
                                                     max="10"
@@ -972,9 +988,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-[var(--ui-text-muted)] block">Mistake Threshold (Points)</label>
+                                            <label htmlFor="settings-analysis-mistake-threshold" className="text-[var(--ui-text-muted)] block">Mistake Threshold (Points)</label>
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                                 <input
+                                                    id="settings-analysis-mistake-threshold"
                                                     type="range"
                                                     min="0.5"
                                                     max="10"
@@ -1010,8 +1027,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             return (
                                                 <div key={`teach-${i}`} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
                                                     <div className="space-y-1">
-                                                        <label className="text-[var(--ui-text-muted)] block text-xs">≥ Threshold</label>
+                                                        <label htmlFor={`settings-teach-threshold-${i}`} className="text-[var(--ui-text-muted)] block text-xs">
+                                                            ≥ Threshold
+                                                            <span className="sr-only"> row {i + 1}</span>
+                                                        </label>
                                                         <input
+                                                            id={`settings-teach-threshold-${i}`}
                                                             type="number"
                                                             step={0.1}
                                                             value={thr}
@@ -1025,8 +1046,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[var(--ui-text-muted)] block text-xs">Undo</label>
+                                                        <label htmlFor={`settings-teach-undo-${i}`} className="text-[var(--ui-text-muted)] block text-xs">
+                                                            Undo
+                                                            <span className="sr-only"> row {i + 1}</span>
+                                                        </label>
                                                         <input
+                                                            id={`settings-teach-undo-${i}`}
                                                             type="number"
                                                             min={0}
                                                             step={0.1}
@@ -1041,8 +1066,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         />
                                                     </div>
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <label className="text-[var(--ui-text-muted)] text-xs">Show dots</label>
+                                                        <label htmlFor={`settings-teach-show-dots-${i}`} className="text-[var(--ui-text-muted)] text-xs">
+                                                            Show dots
+                                                            <span className="sr-only"> row {i + 1}</span>
+                                                        </label>
                                                         <input
+                                                            id={`settings-teach-show-dots-${i}`}
                                                             type="checkbox"
                                                             checked={showDot}
                                                             onChange={(e) => {
@@ -1056,8 +1085,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         />
                                                     </div>
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <label className="text-[var(--ui-text-muted)] text-xs">Save SGF</label>
+                                                        <label htmlFor={`settings-teach-save-sgf-${i}`} className="text-[var(--ui-text-muted)] text-xs">
+                                                            Save SGF
+                                                            <span className="sr-only"> row {i + 1}</span>
+                                                        </label>
                                                         <input
+                                                            id={`settings-teach-save-sgf-${i}`}
                                                             type="checkbox"
                                                             checked={saveFeedback}
                                                             onChange={(e) => {
