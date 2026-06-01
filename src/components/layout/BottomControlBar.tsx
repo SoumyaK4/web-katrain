@@ -191,7 +191,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               style={{ height: '100%', aspectRatio: '1 / 1', backgroundColor: passPolicyColor }}
             />
           )}
-          <button
+          <button type="button"
             ref={passBtnRef}
             className="relative min-h-11 min-w-11 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-[var(--ui-surface-2)] hover:brightness-110 rounded-lg text-[11px] sm:text-xs font-medium text-[var(--ui-text)] transition-colors"
             onClick={passTurn}
@@ -313,7 +313,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               <div className="fixed bottom-[var(--mobile-tabbar-height,60px)] left-0 right-0 max-h-[70vh] ui-panel border-t rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] overflow-y-auto z-50 overscroll-contain pb-safe animate-slide-up select-none touch-manipulation">
                 <div className="sticky top-0 bg-[var(--ui-surface)]/95 backdrop-blur-md border-b border-[var(--ui-border)] px-4 py-3 flex items-center justify-between z-10">
                   <div className="text-sm font-semibold">More Controls</div>
-                  <button
+                  <button type="button"
                     onClick={() => setMoreOpen(false)}
                     className="p-2 -mr-2 text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] rounded-full hover:bg-[var(--ui-surface-2)]"
                   >
@@ -324,7 +324,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 </div>
 
                 <div className="p-2 flex flex-col gap-1">
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       navigateStart();
@@ -338,7 +338,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <div className="flex-1 font-medium">Start of game</div>
                   </button>
 
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       jumpBack(10);
@@ -352,7 +352,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <div className="flex-1 font-medium">Back 10 moves</div>
                   </button>
 
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       jumpForward(10);
@@ -366,7 +366,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <div className="flex-1 font-medium">Forward 10 moves</div>
                   </button>
 
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       navigateEnd();
@@ -383,7 +383,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                   <div className="h-px bg-[var(--ui-border)] mx-2 my-1" />
 
                   {onUndo && (
-                    <button
+                    <button type="button"
                       className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                       onClick={() => {
                         onUndo();
@@ -398,7 +398,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                   )}
 
                   {onAiMove && (
-                    <button
+                    <button type="button"
                       className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                       onClick={() => {
                         onAiMove();
@@ -413,7 +413,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                   )}
 
                   {onResign && (
-                    <button
+                    <button type="button"
                       className="w-full px-4 py-3.5 text-left hover:bg-rose-950/30 active:bg-rose-950/30 rounded-lg flex items-center gap-3 transition-colors text-rose-500"
                       onClick={() => {
                         onResign();
@@ -429,7 +429,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                   <div className="h-px bg-[var(--ui-border)] mx-2 my-1" />
 
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-amber-950/30 active:bg-amber-950/30 rounded-lg flex items-center gap-3 transition-colors text-amber-500"
                     onClick={() => {
                       findMistake('undo');
@@ -443,7 +443,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <div className="flex-1 font-medium">Previous mistake</div>
                   </button>
 
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-amber-950/30 active:bg-amber-950/30 rounded-lg flex items-center gap-3 transition-colors text-amber-500"
                     onClick={() => {
                       findMistake('redo');
@@ -459,7 +459,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                   <div className="h-px bg-[var(--ui-border)] mx-2 my-1" />
 
-                  <button
+                  <button type="button"
                     className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       rotateBoard();
@@ -492,7 +492,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
             style={{ height: '100%', aspectRatio: '1 / 1', backgroundColor: passPolicyColor }}
           />
         )}
-        <button
+        <button type="button"
           ref={passBtnRef}
           className="relative px-4 py-2 bg-[var(--ui-surface-2)] hover:brightness-110 rounded-lg text-sm font-medium text-[var(--ui-text)] transition-colors"
           onClick={passTurn}

@@ -368,13 +368,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             </div>
           ) : (
             <div className="panel-tab-strip flex-1">
-              <button
+              <button type="button"
                 className={modeTabClass(mode === 'play')}
                 onClick={() => setMode('play')}
               >
                 Play
               </button>
-              <button
+              <button type="button"
                 className={modeTabClass(mode === 'analyze')}
                 onClick={() => setMode('analyze')}
               >

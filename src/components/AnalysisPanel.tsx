@@ -526,7 +526,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       </div>
       {!compact && (
         <div className="panel-toolbar">
-          <button
+          <button type="button"
             className={[
               'panel-action-button',
               isGameAnalysisRunning && gameAnalysisType === 'quick' ? 'danger active' : '',
@@ -540,7 +540,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               ? `Stop quick (${gameAnalysisDone}/${gameAnalysisTotal})`
               : 'Quick graph'}
           </button>
-          <button
+          <button type="button"
             className={[
               'panel-action-button',
               isGameAnalysisRunning && gameAnalysisType === 'fast' ? 'danger active' : '',
@@ -554,7 +554,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               ? `Stop fast (${gameAnalysisDone}/${gameAnalysisTotal})`
               : 'Fast MCTS'}
           </button>
-          <button
+          <button type="button"
             className="panel-action-button danger"
             onClick={stopGameAnalysis}
             disabled={!isGameAnalysisRunning}
@@ -566,14 +566,14 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           {overlayToggles}
           <div className="ml-auto flex items-center gap-2 text-xs">
             {legendButton}
-            <button
+            <button type="button"
               className="panel-icon-button"
               onClick={onOpenGameAnalysis}
               title="Re-analyze…"
             >
               <FaRedoAlt size={12} />
             </button>
-            <button
+            <button type="button"
               className="panel-icon-button"
               onClick={onOpenGameReport}
               title="Game report…"

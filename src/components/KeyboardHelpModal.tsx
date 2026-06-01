@@ -77,7 +77,7 @@ export const KeyboardHelpModal: React.FC<KeyboardHelpModalProps> = ({ onClose, o
                 <span>Customize</span>
               </button>
             )}
-            <button onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]" aria-label="Close keyboard shortcuts">
+            <button type="button" onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]" aria-label="Close keyboard shortcuts">
               <FaTimes aria-hidden="true" />
             </button>
           </div>

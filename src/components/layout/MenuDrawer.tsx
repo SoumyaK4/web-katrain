@@ -85,7 +85,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               )}
             </div>
           </div>
-          <button
+          <button type="button"
             className="shrink-0 ui-text-muted hover:text-[var(--ui-text)]"
             onClick={onClose}
             aria-label="Close menu"
@@ -98,7 +98,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
           <div>
             <div className="px-3 text-xs uppercase tracking-wide ui-text-faint mb-2">Game</div>
             {onHome && (
-              <button
+              <button type="button"
                 className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
                 onClick={() => {
                   onHome();
@@ -111,7 +111,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 </span>
               </button>
             )}
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onQuickNewGame();
@@ -123,7 +123,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 <FaBolt aria-hidden="true" /> Quick New Game
               </span>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onNewGame();
@@ -136,7 +136,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['new-game']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onSave();
@@ -149,7 +149,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['save-sgf']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onSaveToLibrary();
@@ -161,7 +161,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 <FaBook aria-hidden="true" /> Save Copy to Library
               </span>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onLoad();
@@ -174,7 +174,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['open-sgf']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onScanBoard();
@@ -189,7 +189,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
           </div>
           <div>
             <div className="px-3 text-xs uppercase tracking-wide ui-text-faint mb-2">Edit</div>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onCopy();
@@ -202,7 +202,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['copy-sgf']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onPaste();
@@ -218,7 +218,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
           </div>
           <div>
             <div className="px-3 text-xs uppercase tracking-wide ui-text-faint mb-2">Settings</div>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onCommandPalette();
@@ -231,7 +231,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['command-palette']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onSettings();
@@ -244,7 +244,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['settings-modal']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onKeyboardHelp();
@@ -257,7 +257,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               </span>
               <kbd className="text-xs ui-text-faint">{shortcutLabels['keyboard-help']}</kbd>
             </button>
-            <button
+            <button type="button"
               className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
               onClick={() => {
                 onAbout();
@@ -278,7 +278,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             <div className="text-xs ui-text-faint px-3 uppercase tracking-wide">Recent</div>
             <div className="space-y-1">
               {recentItems.map((item) => (
-                <button
+                <button type="button"
                   key={item.id}
                   className="w-full text-left px-3 py-2 rounded hover:bg-[var(--ui-surface-2)] text-sm text-[var(--ui-text)]"
                   onClick={() => {

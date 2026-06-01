@@ -133,7 +133,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
       <div className="ui-panel rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--ui-border)] ui-bar">
           <h2 className="text-lg font-semibold text-[var(--ui-text)]">New Game</h2>
-          <button onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]">✕</button>
+          <button type="button" onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]">✕</button>
         </div>
         <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
           <div className="space-y-3">
@@ -928,13 +928,13 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
           </div>
         </div>
         <div className="px-4 py-3 border-t border-[var(--ui-border)] flex justify-end gap-2 ui-bar">
-          <button
+          <button type="button"
             className="px-3 py-2 rounded bg-[var(--ui-surface-2)] text-[var(--ui-text)] hover:brightness-110"
             onClick={onClose}
           >
             Cancel
           </button>
-          <button
+          <button type="button"
             className="px-3 py-2 rounded ui-accent-bg hover:brightness-110"
             onClick={() =>
               onStart({

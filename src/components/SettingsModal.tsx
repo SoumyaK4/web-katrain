@@ -291,7 +291,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         {SETTINGS_TABS.map((tab, index) => {
                             const isActive = activeTab === tab.id;
                             return (
-                                <button
+                                <button type="button"
                                     key={tab.id}
                                     id={`tab-${tab.id}`}
                                     role="tab"
@@ -1903,7 +1903,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                     </div>  
                 </div>
                 <div className="sticky bottom-0 z-10 flex justify-end px-4 sm:px-6 py-4 ui-panel border-t backdrop-blur">
-                    <button
+                    <button type="button"
                         onClick={onClose}
                         className="px-5 py-2.5 rounded-lg ui-accent-bg hover:brightness-110 font-semibold shadow-lg shadow-black/20 transition-colors"
                     >
