@@ -1,4 +1,5 @@
 {
+  "id": ".",
   "name": "Web KaTrain",
   "short_name": "KaTrain",
   "description": "Browser-native Go study with SGF editing, analysis, library storage, and offline review tools.",
@@ -11,6 +12,18 @@
   "orientation": "any",
   "categories": ["education", "games", "productivity"],
   "icons": [
+    {
+      "src": "pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "pwa/icon.svg",
       "sizes": "512x512",
@@ -26,9 +39,9 @@
       "url": ".",
       "icons": [
         {
-          "src": "pwa/icon.svg",
-          "sizes": "512x512",
-          "type": "image/svg+xml"
+          "src": "pwa/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }

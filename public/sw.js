@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'web-katrain-v1';
+const CACHE_VERSION = 'web-katrain-v2';
 const APP_SHELL_CACHE = `${CACHE_VERSION}:shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}:runtime`;
 
@@ -7,6 +7,9 @@ const PRECACHE_URLS = [
   './index.html',
   './manifest.webmanifest',
   './pwa/icon.svg',
+  './pwa/icon-192.png',
+  './pwa/icon-512.png',
+  './pwa/apple-touch-icon.png',
   './models/katago-small.bin.gz',
   './tfjs/tfjs-backend-wasm.wasm',
   './tfjs/tfjs-backend-wasm-simd.wasm',
