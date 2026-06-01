@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaBug, FaCheckCircle, FaExclamationTriangle, FaGamepad, FaSyncAlt } from 'react-icons/fa';
+import { FaBug, FaCheckCircle, FaExclamationTriangle, FaGamepad, FaStar, FaSyncAlt } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { AUTO_SAVE_MAX_LABEL } from '../../utils/autoSave';
 import { formatGameInfoPlayer } from '../../utils/gameInfoDisplay';
@@ -16,6 +16,8 @@ export type AutoSaveStatus = {
 interface StatusBarProps {
   moveName: string;
   moveInsight?: MoveInsight | null;
+  shapeCoachEnabled?: boolean;
+  onToggleShapeCoach?: () => void;
   blackName: string;
   whiteName: string;
   blackRank?: string;
@@ -45,6 +47,8 @@ function formatAutoSaveTime(savedAt: number): string {
 export const StatusBar: React.FC<StatusBarProps> = ({
   moveName,
   moveInsight = null,
+  shapeCoachEnabled = true,
+  onToggleShapeCoach,
   blackName,
   whiteName,
   blackRank = '',
@@ -115,7 +119,27 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           {moveName}
         </div>
 
-        {moveInsight && (
+        {onToggleShapeCoach && (
+          <button
+            type="button"
+            className={[
+              'px-2 py-1 rounded border shadow-sm hidden lg:flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)] focus:ring-offset-1 focus:ring-offset-[var(--ui-bg)]',
+              shapeCoachEnabled
+                ? 'bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border-[var(--ui-accent)] hover:bg-[var(--ui-accent)] hover:text-[var(--ui-accent-contrast)]'
+                : 'bg-[var(--ui-surface)] text-[var(--ui-text-faint)] border-[var(--ui-border)] hover:text-[var(--ui-text)] hover:border-[var(--ui-accent)]',
+            ].join(' ')}
+            onClick={onToggleShapeCoach}
+            title={shapeCoachEnabled ? 'Hide shape coach' : 'Show shape coach'}
+            aria-label={shapeCoachEnabled ? 'Hide shape coach' : 'Show shape coach'}
+            aria-pressed={shapeCoachEnabled}
+            data-status-shape-coach-toggle="true"
+          >
+            <FaStar aria-hidden="true" />
+            <span className="hidden xl:inline font-semibold">Shape</span>
+          </button>
+        )}
+
+        {shapeCoachEnabled && moveInsight && (
           <div
             className="px-2 py-1 rounded bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] border border-[var(--ui-accent)] shadow-sm hidden lg:flex items-center gap-1.5 max-w-[240px]"
             title={moveInsight.detail}

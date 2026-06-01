@@ -383,6 +383,7 @@ export const Layout: React.FC = () => {
 
   const mode = uiState.mode;
   const boardUiMode = reportHoverMove ? 'analyze' : mode;
+  const shapeCoachEnabled = uiState.shapeCoachEnabled;
   const modeControls = uiState.analysisControls[mode];
   const modePanels = uiState.panels[mode];
   const lockAiDetails = mode === 'play' && settings.trainerLockAi;
@@ -1186,6 +1187,10 @@ export const Layout: React.FC = () => {
         panels: { ...prev.panels, [prev.mode]: { ...current, ...nextPartial } },
       };
     });
+  };
+
+  const toggleShapeCoach = () => {
+    setUiState((prev) => ({ ...prev, shapeCoachEnabled: !prev.shapeCoachEnabled }));
   };
 
   const isMobile = !isDesktop;
@@ -2464,6 +2469,8 @@ export const Layout: React.FC = () => {
           currentNode={currentNode}
           moveHistory={moveHistory}
           currentMoveInsight={currentMoveInsight}
+          shapeCoachEnabled={shapeCoachEnabled}
+          onToggleShapeCoach={toggleShapeCoach}
           isMobile={isMobile}
           activeMobileTab={mobileTab}
           showAnalysisSection={!isDesktop}
@@ -2580,6 +2587,8 @@ export const Layout: React.FC = () => {
         <StatusBar
           moveName={moveName}
           moveInsight={currentMoveInsight}
+          shapeCoachEnabled={shapeCoachEnabled}
+          onToggleShapeCoach={toggleShapeCoach}
           blackName={blackName}
           whiteName={whiteName}
           blackRank={blackRank}

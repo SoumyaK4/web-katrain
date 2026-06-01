@@ -110,6 +110,8 @@ interface RightPanelProps {
   currentNode: GameNode;
   moveHistory: Move[];
   currentMoveInsight?: MoveInsight | null;
+  shapeCoachEnabled?: boolean;
+  onToggleShapeCoach?: () => void;
 }
 
 export const RightPanel: React.FC<RightPanelProps> = ({
@@ -169,6 +171,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   currentNode,
   moveHistory,
   currentMoveInsight = null,
+  shapeCoachEnabled = true,
+  onToggleShapeCoach,
 }) => {
   const showTree = !isMobile || activeMobileTab === 'tree';
   const showAnalysis = !isMobile || activeMobileTab === 'info';
@@ -708,7 +712,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       <span className="font-mono">{currentPositionSummary.moveNumberLabel}</span> ·{' '}
                       <span className="font-mono">{currentPositionSummary.pointLabel}</span>
                     </div>
-                    {currentMoveInsight && (
+                    {shapeCoachEnabled && currentMoveInsight && (
                       <div
                         className="hidden sm:flex min-w-0 max-w-[14rem] items-center gap-1.5 rounded border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] px-2 py-1 text-[10px] text-[var(--ui-accent)]"
                         title={currentMoveInsight.detail}
@@ -719,6 +723,19 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       </div>
                     )}
                     <div className="ml-auto flex items-center gap-1">
+                      {onToggleShapeCoach && (
+                        <button
+                          type="button"
+                          className={noteToggleClass(shapeCoachEnabled)}
+                          onClick={onToggleShapeCoach}
+                          title={shapeCoachEnabled ? 'Hide shape coach' : 'Show shape coach'}
+                          aria-pressed={shapeCoachEnabled}
+                          aria-label={shapeCoachEnabled ? 'Hide shape coach' : 'Show shape coach'}
+                          data-panel-shape-coach-toggle="true"
+                        >
+                          <FaStar size={12} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className={noteToggleClass(notesListOpen)}
@@ -803,6 +820,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       showInfo={modePanels.notes.info || modePanels.notes.infoDetails}
                       detailed={modePanels.notes.infoDetails && !lockAiDetails}
                       showNotes={modePanels.notes.notes}
+                      showShapeCoach={shapeCoachEnabled}
                     />
                   </div>
                 </div>

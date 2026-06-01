@@ -146,13 +146,22 @@ describe('UI state storage', () => {
     });
 
     expect(loadUiState()).toEqual(defaultUiState());
+    expect(loadUiState().shapeCoachEnabled).toBe(true);
     expect(() => saveUiState(defaultUiState())).not.toThrow();
   });
 
   it('loads saved UI state through the safe storage path', () => {
     const storage = installMemoryStorage();
-    storage.setItem(UI_STATE_KEY, JSON.stringify({ mode: 'analyze' }));
+    storage.setItem(UI_STATE_KEY, JSON.stringify({ mode: 'analyze', shapeCoachEnabled: false }));
 
     expect(loadUiState().mode).toBe('analyze');
+    expect(loadUiState().shapeCoachEnabled).toBe(false);
+  });
+
+  it('defaults shape coach to enabled for older UI state saves', () => {
+    const storage = installMemoryStorage();
+    storage.setItem(UI_STATE_KEY, JSON.stringify({ mode: 'play' }));
+
+    expect(loadUiState().shapeCoachEnabled).toBe(true);
   });
 });

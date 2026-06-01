@@ -44,6 +44,7 @@ type NotesPanelProps = {
   showInfo: boolean;
   detailed: boolean;
   showNotes: boolean;
+  showShapeCoach?: boolean;
 };
 
 function NoteInlinePreview({ segments }: { segments: NoteInlineSegment[] }) {
@@ -159,7 +160,7 @@ function NotePreview({ note }: { note: string }) {
   );
 }
 
-export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, showNotes }) => {
+export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, showNotes, showShapeCoach = true }) => {
   const { rootNode, currentNode, setCurrentNodeNote, treeVersion, gameRules, isAnalysisMode, engineStatus, engineError } = useGameStore(
     (state) => ({
       rootNode: state.rootNode,
@@ -212,7 +213,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
 
   const showInfoBlock = showInfo || detailed;
   const showNotesBlock = showNotes;
-  const hasShapeCoach = Boolean(moveInsight && moveInsightCoach);
+  const hasShapeCoach = Boolean(showShapeCoach && moveInsight && moveInsightCoach);
   const currentNote = currentNode.note ?? '';
   const noteHasContent = currentNote.trim().length > 0;
   const [isEditingNote, setIsEditingNote] = React.useState(() => !noteHasContent);
@@ -336,7 +337,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
         </div>
       )}
 
-      {moveInsight && moveInsightCoach && (
+      {showShapeCoach && moveInsight && moveInsightCoach && (
         <div
           className={[
             showInfoBlock ? 'border-t border-[var(--ui-border)]' : '',
