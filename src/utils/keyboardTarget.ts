@@ -14,8 +14,25 @@ const INTERACTIVE_SELECTOR = [
   '[role="treeitem"]',
 ].join(', ');
 
+export function isTextEntryTarget(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const element = target as {
+    tagName?: string;
+    isContentEditable?: boolean;
+    closest?: (selector: string) => unknown;
+  };
+  const tagName = element.tagName?.toUpperCase();
+  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || element.isContentEditable === true) {
+    return true;
+  }
+
+  return Boolean(element.closest?.('input, textarea, select, [contenteditable="true"]'));
+}
+
 export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
   if (!target || typeof target !== 'object') return false;
+  if (isTextEntryTarget(target)) return true;
+
   const element = target as {
     tagName?: string;
     isContentEditable?: boolean;
@@ -23,9 +40,6 @@ export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
     closest?: (selector: string) => unknown;
   };
   const tagName = element.tagName?.toUpperCase();
-  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || element.isContentEditable === true) {
-    return true;
-  }
   if (tagName === 'BUTTON' || tagName === 'A' || tagName === 'SUMMARY') return true;
 
   const role = element.getAttribute?.('role')?.toLowerCase();

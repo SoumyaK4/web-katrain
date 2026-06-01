@@ -1,8 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import {
   isEditableKeyboardTarget,
+  isTextEntryTarget,
   shouldIgnoreKeyboardShortcutTarget,
 } from '../src/utils/keyboardTarget';
+
+describe('isTextEntryTarget', () => {
+  it('detects form fields and contenteditable paste targets', () => {
+    expect(isTextEntryTarget({ tagName: 'INPUT' } as unknown as EventTarget)).toBe(true);
+    expect(isTextEntryTarget({ tagName: 'textarea' } as unknown as EventTarget)).toBe(true);
+    expect(isTextEntryTarget({ tagName: 'SELECT' } as unknown as EventTarget)).toBe(true);
+    expect(isTextEntryTarget({ tagName: 'DIV', isContentEditable: true } as unknown as EventTarget)).toBe(true);
+    expect(isTextEntryTarget({
+      tagName: 'SPAN',
+      closest: (selector: string) => (selector.includes('contenteditable') ? ({} as Element) : null),
+    } as unknown as EventTarget)).toBe(true);
+  });
+
+  it('does not treat ordinary controls as text entry targets', () => {
+    expect(isTextEntryTarget({ tagName: 'BUTTON' } as unknown as EventTarget)).toBe(false);
+    expect(isTextEntryTarget({ tagName: 'DIV' } as unknown as EventTarget)).toBe(false);
+    expect(isTextEntryTarget(null)).toBe(false);
+  });
+});
 
 describe('isEditableKeyboardTarget', () => {
   it('detects form and contenteditable keyboard targets', () => {

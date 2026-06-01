@@ -34,7 +34,7 @@ import { getEngineModelLabel } from '../utils/engineLabel';
 import { getEngineStatusSummary } from '../utils/engineStatusSummary';
 import { normalizeBoardSize } from '../utils/boardSize';
 import { PHOTO_BOARD_IMAGE_EXTENSIONS, getPhotoBoardClipboardImageFile, isPhotoBoardImageFile } from '../utils/photoBoard';
-import { isEditableKeyboardTarget } from '../utils/keyboardTarget';
+import { isEditableKeyboardTarget, isTextEntryTarget } from '../utils/keyboardTarget';
 import { getMoveInsight } from '../utils/moveInsight';
 import {
   createUploadedModelUrl,
@@ -1533,15 +1533,7 @@ export const Layout: React.FC = () => {
 
   useEffect(() => {
     const handlePasteEvent = (event: ClipboardEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        (target instanceof HTMLElement && (target.isContentEditable || target.closest('[contenteditable="true"]')))
-      ) {
-        return;
-      }
+      if (isTextEntryTarget(event.target)) return;
 
       const trimmed = event.clipboardData?.getData('text/plain')?.trim() ?? '';
       if (trimmed && (trimmed.startsWith('(') || isOgsUrl(trimmed))) {
