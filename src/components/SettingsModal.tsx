@@ -270,7 +270,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="ui-text-muted hover:text-white transition-colors"
+                        className="ui-text-muted hover:text-[var(--ui-text)] transition-colors"
                         aria-label="Close settings"
                     >
                         <FaTimes />
@@ -927,7 +927,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                     onChange={(e) => updateSettings({ showLastNMistakes: parseInt(e.target.value, 10) })}
                                                     className="flex-1"
                                                 />
-                                                <span className="text-white font-mono w-8 text-right">{settings.showLastNMistakes}</span>
+                                                <span className="text-[var(--ui-text)] font-mono w-8 text-right">{settings.showLastNMistakes}</span>
                                             </div>
                                             <p className={subtextClass}>
                                                 Shows KaTrain-style colored dots on the last {settings.showLastNMistakes} moves.
@@ -946,7 +946,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                     onChange={(e) => updateSettings({ mistakeThreshold: parseFloat(e.target.value) })}
                                                     className="flex-1"
                                                 />
-                                                <span className="text-white font-mono w-10 text-right">{(settings.mistakeThreshold ?? 3.0).toFixed(1)}</span>
+                                                <span className="text-[var(--ui-text)] font-mono w-10 text-right">{(settings.mistakeThreshold ?? 3.0).toFixed(1)}</span>
                                             </div>
                                             <p className={subtextClass}>
                                                 Minimum points lost to consider a move a mistake for navigation.

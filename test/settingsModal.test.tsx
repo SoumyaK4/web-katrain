@@ -11,5 +11,6 @@ describe('SettingsModal', () => {
     expect(html).toContain('settings-tab-active');
     expect(html).not.toContain('border-blue-500');
     expect(html).not.toContain('text-white border-b-2');
+    expect(html).not.toContain('text-white');
   });
 });
