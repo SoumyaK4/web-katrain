@@ -552,8 +552,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       {(aiConfig.aiStrategy === 'simple' || aiConfig.aiStrategy === 'settle') && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Max Pt Lost</label>
+                            <label htmlFor="new-game-ai-ownership-max-points-lost" className="text-[var(--ui-text-muted)] text-sm">Max Pt Lost</label>
                             <input
+                              id="new-game-ai-ownership-max-points-lost"
                               type="number"
                               min={0}
                               step={0.25}
@@ -563,8 +564,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Settled Wt</label>
+                            <label htmlFor="new-game-ai-ownership-settled-weight" className="text-[var(--ui-text-muted)] text-sm">Settled Wt</label>
                             <input
+                              id="new-game-ai-ownership-settled-weight"
                               type="number"
                               min={0}
                               step={0.25}
@@ -574,8 +576,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Opp Fac</label>
+                            <label htmlFor="new-game-ai-ownership-opponent-factor" className="text-[var(--ui-text-muted)] text-sm">Opp Fac</label>
                             <input
+                              id="new-game-ai-ownership-opponent-factor"
                               type="number"
                               min={0}
                               step={0.1}
@@ -585,8 +588,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Min Visits</label>
+                            <label htmlFor="new-game-ai-ownership-min-visits" className="text-[var(--ui-text-muted)] text-sm">Min Visits</label>
                             <input
+                              id="new-game-ai-ownership-min-visits"
                               type="number"
                               min={0}
                               step={1}
@@ -596,8 +600,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Attach Pen</label>
+                            <label htmlFor="new-game-ai-ownership-attach-penalty" className="text-[var(--ui-text-muted)] text-sm">Attach Pen</label>
                             <input
+                              id="new-game-ai-ownership-attach-penalty"
                               type="number"
                               min={0}
                               step={0.25}
@@ -607,8 +612,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Tenuki Pen</label>
+                            <label htmlFor="new-game-ai-ownership-tenuki-penalty" className="text-[var(--ui-text-muted)] text-sm">Tenuki Pen</label>
                             <input
+                              id="new-game-ai-ownership-tenuki-penalty"
                               type="number"
                               min={0}
                               step={0.25}
@@ -621,8 +627,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       )}
                       {aiConfig.aiStrategy === 'policy' && (
                         <div className="space-y-1">
-                          <label className="text-[var(--ui-text-muted)] text-sm">Opening Moves</label>
+                          <label htmlFor="new-game-ai-policy-opening-moves" className="text-[var(--ui-text-muted)] text-sm">Opening Moves</label>
                           <input
+                            id="new-game-ai-policy-opening-moves"
                             type="number"
                             min={0}
                             step={1}
@@ -635,8 +642,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       {aiConfig.aiStrategy === 'weighted' && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Override</label>
+                            <label htmlFor="new-game-ai-weighted-override" className="text-[var(--ui-text-muted)] text-sm">Override</label>
                             <input
+                              id="new-game-ai-weighted-override"
                               type="number"
                               min={0}
                               max={1}
@@ -647,8 +655,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Weaken</label>
+                            <label htmlFor="new-game-ai-weighted-weaken" className="text-[var(--ui-text-muted)] text-sm">Weaken</label>
                             <input
+                              id="new-game-ai-weighted-weaken"
                               type="number"
                               min={0.01}
                               step={0.05}
@@ -658,8 +667,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Lower</label>
+                            <label htmlFor="new-game-ai-weighted-lower" className="text-[var(--ui-text-muted)] text-sm">Lower</label>
                             <input
+                              id="new-game-ai-weighted-lower"
                               type="number"
                               min={0}
                               step={0.001}
@@ -673,8 +683,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       {aiConfig.aiStrategy === 'pick' && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Override</label>
+                            <label htmlFor="new-game-ai-pick-override" className="text-[var(--ui-text-muted)] text-sm">Override</label>
                             <input
+                              id="new-game-ai-pick-override"
                               type="number"
                               min={0}
                               max={1}
@@ -685,8 +696,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
+                            <label htmlFor="new-game-ai-pick-n" className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
                             <input
+                              id="new-game-ai-pick-n"
                               type="number"
                               min={0}
                               step={1}
@@ -696,8 +708,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
+                            <label htmlFor="new-game-ai-pick-frac" className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
                             <input
+                              id="new-game-ai-pick-frac"
                               type="number"
                               min={0}
                               max={1}
@@ -712,8 +725,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       {aiConfig.aiStrategy === 'local' && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Override</label>
+                            <label htmlFor="new-game-ai-local-override" className="text-[var(--ui-text-muted)] text-sm">Override</label>
                             <input
+                              id="new-game-ai-local-override"
                               type="number"
                               min={0}
                               max={1}
@@ -724,8 +738,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Stddev</label>
+                            <label htmlFor="new-game-ai-local-stddev" className="text-[var(--ui-text-muted)] text-sm">Stddev</label>
                             <input
+                              id="new-game-ai-local-stddev"
                               type="number"
                               min={0.1}
                               step={0.5}
@@ -735,8 +750,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Endgame</label>
+                            <label htmlFor="new-game-ai-local-endgame" className="text-[var(--ui-text-muted)] text-sm">Endgame</label>
                             <input
+                              id="new-game-ai-local-endgame"
                               type="number"
                               min={0}
                               max={1}
@@ -747,8 +763,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
+                            <label htmlFor="new-game-ai-local-pick-n" className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
                             <input
+                              id="new-game-ai-local-pick-n"
                               type="number"
                               min={0}
                               step={1}
@@ -758,8 +775,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
+                            <label htmlFor="new-game-ai-local-pick-frac" className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
                             <input
+                              id="new-game-ai-local-pick-frac"
                               type="number"
                               min={0}
                               max={1}
@@ -774,8 +792,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       {aiConfig.aiStrategy === 'tenuki' && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Override</label>
+                            <label htmlFor="new-game-ai-tenuki-override" className="text-[var(--ui-text-muted)] text-sm">Override</label>
                             <input
+                              id="new-game-ai-tenuki-override"
                               type="number"
                               min={0}
                               max={1}
@@ -786,8 +805,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Stddev</label>
+                            <label htmlFor="new-game-ai-tenuki-stddev" className="text-[var(--ui-text-muted)] text-sm">Stddev</label>
                             <input
+                              id="new-game-ai-tenuki-stddev"
                               type="number"
                               min={0.1}
                               step={0.5}
@@ -797,8 +817,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Endgame</label>
+                            <label htmlFor="new-game-ai-tenuki-endgame" className="text-[var(--ui-text-muted)] text-sm">Endgame</label>
                             <input
+                              id="new-game-ai-tenuki-endgame"
                               type="number"
                               min={0}
                               max={1}
@@ -809,8 +830,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
+                            <label htmlFor="new-game-ai-tenuki-pick-n" className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
                             <input
+                              id="new-game-ai-tenuki-pick-n"
                               type="number"
                               min={0}
                               step={1}
@@ -820,8 +842,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
+                            <label htmlFor="new-game-ai-tenuki-pick-frac" className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
                             <input
+                              id="new-game-ai-tenuki-pick-frac"
                               type="number"
                               min={0}
                               max={1}
@@ -836,8 +859,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                       {(aiConfig.aiStrategy === 'territory' || aiConfig.aiStrategy === 'influence') && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Override</label>
+                            <label htmlFor="new-game-ai-edge-override" className="text-[var(--ui-text-muted)] text-sm">Override</label>
                             <input
+                              id="new-game-ai-edge-override"
                               type="number"
                               min={0}
                               max={1}
@@ -855,8 +879,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Threshold</label>
+                            <label htmlFor="new-game-ai-edge-threshold" className="text-[var(--ui-text-muted)] text-sm">Threshold</label>
                             <input
+                              id="new-game-ai-edge-threshold"
                               type="number"
                               min={0}
                               step={0.5}
@@ -873,8 +898,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Line Wt</label>
+                            <label htmlFor="new-game-ai-edge-line-weight" className="text-[var(--ui-text-muted)] text-sm">Line Wt</label>
                             <input
+                              id="new-game-ai-edge-line-weight"
                               type="number"
                               min={0}
                               step={1}
@@ -891,8 +917,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
+                            <label htmlFor="new-game-ai-edge-pick-n" className="text-[var(--ui-text-muted)] text-sm">Pick N</label>
                             <input
+                              id="new-game-ai-edge-pick-n"
                               type="number"
                               min={0}
                               step={1}
@@ -909,8 +936,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
+                            <label htmlFor="new-game-ai-edge-pick-frac" className="text-[var(--ui-text-muted)] text-sm">Pick Frac</label>
                             <input
+                              id="new-game-ai-edge-pick-frac"
                               type="number"
                               min={0}
                               max={1}
@@ -928,8 +956,9 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[var(--ui-text-muted)] text-sm">Endgame</label>
+                            <label htmlFor="new-game-ai-edge-endgame" className="text-[var(--ui-text-muted)] text-sm">Endgame</label>
                             <input
+                              id="new-game-ai-edge-endgame"
                               type="number"
                               min={0}
                               max={1}

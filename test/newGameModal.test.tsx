@@ -131,4 +131,64 @@ describe('NewGameModal', () => {
     const jigoHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'jigo' }) });
     expectLabelPair(jigoHtml, 'new-game-ai-target-score', 'Target Score');
   });
+
+  it('binds labels for advanced AI strategy controls', () => {
+    const simpleHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'simple' }) });
+    [
+      ['new-game-ai-ownership-max-points-lost', 'Max Pt Lost'],
+      ['new-game-ai-ownership-settled-weight', 'Settled Wt'],
+      ['new-game-ai-ownership-opponent-factor', 'Opp Fac'],
+      ['new-game-ai-ownership-min-visits', 'Min Visits'],
+      ['new-game-ai-ownership-attach-penalty', 'Attach Pen'],
+      ['new-game-ai-ownership-tenuki-penalty', 'Tenuki Pen'],
+    ].forEach(([id, label]) => expectLabelPair(simpleHtml, id!, label!));
+
+    const policyHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'policy' }) });
+    expectLabelPair(policyHtml, 'new-game-ai-policy-opening-moves', 'Opening Moves');
+
+    const weightedHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'weighted' }) });
+    [
+      ['new-game-ai-weighted-override', 'Override'],
+      ['new-game-ai-weighted-weaken', 'Weaken'],
+      ['new-game-ai-weighted-lower', 'Lower'],
+    ].forEach(([id, label]) => expectLabelPair(weightedHtml, id!, label!));
+
+    const pickHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'pick' }) });
+    [
+      ['new-game-ai-pick-override', 'Override'],
+      ['new-game-ai-pick-n', 'Pick N'],
+      ['new-game-ai-pick-frac', 'Pick Frac'],
+    ].forEach(([id, label]) => expectLabelPair(pickHtml, id!, label!));
+
+    const localHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'local' }) });
+    [
+      ['new-game-ai-local-override', 'Override'],
+      ['new-game-ai-local-stddev', 'Stddev'],
+      ['new-game-ai-local-endgame', 'Endgame'],
+      ['new-game-ai-local-pick-n', 'Pick N'],
+      ['new-game-ai-local-pick-frac', 'Pick Frac'],
+    ].forEach(([id, label]) => expectLabelPair(localHtml, id!, label!));
+
+    const tenukiHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'tenuki' }) });
+    [
+      ['new-game-ai-tenuki-override', 'Override'],
+      ['new-game-ai-tenuki-stddev', 'Stddev'],
+      ['new-game-ai-tenuki-endgame', 'Endgame'],
+      ['new-game-ai-tenuki-pick-n', 'Pick N'],
+      ['new-game-ai-tenuki-pick-frac', 'Pick Frac'],
+    ].forEach(([id, label]) => expectLabelPair(tenukiHtml, id!, label!));
+
+    const influenceHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'influence' }) });
+    [
+      ['new-game-ai-edge-override', 'Override'],
+      ['new-game-ai-edge-threshold', 'Threshold'],
+      ['new-game-ai-edge-line-weight', 'Line Wt'],
+      ['new-game-ai-edge-pick-n', 'Pick N'],
+      ['new-game-ai-edge-pick-frac', 'Pick Frac'],
+      ['new-game-ai-edge-endgame', 'Endgame'],
+    ].forEach(([id, label]) => expectLabelPair(influenceHtml, id!, label!));
+
+    const territoryHtml = renderModal({ ai: aiConfig({ opponent: 'white', strategy: 'territory' }) });
+    expectLabelPair(territoryHtml, 'new-game-ai-edge-threshold', 'Threshold');
+  });
 });
