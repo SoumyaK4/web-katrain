@@ -22,6 +22,12 @@ interface GameAnalysisModalProps {
   onClose: () => void;
 }
 
+const MAX_VISITS_ID = 'game-analysis-max-visits';
+const LIMIT_MOVES_ID = 'game-analysis-limit-moves';
+const START_MOVE_ID = 'game-analysis-start-move';
+const END_MOVE_ID = 'game-analysis-end-move';
+const MISTAKES_ONLY_ID = 'game-analysis-mistakes-only';
+
 export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose }) => {
   useEscapeToClose(onClose);
   const {
@@ -93,13 +99,13 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
         <div className="p-4 space-y-4 overflow-y-auto overscroll-contain">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-[var(--ui-text-muted)] block text-sm">Max Visits</label>
+              <label htmlFor={MAX_VISITS_ID} className="text-[var(--ui-text-muted)] block text-sm">Max Visits</label>
               <input
+                id={MAX_VISITS_ID}
                 type="number"
                 min={ANALYSIS_MIN_VISITS}
                 max={ENGINE_MAX_VISITS}
                 value={visits}
-                aria-label="Game analysis max visits"
                 onChange={(e) => setVisits(clampAnalysisVisits(clampInt(e.target.value, defaultMaxVisits)))}
                 className="w-full ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono"
               />
@@ -176,8 +182,9 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
 
           <div className="pt-2 border-t border-[var(--ui-border)] space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[var(--ui-text-muted)]">Limit to moves</label>
+              <label htmlFor={LIMIT_MOVES_ID} className="text-[var(--ui-text-muted)]">Limit to moves</label>
               <input
+                id={LIMIT_MOVES_ID}
                 type="checkbox"
                 checked={useMoveRange}
                 onChange={(e) => setUseMoveRange(e.target.checked)}
@@ -187,8 +194,9 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
 
             <div className={['grid grid-cols-2 gap-3', useMoveRange ? '' : 'opacity-40'].join(' ')}>
               <div className="space-y-1">
-                <label className="text-[var(--ui-text-muted)] block text-sm">From move</label>
+                <label htmlFor={START_MOVE_ID} className="text-[var(--ui-text-muted)] block text-sm">From move</label>
                 <input
+                  id={START_MOVE_ID}
                   type="number"
                   min={0}
                   step={1}
@@ -199,8 +207,9 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[var(--ui-text-muted)] block text-sm">To move</label>
+                <label htmlFor={END_MOVE_ID} className="text-[var(--ui-text-muted)] block text-sm">To move</label>
                 <input
+                  id={END_MOVE_ID}
                   type="number"
                   min={0}
                   step={1}
@@ -218,8 +227,9 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
 
           <div className="pt-2 border-t border-[var(--ui-border)]">
             <div className="flex items-center justify-between">
-              <label className="text-[var(--ui-text-muted)]">Re-analyze mistakes only</label>
+              <label htmlFor={MISTAKES_ONLY_ID} className="text-[var(--ui-text-muted)]">Re-analyze mistakes only</label>
               <input
+                id={MISTAKES_ONLY_ID}
                 type="checkbox"
                 checked={mistakesOnly}
                 onChange={(e) => setMistakesOnly(e.target.checked)}
