@@ -18,6 +18,7 @@ export interface MoveInsightCoach {
 
 type EdgeName = 'left' | 'right' | 'top' | 'bottom' | 'center';
 type Point = { x: number; y: number };
+type RelativeShape = { stones: Point[]; empties: Point[] };
 
 const CORNER_PATTERNS: Record<string, { label: string; detail: string; learnMoreUrl?: string }> = {
   '3-3': {
@@ -145,6 +146,58 @@ function getEmptyTriangleInsight(move: Move, board: BoardState, boardSize: numbe
   return null;
 }
 
+function getBambooJointInsight(move: Move, board: BoardState, boardSize: number): MoveInsight | null {
+  const shapes: RelativeShape[] = [
+    {
+      stones: [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 0, y: 2 },
+        { x: 1, y: 2 },
+      ],
+      empties: [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ],
+    },
+    {
+      stones: [
+        { x: 0, y: 0 },
+        { x: 2, y: 0 },
+        { x: 0, y: 1 },
+        { x: 2, y: 1 },
+      ],
+      empties: [
+        { x: 1, y: 0 },
+        { x: 1, y: 1 },
+      ],
+    },
+  ];
+
+  for (const shape of shapes) {
+    for (const moveOffset of shape.stones) {
+      const origin = { x: move.x - moveOffset.x, y: move.y - moveOffset.y };
+      const stones = shape.stones.map((point) => ({ x: origin.x + point.x, y: origin.y + point.y }));
+      const empties = shape.empties.map((point) => ({ x: origin.x + point.x, y: origin.y + point.y }));
+      const allPoints = [...stones, ...empties];
+      if (allPoints.some((point) => point.x < 0 || point.y < 0 || point.x >= boardSize || point.y >= boardSize)) continue;
+      if (
+        stones.every((point) => board[point.y]?.[point.x] === move.player) &&
+        empties.every((point) => board[point.y]?.[point.x] === null)
+      ) {
+        return {
+          label: 'Bamboo joint',
+          detail: 'Completes a flexible four-stone connection that is hard to cut cleanly.',
+          tone: 'tactical',
+          learnMoreUrl: 'https://senseis.xmp.net/?BambooJoint',
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: BoardState | null): MoveInsight | null {
   if (!parentBoard || parentBoard.length !== boardSize) return null;
   if (move.x < 0 || move.y < 0 || move.x >= boardSize || move.y >= boardSize) return null;
@@ -220,6 +273,9 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
 
   const emptyTriangleInsight = getEmptyTriangleInsight(move, nextBoard, boardSize);
   if (emptyTriangleInsight) return emptyTriangleInsight;
+
+  const bambooJointInsight = getBambooJointInsight(move, nextBoard, boardSize);
+  if (bambooJointInsight) return bambooJointInsight;
 
   if (friendlyGroups.size >= 2) {
     return {
@@ -359,6 +415,14 @@ export function getMoveInsightCoach(insight: MoveInsight): MoveInsightCoach {
       beginner: 'An empty triangle connects stones, but it is often slow and heavy.',
       pro: 'Check whether a bamboo joint, tiger mouth, diagonal move, or forcing exchange keeps the same connection more efficiently.',
       checks: ['Efficiency', 'Cut point', 'Alternative'],
+    };
+  }
+
+  if (insight.label === 'Bamboo joint') {
+    return {
+      beginner: 'A bamboo joint connects lightly: if one cutting point is attacked, the other point usually reconnects.',
+      pro: 'Check whether the joint is still short of liberties, vulnerable to forcing moves, or better played as a sente exchange.',
+      checks: ['Cut resistance', 'Liberties', 'Aji'],
     };
   }
 

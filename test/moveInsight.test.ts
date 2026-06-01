@@ -105,6 +105,17 @@ describe('move insights', () => {
       learnMoreUrl: 'https://senseis.xmp.net/?EmptyTriangle',
     });
 
+    const bambooJointBoard = emptyBoard(9);
+    bambooJointBoard[0]![0] = 'black';
+    bambooJointBoard[0]![1] = 'black';
+    bambooJointBoard[2]![0] = 'black';
+
+    expect(getMoveInsight(blackMove(1, 2), 9, bambooJointBoard)).toMatchObject({
+      label: 'Bamboo joint',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?BambooJoint',
+    });
+
     const connectBoard = emptyBoard(9);
     connectBoard[1]![0] = 'white';
     connectBoard[1]![2] = 'white';
@@ -171,6 +182,10 @@ describe('move insights', () => {
     expect(getMoveInsightCoach({ label: 'Empty triangle', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('slow and heavy'),
       checks: expect.arrayContaining(['Efficiency']),
+    });
+    expect(getMoveInsightCoach({ label: 'Bamboo joint', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('connects lightly'),
+      checks: expect.arrayContaining(['Cut resistance']),
     });
     expect(getMoveInsightCoach({ label: 'Connect', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('harder to cut'),
