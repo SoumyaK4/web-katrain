@@ -21,7 +21,7 @@ import {
   nextPolicyHeatmapMetric,
   nextTopMoveMetric,
 } from '../utils/topMoveMetric';
-import { getBestMoveSummary } from '../utils/bestMoveSummary';
+import { getCurrentNodeBestMoveSummary } from '../utils/bestMoveSummary';
 import { summarizeGameAnalysisProgress } from '../utils/gameAnalysisProgress';
 import { getEngineStatusSummary } from '../utils/engineStatusSummary';
 import {
@@ -188,8 +188,8 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
     [activeBranchChildIds, currentNode]
   );
   const bestMoveSummary = React.useMemo(
-    () => getBestMoveSummary(currentNode.analysis, currentNode.gameState.board.length),
-    [currentNode.analysis, currentNode.gameState.board.length]
+    () => getCurrentNodeBestMoveSummary(currentNode),
+    [currentNode]
   );
   const displayedMoveQuality = playedMoveQuality ?? nextMoveQuality;
   const moveQualityKind = playedMoveQuality ? 'played' : nextMoveQuality ? 'next' : 'quality';

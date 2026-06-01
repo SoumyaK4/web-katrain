@@ -26,7 +26,7 @@ import {
   visitPresetLabel,
 } from '../utils/visitPresets';
 import { formatAnalysisScoreLead, summarizePointsLost } from '../utils/analysisSummary';
-import { getBestMoveSummary } from '../utils/bestMoveSummary';
+import { getCurrentNodeBestMoveSummary } from '../utils/bestMoveSummary';
 import { getNextMoveQuality, getPlayedMoveQuality } from '../utils/playedMoveQuality';
 import { setTimedNotification } from '../utils/timedNotification';
 import { copyTextToClipboard } from '../utils/clipboard';
@@ -227,10 +227,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   React.useEffect(() => {
     setEngineErrorCopied(false);
   }, [engineError]);
-  const bestMoveAnalysis = currentNode.analysis ?? currentNode.parent?.analysis ?? null;
   const bestMoveSummary = React.useMemo(
-    () => getBestMoveSummary(bestMoveAnalysis, currentNode.gameState.board.length),
-    [bestMoveAnalysis, currentNode.gameState.board.length]
+    () => getCurrentNodeBestMoveSummary(currentNode),
+    [currentNode]
   );
   const playedMoveQuality = React.useMemo(
     () => getPlayedMoveQuality(currentNode, pointsLost),

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { AnalysisResult, CandidateMove } from '../src/types';
-import { formatPolicyPrior, getBestMoveSummary } from '../src/utils/bestMoveSummary';
+import type { AnalysisResult, CandidateMove, GameNode, Move } from '../src/types';
+import { formatPolicyPrior, getBestMoveSummary, getCurrentNodeBestMoveSummary } from '../src/utils/bestMoveSummary';
 
 const territory = (size = 19) => Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
+const board = (size = 19) => Array.from({ length: size }, () => Array.from({ length: size }, () => null));
 
 function candidate(partial: Partial<CandidateMove> & Pick<CandidateMove, 'x' | 'y'>): CandidateMove {
   const move: CandidateMove = {
@@ -24,6 +25,25 @@ function analysis(moves: CandidateMove[]): AnalysisResult {
     rootScoreLead: 0,
     moves,
     territory: territory(),
+  };
+}
+
+function node(args: { parent: GameNode | null; move: Move | null; analysis?: AnalysisResult | null }): GameNode {
+  return {
+    id: Math.random().toString(36),
+    parent: args.parent,
+    children: [],
+    move: args.move,
+    gameState: {
+      board: board(),
+      currentPlayer: args.move?.player === 'black' ? 'white' : 'black',
+      moveHistory: args.move ? [args.move] : [],
+      capturedBlack: 0,
+      capturedWhite: 0,
+      komi: 6.5,
+    },
+    analysis: args.analysis ?? null,
+    analysisVisitsRequested: 0,
   };
 }
 
@@ -59,6 +79,36 @@ describe('best move summary', () => {
   it('returns null when there are no legal candidates', () => {
     expect(getBestMoveSummary(analysis([]), 19)).toBeNull();
     expect(getBestMoveSummary(null, 19)).toBeNull();
+  });
+
+  it('does not reuse a parent position best move for the current position readout', () => {
+    const root = node({
+      parent: null,
+      move: null,
+      analysis: analysis([candidate({ x: 3, y: 15, order: 0, visits: 100 })]),
+    });
+    const child = node({
+      parent: root,
+      move: { x: 3, y: 15, player: 'black' },
+      analysis: null,
+    });
+
+    expect(getCurrentNodeBestMoveSummary(child)).toBeNull();
+  });
+
+  it('uses the current position analysis even when the parent has a different best move', () => {
+    const root = node({
+      parent: null,
+      move: null,
+      analysis: analysis([candidate({ x: 3, y: 15, order: 0, visits: 100 })]),
+    });
+    const child = node({
+      parent: root,
+      move: { x: 3, y: 15, player: 'black' },
+      analysis: analysis([candidate({ x: 15, y: 3, order: 0, visits: 200 })]),
+    });
+
+    expect(getCurrentNodeBestMoveSummary(child)?.moveLabel).toBe('Q16');
   });
 
   it('keeps small policy priors readable', () => {

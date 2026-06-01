@@ -1,4 +1,4 @@
-import type { AnalysisResult, CandidateMove } from '../types';
+import type { AnalysisResult, CandidateMove, GameNode } from '../types';
 import { formatAnalysisScoreLead, formatAnalysisWinRate } from './analysisSummary';
 import { formatBoardMoveLabel } from './playedMoveQuality';
 import { formatVisitCount } from './visitPresets';
@@ -64,4 +64,10 @@ export function getBestMoveSummary(analysis: AnalysisResult | null | undefined, 
     detailLabel,
     title: titleParts.join(' - '),
   };
+}
+
+export function getCurrentNodeBestMoveSummary(
+  node: Pick<GameNode, 'analysis' | 'gameState'>
+): BestMoveSummary | null {
+  return getBestMoveSummary(node.analysis, node.gameState.board.length);
 }
