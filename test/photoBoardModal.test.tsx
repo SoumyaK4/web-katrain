@@ -38,4 +38,18 @@ describe('PhotoBoardModal', () => {
     expect(source).toContain('aria-label="Choose board photo file"');
     expect(source).toContain('data-photo-board-source-name="true"');
   });
+
+  it('renders a clear empty state before a photo source is selected', () => {
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(html).toContain('data-photo-board-empty-source="true"');
+    expect(html).toContain('No board photo selected');
+  });
 });

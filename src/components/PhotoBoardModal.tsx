@@ -434,8 +434,14 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                   className="h-auto max-h-[42vh] w-full object-contain"
                 />
               ) : (
-                <div className="grid aspect-[4/3] place-items-center bg-[var(--ui-surface)] text-sm ui-text-muted">
-                  <FaCamera size={28} aria-hidden="true" />
+                <div
+                  className="grid aspect-[4/3] place-items-center bg-[var(--ui-surface)] text-sm ui-text-muted"
+                  data-photo-board-empty-source="true"
+                >
+                  <div className="grid place-items-center gap-2 text-center">
+                    <FaCamera size={28} aria-hidden="true" />
+                    <span>No board photo selected</span>
+                  </div>
                 </div>
               )}
             </div>
