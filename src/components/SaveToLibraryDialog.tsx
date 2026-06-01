@@ -12,6 +12,9 @@ interface SaveToLibraryDialogProps {
   onSave: (name: string, folderId: string | null) => boolean | Promise<boolean>;
 }
 
+const NAME_INPUT_ID = 'save-to-library-name';
+const FOLDER_SELECT_ID = 'save-to-library-folder';
+
 export const SaveToLibraryDialog: React.FC<SaveToLibraryDialogProps> = ({
   open,
   initialName,
@@ -62,9 +65,12 @@ export const SaveToLibraryDialog: React.FC<SaveToLibraryDialogProps> = ({
           </button>
         </div>
         <div className="p-4 space-y-3">
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-[var(--ui-text-muted)]">Name</span>
+          <div className="block space-y-1">
+            <label htmlFor={NAME_INPUT_ID} className="block text-sm font-medium text-[var(--ui-text-muted)]">
+              Name
+            </label>
             <input
+              id={NAME_INPUT_ID}
               ref={inputRef}
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -76,10 +82,13 @@ export const SaveToLibraryDialog: React.FC<SaveToLibraryDialogProps> = ({
               placeholder="Game name"
               className="w-full ui-input border rounded px-3 py-2 text-sm text-[var(--ui-text)] focus:border-[var(--ui-accent)] outline-none"
             />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-[var(--ui-text-muted)]">Save to folder</span>
+          </div>
+          <div className="block space-y-1">
+            <label htmlFor={FOLDER_SELECT_ID} className="block text-sm font-medium text-[var(--ui-text-muted)]">
+              Save to folder
+            </label>
             <select
+              id={FOLDER_SELECT_ID}
               value={folderId ?? ''}
               onChange={(event) => setFolderId(event.target.value || null)}
               onKeyDown={(event) => {
@@ -95,7 +104,7 @@ export const SaveToLibraryDialog: React.FC<SaveToLibraryDialogProps> = ({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           <div className="flex justify-end gap-2">
             <button type="button" className="panel-action-button" onClick={onClose} disabled={saving}>
               Cancel
