@@ -42,6 +42,11 @@ describe('ManualScorePanel', () => {
     expect(html).toContain('Neutral');
     expect(html).toContain('aria-label="5 neutral points"');
     expect(html).toContain('W+5.5');
+    expect(html).toContain('data-manual-score-status="true"');
+    expect(html).toContain('data-manual-score-status-item="mode"');
+    expect(html).toContain('Manual');
+    expect(html).toContain('data-manual-score-status-item="dead"');
+    expect(html).toContain('data-manual-score-status-item="neutral"');
   });
 
   it('marks ownership estimates as approximate', () => {
@@ -58,12 +63,14 @@ describe('ManualScorePanel', () => {
     expect(html).toContain('manual-score-estimate-mark');
     expect(html).toContain('≈');
     expect(html).toContain('data-score-estimate-source="ownership"');
+    expect(html).toContain('Ownership');
   });
 
   it('exposes local playout estimates when ownership is unavailable', () => {
     const html = renderToStaticMarkup(
       <ManualScorePanel
         {...baseProps}
+        scoreMode="estimate"
         onAutoEstimate={() => undefined}
         canAutoEstimate
         estimateSource="playout"
@@ -72,5 +79,20 @@ describe('ManualScorePanel', () => {
 
     expect(html).toContain('Estimate dead stones with local playouts');
     expect(html).toContain('data-score-estimate-source="playout"');
+    expect(html).toContain('Playout');
+  });
+
+  it('keeps final scoring unavailable when no manual handler is wired', () => {
+    const html = renderToStaticMarkup(
+      <ManualScorePanel
+        {...baseProps}
+        scoreMode="estimate"
+        onAutoEstimate={() => undefined}
+        canAutoEstimate
+        estimateSource="ownership"
+      />,
+    );
+
+    expect(html).toContain('<button type="button" class="" disabled=""');
   });
 });

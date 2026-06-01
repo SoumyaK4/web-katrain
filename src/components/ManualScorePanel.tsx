@@ -27,6 +27,16 @@ interface ManualScorePanelProps {
 
 const formatScoreValue = (value: number): string => Number.isInteger(value) ? String(value) : value.toFixed(1);
 
+function formatScoreSourceLabel(
+  scoreMode: 'manual' | 'estimate',
+  estimateSource: 'ownership' | 'playout' | null,
+): string {
+  if (scoreMode === 'manual') return 'Manual';
+  if (estimateSource === 'ownership') return 'Ownership';
+  if (estimateSource === 'playout') return 'Playout';
+  return 'Estimate';
+}
+
 export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   active,
   disabled = false,
@@ -86,6 +96,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
       : estimateSource === 'playout'
         ? 'Estimate dead stones with local playouts'
         : 'Run territory analysis or score a position with stones before estimating';
+  const scoreSourceLabel = formatScoreSourceLabel(scoreMode, estimateSource);
   return (
     <section className={['manual-score-panel', commandBarOffset ? 'manual-score-offset' : ''].join(' ')} aria-label="Manual score">
       <div className="manual-score-header">
@@ -117,16 +128,31 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
           type="button"
           className={scoreMode === 'manual' ? 'active' : ''}
           onClick={onUseManualScore}
-          disabled={scoreMode === 'manual'}
+          disabled={!onUseManualScore || scoreMode === 'manual'}
           title="Use current dead-stone marks as the final manual score"
         >
           <span>Final</span>
         </button>
       </div>
 
-      <div className={['manual-score-result', leaderClass].join(' ')}>
+      <div className={['manual-score-result', leaderClass].join(' ')} role="status" aria-live="polite" aria-atomic="true">
         {scoreMode === 'estimate' && <span className="manual-score-estimate-mark">≈</span>}
         {score.result}
+      </div>
+
+      <div className="manual-score-status" data-manual-score-status="true" aria-label="Scoring status">
+        <div data-manual-score-status-item="mode" title={`Scoring mode: ${scoreSourceLabel}`}>
+          <span>Mode</span>
+          <b>{scoreSourceLabel}</b>
+        </div>
+        <div data-manual-score-status-item="dead" title="Marked dead stones">
+          <span>Dead</span>
+          <b>{deadStoneCount}</b>
+        </div>
+        <div data-manual-score-status-item="neutral" title="Neutral points">
+          <span>Neutral</span>
+          <b>{score.neutralPoints}</b>
+        </div>
       </div>
 
       <div className="manual-score-totals">

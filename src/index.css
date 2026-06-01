@@ -1971,6 +1971,47 @@
     background: var(--ui-surface-2);
   }
 
+  .manual-score-status {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    padding: 0 10px 8px;
+  }
+
+  .manual-score-status > div {
+    min-width: 0;
+    padding: 5px 6px;
+    border: 1px solid var(--ui-border);
+    border-radius: 6px;
+    background: var(--ui-surface);
+  }
+
+  .manual-score-status span,
+  .manual-score-status b {
+    display: block;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .manual-score-status span {
+    color: var(--ui-text-faint);
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .manual-score-status b {
+    margin-top: 2px;
+    color: var(--ui-text);
+    font-family: var(--ui-font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
   .manual-score-totals {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
