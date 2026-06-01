@@ -81,6 +81,7 @@ import { getMediaQueryList, subscribeMediaQueryList } from '../utils/mediaQuery'
 import { copyTextToClipboard, readClipboardText } from '../utils/clipboard';
 import { FIRST_RUN_LIBRARY_MIN_WIDTH, getInitialLibraryOpen, LIBRARY_OPEN_STORAGE_KEY } from '../utils/layoutPreferences';
 import { saveSettingsActiveTab } from '../utils/settingsTabs';
+import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -1709,6 +1710,13 @@ export const Layout: React.FC = () => {
       closeFloatingMenus();
       open();
     };
+    const toggleTopMoveHints = () => {
+      if (settings.analysisShowPolicy) {
+        toast('Policy overlay is showing; top move hints are hidden.', 'info');
+        return;
+      }
+      updateControls({ analysisShowHints: !settings.analysisShowHints });
+    };
 
     return [
       {
@@ -1814,12 +1822,87 @@ export const Layout: React.FC = () => {
         keywords: ['audio', 'mute', 'volume'],
       },
       {
+        id: 'toggle-coordinates',
+        label: settings.showCoordinates ? 'Hide coordinates' : 'Show coordinates',
+        category: 'View',
+        shortcutId: 'toggle-coordinates',
+        run: () => updateSettings({ showCoordinates: !settings.showCoordinates }),
+        keywords: ['board labels', 'grid'],
+      },
+      {
+        id: 'toggle-move-numbers',
+        label: settings.showMoveNumbers ? 'Hide move numbers' : 'Show move numbers',
+        category: 'View',
+        shortcutId: 'toggle-move-numbers',
+        run: () => updateSettings({ showMoveNumbers: !settings.showMoveNumbers }),
+        keywords: ['stones', 'sequence'],
+      },
+      {
+        id: 'toggle-next-move-preview',
+        label: settings.showNextMovePreview ? 'Hide next move preview' : 'Show next move preview',
+        category: 'View',
+        shortcutId: 'toggle-next-move-preview',
+        run: () => updateSettings({ showNextMovePreview: !settings.showNextMovePreview }),
+        keywords: ['ghost stone', 'preview'],
+      },
+      {
         id: 'toggle-analysis',
         label: isAnalysisMode ? 'Turn analysis off' : 'Turn analysis on',
         category: 'Analysis',
         shortcutId: 'toggle-analysis',
         run: toggleAnalysisMode,
         keywords: ['engine', 'ai'],
+      },
+      {
+        id: 'toggle-children',
+        label: settings.analysisShowChildren ? 'Hide children overlay' : 'Show children overlay',
+        category: 'Analysis',
+        shortcutId: 'toggle-children',
+        run: () => updateControls({ analysisShowChildren: !settings.analysisShowChildren }),
+        keywords: ['legal moves', 'variations'],
+      },
+      {
+        id: 'toggle-eval',
+        label: settings.analysisShowEval ? 'Hide evaluation dots' : 'Show evaluation dots',
+        category: 'Analysis',
+        shortcutId: 'toggle-eval',
+        run: () => updateControls({ analysisShowEval: !settings.analysisShowEval }),
+        keywords: ['dots', 'mistakes'],
+      },
+      {
+        id: 'toggle-hints',
+        label: settings.analysisShowHints && !settings.analysisShowPolicy ? 'Hide top move hints' : 'Show top move hints',
+        category: 'Analysis',
+        shortcutId: 'toggle-hints',
+        run: toggleTopMoveHints,
+        keywords: ['best moves', 'suggestions'],
+      },
+      {
+        id: 'toggle-policy',
+        label: settings.analysisShowPolicy ? 'Hide policy heatmap' : 'Show policy heatmap',
+        category: 'Analysis',
+        shortcutId: 'toggle-policy',
+        run: () => updateControls({ analysisShowPolicy: !settings.analysisShowPolicy }),
+        keywords: ['heatmap', 'network'],
+      },
+      {
+        id: 'cycle-policy-metric',
+        label: 'Cycle policy heatmap metric',
+        category: 'Analysis',
+        shortcutId: 'cycle-policy-metric',
+        run: () => {
+          updateSettings({ analysisPolicyMetric: nextPolicyHeatmapMetric(settings.analysisPolicyMetric) });
+          if (!settings.analysisShowPolicy) updateControls({ analysisShowPolicy: true });
+        },
+        keywords: ['policy label', 'heatmap label'],
+      },
+      {
+        id: 'toggle-territory',
+        label: settings.analysisShowOwnership ? 'Hide territory ownership' : 'Show territory ownership',
+        category: 'Analysis',
+        shortcutId: 'toggle-territory',
+        run: () => updateControls({ analysisShowOwnership: !settings.analysisShowOwnership }),
+        keywords: ['ownership', 'area'],
       },
       {
         id: 'game-review',
