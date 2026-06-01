@@ -72,4 +72,33 @@ describe('Kaya SGF analysis helpers', () => {
     expect(decoded[1]).toBeCloseTo(0, 1);
     expect(decoded[2]).toBeCloseTo(1);
   });
+
+  it('drops malformed KA moves instead of treating them as pass', () => {
+    const ka = JSON.stringify({
+      w: 0.5,
+      s: 0,
+      m: [
+        { m: 'Z99', p: 0.9, w: 0.9, s: 9, v: 90 },
+        { m: 'I9', p: 0.8 },
+        { m: 'Q4', p: 0.7 },
+        { m: '', p: 0.6 },
+        { m: 12, p: 0.5 },
+        null,
+        'bad',
+        { m: 'pass', p: 0.2, w: 0.45, s: -1, v: 2 },
+        { m: 'J9', p: 0.3, w: 0.55, s: 1, v: 3 },
+      ],
+    });
+
+    const decoded = decodeKayaKa({ ka, boardSize: 9, currentPlayer: 'black' });
+
+    expect(decoded?.moves).toHaveLength(2);
+    expect(decoded?.moves[0]).toMatchObject({ x: -1, y: -1, order: 0, prior: 0.2, visits: 2 });
+    expect(decoded?.moves[1]).toMatchObject({ x: 8, y: 0, order: 1, prior: 0.3, visits: 3 });
+    expect(decoded?.policy?.[81]).toBeCloseTo(0.2);
+    expect(decoded?.policy?.[8]).toBeCloseTo(0.3);
+    expect(decoded?.policy?.includes(0.9)).toBe(false);
+    expect(decoded?.policy?.includes(0.8)).toBe(false);
+    expect(decoded?.policy?.includes(0.7)).toBe(false);
+  });
 });

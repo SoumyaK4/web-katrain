@@ -36,20 +36,22 @@ function xyToGtp(x: number, y: number, boardSize: BoardSize): string {
   return `${letter}${boardSize - y}`;
 }
 
-function gtpToXy(move: string, boardSize: BoardSize): { x: number; y: number } {
+function gtpToXy(move: unknown, boardSize: BoardSize): { x: number; y: number; valid: boolean } {
+  if (typeof move !== 'string') return { x: -1, y: -1, valid: false };
   const t = move.trim().toUpperCase();
-  if (!t || t === 'PASS') return { x: -1, y: -1 };
+  if (t === 'PASS') return { x: -1, y: -1, valid: true };
+  if (!t) return { x: -1, y: -1, valid: false };
 
   const match = /^([A-T])([1-9]|1[0-9])$/.exec(t);
-  if (!match) return { x: -1, y: -1 };
+  if (!match) return { x: -1, y: -1, valid: false };
 
   const colChar = match[1]!;
-  if (colChar === 'I') return { x: -1, y: -1 };
+  if (colChar === 'I') return { x: -1, y: -1, valid: false };
   const rawCol = colChar.charCodeAt(0) - 65;
   const x = rawCol >= 9 ? rawCol - 1 : rawCol;
   const y = boardSize - Number.parseInt(match[2]!, 10);
-  if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return { x: -1, y: -1 };
-  return { x, y };
+  if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return { x: -1, y: -1, valid: false };
+  return { x, y, valid: true };
 }
 
 function flattenTerritory(territory: number[][], boardSize: BoardSize): number[] {
@@ -140,30 +142,32 @@ export function decodeKayaKa(args: {
     const sign = args.currentPlayer === 'black' ? 1 : -1;
     const policy = new Array<number>(boardSize * boardSize + 1).fill(-1);
 
-    const moves: CandidateMove[] = data.m
-      .map((item, order) => {
-        const { x, y } = gtpToXy(item.m, boardSize);
-        const idx = x < 0 || y < 0 ? boardSize * boardSize : y * boardSize + x;
-        const prior = typeof item.p === 'number' && Number.isFinite(item.p) ? clamp01(item.p) : 0;
-        policy[idx] = prior;
-        const scoreLead = typeof item.s === 'number' && Number.isFinite(item.s) ? item.s : rootScoreLead;
-        const winRate = typeof item.w === 'number' && Number.isFinite(item.w) ? clamp01(item.w) : rootWinRate;
-        return {
-          x,
-          y,
-          order,
-          visits: typeof item.v === 'number' && Number.isFinite(item.v) ? Math.max(0, Math.floor(item.v)) : 0,
-          winRate,
-          winRateLost: sign * (rootWinRate - winRate),
-          scoreLead,
-          scoreSelfplay: scoreLead,
-          scoreStdev: 0,
-          pointsLost: sign * (rootScoreLead - scoreLead),
-          relativePointsLost: 0,
-          prior,
-        };
-      })
-      .filter((move) => move.x === -1 || (move.x >= 0 && move.x < boardSize && move.y >= 0 && move.y < boardSize));
+    const moves: CandidateMove[] = [];
+    for (const rawItem of data.m as unknown[]) {
+      if (!rawItem || typeof rawItem !== 'object') continue;
+      const item = rawItem as Partial<KayaSgfAnalysisMove>;
+      const { x, y, valid } = gtpToXy(item.m, boardSize);
+      if (!valid) continue;
+      const idx = x < 0 || y < 0 ? boardSize * boardSize : y * boardSize + x;
+      const prior = typeof item.p === 'number' && Number.isFinite(item.p) ? clamp01(item.p) : 0;
+      policy[idx] = prior;
+      const scoreLead = typeof item.s === 'number' && Number.isFinite(item.s) ? item.s : rootScoreLead;
+      const winRate = typeof item.w === 'number' && Number.isFinite(item.w) ? clamp01(item.w) : rootWinRate;
+      moves.push({
+        x,
+        y,
+        order: moves.length,
+        visits: typeof item.v === 'number' && Number.isFinite(item.v) ? Math.max(0, Math.floor(item.v)) : 0,
+        winRate,
+        winRateLost: sign * (rootWinRate - winRate),
+        scoreLead,
+        scoreSelfplay: scoreLead,
+        scoreStdev: 0,
+        pointsLost: sign * (rootScoreLead - scoreLead),
+        relativePointsLost: 0,
+        prior,
+      });
+    }
 
     const topScoreLead = moves[0]?.scoreLead ?? rootScoreLead;
     for (const move of moves) move.relativePointsLost = sign * (topScoreLead - move.scoreLead);
