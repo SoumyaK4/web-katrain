@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaTimes } from 'react-icons/fa';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import type { AutoSavedGame } from '../utils/autoSave';
 
 type AutoSaveRecoveryModalProps = {
@@ -15,6 +16,7 @@ export const AutoSaveRecoveryModal: React.FC<AutoSaveRecoveryModalProps> = ({
 }) => {
   const savedAt = new Date(snapshot.savedAt);
   const savedAtLabel = Number.isFinite(savedAt.getTime()) ? savedAt.toLocaleString() : 'an earlier session';
+  useEscapeToClose(onDismiss);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">

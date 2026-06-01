@@ -53,6 +53,7 @@ import {
   getLibraryRowKeyAction,
   isLibraryMenuCloseKey,
 } from '../utils/libraryKeyboard';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 const isFolder = (item: LibraryItem): item is LibraryFolder => item.type === 'folder';
 const isFile = (item: LibraryItem): item is LibraryFile => item.type === 'file';
@@ -110,6 +111,7 @@ const LibraryTextDialog: React.FC<{
   const [folderId, setFolderId] = useState<string | null>(dialog.folderSelect?.initialFolderId ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmed = value.trim();
+  useEscapeToClose(onClose);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -198,6 +200,8 @@ const LibraryConfirmDialog: React.FC<{
   dialog: LibraryConfirmDialogState;
   onClose: () => void;
 }> = ({ dialog, onClose }) => {
+  useEscapeToClose(onClose);
+
   const confirm = () => {
     dialog.onConfirm();
     onClose();
