@@ -55,7 +55,7 @@ export const SaveToLibraryDialog: React.FC<SaveToLibraryDialogProps> = ({
           <h2 id="save-to-library-title" className="text-base font-semibold text-[var(--ui-text)]">
             Save Copy to Library
           </h2>
-          <button type="button" onClick={onClose} className="ui-text-faint hover:text-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]" aria-label="Close">
             <FaTimes />
           </button>
         </div>

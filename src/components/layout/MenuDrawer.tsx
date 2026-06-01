@@ -86,7 +86,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             </div>
           </div>
           <button
-            className="shrink-0 ui-text-muted hover:text-white"
+            className="shrink-0 ui-text-muted hover:text-[var(--ui-text)]"
             onClick={onClose}
             aria-label="Close menu"
           >

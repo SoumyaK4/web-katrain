@@ -130,7 +130,7 @@ const LibraryTextDialog: React.FC<{
           <h2 id="library-text-dialog-title" className="text-base font-semibold text-[var(--ui-text)]">
             {dialog.title}
           </h2>
-          <button type="button" onClick={onClose} className="ui-text-faint hover:text-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]" aria-label="Close">
             <FaTimes />
           </button>
         </div>
@@ -211,7 +211,7 @@ const LibraryConfirmDialog: React.FC<{
           <h2 id="library-confirm-dialog-title" className="text-base font-semibold text-[var(--ui-text)]">
             {dialog.title}
           </h2>
-          <button type="button" onClick={onClose} className="ui-text-faint hover:text-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="ui-text-faint hover:text-[var(--ui-text)]" aria-label="Close">
             <FaTimes />
           </button>
         </div>
@@ -1576,7 +1576,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         <div className="ui-bar ui-bar-height ui-bar-pad border-b border-[var(--ui-border)] flex items-center gap-2">
           <button
             type="button"
-            className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-white transition-colors"
+            className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] transition-colors"
             onClick={onClose}
             title="Close library"
           >

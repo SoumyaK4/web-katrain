@@ -843,7 +843,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
             <button
               type="button"
               onClick={onClose}
-              className="ui-text-faint hover:text-white"
+              className="ui-text-faint hover:text-[var(--ui-text)]"
               title="Close"
               aria-label="Close game report"
             >
@@ -1795,7 +1795,7 @@ export const GameReportModal: React.FC<GameReportModalProps> = ({ onClose, setRe
               <button
                 type="button"
                 onClick={() => setShowReportGuide(false)}
-                className="ui-text-faint hover:text-white"
+                className="ui-text-faint hover:text-[var(--ui-text)]"
                 aria-label="Close report guide"
                 title="Close report guide"
               >

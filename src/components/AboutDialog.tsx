@@ -25,7 +25,7 @@ const AboutLink: React.FC<{ href: string; children: React.ReactNode; className?:
     target="_blank"
     rel="noopener noreferrer"
     className={[
-      'inline-flex min-w-0 items-center gap-1.5 text-[var(--ui-accent)] hover:text-white',
+      'inline-flex min-w-0 items-center gap-1.5 text-[var(--ui-accent)] hover:text-[var(--ui-text)]',
       className ?? '',
     ].join(' ')}
   >

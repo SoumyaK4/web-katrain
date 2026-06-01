@@ -304,7 +304,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             ) : onLoadedFileRename ? (
               <button
                 type="button"
-                className="min-w-0 truncate text-left text-[var(--ui-text)] font-medium hover:text-white disabled:hover:text-[var(--ui-text)]"
+                className="min-w-0 truncate text-left text-[var(--ui-text)] font-medium hover:text-[var(--ui-text)] disabled:hover:text-[var(--ui-text)]"
                 onClick={() => {
                   if (!onLoadedFileRename) return;
                   setLoadedFileNameDraft(loadedFileName);

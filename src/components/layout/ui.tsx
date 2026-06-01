@@ -66,7 +66,7 @@ export const IconButton: React.FC<{
         onBlur={() => setShowTooltip(false)}
         className={[
           'ui-control flex items-center justify-center rounded-lg transition-colors touch-manipulation',
-          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-white active:bg-[var(--ui-surface-2)]',
+          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] active:bg-[var(--ui-surface-2)]',
           className ?? '',
         ].join(' ')}
       >
@@ -190,7 +190,7 @@ export const PanelHeaderButton: React.FC<{
         aria-pressed={active}
         className={[
           'px-2 py-1 rounded text-xs font-semibold border touch-manipulation',
-          active ? `${colorClass} border-[var(--ui-border-strong)] text-white` : 'bg-[var(--ui-panel)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:text-white hover:bg-[var(--ui-surface-2)]',
+          active ? `${colorClass} border-[var(--ui-border-strong)] text-white` : 'bg-[var(--ui-panel)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)]',
         ].join(' ')}
       >
         {label}
@@ -268,7 +268,7 @@ export const PanelEdgeToggle: React.FC<{
       aria-label={title}
       className={[
         sizeClasses,
-        'bg-[var(--ui-surface-2)]/90 hover:bg-[var(--ui-surface)] flex items-center justify-center text-[var(--ui-text-muted)] hover:text-white opacity-80 hover:opacity-100 transition-all shadow-md',
+        'bg-[var(--ui-surface-2)]/90 hover:bg-[var(--ui-surface)] flex items-center justify-center text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] opacity-80 hover:opacity-100 transition-all shadow-md',
         edgeClasses,
         className ?? '',
       ].join(' ')}

@@ -210,7 +210,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
     topIconClass,
     'relative flex items-center justify-center rounded-lg transition-colors touch-manipulation',
     'border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]',
-    'hover:bg-[var(--ui-surface-2)] hover:text-white',
+    'hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
   ].join(' ');
   const [isFullscreen, setIsFullscreen] = React.useState(() => {
     if (typeof document === 'undefined') return false;
@@ -599,7 +599,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               'min-h-11 px-2 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors',
               isAnalysisMode
                 ? 'bg-[var(--ui-accent-soft)] border border-[var(--ui-accent)] text-[var(--ui-accent)] shadow-sm shadow-black/20'
-                : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white',
+                : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
             ].join(' ')}
             title={withShortcut('Toggle analysis mode', 'toggle-analysis')}
             onClick={toggleAnalysisMode}
@@ -682,7 +682,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           ) : (
             <button
               type="button"
-              className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+              className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
               onClick={() => setViewMenuOpen(!viewMenuOpen)}
               title="View options"
             >
@@ -702,7 +702,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                     <div className="text-sm font-semibold">Tools</div>
                     <button
                       type="button"
-                      className="ui-control flex items-center justify-center rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-white"
+                      className="ui-control flex items-center justify-center rounded-lg hover:bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
                       onClick={() => setViewMenuOpen(false)}
                       aria-label="Close tools"
                     >
@@ -728,7 +728,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               'px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap',
               isAnalysisMode
                 ? 'bg-[var(--ui-accent-soft)] border border-[var(--ui-accent)] text-[var(--ui-accent)] shadow-sm shadow-black/20'
-                : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white',
+                : 'bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
             ].join(' ')}
             title={withShortcut('Toggle analysis mode', 'toggle-analysis')}
             onClick={toggleAnalysisMode}
@@ -742,7 +742,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
           <div className="relative" data-menu-popover>
             <button
               type="button"
-              className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-white flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
+              className="px-2 py-1 rounded-lg sm:px-2.5 sm:py-1.5 bg-[var(--ui-surface)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] flex items-center gap-1.5 text-sm font-medium transition-colors whitespace-nowrap"
               onClick={() => setAnalysisMenuOpen(!analysisMenuOpen)}
               title="Analysis actions"
             >

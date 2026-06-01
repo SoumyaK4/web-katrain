@@ -28,7 +28,7 @@ export const AutoSaveRecoveryModal: React.FC<AutoSaveRecoveryModalProps> = ({
           <h2 id="auto-save-recovery-title" className="text-base font-semibold text-[var(--ui-text)]">
             Restore Auto-Saved Game
           </h2>
-          <button type="button" onClick={onDismiss} className="ui-text-faint hover:text-white" aria-label="Close">
+          <button type="button" onClick={onDismiss} className="ui-text-faint hover:text-[var(--ui-text)]" aria-label="Close">
             <FaTimes />
           </button>
         </div>
