@@ -27,6 +27,7 @@ interface UseKeyboardShortcutsOptions {
   toggleLibrary: () => void;
   closeLibrary: () => void;
   toggleSidebar: () => void;
+  toggleScoringMode: () => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
 }
 
@@ -48,6 +49,7 @@ export function useKeyboardShortcuts({
   toggleLibrary,
   closeLibrary,
   toggleSidebar,
+  toggleScoringMode,
   toast,
 }: UseKeyboardShortcutsOptions): void {
   const {
@@ -249,6 +251,12 @@ export function useKeyboardShortcuts({
       if (matches('rotate-board')) {
         e.preventDefault();
         rotateBoard();
+        return;
+      }
+
+      if (matches('toggle-scoring')) {
+        e.preventDefault();
+        toggleScoringMode();
         return;
       }
 
@@ -533,6 +541,7 @@ export function useKeyboardShortcuts({
     toggleLibrary,
     closeLibrary,
     toggleSidebar,
+    toggleScoringMode,
     toast,
   ]);
 }

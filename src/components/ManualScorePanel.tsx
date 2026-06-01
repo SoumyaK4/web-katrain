@@ -15,6 +15,7 @@ interface ManualScorePanelProps {
   capturedWhite: number;
   komi: number;
   deadStoneCount: number;
+  shortcutLabel?: string;
   onToggle: () => void;
   onAutoEstimate?: () => void;
   onUseManualScore?: () => void;
@@ -39,6 +40,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   capturedWhite,
   komi,
   deadStoneCount,
+  shortcutLabel,
   onToggle,
   onAutoEstimate,
   onUseManualScore,
@@ -49,6 +51,12 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
 }) => {
   const detailsId = React.useId();
   const [showDetails, setShowDetails] = React.useState(!isCompact);
+  const showShortcutLabel = !!shortcutLabel && shortcutLabel !== 'Disabled';
+  const scoreTitle = disabled
+    ? 'Finish editing before scoring.'
+    : showShortcutLabel
+      ? `Score position (${shortcutLabel})`
+      : 'Score position';
 
   React.useEffect(() => {
     if (active) setShowDetails(!isCompact);
@@ -61,11 +69,12 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
         className={['manual-score-launch', commandBarOffset ? 'manual-score-offset' : ''].join(' ')}
         onClick={onToggle}
         disabled={disabled}
-        title={disabled ? 'Finish editing before scoring.' : 'Score position'}
-        aria-label="Score position"
+        title={scoreTitle}
+        aria-label={showShortcutLabel ? `Score position, keyboard shortcut ${shortcutLabel}` : 'Score position'}
       >
         <FaCalculator size={13} />
         <span>Score</span>
+        {showShortcutLabel ? <kbd className="manual-score-shortcut">{shortcutLabel}</kbd> : null}
       </button>
     );
   }

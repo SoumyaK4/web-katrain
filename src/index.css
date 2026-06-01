@@ -1793,6 +1793,16 @@
     background: var(--ui-surface-2);
   }
 
+  .manual-score-shortcut {
+    margin-left: 2px;
+    border: 1px solid var(--ui-border);
+    border-radius: 5px;
+    padding: 1px 5px;
+    color: var(--ui-text-muted);
+    background: var(--ui-surface);
+    font: 700 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
   .manual-score-launch:disabled {
     opacity: 0.48;
     cursor: not-allowed;

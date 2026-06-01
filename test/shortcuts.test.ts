@@ -66,6 +66,10 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('toggle-next-move-preview', {})).toEqual([{ key: 'v', ctrl: false, shift: false, alt: false }]);
   });
 
+  it('exposes a default shortcut for scoring mode', () => {
+    expect(getShortcutBindings('toggle-scoring', {})).toEqual([{ key: 's', ctrl: false, shift: true, alt: false }]);
+  });
+
   it('exposes pro edit history shortcuts', () => {
     expect(getShortcutBindings('edit-undo', {})).toEqual([{ key: 'z', ctrl: true, shift: false, alt: false }]);
     expect(getShortcutBindings('edit-redo', {})).toEqual([

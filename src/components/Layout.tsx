@@ -94,7 +94,7 @@ const SaveToLibraryDialog = lazy(() => import('./SaveToLibraryDialog').then((mod
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 const mainFileInputAccept = ['.sgf', ...PHOTO_BOARD_IMAGE_EXTENSIONS, 'image/*', MODEL_UPLOAD_ACCEPT].join(',');
-const LAYOUT_SHORTCUT_IDS = ['toggle-library', 'toggle-sidebar'] as const;
+const LAYOUT_SHORTCUT_IDS = ['toggle-library', 'toggle-sidebar', 'toggle-scoring'] as const;
 type LoadedExternalFile = { name: string; kind: 'file' | 'ogs' | 'pasted' };
 type SaveToLibraryDialogState = {
   sgf: string;
@@ -1672,6 +1672,7 @@ export const Layout: React.FC = () => {
     toggleLibrary: handleToggleLibrary,
     closeLibrary: handleCloseLibrary,
     toggleSidebar: handleToggleSidebar,
+    toggleScoringMode,
     toast,
   });
 
@@ -1794,6 +1795,14 @@ export const Layout: React.FC = () => {
         shortcutId: 'game-analysis-modal',
         run: () => openSimpleModal(() => setIsGameAnalysisOpen(true)),
         keywords: ['depth', 'range'],
+      },
+      {
+        id: 'toggle-scoring',
+        label: scoringMode ? 'Exit scoring mode' : 'Score position',
+        category: 'Game',
+        shortcutId: 'toggle-scoring',
+        run: toggleScoringMode,
+        keywords: ['count', 'territory', 'dead stones', 'manual score'],
       },
       {
         id: 'settings',
@@ -2326,6 +2335,7 @@ export const Layout: React.FC = () => {
               capturedWhite={capturedWhite}
               komi={komi}
               deadStoneCount={manualDeadStones.size}
+              shortcutLabel={layoutShortcutLabels['toggle-scoring']}
               scoreMode={manualScoreMode}
               onToggle={toggleScoringMode}
               onAutoEstimate={autoEstimateDeadStones}
