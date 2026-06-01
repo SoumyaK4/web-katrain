@@ -6,12 +6,14 @@ import {
   FaClipboard,
   FaCog,
   FaFolderOpen,
+  FaGamepad,
   FaPlay,
   FaBolt,
   FaTimes,
   FaThLarge,
 } from 'react-icons/fa';
 import type { LibraryFile } from '../utils/library';
+import { formatGamepadLabel } from '../utils/gamepadLabel';
 
 interface MobileHomeProps {
   open: boolean;
@@ -20,8 +22,10 @@ interface MobileHomeProps {
   boardSize: number;
   moveCount: number;
   engineMeta: string;
+  gamepadName?: string | null;
   recentItems: LibraryFile[];
   onClose: () => void;
+  onGamepadNavigationDisable?: () => void;
   onQuickNewGame: () => void;
   onNewGame: () => void;
   onOpenSgf: () => void;
@@ -72,8 +76,10 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
   boardSize,
   moveCount,
   engineMeta,
+  gamepadName,
   recentItems,
   onClose,
+  onGamepadNavigationDisable,
   onQuickNewGame,
   onNewGame,
   onOpenSgf,
@@ -86,25 +92,43 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
 }) => {
   if (!open) return null;
 
+  const compactGamepadName = gamepadName ? formatGamepadLabel(gamepadName, 18) : null;
+
   return (
     <div className="fixed inset-0 z-[45] lg:hidden ui-bg mobile-safe-inset mobile-safe-area-bottom">
       <div className="flex h-full min-h-0 flex-col">
         <header className="ui-bar border-b border-[var(--ui-border)] px-3 py-2">
           <div className="flex min-h-11 items-center justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="truncate text-base font-bold text-[var(--ui-text)]">web-KaTrain</div>
               <div className="truncate text-xs ui-text-muted">
                 {blackName} vs {whiteName}
               </div>
             </div>
-            <button
-              type="button"
-              className="ui-control grid place-items-center rounded-lg text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]"
-              onClick={onClose}
-              aria-label="Open board"
-            >
-              <FaTimes aria-hidden="true" />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              {compactGamepadName && (
+                <button
+                  type="button"
+                  className="ui-control grid place-items-center rounded-lg border border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)] shadow-sm hover:bg-[var(--ui-accent)] hover:text-[var(--ui-accent-contrast)] disabled:pointer-events-none disabled:opacity-70"
+                  onClick={onGamepadNavigationDisable}
+                  title={`Gamepad navigation: ${gamepadName}. Tap to disable.`}
+                  aria-label={`Gamepad navigation connected: ${gamepadName}. Tap to disable.`}
+                  data-mobile-gamepad-status="connected"
+                  data-mobile-gamepad-label={compactGamepadName}
+                  disabled={!onGamepadNavigationDisable}
+                >
+                  <FaGamepad aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="ui-control grid place-items-center rounded-lg text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]"
+                onClick={onClose}
+                aria-label="Open board"
+              >
+                <FaTimes aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </header>
 

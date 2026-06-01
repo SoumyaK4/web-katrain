@@ -54,4 +54,21 @@ describe('StatusBar', () => {
     expect(html).not.toContain('data-status-move-insight-toggle="true"');
     expect(html).not.toContain('Open Shape Coach details');
   });
+
+  it('renders connected gamepads as compact controls before desktop widths', () => {
+    const html = renderToStaticMarkup(
+      <StatusBar
+        {...baseProps}
+        gamepadName="Xbox Wireless Controller"
+        onGamepadNavigationDisable={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('data-gamepad-status="connected"');
+    expect(html).toContain('Gamepad navigation connected: Xbox Wireless Controller. Click to disable.');
+    expect(html).toContain('max-w-[2.25rem] sm:max-w-[10rem] lg:max-w-[280px]');
+    expect(html).toContain('hidden sm:inline font-semibold');
+    expect(html).toContain('hidden md:inline min-w-0 truncate');
+    expect(html).not.toContain('hidden lg:flex max-w-[280px]');
+  });
 });

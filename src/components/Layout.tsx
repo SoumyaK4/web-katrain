@@ -2116,8 +2116,10 @@ export const Layout: React.FC = () => {
           boardSize={boardSize}
           moveCount={moveHistory.length}
           engineMeta={engineMeta}
+          gamepadName={gamepadStatus.connected ? gamepadStatus.name : null}
           recentItems={recentLibraryItems}
           onClose={closeMobileHome}
+          onGamepadNavigationDisable={handleDisableGamepadNavigation}
           onQuickNewGame={() => void startQuickNewGame()}
           onNewGame={() => {
             closeMobileHome();
