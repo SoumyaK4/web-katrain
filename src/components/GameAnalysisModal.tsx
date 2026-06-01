@@ -27,6 +27,8 @@ const LIMIT_MOVES_ID = 'game-analysis-limit-moves';
 const START_MOVE_ID = 'game-analysis-start-move';
 const END_MOVE_ID = 'game-analysis-end-move';
 const MISTAKES_ONLY_ID = 'game-analysis-mistakes-only';
+const STATUS_LABEL_ID = 'game-analysis-status-label';
+const DEPTH_PRESETS_LABEL_ID = 'game-analysis-depth-presets-label';
 
 export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose }) => {
   useEscapeToClose(onClose);
@@ -113,8 +115,12 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
             </div>
 
             <div className="space-y-1">
-              <label className="text-[var(--ui-text-muted)] block text-sm">Status</label>
-              <div className="w-full ui-surface rounded p-2 border border-[var(--ui-border)] text-sm font-mono">
+              <div id={STATUS_LABEL_ID} className="text-[var(--ui-text-muted)] block text-sm">Status</div>
+              <div
+                className="w-full ui-surface rounded p-2 border border-[var(--ui-border)] text-sm font-mono"
+                role="status"
+                aria-labelledby={STATUS_LABEL_ID}
+              >
                 {isRunning ? `${gameAnalysisDone}/${gameAnalysisTotal}` : '—'}
               </div>
               <div className="flex gap-2 mt-2">
@@ -130,9 +136,14 @@ export const GameAnalysisModal: React.FC<GameAnalysisModalProps> = ({ onClose })
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[var(--ui-border)] space-y-2" data-game-analysis-visit-presets="true">
+          <div
+            className="pt-2 border-t border-[var(--ui-border)] space-y-2"
+            role="group"
+            aria-labelledby={DEPTH_PRESETS_LABEL_ID}
+            data-game-analysis-visit-presets="true"
+          >
             <div className="flex items-center justify-between gap-2">
-              <label className="text-[var(--ui-text-muted)] text-sm">MCTS depth presets</label>
+              <div id={DEPTH_PRESETS_LABEL_ID} className="text-[var(--ui-text-muted)] text-sm">MCTS depth presets</div>
               <span className="text-xs ui-text-faint">Kaya-style</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

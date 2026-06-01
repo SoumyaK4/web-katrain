@@ -16,5 +16,13 @@ describe('GameAnalysisModal', () => {
       expect(html).toContain(`for="${id}"`);
       expect(html).toContain(`id="${id}"`);
     }
+
+    expect(html).not.toContain('<label class="text-[var(--ui-text-muted)] block text-sm">Status</label>');
+    expect(html).toContain('id="game-analysis-status-label"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-labelledby="game-analysis-status-label"');
+    expect(html).not.toContain('<label class="text-[var(--ui-text-muted)] text-sm">MCTS depth presets</label>');
+    expect(html).toContain('id="game-analysis-depth-presets-label"');
+    expect(html).toContain('aria-labelledby="game-analysis-depth-presets-label"');
   });
 });

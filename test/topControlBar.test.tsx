@@ -84,6 +84,15 @@ describe('TopControlBar', () => {
     expect(html).not.toContain('data-mobile-board-theme-cycle="true"');
   });
 
+  it('labels theme selectors in the view menu', () => {
+    const html = renderToStaticMarkup(<TopControlBar {...baseProps} viewMenuOpen={true} isMobile={false} />);
+
+    for (const id of ['top-control-ui-theme', 'top-control-board-theme']) {
+      expect(html).toContain(`for="${id}"`);
+      expect(html).toContain(`id="${id}"`);
+    }
+  });
+
   it('uses explicit button types in toolbar popovers and menus', () => {
     const source = readFileSync('src/components/layout/TopControlBar.tsx', 'utf8');
 

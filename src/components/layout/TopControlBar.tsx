@@ -75,6 +75,8 @@ const TOP_CONTROL_SHORTCUT_IDS = [
 type TopControlShortcutId = (typeof TOP_CONTROL_SHORTCUT_IDS)[number];
 
 const stripShortcutSuffix = (title: string): string => title.replace(/\s*\([^)]+\)\s*$/, '');
+const VIEW_MENU_UI_THEME_ID = 'top-control-ui-theme';
+const VIEW_MENU_BOARD_THEME_ID = 'top-control-board-theme';
 
 interface TopControlBarProps {
   settings: GameSettings;
@@ -364,8 +366,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <div className="px-3 py-2 text-xs font-semibold text-[var(--ui-text-muted)] uppercase tracking-wider bg-[var(--ui-surface-2)] w-full">Themes</div>
         <div className="flex flex-col p-3 gap-3">
           <div>
-            <div className="text-xs ui-text-faint mb-1">UI theme</div>
+            <label htmlFor={VIEW_MENU_UI_THEME_ID} className="text-xs ui-text-faint mb-1 block">UI theme</label>
             <select
+              id={VIEW_MENU_UI_THEME_ID}
               value={settings.uiTheme}
               onChange={(e) => { updateSettings({ uiTheme: e.target.value as GameSettings['uiTheme'] }); closeViewMenuIfMobile(); }}
               className="w-full ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
@@ -374,8 +377,9 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
             </select>
           </div>
           <div>
-            <div className="text-xs ui-text-faint mb-1">Board theme</div>
+            <label htmlFor={VIEW_MENU_BOARD_THEME_ID} className="text-xs ui-text-faint mb-1 block">Board theme</label>
             <select
+              id={VIEW_MENU_BOARD_THEME_ID}
               value={settings.boardTheme}
               onChange={(e) => { updateSettings({ boardTheme: e.target.value as GameSettings['boardTheme'] }); closeViewMenuIfMobile(); }}
               className="w-full ui-input border rounded px-2 py-1 text-xs text-[var(--ui-text)]"
