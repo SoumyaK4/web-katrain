@@ -1753,6 +1753,10 @@ export const Layout: React.FC = () => {
       closeFloatingMenus();
       open();
     };
+    const openSettingsTab = (tab: 'general' | 'analysis' | 'ai' | 'shortcuts') => {
+      saveSettingsActiveTab(tab);
+      openSimpleModal(() => setIsSettingsOpen(true));
+    };
     const toggleTopMoveHints = () => {
       if (settings.analysisShowPolicy) {
         toast('Policy overlay is showing; top move hints are hidden.', 'info');
@@ -2189,6 +2193,27 @@ export const Layout: React.FC = () => {
         shortcutId: 'settings-modal',
         run: () => openSimpleModal(() => setIsSettingsOpen(true)),
         keywords: ['preferences', 'configuration'],
+      },
+      {
+        id: 'settings-general',
+        label: 'Open general settings',
+        category: 'Help & Settings',
+        run: () => openSettingsTab('general'),
+        keywords: ['preferences', 'configuration', 'board', 'theme', 'sound', 'gamepad'],
+      },
+      {
+        id: 'settings-analysis',
+        label: 'Open analysis settings',
+        category: 'Help & Settings',
+        run: () => openSettingsTab('analysis'),
+        keywords: ['preferences', 'configuration', 'overlays', 'review', 'visits'],
+      },
+      {
+        id: 'settings-ai',
+        label: 'Open AI/Engine settings',
+        category: 'Help & Settings',
+        run: () => openSettingsTab('ai'),
+        keywords: ['preferences', 'configuration', 'model', 'backend', 'webgpu', 'upload'],
       },
       {
         id: 'keyboard-help',
