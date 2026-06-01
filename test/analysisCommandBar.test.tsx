@@ -53,6 +53,10 @@ describe('AnalysisCommandBar', () => {
     expect(html).toContain('analysis-command-bar__status--ready');
     expect(html).toContain('Ready · WebGPU · kata1-b18');
     expect(html).toContain('Source: Bundled');
+    expect(html).toContain('data-analysis-live-depth="true"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toMatch(/aria-controls="[^"]+"/);
   });
 
   it('keeps fallback and error states visible in the status pill', () => {

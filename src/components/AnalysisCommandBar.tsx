@@ -106,6 +106,9 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
   const updateSettings = useGameStore((state) => state.updateSettings);
   const depthButtonRef = React.useRef<HTMLButtonElement>(null);
   const depthPopoverRef = React.useRef<HTMLDivElement>(null);
+  const depthCloseButtonRef = React.useRef<HTMLButtonElement>(null);
+  const depthPopoverId = React.useId();
+  const depthPopoverTitleId = React.useId();
   const [depthPopoverOpen, setDepthPopoverOpen] = React.useState(false);
   const [depthDraft, setDepthDraft] = React.useState('');
   const [depthHintVisits, setDepthHintVisits] = React.useState<number | null>(null);
@@ -242,6 +245,13 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
     applyLiveVisits(nextVisits);
   }, [applyLiveVisits, liveVisits]);
 
+  const closeDepthPopover = React.useCallback((restoreFocus = false) => {
+    setDepthPopoverOpen(false);
+    if (restoreFocus && typeof window !== 'undefined') {
+      window.setTimeout(() => depthButtonRef.current?.focus({ preventScroll: true }), 0);
+    }
+  }, []);
+
   React.useEffect(() => {
     setDepthDraft(String(liveVisits));
     if (depthPopoverOpen) setDepthHintVisits(liveVisits);
@@ -253,10 +263,10 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
 
   React.useEffect(() => {
     if (isGameAnalysisRunning) {
-      setDepthPopoverOpen(false);
+      closeDepthPopover();
       setDepthHintVisits(null);
     }
-  }, [isGameAnalysisRunning]);
+  }, [closeDepthPopover, isGameAnalysisRunning]);
 
   React.useEffect(() => {
     if (!isGameAnalysisRunning) {
@@ -271,16 +281,21 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
 
   React.useEffect(() => {
     if (!depthPopoverOpen) return;
+    depthCloseButtonRef.current?.focus({ preventScroll: true });
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
       if (depthPopoverRef.current?.contains(target)) return;
       if (depthButtonRef.current?.contains(target)) return;
-      setDepthPopoverOpen(false);
+      closeDepthPopover();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setDepthPopoverOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDepthPopover(true);
+      }
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
@@ -289,26 +304,30 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [depthPopoverOpen]);
+  }, [closeDepthPopover, depthPopoverOpen]);
 
   const depthPopover = depthPopoverOpen && !isGameAnalysisRunning ? (
     <div
+      id={depthPopoverId}
       ref={depthPopoverRef}
       className="analysis-command-bar__depth-popover"
       role="dialog"
-      aria-label="Live analysis depth selector"
+      aria-modal="false"
+      aria-labelledby={depthPopoverTitleId}
       data-analysis-live-depth-popover="true"
     >
       <div className="analysis-command-bar__depth-header">
         <div>
-          <div className="analysis-command-bar__depth-title">Live MCTS depth</div>
+          <div id={depthPopoverTitleId} className="analysis-command-bar__depth-title">Live MCTS depth</div>
           <div className="analysis-command-bar__depth-subtitle">{liveVisits} visits - {liveVisitLabel}</div>
         </div>
         <button
+          ref={depthCloseButtonRef}
           type="button"
           className="analysis-command-bar__depth-close"
-          onClick={() => setDepthPopoverOpen(false)}
+          onClick={() => closeDepthPopover(true)}
           aria-label="Close live depth selector"
+          title="Close live depth selector"
         >
           <FaTimes size={12} aria-hidden="true" />
         </button>
@@ -367,7 +386,7 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
             if (event.key === 'Enter') event.currentTarget.blur();
             if (event.key === 'Escape') {
               setDepthDraft(String(liveVisits));
-              setDepthPopoverOpen(false);
+              closeDepthPopover(true);
             }
           }}
         />
@@ -484,6 +503,7 @@ export const AnalysisCommandBar: React.FC<AnalysisCommandBarProps> = ({
           data-analysis-live-depth="true"
           aria-haspopup="dialog"
           aria-expanded={depthPopoverOpen}
+          aria-controls={depthPopoverId}
           title={
             isGameAnalysisRunning
               ? 'Stop game analysis before changing live depth'
