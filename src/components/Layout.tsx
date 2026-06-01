@@ -94,7 +94,13 @@ const SaveToLibraryDialog = lazy(() => import('./SaveToLibraryDialog').then((mod
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 const mainFileInputAccept = ['.sgf', ...PHOTO_BOARD_IMAGE_EXTENSIONS, 'image/*', MODEL_UPLOAD_ACCEPT].join(',');
-const LAYOUT_SHORTCUT_IDS = ['toggle-library', 'toggle-sidebar', 'toggle-scoring'] as const;
+const LAYOUT_SHORTCUT_IDS = [
+  'toggle-library',
+  'toggle-sidebar',
+  'toggle-scoring',
+  'toggle-top-bar',
+  'toggle-bottom-bar',
+] as const;
 type LoadedExternalFile = { name: string; kind: 'file' | 'ogs' | 'pasted' };
 type SaveToLibraryDialogState = {
   sgf: string;
@@ -1253,6 +1259,14 @@ export const Layout: React.FC = () => {
     setShowSidebar((prev) => !prev);
   };
 
+  const handleToggleTopBar = () => {
+    setTopBarOpen((prev) => !prev);
+  };
+
+  const handleToggleBottomBar = () => {
+    setBottomBarOpen((prev) => !prev);
+  };
+
   const handleOpenSidePanel = () => {
     if (isMobile) {
       handleMobileTabChange(lastRightTab);
@@ -1673,6 +1687,8 @@ export const Layout: React.FC = () => {
     closeLibrary: handleCloseLibrary,
     toggleSidebar: handleToggleSidebar,
     toggleScoringMode,
+    toggleTopBar: handleToggleTopBar,
+    toggleBottomBar: handleToggleBottomBar,
     toast,
   });
 
@@ -1764,6 +1780,22 @@ export const Layout: React.FC = () => {
         shortcutId: 'toggle-sidebar',
         run: handleToggleSidebar,
         keywords: ['layout', 'panels'],
+      },
+      {
+        id: 'toggle-top-bar',
+        label: topBarOpen ? 'Hide top bar' : 'Show top bar',
+        category: 'View',
+        shortcutId: 'toggle-top-bar',
+        run: handleToggleTopBar,
+        keywords: ['layout', 'header', 'chrome', 'focus'],
+      },
+      {
+        id: 'toggle-bottom-bar',
+        label: bottomBarOpen ? 'Hide bottom controls' : 'Show bottom controls',
+        category: 'View',
+        shortcutId: 'toggle-bottom-bar',
+        run: handleToggleBottomBar,
+        keywords: ['layout', 'navigation', 'chrome', 'focus'],
       },
       {
         id: 'toggle-analysis',
@@ -2431,8 +2463,8 @@ export const Layout: React.FC = () => {
               <PanelEdgeToggle
                 side="top"
                 state={topBarOpen ? 'open' : 'closed'}
-                title={topBarOpen ? 'Hide top bar' : 'Show top bar'}
-                onClick={() => setTopBarOpen((prev) => !prev)}
+                title={topBarOpen ? withLayoutShortcut('Hide top bar', 'toggle-top-bar') : withLayoutShortcut('Show top bar', 'toggle-top-bar')}
+                onClick={handleToggleTopBar}
                 className="rounded-lg border border-[var(--ui-border)]"
               />
             </div>
@@ -2553,8 +2585,8 @@ export const Layout: React.FC = () => {
                 <PanelEdgeToggle
                   side="bottom"
                   state={bottomBarOpen ? 'open' : 'closed'}
-                  title={bottomBarOpen ? 'Hide bottom bar' : 'Show bottom bar'}
-                  onClick={() => setBottomBarOpen((prev) => !prev)}
+                  title={bottomBarOpen ? withLayoutShortcut('Hide bottom controls', 'toggle-bottom-bar') : withLayoutShortcut('Show bottom controls', 'toggle-bottom-bar')}
+                  onClick={handleToggleBottomBar}
                 />
               </div>
             )}

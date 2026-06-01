@@ -28,6 +28,8 @@ interface UseKeyboardShortcutsOptions {
   closeLibrary: () => void;
   toggleSidebar: () => void;
   toggleScoringMode: () => void;
+  toggleTopBar: () => void;
+  toggleBottomBar: () => void;
   toast: (msg: string, type: 'info' | 'error' | 'success') => void;
 }
 
@@ -50,6 +52,8 @@ export function useKeyboardShortcuts({
   closeLibrary,
   toggleSidebar,
   toggleScoringMode,
+  toggleTopBar,
+  toggleBottomBar,
   toast,
 }: UseKeyboardShortcutsOptions): void {
   const {
@@ -231,6 +235,16 @@ export function useKeyboardShortcuts({
       if (matches('fullscreen')) {
         e.preventDefault();
         void toggleAppFullscreen().catch(() => {});
+        return;
+      }
+      if (matches('toggle-top-bar')) {
+        e.preventDefault();
+        toggleTopBar();
+        return;
+      }
+      if (matches('toggle-bottom-bar')) {
+        e.preventDefault();
+        toggleBottomBar();
         return;
       }
 
@@ -542,6 +556,8 @@ export function useKeyboardShortcuts({
     closeLibrary,
     toggleSidebar,
     toggleScoringMode,
+    toggleTopBar,
+    toggleBottomBar,
     toast,
   ]);
 }
