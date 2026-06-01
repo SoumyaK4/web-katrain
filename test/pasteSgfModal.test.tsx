@@ -25,6 +25,16 @@ describe('PasteSgfModal', () => {
     expect(info.errorStatus).toContain('game is public');
   });
 
+  it('detects OGS game links inside pasted text without misclassifying SGF comments', () => {
+    const textInfo = getPasteSgfInputInfo('Review this game: https://online-go.com/game/81344851');
+    expect(textInfo.kind).toBe('ogs');
+    expect(textInfo.gameId).toBe('81344851');
+
+    const sgfInfo = getPasteSgfInputInfo('(;GM[1]C[https://online-go.com/game/81344851])');
+    expect(sgfInfo.kind).toBe('sgf');
+    expect(sgfInfo.helper).toContain('Detected SGF content');
+  });
+
   it('separates direct SGF from unsupported URLs', () => {
     expect(getPasteSgfInputInfo('(;GM[1]FF[4])').kind).toBe('sgf');
 

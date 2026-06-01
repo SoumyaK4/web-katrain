@@ -15,11 +15,17 @@ describe('OGS URL utilities', () => {
     expect(isOgsUrl('https://online-go.com.evil.test/game/81344851')).toBe(false);
     expect(isOgsUrl('https://online-go.com/profile/81344851')).toBe(false);
     expect(isOgsUrl('https://online-go.com/game/not-a-number')).toBe(false);
-    expect(isOgsUrl('see https://online-go.com/game/81344851')).toBe(false);
+    expect(isOgsUrl('see https://online-go.com/game/81344851')).toBe(true);
   });
 
   it('keeps SGF content direct even when comments mention OGS', async () => {
     const sgf = '(;GM[1]C[https://online-go.com/game/81344851])';
     await expect(loadSgfOrOgs(sgf)).resolves.toEqual({ sgf, source: 'direct' });
+  });
+
+  it('extracts OGS game ids from surrounding pasted text', () => {
+    expect(extractOgsGameId('Review this: https://online-go.com/game/81344851')).toBe('81344851');
+    expect(extractOgsGameId('online-go.com/game/12345/white')).toBe('12345');
+    expect(extractOgsGameId('https://example.com/game/12345')).toBeNull();
   });
 });

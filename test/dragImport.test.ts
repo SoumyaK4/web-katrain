@@ -38,6 +38,10 @@ describe('drag import helpers', () => {
     ))).toBe('(;GM[1]SZ[19];B[pd])');
     expect(getDroppedSgfOrOgsText(transfer(
       ['text/plain'],
+      { 'text/plain': 'Review this: https://online-go.com/game/81344851' }
+    ))).toBe('Review this: https://online-go.com/game/81344851');
+    expect(getDroppedSgfOrOgsText(transfer(
+      ['text/plain'],
       { 'text/plain': 'https://example.com/game/123' }
     ))).toBeNull();
   });

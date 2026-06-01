@@ -1,4 +1,5 @@
 const OGS_HOSTS = new Set(['online-go.com', 'www.online-go.com']);
+const OGS_GAME_URL_RE = /(?:^|[^\w.-])(?:https?:\/\/)?(?:www\.)?online-go\.com\/game\/(\d+)/i;
 
 const toOgsUrlCandidate = (text: string): URL | null => {
   const trimmed = text.trim();
@@ -16,10 +17,13 @@ const toOgsUrlCandidate = (text: string): URL | null => {
 export const extractOgsGameId = (url: string): string | null => {
   try {
     const candidate = toOgsUrlCandidate(url);
-    if (!candidate || !OGS_HOSTS.has(candidate.hostname.toLowerCase())) return null;
-    const [section, gameId] = candidate.pathname.split('/').filter(Boolean);
-    if (section !== 'game' || !gameId || !/^\d+$/.test(gameId)) return null;
-    return gameId;
+    if (candidate && OGS_HOSTS.has(candidate.hostname.toLowerCase())) {
+      const [section, gameId] = candidate.pathname.split('/').filter(Boolean);
+      if (section === 'game' && gameId && /^\d+$/.test(gameId)) return gameId;
+    }
+
+    const match = url.match(OGS_GAME_URL_RE);
+    return match?.[1] ?? null;
   } catch {
     return null;
   }

@@ -28,6 +28,15 @@ export const getPasteSgfInputInfo = (text: string): PasteSgfInputInfo => {
     };
   }
 
+  if (trimmed.startsWith('(')) {
+    return {
+      kind: 'sgf',
+      helper: 'Detected SGF content. It will import directly from this text.',
+      submitStatus: 'Opening pasted SGF...',
+      errorStatus: 'Could not parse this SGF. Check that it starts with (; and contains a complete game tree.',
+    };
+  }
+
   const gameId = extractOgsGameId(trimmed) ?? undefined;
   if (gameId) {
     return {
@@ -36,15 +45,6 @@ export const getPasteSgfInputInfo = (text: string): PasteSgfInputInfo => {
       helper: `Detected OGS game ${gameId}. It will download the public SGF from Online-Go.`,
       submitStatus: `Downloading OGS game ${gameId}...`,
       errorStatus: `Could not download or parse OGS game ${gameId}. Check that the game is public and the URL looks like online-go.com/game/12345.`,
-    };
-  }
-
-  if (trimmed.startsWith('(')) {
-    return {
-      kind: 'sgf',
-      helper: 'Detected SGF content. It will import directly from this text.',
-      submitStatus: 'Opening pasted SGF...',
-      errorStatus: 'Could not parse this SGF. Check that it starts with (; and contains a complete game tree.',
     };
   }
 
