@@ -175,6 +175,51 @@ describe('move insights', () => {
       learnMoreUrl: 'https://senseis.xmp.net/?Kosumi',
     });
 
+    const onePointJumpBoard = emptyBoard(9);
+    onePointJumpBoard[3]![5] = 'black';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, onePointJumpBoard)).toMatchObject({
+      label: 'One-point jump',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?OnePointJump',
+    });
+
+    const twoPointJumpBoard = emptyBoard(9);
+    twoPointJumpBoard[3]![6] = 'black';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, twoPointJumpBoard)).toMatchObject({
+      label: 'Two-point jump',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?TwoPointJump',
+    });
+
+    const smallKnightBoard = emptyBoard(9);
+    smallKnightBoard[4]![5] = 'black';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, smallKnightBoard)).toMatchObject({
+      label: 'Small knight',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?Keima',
+    });
+
+    const largeKnightBoard = emptyBoard(9);
+    largeKnightBoard[4]![6] = 'black';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, largeKnightBoard)).toMatchObject({
+      label: 'Large knight',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?LargeKnightsMove',
+    });
+
+    const diagonalJumpBoard = emptyBoard(9);
+    diagonalJumpBoard[5]![5] = 'black';
+
+    expect(getMoveInsight(blackMove(3, 3), 9, diagonalJumpBoard)).toMatchObject({
+      label: 'Diagonal jump',
+      tone: 'tactical',
+      learnMoreUrl: 'https://senseis.xmp.net/?DiagonalJump',
+    });
+
     const connectBoard = emptyBoard(9);
     connectBoard[1]![0] = 'white';
     connectBoard[1]![2] = 'white';
@@ -269,6 +314,26 @@ describe('move insights', () => {
     expect(getMoveInsightCoach({ label: 'Diagonal (kosumi)', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('connects lightly'),
       checks: expect.arrayContaining(['Efficiency']),
+    });
+    expect(getMoveInsightCoach({ label: 'One-point jump', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('extends quickly'),
+      checks: expect.arrayContaining(['Peep']),
+    });
+    expect(getMoveInsightCoach({ label: 'Two-point jump', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('faster'),
+      checks: expect.arrayContaining(['Invasion']),
+    });
+    expect(getMoveInsightCoach({ label: 'Small knight', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('flexible connection'),
+      checks: expect.arrayContaining(['Attachment']),
+    });
+    expect(getMoveInsightCoach({ label: 'Large knight', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('wider'),
+      checks: expect.arrayContaining(['Support']),
+    });
+    expect(getMoveInsightCoach({ label: 'Diagonal jump', detail: '', tone: 'tactical' })).toMatchObject({
+      beginner: expect.stringContaining('links stones'),
+      checks: expect.arrayContaining(['Forcing points']),
     });
     expect(getMoveInsightCoach({ label: 'Connect', detail: '', tone: 'tactical' })).toMatchObject({
       beginner: expect.stringContaining('harder to cut'),

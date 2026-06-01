@@ -379,6 +379,154 @@ function getTigersMouthInsight(move: Move, board: BoardState, boardSize: number)
   return null;
 }
 
+function getJumpShapeInsight(move: Move, board: BoardState, boardSize: number): MoveInsight | null {
+  const isOnBoard = (point: Point): boolean => point.x >= 0 && point.y >= 0 && point.x < boardSize && point.y < boardSize;
+  const hasFriendlyStoneWithEmptyPath = (stone: Point, empties: Point[]): boolean => {
+    const points = [stone, ...empties];
+    return (
+      points.every(isOnBoard) &&
+      board[stone.y]?.[stone.x] === move.player &&
+      empties.every((point) => board[point.y]?.[point.x] === null)
+    );
+  };
+
+  const cardinalDirections = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+  ];
+
+  for (const direction of cardinalDirections) {
+    const onePointStone = { x: move.x + direction.x * 2, y: move.y + direction.y * 2 };
+    const onePointGap = { x: move.x + direction.x, y: move.y + direction.y };
+    if (hasFriendlyStoneWithEmptyPath(onePointStone, [onePointGap])) {
+      return {
+        label: 'One-point jump',
+        detail: 'Extends from a friendly stone with one empty point between, making a fast but peepable connection.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?OnePointJump',
+      };
+    }
+
+    const twoPointStone = { x: move.x + direction.x * 3, y: move.y + direction.y * 3 };
+    const twoPointGaps = [
+      { x: move.x + direction.x, y: move.y + direction.y },
+      { x: move.x + direction.x * 2, y: move.y + direction.y * 2 },
+    ];
+    if (hasFriendlyStoneWithEmptyPath(twoPointStone, twoPointGaps)) {
+      return {
+        label: 'Two-point jump',
+        detail: 'Extends quickly with two empty points between friendly stones; efficient but easier to invade or cut.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?TwoPointJump',
+      };
+    }
+  }
+
+  const smallKnightOffsets = [
+    { x: 2, y: 1 },
+    { x: 2, y: -1 },
+    { x: -2, y: 1 },
+    { x: -2, y: -1 },
+    { x: 1, y: 2 },
+    { x: 1, y: -2 },
+    { x: -1, y: 2 },
+    { x: -1, y: -2 },
+  ];
+
+  for (const offset of smallKnightOffsets) {
+    const stone = { x: move.x + offset.x, y: move.y + offset.y };
+    const stepX = Math.sign(offset.x);
+    const stepY = Math.sign(offset.y);
+    const empties =
+      Math.abs(offset.x) > Math.abs(offset.y)
+        ? [
+            { x: move.x + stepX, y: move.y },
+            { x: move.x + stepX, y: move.y + stepY },
+          ]
+        : [
+            { x: move.x, y: move.y + stepY },
+            { x: move.x + stepX, y: move.y + stepY },
+          ];
+    if (hasFriendlyStoneWithEmptyPath(stone, empties)) {
+      return {
+        label: 'Small knight',
+        detail: 'Makes a keima connection: fast and flexible, but with a known cutting point.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?Keima',
+      };
+    }
+  }
+
+  const largeKnightOffsets = [
+    { x: 3, y: 1 },
+    { x: 3, y: -1 },
+    { x: -3, y: 1 },
+    { x: -3, y: -1 },
+    { x: 1, y: 3 },
+    { x: 1, y: -3 },
+    { x: -1, y: 3 },
+    { x: -1, y: -3 },
+  ];
+
+  for (const offset of largeKnightOffsets) {
+    const stone = { x: move.x + offset.x, y: move.y + offset.y };
+    const stepX = Math.sign(offset.x);
+    const stepY = Math.sign(offset.y);
+    const empties =
+      Math.abs(offset.x) > Math.abs(offset.y)
+        ? [
+            { x: move.x + stepX, y: move.y },
+            { x: move.x + stepX * 2, y: move.y },
+            { x: move.x + stepX, y: move.y + stepY },
+            { x: move.x + stepX * 2, y: move.y + stepY },
+          ]
+        : [
+            { x: move.x, y: move.y + stepY },
+            { x: move.x, y: move.y + stepY * 2 },
+            { x: move.x + stepX, y: move.y + stepY },
+            { x: move.x + stepX, y: move.y + stepY * 2 },
+          ];
+    if (hasFriendlyStoneWithEmptyPath(stone, empties)) {
+      return {
+        label: 'Large knight',
+        detail: 'Makes a wide knight move that is fast for development but leaves more cutting aji.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?LargeKnightsMove',
+      };
+    }
+  }
+
+  const diagonalDirections = [
+    { x: 1, y: 1 },
+    { x: 1, y: -1 },
+    { x: -1, y: 1 },
+    { x: -1, y: -1 },
+  ];
+
+  for (const direction of diagonalDirections) {
+    const stone = { x: move.x + direction.x * 2, y: move.y + direction.y * 2 };
+    const empties = [
+      { x: move.x + direction.x, y: move.y },
+      { x: move.x, y: move.y + direction.y },
+      { x: move.x + direction.x, y: move.y + direction.y },
+      { x: move.x + direction.x * 2, y: move.y + direction.y },
+      { x: move.x + direction.x, y: move.y + direction.y * 2 },
+    ];
+    if (hasFriendlyStoneWithEmptyPath(stone, empties)) {
+      return {
+        label: 'Diagonal jump',
+        detail: 'Links two friendly stones diagonally at a distance, keeping speed while leaving several forcing points.',
+        tone: 'tactical',
+        learnMoreUrl: 'https://senseis.xmp.net/?DiagonalJump',
+      };
+    }
+  }
+
+  return null;
+}
+
 function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: BoardState | null): MoveInsight | null {
   if (!parentBoard || parentBoard.length !== boardSize) return null;
   if (move.x < 0 || move.y < 0 || move.x >= boardSize || move.y >= boardSize) return null;
@@ -469,6 +617,9 @@ function getTacticalMoveInsight(move: Move, boardSize: number, parentBoard?: Boa
 
   const cutOrDiagonalInsight = getCutOrDiagonalInsight(move, nextBoard, boardSize);
   if (cutOrDiagonalInsight) return cutOrDiagonalInsight;
+
+  const jumpShapeInsight = getJumpShapeInsight(move, nextBoard, boardSize);
+  if (jumpShapeInsight) return jumpShapeInsight;
 
   if (friendlyGroups.size >= 2) {
     return {
@@ -664,6 +815,46 @@ export function getMoveInsightCoach(insight: MoveInsight): MoveInsightCoach {
       beginner: 'A diagonal move connects lightly while leaving room to shape around pressure.',
       pro: 'Check whether the diagonal is strong enough, or whether a solid connection, tiger mouth, or jump is more efficient.',
       checks: ['Cut point', 'Shape', 'Efficiency'],
+    };
+  }
+
+  if (insight.label === 'One-point jump') {
+    return {
+      beginner: 'A one-point jump extends quickly from a friendly stone while keeping a loose connection.',
+      pro: 'Check peeps, cuts, and whether the jump gives the opponent an easy forcing move.',
+      checks: ['Peep', 'Cut', 'Direction'],
+    };
+  }
+
+  if (insight.label === 'Two-point jump') {
+    return {
+      beginner: 'A two-point jump is faster than a one-point jump, but it leaves more space for the opponent to invade.',
+      pro: 'Check whether nearby strength protects the gap, or whether a cap, shoulder hit, or invasion punishes the distance.',
+      checks: ['Gap safety', 'Cap', 'Invasion'],
+    };
+  }
+
+  if (insight.label === 'Small knight') {
+    return {
+      beginner: 'A small knight move is a fast, flexible connection with one common cutting weakness.',
+      pro: 'Read the attachment and cut points, especially when either stone is short of liberties.',
+      checks: ['Attachment', 'Cut point', 'Liberties'],
+    };
+  }
+
+  if (insight.label === 'Large knight') {
+    return {
+      beginner: 'A large knight move is wider and faster, so it needs more support from nearby stones.',
+      pro: 'Check whether the opponent can split, shoulder hit, or lean on the outside before the shape settles.',
+      checks: ['Split', 'Shoulder hit', 'Support'],
+    };
+  }
+
+  if (insight.label === 'Diagonal jump') {
+    return {
+      beginner: 'A diagonal jump links stones at a distance, often aiming for speed more than solid connection.',
+      pro: 'Check the forcing points around the diagonal and whether a closer move removes important aji.',
+      checks: ['Forcing points', 'Aji', 'Efficiency'],
     };
   }
 
