@@ -2,6 +2,7 @@ import type { BoardSize, BoardState, Player } from '../types';
 import { coordinateToSgf } from './sgf';
 
 export type PhotoBoardStone = Player | null;
+export type PhotoBoardTraceTool = Player | 'erase';
 
 export const PHOTO_BOARD_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'] as const;
 
@@ -11,6 +12,11 @@ export function isPhotoBoardImageFile(file: { name?: string; type?: string }): b
 
   const name = file.name?.toLowerCase() ?? '';
   return PHOTO_BOARD_IMAGE_EXTENSIONS.some((extension) => name.endsWith(extension));
+}
+
+export function getPhotoBoardTracePaintValue(current: PhotoBoardStone, tool: PhotoBoardTraceTool): PhotoBoardStone {
+  if (tool === 'erase') return null;
+  return current === tool ? null : tool;
 }
 
 export interface PhotoBoardSetup {

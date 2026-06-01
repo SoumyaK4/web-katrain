@@ -3,6 +3,7 @@ import {
   buildPhotoBoardSetupSgf,
   computePhotoBoardDelta,
   findPhotoBoardMoveDelta,
+  getPhotoBoardTracePaintValue,
   isPhotoBoardImageFile,
   photoBoardStonesFromBoard,
   type PhotoBoardStone,
@@ -130,5 +131,12 @@ describe('photo board SGF import', () => {
     expect(isPhotoBoardImageFile({ name: 'camera-capture', type: 'image/png' })).toBe(true);
     expect(isPhotoBoardImageFile({ name: 'game.sgf', type: 'application/x-go-sgf' })).toBe(false);
     expect(isPhotoBoardImageFile({ name: 'archive.zip', type: 'application/zip' })).toBe(false);
+  });
+
+  it('chooses a stable paint value for trace dragging', () => {
+    expect(getPhotoBoardTracePaintValue(null, 'black')).toBe('black');
+    expect(getPhotoBoardTracePaintValue('white', 'black')).toBe('black');
+    expect(getPhotoBoardTracePaintValue('black', 'black')).toBeNull();
+    expect(getPhotoBoardTracePaintValue('white', 'erase')).toBeNull();
   });
 });

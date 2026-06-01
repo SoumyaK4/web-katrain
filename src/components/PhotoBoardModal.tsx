@@ -6,10 +6,12 @@ import {
   buildPhotoBoardSetupSgf,
   computePhotoBoardDelta,
   findPhotoBoardMoveDelta,
+  getPhotoBoardTracePaintValue,
   type PhotoBoardDeltaStone,
   photoBoardStonesFromBoard,
   type PhotoBoardMoveDelta,
   type PhotoBoardStone,
+  type PhotoBoardTraceTool,
 } from '../utils/photoBoard';
 import { createObjectUrl, revokeObjectUrl } from '../utils/objectUrl';
 
@@ -25,7 +27,7 @@ interface PhotoBoardModalProps {
   initialPhotoFile?: File | null;
 }
 
-type TraceTool = Player | 'erase';
+type TraceTool = PhotoBoardTraceTool;
 type PhotoFit = 'cover' | 'contain';
 type MobilePhotoBoardTab = 'photo' | 'trace';
 
@@ -59,6 +61,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const galleryInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const photoUrlRef = React.useRef<string | null>(null);
+  const traceBoardRef = React.useRef<HTMLDivElement>(null);
+  const isTracePaintingRef = React.useRef(false);
+  const tracePaintValueRef = React.useRef<PhotoBoardStone>(null);
+  const lastTracePaintIndexRef = React.useRef<number | null>(null);
+  const ignoreNextTraceClickRef = React.useRef(false);
   const [boardSize, setBoardSize] = React.useState<BoardSize>(defaultBoardSize);
   const [komi, setKomi] = React.useState(defaultKomi);
   const [nextPlayer, setNextPlayer] = React.useState<Player>(() => currentPlayer ?? 'black');
@@ -184,15 +191,71 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setStones(makeEmptyStones(next));
   };
 
-  const toggleStone = (index: number) => {
+  const setStoneAt = React.useCallback((index: number, value: PhotoBoardStone) => {
     setStones((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      if ((prev[index] ?? null) === value) return prev;
       const next = [...prev];
-      const current = next[index] ?? null;
-      const value: PhotoBoardStone = tool === 'erase' ? null : tool;
-      next[index] = current === value ? null : value;
+      next[index] = value;
       return next;
     });
-  };
+  }, []);
+
+  const traceIndexFromPoint = React.useCallback((clientX: number, clientY: number): number | null => {
+    const root = traceBoardRef.current;
+    if (!root) return null;
+    const target = root.ownerDocument.elementFromPoint(clientX, clientY);
+    const point = target?.closest<HTMLElement>('[data-photo-board-point="true"]');
+    if (!point || !root.contains(point)) return null;
+    const index = Number(point.dataset.photoBoardIndex);
+    return Number.isInteger(index) && index >= 0 && index < stones.length ? index : null;
+  }, [stones.length]);
+
+  const paintTraceIndex = React.useCallback((index: number) => {
+    if (lastTracePaintIndexRef.current === index) return;
+    lastTracePaintIndexRef.current = index;
+    setStoneAt(index, tracePaintValueRef.current);
+  }, [setStoneAt]);
+
+  const beginTracePaint = React.useCallback((index: number, target?: HTMLElement, pointerId?: number) => {
+    const paintValue = getPhotoBoardTracePaintValue(stones[index] ?? null, tool);
+    isTracePaintingRef.current = true;
+    tracePaintValueRef.current = paintValue;
+    lastTracePaintIndexRef.current = null;
+    paintTraceIndex(index);
+    if (target && pointerId !== undefined && target.setPointerCapture) {
+      try {
+        target.setPointerCapture(pointerId);
+      } catch {
+        // Pointer capture can fail if the browser has already ended the gesture.
+      }
+    }
+  }, [paintTraceIndex, stones, tool]);
+
+  const endTracePaint = React.useCallback(() => {
+    isTracePaintingRef.current = false;
+    lastTracePaintIndexRef.current = null;
+    window.setTimeout(() => {
+      ignoreNextTraceClickRef.current = false;
+    }, 0);
+  }, []);
+
+  const handleTracePointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isTracePaintingRef.current) return;
+    const index = traceIndexFromPoint(event.clientX, event.clientY);
+    if (index != null) paintTraceIndex(index);
+    event.preventDefault();
+  }, [paintTraceIndex, traceIndexFromPoint]);
+
+  React.useEffect(() => {
+    const stop = () => endTracePaint();
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    return () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
+  }, [endTracePaint]);
 
   const clearBoard = () => setStones(makeEmptyStones(boardSize));
 
@@ -546,20 +609,40 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                   />
                 )}
                 <div
+                  ref={traceBoardRef}
                   className="relative z-10 grid"
                   style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}
+                  onPointerMove={handleTracePointerMove}
+                  onPointerUp={endTracePaint}
+                  onPointerCancel={endTracePaint}
+                  onPointerLeave={endTracePaint}
+                  data-photo-board-trace-grid="true"
                 >
                   {stones.map((stone, index) => (
                     <button
                       key={`${boardSize}-${index}`}
                       type="button"
+                      data-photo-board-point="true"
+                      data-photo-board-index={index}
                       className={[
-                        'relative aspect-square border border-black/25 focus:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]',
+                        'relative aspect-square touch-none select-none border border-black/25 focus:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]',
                         photoUrl && photoUnderlay
                           ? 'bg-[#d7ad68]/45 hover:bg-[#e5bd78]/60'
                           : 'bg-[#d7ad68] hover:bg-[#e5bd78]',
                       ].join(' ')}
-                      onClick={() => toggleStone(index)}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        event.preventDefault();
+                        ignoreNextTraceClickRef.current = true;
+                        beginTracePaint(index, event.currentTarget, event.pointerId);
+                      }}
+                      onClick={() => {
+                        if (ignoreNextTraceClickRef.current) {
+                          ignoreNextTraceClickRef.current = false;
+                          return;
+                        }
+                        setStoneAt(index, getPhotoBoardTracePaintValue(stones[index] ?? null, tool));
+                      }}
                       aria-label={`${gtpPoint(index, boardSize)} ${stoneLabel(stone)}`}
                     >
                       {stone && (
