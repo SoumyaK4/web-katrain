@@ -11,6 +11,7 @@ import {
   FaLayerGroup,
   FaThLarge,
   FaMap,
+  FaCopy,
 } from 'react-icons/fa';
 import { ScoreWinrateGraph } from './ScoreWinrateGraph';
 import type { AnalysisControlsState, UiMode, UiState } from './layout/types';
@@ -28,6 +29,8 @@ import { formatAnalysisScoreLead, summarizePointsLost } from '../utils/analysisS
 import { getBestMoveSummary } from '../utils/bestMoveSummary';
 import { getNextMoveQuality, getPlayedMoveQuality } from '../utils/playedMoveQuality';
 import { setTimedNotification } from '../utils/timedNotification';
+import { copyTextToClipboard } from '../utils/clipboard';
+import { formatEngineErrorReport } from '../utils/engineDiagnostics';
 
 interface AnalysisPanelProps {
   mode: UiMode;
@@ -122,6 +125,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   const activeBranchChildIds = useGameStore((state) => state.activeBranchChildIds);
   const updateSettings = useGameStore((state) => state.updateSettings);
   const [legendOpen, setLegendOpen] = React.useState(false);
+  const [engineErrorCopied, setEngineErrorCopied] = React.useState(false);
   const graphMetrics = modePanels.graph;
   const activeTab: 'graph' | 'stats' =
     modePanels.statsOpen && !modePanels.graphOpen ? 'stats' : 'graph';
@@ -158,6 +162,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   );
   const scoreLeadLabel = formatAnalysisScoreLead(scoreLead);
   const pointsSummary = summarizePointsLost(pointsLost);
+  React.useEffect(() => {
+    setEngineErrorCopied(false);
+  }, [engineError]);
   const bestMoveAnalysis = currentNode.analysis ?? currentNode.parent?.analysis ?? null;
   const bestMoveSummary = React.useMemo(
     () => getBestMoveSummary(bestMoveAnalysis, currentNode.gameState.board.length),
@@ -183,6 +190,19 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       }, 0);
     }
   }, [isAnalysisMode, liveVisits, updateSettings]);
+  const copyEngineError = React.useCallback(async () => {
+    if (!engineError) return;
+    const ok = await copyTextToClipboard(formatEngineErrorReport({
+      status: engineStatus,
+      requestedBackend,
+      activeBackend,
+      modelLabel: engineModelLabel,
+      modelUrl,
+      error: engineError,
+    }));
+    setEngineErrorCopied(ok);
+    setTimedNotification(ok ? 'Copied engine error details.' : 'Could not copy engine error details.', ok ? 'success' : 'error', 1800);
+  }, [activeBackend, engineError, engineModelLabel, engineStatus, modelUrl, requestedBackend]);
   const toggleGraphMetric = (metric: GraphMetric) => {
     updatePanels((current) => {
       const next = { ...current.graph, [metric]: !current.graph[metric] };
@@ -479,8 +499,22 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </div>
         )}
         {engineError && (
-          <div className="mt-2 text-[11px] text-[var(--ui-danger)] break-words">
-            {engineError}
+          <div className="mt-2 rounded border border-[var(--ui-danger)] bg-[var(--ui-danger-soft)] p-2 text-[11px] text-[var(--ui-danger)]">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1 break-words">{engineError}</div>
+              <button
+                type="button"
+                className="panel-icon-button ui-danger-soft shrink-0"
+                onClick={() => void copyEngineError()}
+                title="Copy engine error details"
+                aria-label="Copy engine error details"
+              >
+                <FaCopy aria-hidden="true" />
+              </button>
+            </div>
+            {engineErrorCopied && (
+              <div className="mt-1 font-semibold text-[var(--ui-danger)]">Copied</div>
+            )}
           </div>
         )}
         {liveVisitPresetControls}
