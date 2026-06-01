@@ -86,6 +86,7 @@ import { EDIT_TOOL_SHORTCUT_DEFINITIONS } from '../utils/shortcuts';
 import { dispatchMoveTreeCommand, type MoveTreeCommand } from '../utils/moveTreeCommands';
 import { ANALYSIS_VISIT_PRESETS, formatVisitCount, visitPresetDescription, visitPresetLabel } from '../utils/visitPresets';
 import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } from '../utils/dragImport';
+import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -2228,6 +2229,16 @@ export const Layout: React.FC = () => {
         run: openCurrentNoteEditor,
         keywords: ['comment', 'annotation', 'sgf c'],
       },
+      ...BOARD_THEME_OPTIONS.map((theme) => ({
+        id: `set-board-theme-${theme.value}`,
+        label: `Set board theme: ${theme.label}`,
+        category: 'Appearance',
+        run: () => {
+          updateSettings({ boardTheme: theme.value });
+          toast(`Board theme: ${theme.label}.`, 'info');
+        },
+        keywords: ['board', 'theme', 'appearance', 'kaya', theme.value],
+      })),
       {
         id: 'settings',
         label: 'Open settings',

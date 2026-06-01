@@ -2064,6 +2064,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
           isEditMode || scoringMode ? 'cursor-crosshair' : 'cursor-pointer',
         ].join(' ')}
         data-board-snapshot="true"
+        data-board-theme={settings.boardTheme}
         ref={boardSnapshotRef}
         style={{
           width: boardWidth,
