@@ -35,6 +35,7 @@ import {
     validateModelUploadFile,
 } from '../utils/modelUpload';
 import { copyTextToClipboard } from '../utils/clipboard';
+import { fetchBlobWithProgress } from '../utils/downloadProgress';
 import {
     getNextSettingsTabId,
     readSettingsActiveTab,
@@ -142,6 +143,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const modelUploadInputRef = React.useRef<HTMLInputElement>(null);
     const [copiedUrl, setCopiedUrl] = React.useState<string | null>(null);
     const [downloadingUrl, setDownloadingUrl] = React.useState<string | null>(null);
+    const [downloadProgress, setDownloadProgress] = React.useState<number | null>(null);
     const [downloadError, setDownloadError] = React.useState<string | null>(null);
     const [modelUploadError, setModelUploadError] = React.useState<string | null>(null);
     const [uploadedModelInfo, setUploadedModelInfo] = React.useState<UploadedModelInfo | null>(() => getUploadedModelInfo());
@@ -265,14 +267,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const handleDownloadAndLoad = async (url: string) => {
         if (downloadingUrl) return;
         setDownloadError(null);
+        setDownloadProgress(null);
         setDownloadingUrl(url);
         try {
             revokeUploadedModelUrl();
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Download failed (${response.status})`);
-            }
-            const blob = await response.blob();
+            const blob = await fetchBlobWithProgress(url, ({ percent }) => setDownloadProgress(percent));
             const downloadedFile = new File([blob], url.split('/').pop() || 'downloaded-model.bin.gz', { type: blob.type });
             updateSettings({ katagoModelUrl: createUploadedModelUrl(downloadedFile, settings.katagoModelUrl) });
             const persisted = await savePersistedUploadedModel(downloadedFile);
@@ -288,6 +287,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             setDownloadError(hint);
         } finally {
             setDownloadingUrl(null);
+            setDownloadProgress(null);
         }
     };
 
@@ -1776,16 +1776,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                                 Download
                                                             </a>
                                                             {model.downloadAndLoad ? (
-                                                                <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="px-2 py-1 text-xs rounded ui-accent-soft border hover:brightness-110 disabled:opacity-60"
-                                                                        onClick={() => handleDownloadAndLoad(model.url)}
-                                                                        disabled={downloadingUrl === model.url}
-                                                                    >
-                                                                        {downloadingUrl === model.url ? 'Downloading...' : 'Download & Load'}
-                                                                    </button>
-                                                                    <span className="text-[10px] text-[var(--ui-accent)]">Saved in browser</span>
+                                                                <div className="flex min-w-0 items-center gap-2">
+                                                                    {(() => {
+                                                                        const isDownloadingModel = downloadingUrl === model.url;
+                                                                        const downloadLabel = isDownloadingModel
+                                                                            ? downloadProgress === null
+                                                                                ? 'Downloading...'
+                                                                                : `Downloading ${downloadProgress}%`
+                                                                            : 'Download & Load';
+                                                                        return (
+                                                                            <>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="px-2 py-1 text-xs rounded ui-accent-soft border hover:brightness-110 disabled:opacity-60"
+                                                                                    onClick={() => handleDownloadAndLoad(model.url)}
+                                                                                    disabled={isDownloadingModel}
+                                                                                >
+                                                                                    {downloadLabel}
+                                                                                </button>
+                                                                                {isDownloadingModel ? (
+                                                                                    <span
+                                                                                        className="min-w-[5.5rem] overflow-hidden rounded-full border border-[var(--ui-accent)] bg-[var(--ui-surface)] text-[10px] text-[var(--ui-accent)]"
+                                                                                        role="progressbar"
+                                                                                        aria-label={`Downloading ${model.name}`}
+                                                                                        aria-valuemin={downloadProgress === null ? undefined : 0}
+                                                                                        aria-valuemax={downloadProgress === null ? undefined : 100}
+                                                                                        aria-valuenow={downloadProgress === null ? undefined : downloadProgress}
+                                                                                        data-katago-model-download-progress="true"
+                                                                                    >
+                                                                                        <span className="relative block h-5">
+                                                                                            <span
+                                                                                                className={[
+                                                                                                    'absolute inset-y-0 left-0 bg-[var(--ui-accent-soft)]',
+                                                                                                    downloadProgress === null ? 'w-full animate-pulse' : '',
+                                                                                                ].join(' ')}
+                                                                                                style={
+                                                                                                    downloadProgress === null
+                                                                                                        ? undefined
+                                                                                                        : { width: `${downloadProgress}%` }
+                                                                                                }
+                                                                                                aria-hidden="true"
+                                                                                            />
+                                                                                            <span className="relative z-10 flex h-full items-center justify-center px-2 font-mono">
+                                                                                                {downloadProgress === null ? '...' : `${downloadProgress}%`}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="text-[10px] text-[var(--ui-accent)]">Saved in browser</span>
+                                                                                )}
+                                                                            </>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             ) : model.browserLoadable === false ? (
                                                                 <span className="text-[10px] text-rose-400">

@@ -166,6 +166,8 @@ describe('SettingsModal', () => {
     expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Upload weights (.bin.gz)</div>');
     expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Official KataGo models (download links)</div>');
     expect(source).toContain('data-katago-uploaded-model-summary="true"');
+    expect(source).toContain('data-katago-model-download-progress="true"');
+    expect(source).toContain('role="progressbar"');
     expect(source).toContain('Active browser upload');
   });
 });
