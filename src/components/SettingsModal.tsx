@@ -358,7 +358,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Main Time (min)</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Main Time (min)</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -370,7 +370,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Byo Length (sec)</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Byo Length (sec)</label>
                                                 <input
                                                     type="number"
                                                     min={1}
@@ -382,7 +382,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Byo Periods</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Byo Periods</label>
                                                 <input
                                                     type="number"
                                                     min={1}
@@ -394,7 +394,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Minimal Use (sec)</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Minimal Use (sec)</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -685,7 +685,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">PV Animation Time (sec)</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">PV Animation Time (sec)</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -702,7 +702,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Rules</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Rules</label>
                                                 <select
                                                     value={settings.gameRules}
                                                     onChange={(e) => updateSettings({ gameRules: e.target.value as GameSettings['gameRules'] })}
@@ -781,12 +781,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
 
-                                        <div className="pt-2 border-t border-slate-700/50 space-y-4">
+                                        <div className="pt-2 border-t border-[var(--ui-border)] space-y-4">
                                             <h4 className={sectionTitleClass}>KaTrain Hint Labels</h4>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-300 block text-sm">Evaluation Theme</label>
+                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Evaluation Theme</label>
                                                     <select
                                                         value={settings.trainerTheme ?? 'theme:normal'}
                                                         onChange={(e) => updateSettings({ trainerTheme: e.target.value as GameSettings['trainerTheme'] })}
@@ -798,7 +798,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-300 block text-sm">Low Visits Threshold</label>
+                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Low Visits Threshold</label>
                                                     <input
                                                         type="number"
                                                         min={1}
@@ -810,7 +810,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-300 block text-sm">Primary Label</label>
+                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Primary Label</label>
                                                     <select
                                                         value={settings.trainerTopMovesShow}
                                                         onChange={(e) => updateSettings({ trainerTopMovesShow: e.target.value as GameSettings['trainerTopMovesShow'] })}
@@ -825,7 +825,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-300 block text-sm">Secondary Label</label>
+                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Secondary Label</label>
                                                     <select
                                                         value={settings.trainerTopMovesShowSecondary}
                                                         onChange={(e) =>
@@ -842,7 +842,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-300 block text-sm">Policy Heatmap ({shortcutLabels['cycle-policy-metric']})</label>
+                                                    <label className="text-[var(--ui-text-muted)] block text-sm">Policy Heatmap ({shortcutLabels['cycle-policy-metric']})</label>
                                                     <select
                                                         value={settings.analysisPolicyMetric ?? 'policy'}
                                                         onChange={(e) => updateSettings({ analysisPolicyMetric: e.target.value as GameSettings['analysisPolicyMetric'] })}
@@ -923,7 +923,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <h3 className={sectionTitleClass}>Show Last N Eval Dots</h3>
                                     <div className="mt-4 space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-slate-300 block">Show Last N Eval Dots</label>
+                                            <label className="text-[var(--ui-text-muted)] block">Show Last N Eval Dots</label>
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                                 <input
                                                     type="range"
@@ -941,7 +941,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-slate-300 block">Mistake Threshold (Points)</label>
+                                            <label className="text-[var(--ui-text-muted)] block">Mistake Threshold (Points)</label>
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                                 <input
                                                     type="range"
@@ -979,7 +979,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             return (
                                                 <div key={`teach-${i}`} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
                                                     <div className="space-y-1">
-                                                        <label className="text-slate-300 block text-xs">≥ Threshold</label>
+                                                        <label className="text-[var(--ui-text-muted)] block text-xs">≥ Threshold</label>
                                                         <input
                                                             type="number"
                                                             step={0.1}
@@ -994,7 +994,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-slate-300 block text-xs">Undo</label>
+                                                        <label className="text-[var(--ui-text-muted)] block text-xs">Undo</label>
                                                         <input
                                                             type="number"
                                                             min={0}
@@ -1010,7 +1010,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         />
                                                     </div>
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <label className="text-slate-300 text-xs">Show dots</label>
+                                                        <label className="text-[var(--ui-text-muted)] text-xs">Show dots</label>
                                                         <input
                                                             type="checkbox"
                                                             checked={showDot}
@@ -1025,7 +1025,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                         />
                                                     </div>
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <label className="text-slate-300 text-xs">Save SGF</label>
+                                                        <label className="text-[var(--ui-text-muted)] text-xs">Save SGF</label>
                                                         <input
                                                             type="checkbox"
                                                             checked={saveFeedback}
@@ -1063,7 +1063,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <h3 className={sectionTitleClass}>AI</h3>
 
                                     <div className="mt-4 space-y-2">
-                                        <label className="text-slate-300 block">Strategy</label>
+                                        <label className="text-[var(--ui-text-muted)] block">Strategy</label>
                                         <select
                                             value={settings.aiStrategy}
                                             onChange={(e) => updateSettings({ aiStrategy: e.target.value as GameSettings['aiStrategy'] })}
@@ -1087,7 +1087,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'rank' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-slate-300 block text-sm">Kyu Rank</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Kyu Rank</label>
                                             <input
                                                 type="number"
                                                 step={0.5}
@@ -1103,7 +1103,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'scoreloss' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-slate-300 block text-sm">Strength (c)</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Strength (c)</label>
                                             <input
                                                 type="number"
                                                 min={0}
@@ -1120,7 +1120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'jigo' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-slate-300 block text-sm">Target Score</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Target Score</label>
                                             <input
                                                 type="number"
                                                 step={0.1}
@@ -1137,7 +1137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {(settings.aiStrategy === 'simple' || settings.aiStrategy === 'settle') && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Max Pt Lost</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Max Pt Lost</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1148,7 +1148,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Settled Wt</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Settled Wt</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1159,7 +1159,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Opp Fac</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Opp Fac</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1170,7 +1170,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Min Visits</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Min Visits</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1181,7 +1181,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Attach Pen</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Attach Pen</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1192,7 +1192,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Tenuki Pen</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Tenuki Pen</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1210,7 +1210,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     {settings.aiStrategy === 'policy' && (
                                         <div className="mt-3 space-y-1">
-                                            <label className="text-slate-300 block text-sm">Opening Moves</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Opening Moves</label>
                                             <input
                                                 type="number"
                                                 min={0}
@@ -1228,7 +1228,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'weighted' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Override</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1240,7 +1240,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Weaken</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Weaken</label>
                                                 <input
                                                     type="number"
                                                     min={0.01}
@@ -1251,7 +1251,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Lower</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Lower</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1270,7 +1270,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'pick' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Override</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1282,7 +1282,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick N</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1293,7 +1293,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick Frac</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1313,7 +1313,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'local' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Override</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1325,7 +1325,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Stddev</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Stddev</label>
                                                 <input
                                                     type="number"
                                                     min={0.1}
@@ -1336,7 +1336,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Endgame</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1348,7 +1348,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick N</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1359,7 +1359,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick Frac</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1379,7 +1379,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {settings.aiStrategy === 'tenuki' && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Override</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1391,7 +1391,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Stddev</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Stddev</label>
                                                 <input
                                                     type="number"
                                                     min={0.1}
@@ -1402,7 +1402,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Endgame</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1414,7 +1414,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick N</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1425,7 +1425,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick Frac</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1445,7 +1445,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     {(settings.aiStrategy === 'influence' || settings.aiStrategy === 'territory') && (
                                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Override</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Override</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1460,7 +1460,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Threshold</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Threshold</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1474,7 +1474,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Line Wt</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Line Wt</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1488,7 +1488,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick N</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick N</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1502,7 +1502,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Pick Frac</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Pick Frac</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1517,7 +1517,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-slate-300 block text-sm">Endgame</label>
+                                                <label className="text-[var(--ui-text-muted)] block text-sm">Endgame</label>
                                                 <input
                                                     type="number"
                                                     min={0}
@@ -1542,7 +1542,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <h3 className={sectionTitleClass}>KataGo</h3>
 
                                     <div className="mt-4 space-y-2">
-                                        <label className="text-slate-300 block">Model URL</label>
+                                        <label className="text-[var(--ui-text-muted)] block">Model URL</label>
                                         <div className="flex flex-wrap gap-2">
                                             <button
                                                 type="button"
@@ -1562,7 +1562,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </button>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-xs text-slate-400 block">Upload weights (.bin.gz)</label>
+                                            <label className="text-xs text-[var(--ui-text-faint)] block">Upload weights (.bin.gz)</label>
                                             <div className="flex flex-wrap gap-2">
                                                 <button
                                                     type="button"
@@ -1603,7 +1603,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </p>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs text-slate-400 block">Official KataGo models (download links)</label>
+                                            <label className="text-xs text-[var(--ui-text-faint)] block">Official KataGo models (download links)</label>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 {OFFICIAL_MODELS.map((model) => (
                                                     <div
@@ -1681,7 +1681,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             Use a local path under <span className="font-mono">{publicUrl('models/')}</span> or a full URL (must allow CORS).
                                         </p>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Backend</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Backend</label>
                                             <select
                                                 value={settings.katagoBackend}
                                                 onChange={(e) => updateSettings({ katagoBackend: e.target.value as GameSettings['katagoBackend'] })}
@@ -1705,7 +1705,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Visits</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Visits</label>
                                             <input
                                                 type="number"
                                                 min={16}
@@ -1716,7 +1716,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Fast review depth</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Fast review depth</label>
                                             <input
                                                 type="number"
                                                 min={MIN_ANALYSIS_VISITS}
@@ -1749,7 +1749,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <p className={subtextClass}>Used by Fast review and load-time SGF analysis.</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Max Time (ms)</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Max Time (ms)</label>
                                             <input
                                                 type="number"
                                                 min={25}
@@ -1760,7 +1760,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Batch Size</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Batch Size</label>
                                             <input
                                                 type="number"
                                                 min={1}
@@ -1771,7 +1771,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Max Children</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Max Children</label>
                                             <input
                                                 type="number"
                                                 min={4}
@@ -1784,7 +1784,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     </div>
 
                                     <div className="mt-3 space-y-1">
-                                        <label className="text-slate-300 block text-sm">Top Moves</label>
+                                        <label className="text-[var(--ui-text-muted)] block text-sm">Top Moves</label>
                                         <input
                                             type="number"
                                             min={1}
@@ -1797,7 +1797,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Wide Root Noise</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Wide Root Noise</label>
                                             <input
                                                 type="number"
                                                 min={0}
@@ -1809,7 +1809,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             <p className={subtextClass}>KaTrain default is 0.04; set 0 for strongest/most stable.</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">PV Len</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">PV Len</label>
                                             <input
                                                 type="number"
                                                 min={0}
@@ -1825,7 +1825,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Ownership</label>
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Ownership</label>
                                             <select
                                                 value={settings.katagoOwnershipMode}
                                                 onChange={(e) => updateSettings({ katagoOwnershipMode: e.target.value as 'root' | 'tree' })}
@@ -1839,8 +1839,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-slate-300 block text-sm">Reuse Search Tree</label>
-                                            <label className="flex items-center space-x-2 text-sm text-slate-300">
+                                            <label className="text-[var(--ui-text-muted)] block text-sm">Reuse Search Tree</label>
+                                            <label className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
                                                 <input
                                                     type="checkbox"
                                                     checked={settings.katagoReuseTree}
@@ -1856,8 +1856,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     </div>
 
                                     <div className="mt-3 space-y-1">
-                                        <label className="text-slate-300 block text-sm">Randomize Symmetry</label>
-                                        <label className="flex items-center space-x-2 text-sm text-slate-300">
+                                        <label className="text-[var(--ui-text-muted)] block text-sm">Randomize Symmetry</label>
+                                        <label className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
                                             <input
                                                 type="checkbox"
                                                 checked={settings.katagoNnRandomize}
@@ -1872,8 +1872,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     </div>
 
                                     <div className="mt-3 space-y-1">
-                                        <label className="text-slate-300 block text-sm">Conservative Pass</label>
-                                        <label className="flex items-center space-x-2 text-sm text-slate-300">
+                                        <label className="text-[var(--ui-text-muted)] block text-sm">Conservative Pass</label>
+                                        <label className="flex items-center space-x-2 text-sm text-[var(--ui-text-muted)]">
                                             <input
                                                 type="checkbox"
                                                 checked={settings.katagoConservativePass}
