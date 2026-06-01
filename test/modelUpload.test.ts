@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   clearUploadedModelUrl,
   createUploadedModelUrl,
+  formatUploadedModelSize,
   getUploadedModelInfo,
   isKataGoModelWeightsFile,
   MAX_BROWSER_MODEL_UPLOAD_BYTES,
@@ -52,6 +53,15 @@ describe('model upload helpers', () => {
     expect(validateModelUploadFile({ name: 'kata1.bin.gz', size: MAX_BROWSER_MODEL_UPLOAD_BYTES + 1 })).toContain(
       'too large for the browser engine'
     );
+  });
+
+  it('formats uploaded model sizes without hiding small files as 0 MB', () => {
+    expect(formatUploadedModelSize(0)).toBe('Unknown size');
+    expect(formatUploadedModelSize(13)).toBe('13 B');
+    expect(formatUploadedModelSize(1536)).toBe('1.5 KB');
+    expect(formatUploadedModelSize(11 * 1024)).toBe('11 KB');
+    expect(formatUploadedModelSize(1.5 * 1024 * 1024)).toBe('1.5 MB');
+    expect(formatUploadedModelSize(32 * 1024 * 1024)).toBe('32 MB');
   });
 
   it('revokes previous uploaded model URLs and remembers the manual fallback URL', () => {

@@ -23,6 +23,7 @@ import { POLICY_HEATMAP_METRIC_SELECT_OPTIONS, TOP_MOVE_METRIC_SELECT_OPTIONS } 
 import {
     clearUploadedModelUrl,
     createUploadedModelUrl,
+    formatUploadedModelSize,
     getUploadedModelInfo,
     isUploadedModelUrl,
     MAX_BROWSER_MODEL_UPLOAD_LABEL,
@@ -208,12 +209,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     React.useEffect(() => {
         setUploadedModelInfo(isUploadedModel ? getUploadedModelInfo() : null);
     }, [isUploadedModel, settings.katagoModelUrl]);
-
-    const formatModelFileSize = (size: number): string => {
-        if (!Number.isFinite(size) || size <= 0) return 'Unknown size';
-        const mb = size / (1024 * 1024);
-        return `${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)} MB`;
-    };
 
     const uploadedModelSavedLabel = uploadedModelInfo?.updatedAt
         ? new Date(uploadedModelInfo.updatedAt).toLocaleString([], {
@@ -1733,7 +1728,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                     </div>
                                                     <div className="mt-1 text-[var(--ui-text-muted)]">
                                                         {uploadedModelInfo
-                                                            ? `${formatModelFileSize(uploadedModelInfo.size)}${uploadedModelSavedLabel ? ` / saved ${uploadedModelSavedLabel}` : ''}`
+                                                            ? `${formatUploadedModelSize(uploadedModelInfo.size)}${uploadedModelSavedLabel ? ` / saved ${uploadedModelSavedLabel}` : ''}`
                                                             : 'Saved in this browser and restored after reload.'}
                                                     </div>
                                                 </div>

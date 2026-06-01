@@ -62,6 +62,17 @@ export const modelUploadTooLargeMessage = (size: number): string =>
   `This model is too large for the browser engine (${(size / (1024 * 1024)).toFixed(0)} MB). ` +
   `Use the Strong b18 browser weights or another compressed model under ${MAX_BROWSER_MODEL_UPLOAD_LABEL}.`;
 
+export const formatUploadedModelSize = (size: number): string => {
+  if (!Number.isFinite(size) || size <= 0) return 'Unknown size';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) {
+    const kb = size / 1024;
+    return `${kb >= 10 ? kb.toFixed(0) : kb.toFixed(1)} KB`;
+  }
+  const mb = size / (1024 * 1024);
+  return `${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)} MB`;
+};
+
 const modelInfoFromBlob = (file: Blob & ModelFileLike): UploadedModelInfo => ({
   name: file.name?.trim() || 'Uploaded weights',
   size: typeof file.size === 'number' && Number.isFinite(file.size) ? file.size : 0,
