@@ -472,15 +472,13 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
               </div>
             )}
           </div>
-          {detailed && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {moveInsightCoach.checks.map((check) => (
-                <span key={check} className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-1.5 py-0.5 text-[10px] ui-text-faint">
-                  {check}
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="mt-2 flex flex-wrap gap-1">
+            {moveInsightCoach.checks.map((check) => (
+              <span key={check} className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-1.5 py-0.5 text-[10px] ui-text-faint">
+                {check}
+              </span>
+            ))}
+          </div>
           {detailed && moveInsight.learnMoreUrl ? (
             <a
               href={moveInsight.learnMoreUrl}
