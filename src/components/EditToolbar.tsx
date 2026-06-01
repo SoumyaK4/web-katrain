@@ -23,6 +23,7 @@ import {
 } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
+import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import type { EditTool } from '../types';
 
 type EditToolItem = {
@@ -69,6 +70,9 @@ const TOOL_GROUPS: Array<{ title: string; items: EditToolItem[] }> = [
 const TOOL_LABELS: Record<EditTool, string> = Object.fromEntries(
   TOOL_GROUPS.flatMap((group) => group.items.map((item) => [item.tool, item.label]))
 ) as Record<EditTool, string>;
+
+const EDIT_TOOLBAR_SHORTCUT_IDS = ['toggle-edit-mode'] as const;
+type EditToolbarShortcutId = (typeof EDIT_TOOLBAR_SHORTCUT_IDS)[number];
 
 const toolButtonClass = (active: boolean) =>
   [
@@ -130,6 +134,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
   );
 
   const nodeProps = currentNode.properties ?? {};
+  const shortcutLabels = useShortcutLabels(EDIT_TOOLBAR_SHORTCUT_IDS);
+  const withShortcut = (label: string, id: EditToolbarShortcutId) => `${label} (${shortcutLabels[id]})`;
   const setupCount = (nodeProps.AB?.length ?? 0) + (nodeProps.AW?.length ?? 0) + (nodeProps.AE?.length ?? 0);
   const markerCount =
     (nodeProps.TR?.length ?? 0) + (nodeProps.SQ?.length ?? 0) + (nodeProps.CR?.length ?? 0) + (nodeProps.MA?.length ?? 0);
@@ -165,10 +171,13 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
           type="button"
           onClick={toggleEditMode}
           className="pointer-events-auto h-10 px-3 rounded-lg ui-panel border shadow-xl text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] flex items-center gap-2"
-          title="Open SGF edit tools"
+          title={withShortcut('Open SGF edit tools', 'toggle-edit-mode')}
         >
           <FaEdit className="text-[var(--ui-accent)]" />
           Edit
+          <span className="ml-1 rounded border border-[var(--ui-border)] bg-[var(--ui-surface-2)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--ui-text-muted)]">
+            {shortcutLabels['toggle-edit-mode']}
+          </span>
         </button>
       ) : (
         <div className="pointer-events-auto ui-panel border rounded-lg shadow-xl overflow-hidden backdrop-blur max-w-full">
@@ -178,7 +187,9 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
               <div className="text-xs font-semibold uppercase tracking-wider text-[var(--ui-text-muted)] whitespace-nowrap">
                 Edit mode
               </div>
-              <div className="hidden sm:block text-xs ui-text-faint truncate">Active: {TOOL_LABELS[editTool]}</div>
+              <div className="hidden sm:block text-xs ui-text-faint truncate">
+                Active: {TOOL_LABELS[editTool]} · {shortcutLabels['toggle-edit-mode']} closes
+              </div>
             </div>
             <div className="hidden md:flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider">
               <span className="px-1.5 py-0.5 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)]">
@@ -195,8 +206,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
               type="button"
               onClick={toggleEditMode}
               className="h-7 w-7 rounded-md inline-flex items-center justify-center text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface)]"
-              title="Close edit mode"
-              aria-label="Close edit mode"
+              title={withShortcut('Close edit mode', 'toggle-edit-mode')}
+              aria-label={withShortcut('Close edit mode', 'toggle-edit-mode')}
             >
               <FaTimes size={12} />
             </button>

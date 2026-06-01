@@ -75,6 +75,10 @@ describe('shortcut utilities', () => {
     expect(getShortcutBindings('toggle-scoring', {})).toEqual([{ key: 's', ctrl: false, shift: true, alt: false }]);
   });
 
+  it('exposes a default shortcut for edit mode', () => {
+    expect(getShortcutBindings('toggle-edit-mode', {})).toEqual([{ key: 'e', ctrl: false, shift: true, alt: false }]);
+  });
+
   it('exposes a non-conflicting shortcut for sound toggling', () => {
     expect(getShortcutBindings('toggle-sound', {})).toEqual([{ key: 'm', ctrl: false, shift: true, alt: false }]);
   });

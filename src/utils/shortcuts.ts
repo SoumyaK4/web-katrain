@@ -51,6 +51,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'rotate-board', category: 'Game Control', label: 'Rotate board', defaultBindings: [{ key: 'o' }] },
   { id: 'toggle-sound', category: 'Game Control', label: 'Toggle sound', defaultBindings: [{ key: 'm', shift: true }] },
   { id: 'toggle-scoring', category: 'Game Control', label: 'Score position', defaultBindings: [{ key: 's', shift: true }] },
+  { id: 'toggle-edit-mode', category: 'Game Control', label: 'Toggle edit mode', defaultBindings: [{ key: 'e', shift: true }] },
   { id: 'toggle-insert', category: 'Game Control', label: 'Toggle insert mode', defaultBindings: [{ key: 'i' }] },
   { id: 'toggle-children', category: 'Visualization', label: 'Toggle children', defaultBindings: [{ key: 'q' }] },
   { id: 'toggle-eval', category: 'Visualization', label: 'Toggle eval dots', defaultBindings: [{ key: 'w' }] },

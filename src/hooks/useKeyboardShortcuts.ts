@@ -83,6 +83,7 @@ export function useKeyboardShortcuts({
     isSelectingRegionOfInterest,
     isInsertMode,
     toggleInsertMode,
+    toggleEditMode,
     selfplayToEnd,
     makeAiMove,
     rootNode,
@@ -114,6 +115,7 @@ export function useKeyboardShortcuts({
       isSelectingRegionOfInterest: state.isSelectingRegionOfInterest,
       isInsertMode: state.isInsertMode,
       toggleInsertMode: state.toggleInsertMode,
+      toggleEditMode: state.toggleEditMode,
       selfplayToEnd: state.selfplayToEnd,
       makeAiMove: state.makeAiMove,
       rootNode: state.rootNode,
@@ -375,6 +377,11 @@ export function useKeyboardShortcuts({
         toggleInsertMode();
         return;
       }
+      if (matches('toggle-edit-mode')) {
+        e.preventDefault();
+        toggleEditMode();
+        return;
+      }
       if (matches('selfplay')) {
         e.preventDefault();
         selfplayToEnd();
@@ -545,6 +552,7 @@ export function useKeyboardShortcuts({
     isSelectingRegionOfInterest,
     isInsertMode,
     toggleInsertMode,
+    toggleEditMode,
     selfplayToEnd,
     switchBranch,
     undoToBranchPoint,
