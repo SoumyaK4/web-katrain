@@ -80,6 +80,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [photoOpacity, setPhotoOpacity] = React.useState(0.45);
   const [photoFit, setPhotoFit] = React.useState<PhotoFit>('cover');
   const [mobileTab, setMobileTab] = React.useState<MobilePhotoBoardTab>('photo');
+  const [showDeltaOverlay, setShowDeltaOverlay] = React.useState(true);
 
   const currentBoardSize = React.useMemo<BoardSize | null>(() => {
     const size = currentBoard?.length;
@@ -110,6 +111,17 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     if (!currentBoard) return [];
     return computePhotoBoardDelta({ currentBoard, boardSize, stones });
   }, [boardSize, currentBoard, stones]);
+
+  const traceDeltaByIndex = React.useMemo(() => {
+    const byIndex = new Map<number, PhotoBoardDeltaStone[]>();
+    for (const item of traceDelta) {
+      const index = item.y * boardSize + item.x;
+      const existing = byIndex.get(index);
+      if (existing) existing.push(item);
+      else byIndex.set(index, [item]);
+    }
+    return byIndex;
+  }, [boardSize, traceDelta]);
 
   const deltaCounts = React.useMemo(() => {
     const countsByType = {
@@ -309,6 +321,18 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
         : tone === 'move'
           ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]'
           : 'border-[var(--ui-border)] bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)]',
+  ].join(' ');
+  const deltaOverlayToggleClass = (active: boolean) => [
+    'min-h-8 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+    active
+      ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]'
+      : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+  ].join(' ');
+  const deltaMarkerClass = (type: PhotoBoardDeltaStone['type']) => [
+    'pointer-events-none absolute z-20 grid h-4 w-4 place-items-center rounded-full border text-[9px] font-black leading-none shadow',
+    type === 'added'
+      ? 'right-0.5 top-0.5 border-[var(--ui-success)] bg-[var(--ui-success)] text-white'
+      : 'bottom-0.5 left-0.5 border-[var(--ui-danger)] bg-[var(--ui-danger)] text-white',
   ].join(' ');
 
   return (
@@ -521,8 +545,21 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                   <div className="text-[11px] font-semibold uppercase tracking-wide ui-text-faint">
                     Current diff
                   </div>
-                  <div className="text-xs ui-text-faint">
-                    {canCompareCurrentBoard ? `${deltaCounts.total} change${deltaCounts.total === 1 ? '' : 's'}` : 'Size mismatch'}
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs ui-text-faint">
+                      {canCompareCurrentBoard ? `${deltaCounts.total} change${deltaCounts.total === 1 ? '' : 's'}` : 'Size mismatch'}
+                    </div>
+                    <button
+                      type="button"
+                      className={deltaOverlayToggleClass(showDeltaOverlay)}
+                      onClick={() => setShowDeltaOverlay((value) => !value)}
+                      disabled={!canCompareCurrentBoard || deltaCounts.total === 0}
+                      aria-pressed={showDeltaOverlay}
+                      title={showDeltaOverlay ? 'Hide diff markers' : 'Show diff markers'}
+                      data-photo-board-delta-toggle="true"
+                    >
+                      Overlay {showDeltaOverlay ? 'on' : 'off'}
+                    </button>
                   </div>
                 </div>
                 {canCompareCurrentBoard ? (
@@ -625,46 +662,66 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                   onPointerLeave={endTracePaint}
                   data-photo-board-trace-grid="true"
                 >
-                  {stones.map((stone, index) => (
-                    <button
-                      key={`${boardSize}-${index}`}
-                      type="button"
-                      data-photo-board-point="true"
-                      data-photo-board-index={index}
-                      className={[
-                        'relative aspect-square touch-none select-none border border-black/25 focus:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]',
-                        photoUrl && photoUnderlay
-                          ? 'bg-[#d7ad68]/45 hover:bg-[#e5bd78]/60'
-                          : 'bg-[#d7ad68] hover:bg-[#e5bd78]',
-                      ].join(' ')}
-                      onPointerDown={(event) => {
-                        if (event.button !== 0) return;
-                        event.preventDefault();
-                        ignoreNextTraceClickRef.current = true;
-                        beginTracePaint(index, event.currentTarget, event.pointerId);
-                      }}
-                      onClick={() => {
-                        if (ignoreNextTraceClickRef.current) {
-                          ignoreNextTraceClickRef.current = false;
-                          return;
-                        }
-                        setStoneAt(index, getPhotoBoardTracePaintValue(stones[index] ?? null, tool));
-                      }}
-                      aria-label={`${gtpPoint(index, boardSize)} ${stoneLabel(stone)}`}
-                    >
-                      {stone && (
-                        <span
-                          aria-hidden="true"
-                          className={[
-                            'absolute left-1/2 top-1/2 block h-[72%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full shadow-md',
-                            stone === 'black'
-                              ? 'bg-gradient-to-br from-zinc-700 to-black'
-                              : 'bg-gradient-to-br from-white to-zinc-200 ring-1 ring-black/20',
-                          ].join(' ')}
-                        />
-                      )}
-                    </button>
-                  ))}
+                  {stones.map((stone, index) => {
+                    const deltaOverlay = traceDeltaByIndex.get(index) ?? [];
+                    return (
+                      <button
+                        key={`${boardSize}-${index}`}
+                        type="button"
+                        data-photo-board-point="true"
+                        data-photo-board-index={index}
+                        className={[
+                          'relative aspect-square touch-none select-none border border-black/25 focus:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ui-accent)]',
+                          photoUrl && photoUnderlay
+                            ? 'bg-[#d7ad68]/45 hover:bg-[#e5bd78]/60'
+                            : 'bg-[#d7ad68] hover:bg-[#e5bd78]',
+                        ].join(' ')}
+                        onPointerDown={(event) => {
+                          if (event.button !== 0) return;
+                          event.preventDefault();
+                          ignoreNextTraceClickRef.current = true;
+                          beginTracePaint(index, event.currentTarget, event.pointerId);
+                        }}
+                        onClick={() => {
+                          if (ignoreNextTraceClickRef.current) {
+                            ignoreNextTraceClickRef.current = false;
+                            return;
+                          }
+                          setStoneAt(index, getPhotoBoardTracePaintValue(stones[index] ?? null, tool));
+                        }}
+                        aria-label={`${gtpPoint(index, boardSize)} ${stoneLabel(stone)}`}
+                      >
+                        {stone && (
+                          <span
+                            aria-hidden="true"
+                            className={[
+                              'absolute left-1/2 top-1/2 block h-[72%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full shadow-md',
+                              stone === 'black'
+                                ? 'bg-gradient-to-br from-zinc-700 to-black'
+                                : 'bg-gradient-to-br from-white to-zinc-200 ring-1 ring-black/20',
+                            ].join(' ')}
+                          />
+                        )}
+                        {showDeltaOverlay && deltaOverlay.length > 0 && (
+                          <span
+                            aria-hidden="true"
+                            data-photo-board-delta-overlay={deltaOverlay.map((item) => item.type).join(' ')}
+                          >
+                            {deltaOverlay.map((item) => (
+                              <span
+                                key={`${item.type}-${item.player}`}
+                                className={deltaMarkerClass(item.type)}
+                                data-photo-board-delta-marker={item.type}
+                                data-photo-board-delta-player={item.player}
+                              >
+                                {item.type === 'added' ? '+' : '-'}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
