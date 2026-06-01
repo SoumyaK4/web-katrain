@@ -4,7 +4,7 @@ import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
 import type { CandidateMove, FloatArray, Move, Player } from '../types';
 import { formatRootInfoText } from '../utils/gameInfoText';
-import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment } from '../utils/notePreview';
+import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment, type NoteTableAlignment } from '../utils/notePreview';
 import { getVisualViewport } from '../utils/visualViewport';
 import { getMoveInsight, getMoveInsightCoach } from '../utils/moveInsight';
 import { getNoteEditorKeyAction } from '../utils/noteEditorKeys';
@@ -81,6 +81,12 @@ function NoteInlinePreview({ segments }: { segments: NoteInlineSegment[] }) {
   );
 }
 
+function noteTableAlignClass(alignment: NoteTableAlignment): string {
+  if (alignment === 'center') return 'text-center';
+  if (alignment === 'right') return 'text-right';
+  return 'text-left';
+}
+
 function NotePreview({ note }: { note: string }) {
   const blocks = parseNoteBlocks(note);
   return (
@@ -108,6 +114,61 @@ function NotePreview({ note }: { note: string }) {
               data-note-block="quote"
             >
               <NoteInlinePreview segments={parseNoteInlinePreview(block.text)} />
+            </div>
+          );
+        }
+        if (block.type === 'code') {
+          return (
+            <pre
+              key={`line-${index}`}
+              className="overflow-x-auto rounded border border-[var(--ui-border)] bg-[var(--ui-surface-2)] p-2 font-mono text-[11px] leading-5 text-[var(--ui-text)]"
+              data-note-block="code"
+            >
+              <code>{block.text || ' '}</code>
+            </pre>
+          );
+        }
+        if (block.type === 'table') {
+          return (
+            <div
+              key={`line-${index}`}
+              className="overflow-x-auto rounded border border-[var(--ui-border)] bg-[var(--ui-surface)]"
+              data-note-block="table"
+            >
+              <table className="min-w-full border-collapse text-[11px] leading-5">
+                <thead className="bg-[var(--ui-surface-2)] text-[var(--ui-text)]">
+                  <tr>
+                    {block.headers.map((header, cellIndex) => (
+                      <th
+                        key={`head-${cellIndex}`}
+                        className={[
+                          'border-b border-[var(--ui-border)] px-2 py-1 font-semibold',
+                          noteTableAlignClass(block.alignments[cellIndex] ?? 'left'),
+                        ].join(' ')}
+                      >
+                        <NoteInlinePreview segments={parseNoteInlinePreview(header)} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr key={`row-${rowIndex}`}>
+                      {block.headers.map((_, cellIndex) => (
+                        <td
+                          key={`cell-${rowIndex}-${cellIndex}`}
+                          className={[
+                            'border-t border-[var(--ui-border)]/70 px-2 py-1 align-top text-[var(--ui-text-muted)]',
+                            noteTableAlignClass(block.alignments[cellIndex] ?? 'left'),
+                          ].join(' ')}
+                        >
+                          <NoteInlinePreview segments={parseNoteInlinePreview(row[cellIndex] ?? '')} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           );
         }

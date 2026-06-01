@@ -40,4 +40,26 @@ describe('note preview helpers', () => {
       { type: 'bullet', text: 'second' },
     ]);
   });
+
+  it('groups fenced code blocks without parsing their contents as markdown', () => {
+    expect(parseNoteBlocks('Before\n```sgf\n(;B[pd];W[dd])\n# not a heading\n```\nAfter')).toEqual([
+      { type: 'paragraph', text: 'Before' },
+      { type: 'code', language: 'sgf', text: '(;B[pd];W[dd])\n# not a heading' },
+      { type: 'paragraph', text: 'After' },
+    ]);
+  });
+
+  it('parses compact GFM-style tables', () => {
+    expect(parseNoteBlocks('| Plan | Follow-up | Winrate |\n| :--- | :---: | ---: |\n| Attach | hane | **52%** |\n| Tenuki | clamp | 48% |')).toEqual([
+      {
+        type: 'table',
+        headers: ['Plan', 'Follow-up', 'Winrate'],
+        alignments: ['left', 'center', 'right'],
+        rows: [
+          ['Attach', 'hane', '**52%**'],
+          ['Tenuki', 'clamp', '48%'],
+        ],
+      },
+    ]);
+  });
 });
