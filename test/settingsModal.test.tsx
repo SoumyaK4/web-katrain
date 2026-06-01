@@ -30,6 +30,9 @@ describe('SettingsModal', () => {
 
     expect(html).toContain('Kaya-style previews');
     expect(html).toContain('Traditional clamshell and slate stones');
+    expect(html).toContain('id="settings-board-theme-label"');
+    expect(html).toContain('aria-labelledby="settings-board-theme-label"');
+    expect(html).not.toContain('<label class="ui-text-muted block">Board Theme</label>');
   });
 
   it('binds General settings labels to their controls', () => {

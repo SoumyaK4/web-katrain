@@ -487,13 +487,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between gap-3">
-                                                <label className="ui-text-muted block">Board Theme</label>
+                                                <div id="settings-board-theme-label" className="ui-text-muted">Board Theme</div>
                                                 <span className="text-xs ui-text-faint">Kaya-style previews</span>
                                             </div>
                                             <div
                                                 className="grid grid-cols-2 gap-2 sm:grid-cols-3"
                                                 role="radiogroup"
-                                                aria-label="Board Theme"
+                                                aria-labelledby="settings-board-theme-label"
                                                 data-board-theme-picker="true"
                                             >
                                                 {boardThemeChoices.map((theme) => {
