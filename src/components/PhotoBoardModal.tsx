@@ -17,6 +17,7 @@ import {
 } from '../utils/photoBoard';
 import { createObjectUrl, revokeObjectUrl } from '../utils/objectUrl';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
+import { isTextEntryTarget } from '../utils/keyboardTarget';
 
 interface PhotoBoardModalProps {
   onClose: () => void;
@@ -46,6 +47,12 @@ const stoneLabel = (stone: PhotoBoardStone): string => {
 const gtpPoint = (index: number, boardSize: BoardSize): string =>
   photoBoardPointLabel(index % boardSize, Math.floor(index / boardSize), boardSize);
 
+const TRACE_TOOL_KEY_HINTS: Record<TraceTool, string> = {
+  black: '1, B',
+  white: '2, W',
+  erase: '3, E',
+};
+
 export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   onClose,
   onImportSgf,
@@ -66,10 +73,12 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const tracePaintValueRef = React.useRef<PhotoBoardStone>(null);
   const lastTracePaintIndexRef = React.useRef<number | null>(null);
   const ignoreNextTraceClickRef = React.useRef(false);
+  const initialTraceTool = currentPlayer ?? 'black';
+  const toolRef = React.useRef<TraceTool>(initialTraceTool);
   const [boardSize, setBoardSize] = React.useState<BoardSize>(defaultBoardSize);
   const [komi, setKomi] = React.useState(defaultKomi);
   const [nextPlayer, setNextPlayer] = React.useState<Player>(() => currentPlayer ?? 'black');
-  const [tool, setTool] = React.useState<TraceTool>(() => currentPlayer ?? 'black');
+  const [tool, setToolState] = React.useState<TraceTool>(initialTraceTool);
   const [stones, setStones] = React.useState<PhotoBoardStone[]>(() => makeEmptyStones(defaultBoardSize));
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(null);
   const [photoName, setPhotoName] = React.useState<string>('');
@@ -243,8 +252,13 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setStoneAt(index, tracePaintValueRef.current);
   }, [setStoneAt]);
 
+  const setTraceTool = React.useCallback((nextTool: TraceTool) => {
+    toolRef.current = nextTool;
+    setToolState(nextTool);
+  }, []);
+
   const beginTracePaint = React.useCallback((index: number, target?: HTMLElement, pointerId?: number) => {
-    const paintValue = getPhotoBoardTracePaintValue(stones[index] ?? null, tool);
+    const paintValue = getPhotoBoardTracePaintValue(stones[index] ?? null, toolRef.current);
     isTracePaintingRef.current = true;
     tracePaintValueRef.current = paintValue;
     lastTracePaintIndexRef.current = null;
@@ -256,7 +270,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
         // Pointer capture can fail if the browser has already ended the gesture.
       }
     }
-  }, [paintTraceIndex, stones, tool]);
+  }, [paintTraceIndex, stones]);
 
   const endTracePaint = React.useCallback(() => {
     isTracePaintingRef.current = false;
@@ -282,6 +296,28 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
       window.removeEventListener('pointercancel', stop);
     };
   }, [endTracePaint]);
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTextEntryTarget(event.target)) return;
+      const key = event.key.toLowerCase();
+      const nextTool =
+        key === '1' || key === 'b'
+          ? 'black'
+          : key === '2' || key === 'w'
+            ? 'white'
+            : key === '3' || key === 'e'
+              ? 'erase'
+              : null;
+      if (!nextTool) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setTraceTool(nextTool);
+      setMobileTab('trace');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [setTraceTool]);
 
   const clearBoard = () => setStones(makeEmptyStones(boardSize));
 
@@ -524,7 +560,9 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               <button
                 type="button"
                 className={toolButtonClass(tool === 'black')}
-                onClick={() => setTool('black')}
+                onClick={() => setTraceTool('black')}
+                title={`Trace black stones (${TRACE_TOOL_KEY_HINTS.black})`}
+                aria-keyshortcuts="1 B"
               >
                 <span className="inline-flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full bg-black ring-1 ring-white/30" aria-hidden="true" /> Black
@@ -533,7 +571,9 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               <button
                 type="button"
                 className={toolButtonClass(tool === 'white')}
-                onClick={() => setTool('white')}
+                onClick={() => setTraceTool('white')}
+                title={`Trace white stones (${TRACE_TOOL_KEY_HINTS.white})`}
+                aria-keyshortcuts="2 W"
               >
                 <span className="inline-flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full bg-white ring-1 ring-black/25" aria-hidden="true" /> White
@@ -542,7 +582,9 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               <button
                 type="button"
                 className={toolButtonClass(tool === 'erase')}
-                onClick={() => setTool('erase')}
+                onClick={() => setTraceTool('erase')}
+                title={`Erase traced stones (${TRACE_TOOL_KEY_HINTS.erase})`}
+                aria-keyshortcuts="3 E"
               >
                 <span className="inline-flex items-center gap-2"><FaEraser /> Erase</span>
               </button>
@@ -740,6 +782,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                         onPointerDown={(event) => {
                           if (event.button !== 0) return;
                           event.preventDefault();
+                          const activeElement = event.currentTarget.ownerDocument.activeElement;
+                          if (activeElement instanceof HTMLElement && activeElement !== event.currentTarget) {
+                            activeElement.blur();
+                          }
+                          event.currentTarget.focus({ preventScroll: true });
                           ignoreNextTraceClickRef.current = true;
                           beginTracePaint(index, event.currentTarget, event.pointerId);
                         }}
@@ -748,7 +795,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                             ignoreNextTraceClickRef.current = false;
                             return;
                           }
-                          setStoneAt(index, getPhotoBoardTracePaintValue(stones[index] ?? null, tool));
+                          setStoneAt(index, getPhotoBoardTracePaintValue(stones[index] ?? null, toolRef.current));
                         }}
                         aria-label={`${gtpPoint(index, boardSize)} ${stoneLabel(stone)}`}
                       >

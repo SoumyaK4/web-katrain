@@ -80,4 +80,30 @@ describe('PhotoBoardModal', () => {
     expect(html).toContain('data-photo-board-import="true"');
     expect(html).toContain('title="Trace at least one stone to import a board position"');
   });
+
+  it('advertises keyboard shortcuts for trace tools', () => {
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(html).toContain('title="Trace black stones (1, B)"');
+    expect(html).toContain('aria-keyshortcuts="1 B"');
+    expect(html).toContain('title="Trace white stones (2, W)"');
+    expect(html).toContain('aria-keyshortcuts="2 W"');
+    expect(html).toContain('title="Erase traced stones (3, E)"');
+    expect(html).toContain('aria-keyshortcuts="3 E"');
+  });
+
+  it('keeps keyboard trace-tool changes available for the next paint', () => {
+    const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
+
+    expect(source).toContain('toolRef.current = nextTool');
+    expect(source).toContain('getPhotoBoardTracePaintValue(stones[index] ?? null, toolRef.current)');
+    expect(source).toContain('activeElement.blur()');
+  });
 });
