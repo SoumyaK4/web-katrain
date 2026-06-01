@@ -115,8 +115,12 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   autoSaveStatus = null,
 }) => {
   const passBtnRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreCloseRef = useRef<HTMLButtonElement>(null);
   const [passBtnHeight, setPassBtnHeight] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreSheetId = React.useId();
+  const moreSheetTitleId = React.useId();
   const [isMoveNumberEditing, setIsMoveNumberEditing] = useState(false);
   const [moveNumberDraft, setMoveNumberDraft] = useState('');
   const skipMoveNumberBlurCommit = useRef(false);
@@ -173,17 +177,35 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     return () => obs.disconnect();
   }, []);
 
+  const closeMoreControls = React.useCallback(() => {
+    setMoreOpen(false);
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => moreTriggerRef.current?.focus({ preventScroll: true }), 0);
+    }
+  }, []);
+
   useEffect(() => {
     if (!moreOpen) return;
+    moreCloseRef.current?.focus({ preventScroll: true });
     const onDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target) return;
       if (target.closest('[data-bottom-more]')) return;
-      setMoreOpen(false);
+      closeMoreControls();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMoreControls();
+      }
     };
     window.addEventListener('mousedown', onDown);
-    return () => window.removeEventListener('mousedown', onDown);
-  }, [moreOpen]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [closeMoreControls, moreOpen]);
 
   const openMoveNumberEditor = () => {
     if (isInsertMode) return;
@@ -454,7 +476,14 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         </div>
 
         <div className="relative" data-bottom-more>
-          <IconButton title="More controls" onClick={() => setMoreOpen((prev) => !prev)}>
+          <IconButton
+            title="More controls"
+            onClick={() => setMoreOpen((prev) => !prev)}
+            ariaControls={moreSheetId}
+            ariaExpanded={moreOpen}
+            ariaHasPopup="dialog"
+            buttonRef={moreTriggerRef}
+          >
             <FaEllipsisH />
           </IconButton>
           {moreOpen && (
@@ -462,15 +491,25 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               {/* Backdrop */}
               <div
                 className="fixed inset-0 bg-black/50 z-40 transition-opacity backdrop-blur-[2px]"
-                onClick={() => setMoreOpen(false)}
+                onClick={closeMoreControls}
                 aria-hidden="true"
               />
               {/* Bottom Sheet */}
-              <div className="fixed bottom-[var(--mobile-tabbar-height,60px)] left-0 right-0 max-h-[70vh] ui-panel border-t rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] overflow-y-auto z-50 overscroll-contain pb-safe animate-slide-up select-none touch-manipulation">
+              <div
+                id={moreSheetId}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={moreSheetTitleId}
+                data-bottom-more-sheet="true"
+                className="fixed bottom-[var(--mobile-tabbar-height,60px)] left-0 right-0 max-h-[70vh] ui-panel border-t rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] overflow-y-auto z-50 overscroll-contain pb-safe animate-slide-up select-none touch-manipulation"
+              >
                 <div className="sticky top-0 bg-[var(--ui-surface)]/95 backdrop-blur-md border-b border-[var(--ui-border)] px-4 py-3 flex items-center justify-between z-10">
-                  <div className="text-sm font-semibold">More Controls</div>
+                  <div id={moreSheetTitleId} className="text-sm font-semibold">More Controls</div>
                   <button type="button"
-                    onClick={() => setMoreOpen(false)}
+                    ref={moreCloseRef}
+                    onClick={closeMoreControls}
+                    aria-label="Close more controls"
+                    title="Close more controls"
                     className="p-2 -mr-2 text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] rounded-full hover:bg-[var(--ui-surface-2)]"
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">

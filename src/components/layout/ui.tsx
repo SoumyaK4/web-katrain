@@ -47,8 +47,22 @@ export const IconButton: React.FC<{
   onClick: () => void;
   disabled?: boolean;
   className?: string;
+  ariaControls?: string;
+  ariaExpanded?: boolean;
+  ariaHasPopup?: React.AriaAttributes['aria-haspopup'];
+  buttonRef?: React.Ref<HTMLButtonElement>;
   children: React.ReactNode;
-}> = ({ title, onClick, disabled, className, children }) => {
+}> = ({
+  title,
+  onClick,
+  disabled,
+  className,
+  ariaControls,
+  ariaExpanded,
+  ariaHasPopup,
+  buttonRef,
+  children,
+}) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const isCoarsePointer = mediaQueryMatches('(pointer: coarse)');
   const { label, shortcut } = parseTitle(title);
@@ -57,7 +71,11 @@ export const IconButton: React.FC<{
     <div className="relative">
       <button
         type="button"
+        ref={buttonRef}
         aria-label={label}
+        aria-controls={ariaControls}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHasPopup}
         onClick={onClick}
         disabled={disabled}
         onMouseEnter={() => setShowTooltip(true)}

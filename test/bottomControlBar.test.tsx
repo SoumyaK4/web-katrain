@@ -52,6 +52,10 @@ describe('BottomControlBar', () => {
     const html = renderToStaticMarkup(<BottomControlBar {...baseProps} isMobile={true} />);
 
     expect(html).toContain('data-bottom-branch-chip="true"');
+    expect(html).toContain('aria-label="More controls"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toMatch(/aria-controls="[^"]+"/);
     expect(html).toContain('Br');
     expect(html).toContain('2/3');
     expect(html).toContain('+1');
