@@ -1767,6 +1767,14 @@ export const Layout: React.FC = () => {
       }
       action();
     };
+    const openScoring = () => {
+      if (isEditMode || isInsertMode || isSelectingRegionOfInterest) {
+        toast('Finish editing before scoring.', 'error');
+        return false;
+      }
+      setScoringMode(true);
+      return true;
+    };
 
     return [
       {
@@ -2112,6 +2120,43 @@ export const Layout: React.FC = () => {
         shortcutId: 'toggle-scoring',
         run: toggleScoringMode,
         keywords: ['count', 'territory', 'dead stones', 'manual score'],
+      },
+      {
+        id: 'score-auto-estimate',
+        label: 'Auto-estimate dead stones',
+        category: 'Game',
+        run: () => {
+          if (!openScoring()) return;
+          autoEstimateDeadStones();
+        },
+        keywords: ['score', 'territory', 'dead stones', 'ownership'],
+      },
+      {
+        id: 'score-clear-dead-stones',
+        label: 'Clear scoring dead stones',
+        category: 'Game',
+        run: () => {
+          if (!openScoring()) return;
+          clearManualDeadStones();
+        },
+        keywords: ['score', 'territory', 'reset marks'],
+      },
+      {
+        id: 'score-use-final',
+        label: 'Use final manual score',
+        category: 'Game',
+        run: () => {
+          if (!openScoring()) return;
+          setManualScoreMode('manual');
+        },
+        keywords: ['score', 'manual', 'final'],
+      },
+      {
+        id: 'score-done',
+        label: 'Finish scoring',
+        category: 'Game',
+        run: () => setScoringMode(false),
+        keywords: ['score', 'done', 'close'],
       },
       {
         id: 'toggle-edit-mode',
