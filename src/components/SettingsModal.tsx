@@ -170,6 +170,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const subtextClass = 'text-xs ui-text-faint leading-relaxed';
     const pillButtonClass =
         'px-3 py-2 rounded-lg ui-surface-2 text-xs font-mono text-[var(--ui-text)] border transition-colors hover:brightness-110';
+    const modelCardClass =
+        'w-full text-left rounded-lg border px-3 py-2 bg-[var(--ui-surface)] border-[var(--ui-border)] text-[var(--ui-text)]';
+    const modelBadgeClass =
+        'text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] border border-[var(--ui-border)]';
+    const modelActionClass =
+        'px-2 py-1 text-xs rounded bg-[var(--ui-surface-2)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-text)]';
 
     const UI_DENSITY_OPTIONS: Array<{ value: GameSettings['uiDensity']; label: string; description: string }> = [
         { value: 'compact', label: 'Compact', description: 'Tighter bars and smaller controls.' },
@@ -1602,21 +1608,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 {OFFICIAL_MODELS.map((model) => (
                                                     <div
                                                         key={model.url}
-                                                        className="w-full text-left rounded-lg border px-3 py-2 bg-slate-900/60 border-slate-700/50 text-slate-200"
+                                                        className={modelCardClass}
                                                     >
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-sm font-semibold">{model.label}</span>
                                                             {model.badge ? (
-                                                                <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-800/70 text-slate-300 border border-slate-700/50">
+                                                                <span className={modelBadgeClass}>
                                                                     {model.badge}
                                                                 </span>
                                                             ) : null}
-                                                            <span className="ml-auto text-[10px] text-slate-400">{model.size}</span>
+                                                            <span className="ml-auto text-[10px] text-[var(--ui-text-muted)]">{model.size}</span>
                                                         </div>
-                                                        <div className="text-[11px] text-slate-400 font-mono truncate">
+                                                        <div className="text-[11px] text-[var(--ui-text-muted)] font-mono truncate">
                                                             {model.name}
                                                         </div>
-                                                        <div className="text-[10px] text-slate-500">
+                                                        <div className="text-[10px] text-[var(--ui-text-faint)]">
                                                             Uploaded {model.uploaded}
                                                         </div>
                                                         <div className="mt-2 flex items-center gap-2">
@@ -1624,7 +1630,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                                 href={model.url}
                                                                 target="_blank"
                                                                 rel="noreferrer"
-                                                                className="px-2 py-1 text-xs rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/70"
+                                                                className={modelActionClass}
                                                                 title={`Download ${model.name}`}
                                                             >
                                                                 Download
@@ -1648,7 +1654,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                             ) : null}
                                                             <button
                                                                 type="button"
-                                                                className="px-2 py-1 text-xs rounded bg-slate-800/70 border border-slate-700/50 hover:bg-slate-700/70"
+                                                                className={modelActionClass}
                                                                 onClick={() => handleCopyUrl(model.url)}
                                                             >
                                                                 {copiedUrl === model.url ? 'Copied' : 'Copy URL'}

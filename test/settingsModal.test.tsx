@@ -12,5 +12,7 @@ describe('SettingsModal', () => {
     expect(html).not.toContain('border-blue-500');
     expect(html).not.toContain('text-white border-b-2');
     expect(html).not.toContain('text-white');
+    expect(html).not.toContain('bg-slate-900/60');
+    expect(html).not.toContain('bg-slate-800/70');
   });
 });
