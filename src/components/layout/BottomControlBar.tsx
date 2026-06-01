@@ -113,6 +113,9 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   const currentCaptureCount = currentPlayer === 'black' ? blackCaptures : whiteCaptures;
   const currentPlayerName = currentPlayer === 'black' ? 'Black' : 'White';
   const matchupSummary = `Black: ${blackPlayerLabel}, ${blackCaptures} captured. White: ${whitePlayerLabel}, ${whiteCaptures} captured. ${currentPlayerName} to play.`;
+  const metaDividerClass = 'mobile-bottom-meta-divider text-[var(--ui-text-faint)]';
+  const activePlayerClass = 'text-[var(--ui-accent)] font-semibold';
+  const inactivePlayerClass = 'text-[var(--ui-text-faint)]';
 
   useEffect(() => {
     const el = passBtnRef.current;
@@ -251,15 +254,15 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               </span>
               <span className="mobile-bottom-current-captures text-[var(--ui-text-faint)]">C{currentCaptureCount}</span>
             </span>
-            <span className="mobile-bottom-meta-divider text-slate-600 mx-1">|</span>
+            <span className={`${metaDividerClass} mx-1`}>|</span>
             <span className="ui-text-faint">{boardSize}×{boardSize}</span>
             {handicap > 0 && (
               <>
-                <span className="mobile-bottom-meta-divider text-slate-600">·</span>
+                <span className={metaDividerClass}>·</span>
                 <span className="ui-text-faint">H{handicap}</span>
               </>
             )}
-            <span className="mobile-bottom-meta-divider text-slate-600 mx-1">|</span>
+            <span className={`${metaDividerClass} mx-1`}>|</span>
             {isMoveNumberEditing ? (
               <span className="inline-flex items-center gap-0.5">
                 <span className="ui-text-faint">#</span>
@@ -562,10 +565,10 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           title={matchupSummary}
           aria-label={matchupSummary}
         >
-          <span className={currentPlayer === 'black' ? 'text-white font-semibold' : 'text-slate-500'} title={`Black: ${blackPlayerLabel}, ${blackCaptures} captured`}>B</span>
-          <span className="text-slate-600">·</span>
-          <span className={currentPlayer === 'white' ? 'text-white font-semibold' : 'text-slate-500'} title={`White: ${whitePlayerLabel}, ${whiteCaptures} captured`}>W</span>
-          <span className="text-slate-600 mx-1">|</span>
+          <span className={currentPlayer === 'black' ? activePlayerClass : inactivePlayerClass} title={`Black: ${blackPlayerLabel}, ${blackCaptures} captured`}>B</span>
+          <span className="text-[var(--ui-text-faint)]">·</span>
+          <span className={currentPlayer === 'white' ? activePlayerClass : inactivePlayerClass} title={`White: ${whitePlayerLabel}, ${whiteCaptures} captured`}>W</span>
+          <span className="text-[var(--ui-text-faint)] mx-1">|</span>
           {isMoveNumberEditing ? (
             <span className="inline-flex items-center gap-1">
               <span className="ui-text-faint">Move</span>
@@ -579,7 +582,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 inputMode="numeric"
                 min={0}
                 max={totalMovesInCurrentLine}
-                className="w-7 bg-transparent p-0 text-right font-semibold text-white outline-none"
+                className="w-7 bg-transparent p-0 text-right font-semibold text-[var(--ui-text)] outline-none"
                 autoFocus
               />
               <span className="ui-text-faint">/{totalMovesInCurrentLine}</span>
@@ -593,7 +596,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               disabled={isInsertMode}
             >
               <span className="ui-text-faint">Move</span>
-              <span className="text-white font-semibold">{moveHistory.length}</span>
+              <span className="text-[var(--ui-text)] font-semibold">{moveHistory.length}</span>
               <span className="ui-text-faint">/{totalMovesInCurrentLine}</span>
             </button>
           )}

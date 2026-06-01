@@ -38,6 +38,23 @@ describe('light theme shell tokens', () => {
     expect(timer).not.toContain('text-slate-200');
   });
 
+  it('keeps navigation metadata on theme tokens', () => {
+    const navigationFiles = [
+      'src/components/layout/BottomControlBar.tsx',
+      'src/components/layout/RightPanel.tsx',
+      'src/components/layout/StatusBar.tsx',
+    ];
+
+    for (const file of navigationFiles) {
+      const source = readFileSync(file, 'utf8');
+      expect(source, file).not.toContain('text-slate-500');
+      expect(source, file).not.toContain('text-slate-600');
+      expect(source, file).not.toContain('bg-slate-950');
+      expect(source, file).not.toContain('text-slate-900');
+      expect(source, file).not.toContain('font-semibold text-white');
+    }
+  });
+
   it('keeps the interactive game report chrome on theme tokens', () => {
     const report = readFileSync('src/components/GameReportModal.tsx', 'utf8');
     const between = (start: string, end: string) => {

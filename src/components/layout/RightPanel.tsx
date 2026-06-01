@@ -607,6 +607,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                           const player = move ? playerToShort(move.player) : '—';
                           const moveNumber = node.gameState.moveHistory.length;
                           const hasNote = !!node.note?.trim();
+                          const playerChipClass = !move
+                            ? 'border border-[var(--ui-border)] bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)]'
+                            : move.player === 'black'
+                              ? 'border border-[var(--ui-text)] bg-[var(--ui-text)] text-[var(--ui-panel)]'
+                              : 'border border-[var(--ui-border-strong)] bg-[var(--ui-panel)] text-[var(--ui-text)]';
                           return (
                             <button
                               key={node.id}
@@ -624,13 +629,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               disabled={isInsertMode}
                               title={isInsertMode ? 'Finish inserting before navigating.' : 'Jump to move'}
                             >
-                              <span className="w-10 text-[10px] font-mono text-slate-500">
+                              <span className="w-10 text-[10px] font-mono text-[var(--ui-text-faint)]">
                                 {move ? moveNumber : 'Root'}
                               </span>
                               <span
                                 className={[
                                   'text-[10px] font-mono px-1.5 py-0.5 rounded',
-                                  move?.player === 'black' ? 'bg-slate-950 text-white' : 'bg-slate-200 text-slate-900',
+                                  playerChipClass,
                                 ].join(' ')}
                               >
                                 {player}

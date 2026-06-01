@@ -261,11 +261,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         Captures:
         <span className="flex items-center gap-1 ml-1">
           <span className="status-player status-player-black" aria-hidden="true" />
-          <span className="text-white font-medium">{capturedWhite}</span>
+          <span className="text-[var(--ui-text)] font-medium">{capturedWhite}</span>
         </span>
         <span className="flex items-center gap-1">
           <span className="status-player status-player-white" aria-hidden="true" />
-          <span className="text-white font-medium">{capturedBlack}</span>
+          <span className="text-[var(--ui-text)] font-medium">{capturedBlack}</span>
         </span>
       </div>
 
