@@ -2595,6 +2595,8 @@ export const Layout: React.FC = () => {
                     onUndo={handleUndo}
                     onAiMove={makeAiMove}
                     onResign={handleResign}
+                    unsavedChanges={currentGameDirty}
+                    autoSaveStatus={autoSaveStatus}
                   />
                 </div>
               )}
