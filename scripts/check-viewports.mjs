@@ -355,7 +355,7 @@ async function main() {
           return r.width > 0 && r.height > 0 && r.bottom >= 0 && r.right >= 0 && r.top <= innerHeight && r.left <= innerWidth;
         };
         const auditSmallTouchTargets = (scope = document) => Array.from(scope.querySelectorAll('button, input, select, textarea, a[href], [role="button"], [role="tab"]'))
-          .filter((el) => !el.closest('[data-board-snapshot="true"]'))
+          .filter((el) => !el.closest('[data-board-snapshot="true"], [data-photo-board-trace-grid="true"]'))
           .filter(isVisibleTarget)
           .map((el) => ({ el, r: el.getBoundingClientRect() }))
           .filter(({ r }) => r.width < 44 || r.height < 44)
@@ -406,8 +406,12 @@ async function main() {
             window.dispatchEvent(new CustomEvent('web-katrain:shortcuts-updated'));
           }
         };
+        const findButtonByLabel = (label, scope = document) => Array.from(scope.querySelectorAll('button')).find((candidate) => {
+          const candidateLabel = targetLabel(candidate);
+          return candidateLabel === label || candidateLabel.includes(label);
+        }) || null;
         const closeDialog = async (dialog, closeLabel) => {
-          const button = Array.from(dialog.querySelectorAll('button')).find((candidate) => targetLabel(candidate).includes(closeLabel));
+          const button = findButtonByLabel(closeLabel, dialog);
           if (!button) return false;
           button.click();
           await waitForFrames(2);
@@ -526,6 +530,41 @@ async function main() {
             }
             if (!(await closeDialog(guideDialog, 'Close report guide'))) {
               modalSmokeFailures.push('report guide close control missing');
+            }
+          },
+        });
+        await smokeModal({
+          name: 'photo board',
+          selector: '[aria-labelledby="photo-board-title"]',
+          closeLabel: 'Close photo board',
+          open: async () => {
+            if (${viewport.mobile}) {
+              const toolsButton = findButtonByLabel('Tools');
+              if (!toolsButton) throw new Error('Tools button missing');
+              toolsButton.click();
+              const toolsDialog = await waitForSelector('[data-mobile-tools-dialog="true"]');
+              if (!toolsDialog) throw new Error('Tools dialog did not open');
+              const photoBoardButton = findButtonByLabel('Photo Board', toolsDialog);
+              if (!photoBoardButton) throw new Error('Photo Board action missing in tools');
+              photoBoardButton.click();
+            } else {
+              const photoBoardButton = findButtonByLabel('Photo Board');
+              if (!photoBoardButton) throw new Error('Photo Board action missing');
+              photoBoardButton.click();
+            }
+            await waitForFrames(2);
+          },
+          afterOpen: async (dialog) => {
+            if (!dialog.querySelector('[data-photo-board-empty-source="true"]')) {
+              modalSmokeFailures.push('photo board empty source missing');
+            }
+            if (${viewport.mobile}) {
+              if (!dialog.querySelector('[data-photo-board-mobile-tab="photo"]')) {
+                modalSmokeFailures.push('photo board mobile photo tab missing');
+              }
+              if (!dialog.querySelector('[data-photo-board-mobile-tab="trace"]')) {
+                modalSmokeFailures.push('photo board mobile trace tab missing');
+              }
             }
           },
         });
