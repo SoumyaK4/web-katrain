@@ -5,7 +5,7 @@ import { useGameStore } from '../store/gameStore';
 import type { CandidateMove, FloatArray, Move, Player } from '../types';
 import { formatRootInfoText } from '../utils/gameInfoText';
 import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment, type NoteTableAlignment } from '../utils/notePreview';
-import { getVisualViewport } from '../utils/visualViewport';
+import { getVisualKeyboardInset, getVisualViewport } from '../utils/visualViewport';
 import { getMoveInsight, getMoveInsightCoach } from '../utils/moveInsight';
 import { getNoteEditorKeyAction } from '../utils/noteEditorKeys';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
@@ -298,6 +298,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   const shouldFocusNoteRef = React.useRef(false);
   const previousNoteNodeIdRef = React.useRef(currentNode.id);
   const lastFocusRequestRef = React.useRef(0);
+  const [keyboardInset, setKeyboardInset] = React.useState(0);
 
   const scrollNoteEditorIntoView = React.useCallback(() => {
     const editor = noteTextareaRef.current;
@@ -342,10 +343,17 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   }, [focusNoteEditor, isEditingNote]);
 
   React.useEffect(() => {
-    if (!isEditingNote) return;
+    if (!isEditingNote) {
+      setKeyboardInset(0);
+      return;
+    }
     const visualViewport = getVisualViewport();
     if (!visualViewport) return;
-    const updateForKeyboard = () => scrollNoteEditorIntoView();
+    const updateForKeyboard = () => {
+      setKeyboardInset(getVisualKeyboardInset());
+      scrollNoteEditorIntoView();
+    };
+    updateForKeyboard();
     visualViewport.addEventListener('resize', updateForKeyboard);
     visualViewport.addEventListener('scroll', updateForKeyboard);
     return () => {
@@ -589,8 +597,12 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
               aria-label="User note"
               aria-keyshortcuts="Enter Control+S Meta+S Escape"
               data-note-editor="true"
+              data-note-keyboard-aware="true"
               placeholder="Write a note for this position..."
               className="w-full min-h-[88px] max-h-44 ui-input rounded p-2 border focus:border-[var(--ui-accent)] outline-none text-sm font-mono resize-y"
+              style={{
+                scrollMarginBlockEnd: `calc(${keyboardInset}px + var(--mobile-tabbar-height, 0px) + var(--mobile-bottom-controls-height, 0px) + var(--pwa-banner-height, 0px) + 24px)`,
+              }}
             />
           ) : (
             <div

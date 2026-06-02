@@ -222,6 +222,8 @@ function assertViewport(result) {
   } else {
     if (!result.toolsReachable) failures.push('mobile tools menu not reachable');
     if (!result.editToolsReachable) failures.push('mobile edit tools not reachable');
+    if (!result.noteEditorReachable) failures.push('mobile note editor not reachable from Review tab');
+    if (!result.noteEditorKeyboardAware) failures.push('mobile note editor is missing keyboard-aware scroll margin');
     if (!result.boardTouchAction.includes('pinch-zoom') && result.boardTouchAction !== 'manipulation') {
       failures.push(`play-mode board touch-action does not allow pinch zoom (${result.boardTouchAction})`);
     }
@@ -364,6 +366,26 @@ async function main() {
         const editToolsReachable = ${viewport.mobile} ? !!editButton : true;
         const smallTouchTargets = ${viewport.mobile} ? auditSmallTouchTargets() : [];
         const boardTouchAction = board ? getComputedStyle(board).touchAction : '';
+        let noteEditorReachable = true;
+        let noteEditorKeyboardAware = true;
+        if (${viewport.mobile}) {
+          const reviewTab = Array.from(document.querySelectorAll('button[role="tab"]')).find((button) => button.getAttribute('aria-label') === 'Review');
+          reviewTab?.click();
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const noteEditor = document.querySelector('[data-note-editor="true"]');
+          noteEditorReachable = !!noteEditor;
+          if (noteEditor) {
+            noteEditor.focus();
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const margin = getComputedStyle(noteEditor).scrollMarginBlockEnd;
+            noteEditorKeyboardAware = noteEditor.getAttribute('data-note-keyboard-aware') === 'true' && margin !== '0px';
+          } else {
+            noteEditorKeyboardAware = false;
+          }
+          const boardTab = Array.from(document.querySelectorAll('button[role="tab"]')).find((button) => button.getAttribute('aria-label') === 'Board');
+          boardTab?.click();
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        }
         let editModeSmallTouchTargets = [];
         let editModeBoardTouchAction = 'none';
         if (${viewport.mobile} && editButton) {
@@ -398,6 +420,8 @@ async function main() {
           actionsMenuReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.textContent || '').includes('Actions')),
           toolsReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.getAttribute('aria-label') || button.getAttribute('title') || '') === 'Tools'),
           editToolsReachable,
+          noteEditorReachable,
+          noteEditorKeyboardAware,
           boardTouchAction,
           smallTouchTargets,
           editModeBoardTouchAction,
