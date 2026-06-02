@@ -416,6 +416,7 @@
     overflow-wrap: anywhere;
   }
 
+  .notification-toast-action,
   .notification-toast-close {
     display: inline-flex;
     align-items: center;
@@ -432,6 +433,14 @@
       border-color 0.15s ease;
   }
 
+  .notification-toast-action.copied {
+    color: var(--ui-success);
+    background: var(--ui-success-soft);
+    border-color: var(--ui-success);
+  }
+
+  .notification-toast-action:hover,
+  .notification-toast-action:focus-visible,
   .notification-toast-close:hover,
   .notification-toast-close:focus-visible {
     color: var(--ui-text);

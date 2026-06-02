@@ -1,4 +1,6 @@
-import { FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import React from 'react';
+import { FaCheck, FaCheckCircle, FaCopy, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import { copyTextToClipboard } from '../../utils/clipboard';
 
 export type NotificationToastType = 'info' | 'error' | 'success';
 
@@ -37,6 +39,16 @@ const notificationMeta = {
 export function NotificationToast({ notification, onClose, commandBarVisible = false }: NotificationToastProps) {
   const meta = notificationMeta[notification.type];
   const Icon = meta.Icon;
+  const [copyState, setCopyState] = React.useState<'idle' | 'copied' | 'failed'>('idle');
+  const canCopy = notification.type === 'error';
+
+  React.useEffect(() => {
+    setCopyState('idle');
+  }, [notification.message, notification.type]);
+
+  const handleCopy = async () => {
+    setCopyState((await copyTextToClipboard(notification.message)) ? 'copied' : 'failed');
+  };
 
   return (
     <div
@@ -58,6 +70,24 @@ export function NotificationToast({ notification, onClose, commandBarVisible = f
           <span className="sr-only">{meta.label}: </span>
           {notification.message}
         </span>
+        {canCopy && (
+          <button
+            type="button"
+            className={['notification-toast-action', copyState === 'copied' ? 'copied' : ''].join(' ')}
+            onClick={() => void handleCopy()}
+            aria-label={
+              copyState === 'copied'
+                ? 'Notification copied'
+                : copyState === 'failed'
+                  ? 'Copy notification failed'
+                  : 'Copy notification'
+            }
+            title={copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy notification'}
+            data-notification-copy="true"
+          >
+            {copyState === 'copied' ? <FaCheck size={13} /> : <FaCopy size={13} />}
+          </button>
+        )}
         <button
           type="button"
           className="notification-toast-close"
