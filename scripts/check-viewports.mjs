@@ -244,6 +244,13 @@ function assertViewport(result) {
         .join(', ');
       failures.push(`${result.editModeSmallTouchTargets.length} edit-mode touch target(s) below 44px: ${summary}`);
     }
+    if (result.reviewSmallTouchTargets.length > 0) {
+      const summary = result.reviewSmallTouchTargets
+        .slice(0, 8)
+        .map((target) => `${target.label} ${Math.round(target.width)}x${Math.round(target.height)}`)
+        .join(', ');
+      failures.push(`${result.reviewSmallTouchTargets.length} review-tab touch target(s) below 44px: ${summary}`);
+    }
     if (result.modalSmallTouchTargets.length > 0) {
       const summary = result.modalSmallTouchTargets
         .slice(0, 8)
@@ -496,10 +503,12 @@ async function main() {
         const boardTouchAction = board ? getComputedStyle(board).touchAction : '';
         let noteEditorReachable = true;
         let noteEditorKeyboardAware = true;
+        let reviewSmallTouchTargets = [];
         if (${viewport.mobile}) {
           const reviewTab = Array.from(document.querySelectorAll('button[role="tab"]')).find((button) => button.getAttribute('aria-label') === 'Review');
           reviewTab?.click();
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          reviewSmallTouchTargets = auditSmallTouchTargets();
           const noteEditor = document.querySelector('[data-note-editor="true"]');
           noteEditorReachable = !!noteEditor;
           if (noteEditor) {
@@ -725,6 +734,7 @@ async function main() {
           editToolsReachable,
           noteEditorReachable,
           noteEditorKeyboardAware,
+          reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
           editModeBoardTouchAction,

@@ -750,6 +750,44 @@
     border-color: var(--ui-danger);
   }
 
+  @media (max-width: 1023px) {
+    .panel-section-header {
+      min-height: 44px;
+      padding: 0 10px;
+    }
+
+    .panel-section-title {
+      min-height: 44px;
+    }
+
+    .panel-toolbar {
+      gap: 0.375rem;
+      row-gap: 0.375rem;
+      min-height: 44px;
+      padding: 0.375rem;
+    }
+
+    .panel-tab {
+      min-height: 44px;
+      padding: 10px 12px;
+    }
+
+    .panel-action-button {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.1;
+    }
+
+    .panel-icon-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+    }
+  }
+
   .edit-toolbar--analysis-offset {
     top: 8.25rem;
   }
@@ -1424,6 +1462,20 @@
     color: var(--ui-accent);
     background: var(--ui-accent-soft);
     border-color: var(--ui-accent);
+  }
+
+  @media (max-width: 1023px) {
+    .move-tree-floating-controls {
+      top: 0.5rem;
+      right: 0.5rem;
+      gap: 0.375rem;
+      padding-right: 0.5rem;
+    }
+
+    .move-tree-control-button {
+      width: 44px;
+      height: 44px;
+    }
   }
 
   .move-tree-node-marker {

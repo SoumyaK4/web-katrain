@@ -373,13 +373,12 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     <button
       type="button"
       className={[
-        'px-2 py-1 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors',
-        graphMetrics[metric]
-          ? 'bg-[var(--ui-surface-2)] border-[var(--ui-border-strong)] text-[var(--ui-text)]'
-          : 'bg-[var(--ui-surface)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+        'panel-action-button',
+        graphMetrics[metric] ? 'active' : '',
       ].join(' ')}
       onClick={() => toggleGraphMetric(metric)}
       aria-pressed={graphMetrics[metric]}
+      aria-label={`Toggle ${label.toLowerCase()} graph`}
       title={`Toggle ${label.toLowerCase()} graph`}
     >
       <span className={['h-2 w-2 rounded-full', colorClass].join(' ')} aria-hidden="true" />
