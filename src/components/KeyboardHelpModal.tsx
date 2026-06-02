@@ -24,6 +24,7 @@ const GAMEPAD_HELP = [
 ] as const;
 
 const POINTER_HELP = [
+  { control: 'Pinch', action: 'Zoom the board on touch screens' },
   { control: 'Wheel', action: 'Previous/next move over the board or move tree' },
   { control: 'Shift + wheel', action: 'Previous/next mistake over the board or move tree' },
 ] as const;
@@ -130,7 +131,7 @@ export const KeyboardHelpModal: React.FC<KeyboardHelpModalProps> = ({ onClose, o
             <section className="ui-surface rounded-lg border p-3" data-keyboard-help-pointer="true">
               <div className="mb-2 flex items-center gap-2 border-b border-[var(--ui-border)] pb-2">
                 <FaMouse aria-hidden="true" className="text-[var(--ui-accent)]" />
-                <h3 className="text-sm font-semibold text-[var(--ui-text)]">Trackpad / Mouse</h3>
+                <h3 className="text-sm font-semibold text-[var(--ui-text)]">Touch / Trackpad / Mouse</h3>
               </div>
               <div className="grid grid-cols-1 gap-1">
                 {POINTER_HELP.map((item) => (

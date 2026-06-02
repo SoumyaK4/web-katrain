@@ -2075,12 +2075,13 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       size,
     };
   }, [cellSize, cursorPt, isKeyboardCursorActive, originX, originY, toDisplay]);
+  const boardTouchAction = isEditMode || scoringMode || isSelectingRegionOfInterest ? 'none' : 'pan-x pan-y pinch-zoom';
 
   return (
     <div ref={containerRef} className="w-full h-full min-w-0 max-w-full overflow-hidden flex items-center justify-center">
       <div
         className={[
-          'relative shadow-lg rounded-sm select-none touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-accent)]',
+          'relative shadow-lg rounded-sm select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-accent)]',
           isEditMode || scoringMode ? 'cursor-crosshair' : 'cursor-pointer',
         ].join(' ')}
         data-board-snapshot="true"
@@ -2094,6 +2095,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
           backgroundSize: boardTexture ? '100% 100%' : undefined,
           backgroundRepeat: boardTexture ? 'no-repeat' : undefined,
           overflow: 'hidden',
+          touchAction: boardTouchAction,
         }}
         onClick={handleClick}
         onPointerDown={handlePointerDown}

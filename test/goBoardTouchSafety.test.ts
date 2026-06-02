@@ -13,4 +13,12 @@ describe('GoBoard touch safety', () => {
     expect(source).toContain('if (e.touches.length > 0) {');
     expect(source).toContain('onTouchMove={handleTouchMove}');
   });
+
+  it('allows browser pinch zoom in play mode but locks touch behavior while editing', () => {
+    const source = readFileSync('src/components/GoBoard.tsx', 'utf8');
+
+    expect(source).toContain("const boardTouchAction = isEditMode || scoringMode || isSelectingRegionOfInterest ? 'none' : 'pan-x pan-y pinch-zoom';");
+    expect(source).toContain('touchAction: boardTouchAction');
+    expect(source).not.toContain('select-none touch-none');
+  });
 });

@@ -222,6 +222,12 @@ function assertViewport(result) {
   } else {
     if (!result.toolsReachable) failures.push('mobile tools menu not reachable');
     if (!result.editToolsReachable) failures.push('mobile edit tools not reachable');
+    if (!result.boardTouchAction.includes('pinch-zoom') && result.boardTouchAction !== 'manipulation') {
+      failures.push(`play-mode board touch-action does not allow pinch zoom (${result.boardTouchAction})`);
+    }
+    if (result.editModeBoardTouchAction !== 'none') {
+      failures.push(`edit-mode board touch-action should be none (${result.editModeBoardTouchAction})`);
+    }
     if (result.smallTouchTargets.length > 0) {
       const summary = result.smallTouchTargets
         .slice(0, 8)
@@ -357,11 +363,14 @@ async function main() {
         }) || null;
         const editToolsReachable = ${viewport.mobile} ? !!editButton : true;
         const smallTouchTargets = ${viewport.mobile} ? auditSmallTouchTargets() : [];
+        const boardTouchAction = board ? getComputedStyle(board).touchAction : '';
         let editModeSmallTouchTargets = [];
+        let editModeBoardTouchAction = 'none';
         if (${viewport.mobile} && editButton) {
           editButton.click();
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           editModeSmallTouchTargets = auditSmallTouchTargets();
+          editModeBoardTouchAction = board ? getComputedStyle(board).touchAction : '';
           const closeEditButton = Array.from(document.querySelectorAll('button')).find((button) => {
             const label = [
               button.getAttribute('aria-label') || '',
@@ -389,7 +398,9 @@ async function main() {
           actionsMenuReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.textContent || '').includes('Actions')),
           toolsReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.getAttribute('aria-label') || button.getAttribute('title') || '') === 'Tools'),
           editToolsReachable,
+          boardTouchAction,
           smallTouchTargets,
+          editModeBoardTouchAction,
           editModeSmallTouchTargets,
           topToggleOverTopBar: intersects(rect(topToggle), topBarRect),
           topToggleOverEditToolbar: intersects(rect(topToggle), rect(editToolbar)),
