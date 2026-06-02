@@ -421,8 +421,8 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.875rem;
+    height: 2.875rem;
     color: var(--ui-text-muted);
     border: 1px solid transparent;
     border-radius: 6px;
@@ -2050,7 +2050,7 @@
 
   .manual-score-totals {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 5px;
     padding: 0 10px 8px;
   }
@@ -2201,6 +2201,33 @@
     text-align: center;
   }
 
+  @media (max-width: 1023px) {
+    .manual-score-panel {
+      box-sizing: border-box;
+      max-height: min(420px, calc(100vh - 80px));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .manual-score-header {
+      box-sizing: border-box;
+      min-height: 44px;
+      padding: 0 8px 0 10px;
+    }
+
+    .manual-score-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+    }
+
+    .manual-score-method button,
+    .manual-score-details-toggle,
+    .manual-score-actions button {
+      min-height: 44px;
+    }
+  }
+
   @media (max-width: 640px) {
     .manual-score-launch,
     .manual-score-panel {
@@ -2213,7 +2240,7 @@
     }
 
     .manual-score-panel {
-      width: min(250px, calc(100vw - 16px));
+      width: min(270px, calc(100vw - 16px));
     }
 
     .manual-score-result {

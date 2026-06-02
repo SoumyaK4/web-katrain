@@ -255,6 +255,17 @@ function assertViewport(result) {
   if (result.modalSmokeFailures.length > 0) {
     failures.push(`modal smoke failures: ${result.modalSmokeFailures.join(', ')}`);
   }
+  if (!result.scorePanelReachable) failures.push('score panel not reachable');
+  if (result.scorePanelFailures.length > 0) {
+    failures.push(`score panel failures: ${result.scorePanelFailures.join(', ')}`);
+  }
+  if (result.scorePanelSmallTouchTargets.length > 0) {
+    const summary = result.scorePanelSmallTouchTargets
+      .slice(0, 8)
+      .map((target) => `${target.label} ${Math.round(target.width)}x${Math.round(target.height)}`)
+      .join(', ');
+    failures.push(`${result.scorePanelSmallTouchTargets.length} score panel touch target(s) below 44px: ${summary}`);
+  }
   if (failures.length > 0) {
     throw new Error(`${result.viewport}: ${failures.join('; ')}`);
   }
@@ -436,6 +447,9 @@ async function main() {
             modalSmokeFailures.push(\`\${name}: \${error instanceof Error ? error.message : String(error)}\`);
           }
         };
+        const scorePanelFailures = [];
+        const scorePanelSmallTouchTargets = [];
+        let scorePanelReachable = true;
         const editButton = allButtons.find((button) => {
           const label = [
             button.getAttribute('aria-label') || '',
@@ -568,6 +582,44 @@ async function main() {
             }
           },
         });
+        const scoreButton = Array.from(document.querySelectorAll('button')).find((button) => {
+          const label = targetLabel(button);
+          return label.includes('Score position') || label === 'Score' || label.includes('ScoreShift');
+        });
+        if (!scoreButton) {
+          scorePanelReachable = false;
+        } else {
+          scoreButton.click();
+          await waitForFrames(2);
+          const scorePanel = await waitForSelector('.manual-score-panel');
+          if (!scorePanel) {
+            scorePanelReachable = false;
+          } else {
+            if (!scorePanel.querySelector('.manual-score-result')) {
+              scorePanelFailures.push('result banner missing');
+            }
+            if (!scorePanel.querySelector('[data-manual-score-status="true"]')) {
+              scorePanelFailures.push('status strip missing');
+            }
+            if (!scorePanel.querySelector('[data-manual-score-help="true"]')) {
+              scorePanelFailures.push('dead-stone help missing');
+            }
+            const scorePanelRect = rect(scorePanel);
+            if (scorePanelRect && (scorePanelRect.left < -1 || scorePanelRect.right > innerWidth + 1 || scorePanelRect.top < -1 || scorePanelRect.bottom > innerHeight + 1)) {
+              scorePanelFailures.push(\`panel escapes viewport \${Math.round(scorePanelRect.width)}x\${Math.round(scorePanelRect.height)} at \${Math.round(scorePanelRect.left)},\${Math.round(scorePanelRect.top)}-\${Math.round(scorePanelRect.right)},\${Math.round(scorePanelRect.bottom)} in \${innerWidth}x\${innerHeight}\`);
+            }
+            if (${viewport.mobile}) {
+              scorePanelSmallTouchTargets.push(...auditSmallTouchTargets(scorePanel));
+            }
+            const doneButton = findButtonByLabel('Done scoring', scorePanel) || findButtonByLabel('Done', scorePanel);
+            if (!doneButton) {
+              scorePanelFailures.push('done control missing');
+            } else {
+              doneButton.click();
+              await waitForFrames(2);
+            }
+          }
+        }
         return {
           viewport: '${viewport.width}x${viewport.height}',
           desktop: ${viewport.width >= 1024},
@@ -592,6 +644,9 @@ async function main() {
           editModeSmallTouchTargets,
           modalSmokeFailures,
           modalSmallTouchTargets,
+          scorePanelReachable,
+          scorePanelFailures,
+          scorePanelSmallTouchTargets,
           topToggleOverTopBar: intersects(rect(topToggle), topBarRect),
           topToggleOverEditToolbar: intersects(rect(topToggle), rect(editToolbar)),
         };

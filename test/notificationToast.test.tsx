@@ -33,8 +33,8 @@ describe('NotificationToast', () => {
     const css = readFileSync('src/index.css', 'utf8');
 
     expect(css).toContain('.notification-toast-action,\n  .notification-toast-close');
-    expect(css).toContain('width: 2.75rem;');
-    expect(css).toContain('height: 2.75rem;');
+    expect(css).toContain('width: 2.875rem;');
+    expect(css).toContain('height: 2.875rem;');
     expect(css).toContain('max-width: min(24rem, calc(100vw - 1.5rem));');
     expect(css).toContain('@media (min-width: 640px)');
     expect(css).toContain('@media (min-width: 1024px)');
