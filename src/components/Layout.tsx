@@ -56,6 +56,7 @@ import { MobileTabBar, type MobileTab } from './layout/MobileTabBar';
 import { NotificationToast } from './layout/NotificationToast';
 import { LibraryPanel } from './LibraryPanel';
 import { MobileHome } from './MobileHome';
+import { DesktopDashboard } from './dashboard/DesktopDashboard';
 import { AutoSaveRecoveryModal } from './AutoSaveRecoveryModal';
 import { AboutDialog } from './AboutDialog';
 import type { CommandPaletteCommand } from './CommandPaletteModal';
@@ -920,6 +921,10 @@ export const Layout: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // NOTE: desktop responsive panel behavior (library/sidebar open state per
+  // viewport width) is now owned by DesktopDashboard. The legacy auto-collapse
+  // effect was removed to avoid fighting that logic.
 
   const getPanelLimits = useCallback(() => {
     const minLeft = 220;
@@ -2744,6 +2749,122 @@ export const Layout: React.FC = () => {
         />
       )}
 
+      {isDesktop && (
+        <DesktopDashboard
+          board={
+            <GoBoard
+              hoveredMove={activeHoverMove}
+              onHoverMove={setHoveredMove}
+              pvUpToMove={pvUpToMove}
+              uiMode={boardUiMode}
+              forcePvOverlay={!!reportHoverMove}
+            />
+          }
+          blackName={blackName}
+          whiteName={whiteName}
+          blackRank={blackRank}
+          whiteRank={whiteRank}
+          capturedBlack={capturedBlack}
+          capturedWhite={capturedWhite}
+          komi={komi}
+          boardSize={boardSize}
+          handicap={handicap}
+          rules={settings.gameRules}
+          result={endResult}
+          currentPlayer={currentPlayer}
+          moveCount={moveHistory.length}
+          totalMoves={totalMovesInCurrentLine}
+          loadedFileName={loadedLibraryFileName ?? loadedExternalFile?.name ?? null}
+          dirty={currentGameDirty}
+          currentNode={currentNode}
+          branchInfo={branchInfo}
+          showAnalysis={isAnalysisMode || mode === 'analyze'}
+          winRate={winRate ?? null}
+          scoreLead={scoreLead ?? null}
+          pointsLost={pointsLost}
+          pointsLostLabel={pointsLostLabel}
+          engineState={
+            engineError
+              ? 'error'
+              : engineStatus === 'loading'
+                ? 'loading'
+                : isGameAnalysisRunning || isContinuousAnalysis || isAnalysisMode
+                  ? 'running'
+                  : 'ready'
+          }
+          enginePillLabel={
+            engineError
+              ? 'Engine error'
+              : engineStatus === 'loading'
+                ? 'Loading model'
+                : isGameAnalysisRunning || isContinuousAnalysis || isAnalysisMode
+                  ? 'Analyzing…'
+                  : 'KataGo ready'
+          }
+          engineMeta={engineMeta}
+          engineMetaTitle={engineMetaTitle}
+          engineBackend={engineBackend ?? ''}
+          engineModelLabel={engineModelLabel ?? ''}
+          analysisCacheSize={analysisCacheSize}
+          mode={mode}
+          setMode={setMode}
+          isContinuousAnalysis={isContinuousAnalysis}
+          toggleContinuousAnalysis={toggleContinuousAnalysis}
+          settings={settings}
+          updateControls={updateControls}
+          updateSettings={updateSettings}
+          isInsertMode={isInsertMode}
+          toggleInsertMode={toggleInsertMode}
+          isSelectingRegionOfInterest={isSelectingRegionOfInterest}
+          startSelectRegionOfInterest={startSelectRegionOfInterest}
+          libraryOpen={libraryOpen}
+          setLibraryOpen={setLibraryOpen}
+          sidebarOpen={showSidebar}
+          setSidebarOpen={setShowSidebar}
+          isGameAnalysisRunning={isGameAnalysisRunning}
+          gameAnalysisType={gameAnalysisType}
+          gameAnalysisDone={gameAnalysisDone}
+          gameAnalysisTotal={gameAnalysisTotal}
+          startQuickGameAnalysis={startQuickGameAnalysis}
+          startFastGameAnalysis={startFastGameAnalysis}
+          stopGameAnalysis={stopGameAnalysis}
+          onClearAnalysisCache={requestClearAnalysisCache}
+          onOpenGameReport={() => setIsGameReportOpen(true)}
+          navigateBack={navigateBack}
+          navigateForward={navigateForward}
+          navigateStart={navigateStart}
+          navigateEnd={navigateEnd}
+          navigateToMove={navigateToMove}
+          jumpBack={() => jumpBack(10)}
+          jumpForward={() => jumpForward(10)}
+          findMistake={(dir) => findMistake(dir > 0 ? 'redo' : 'undo')}
+          rotateBoard={rotateBoard}
+          switchBranch={switchBranch}
+          undoToBranchPoint={undoToBranchPoint}
+          makeCurrentNodeMainBranch={makeCurrentNodeMainBranch}
+          passTurn={passTurn}
+          onUndo={handleUndo}
+          onAiMove={makeAiMove}
+          onResign={handleResign}
+          onPlayBest={makeAiMove}
+          onNewGame={() => void openNewGameWithGuard()}
+          onSaveSgf={handleSaveCurrentSgf}
+          onSaveToLibrary={handleOpenSaveToLibraryDialog}
+          onLoadSgf={handleLoadClick}
+          onPasteSgf={handlePasteSgf}
+          onScanBoard={() => openPhotoBoard()}
+          onSettings={() => setIsSettingsOpen(true)}
+          onCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
+          onAbout={() => setIsAboutOpen(true)}
+          recentItems={recentLibraryItems}
+          loadedFileId={loadedLibraryFileId}
+          onOpenRecent={handleOpenRecent}
+          toast={toast}
+        />
+      )}
+
+      {!isDesktop && (
       <div className="flex flex-1 min-h-0 min-w-0 w-full overflow-hidden">
         <LibraryPanel
           open={libraryOpen}
@@ -3188,6 +3309,7 @@ export const Layout: React.FC = () => {
           </div>
         )}
       </div>
+      )}
       {pendingResignPlayer && (
         <ResignConfirmModal
           player={pendingResignPlayer}
@@ -3202,7 +3324,7 @@ export const Layout: React.FC = () => {
           onConfirm={confirmClearAnalysisCache}
         />
       )}
-      {!isMobile && (
+      {!isMobile && !isDesktop && (
         <StatusBar
           moveName={moveName}
           moveInsight={currentMoveInsight}
