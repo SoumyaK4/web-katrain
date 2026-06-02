@@ -163,7 +163,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
         isMobile
           ? 'left-2 right-2 bottom-3'
           : analysisCommandBarVisible
-            ? 'left-1/2 -translate-x-1/2 edit-toolbar--analysis-offset'
+            ? 'left-3 edit-toolbar--analysis-offset'
             : 'left-1/2 top-3 -translate-x-1/2',
       ].join(' ')}
     >

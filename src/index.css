@@ -857,7 +857,7 @@
   }
 
   .edit-toolbar--analysis-offset {
-    top: 8.25rem;
+    top: calc(var(--board-tool-offset-y, 8.25rem) + 3.25rem);
   }
 
   .analysis-command-bar {
@@ -1973,7 +1973,7 @@
   }
 
   .manual-score-offset {
-    top: 9rem;
+    top: var(--board-tool-offset-y, 9rem);
   }
 
   .manual-score-launch:hover:not(:disabled) {
@@ -2383,7 +2383,7 @@
     }
 
     .manual-score-offset {
-      top: 11.75rem;
+      top: var(--board-tool-offset-y, 11.75rem);
     }
 
     .manual-score-panel {
@@ -2467,6 +2467,10 @@
     }
 
     .manual-score-offset {
+      top: var(--board-tool-offset-y, 0.5rem);
+    }
+
+    .manual-score-panel.manual-score-offset {
       top: 0.5rem;
     }
 

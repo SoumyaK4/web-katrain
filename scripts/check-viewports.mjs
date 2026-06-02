@@ -284,6 +284,13 @@ function assertViewport(result) {
       .join(', ');
     failures.push(`${result.analysisDepthSmallTouchTargets.length} analysis depth touch target(s) below 44px: ${summary}`);
   }
+  if (result.commandBarOverlaps.length > 0) {
+    const summary = result.commandBarOverlaps
+      .slice(0, 6)
+      .map((target) => `${target.label} at ${Math.round(target.left)},${Math.round(target.top)}-${Math.round(target.right)},${Math.round(target.bottom)}`)
+      .join(', ');
+    failures.push(`${result.commandBarOverlaps.length} control(s) overlap analysis command bar: ${summary}`);
+  }
   if (failures.length > 0) {
     throw new Error(`${result.viewport}: ${failures.join('; ')}`);
   }
@@ -413,6 +420,22 @@ async function main() {
             width: r.width,
             height: r.height,
           }));
+        const commandBar = document.querySelector('[data-analysis-command-bar="true"]');
+        const commandBarRect = rect(commandBar);
+        const commandBarOverlaps = commandBarRect
+          ? Array.from(document.querySelectorAll('button, input, select, textarea, a[href], [role="button"], [role="tab"]'))
+            .filter((el) => !el.closest('[data-analysis-command-bar="true"], [data-board-snapshot="true"], [data-photo-board-trace-grid="true"]'))
+            .filter(isVisibleTarget)
+            .map((el) => ({ el, r: rect(el) }))
+            .filter(({ r }) => intersects(r, commandBarRect))
+            .map(({ el, r }) => ({
+              label: targetLabel(el),
+              left: r.left,
+              top: r.top,
+              right: r.right,
+              bottom: r.bottom,
+            }))
+          : [];
         const waitForFrames = async (frames = 2) => {
           for (let i = 0; i < frames; i++) {
             await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -789,6 +812,7 @@ async function main() {
           analysisDepthReachable,
           analysisDepthFailures,
           analysisDepthSmallTouchTargets,
+          commandBarOverlaps,
           topToggleOverTopBar: intersects(rect(topToggle), topBarRect),
           topToggleOverEditToolbar: intersects(rect(topToggle), rect(editToolbar)),
         };

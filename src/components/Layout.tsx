@@ -91,6 +91,7 @@ import { ANALYSIS_VISIT_PRESETS, formatVisitCount, visitPresetDescription, visit
 import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } from '../utils/dragImport';
 import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 import { appendRestoredAnalysisSummary } from '../utils/importSummary';
+import { getResizeObserverConstructor } from '../utils/resizeObserver';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -303,6 +304,8 @@ export const Layout: React.FC = () => {
   }, [rootNode.properties]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const boardShellRef = useRef<HTMLDivElement>(null);
+  const analysisCommandBarRef = useRef<HTMLDivElement>(null);
   const [hoveredMove, setHoveredMove] = useState<CandidateMove | null>(null);
   const [reportHoverMove, setReportHoverMove] = useState<CandidateMove | null>(null);
   const [pvAnim, setPvAnim] = useState<{ key: string; startMs: number } | null>(null);
@@ -1159,6 +1162,48 @@ export const Layout: React.FC = () => {
     isGameAnalysisRunning ||
     typeof winRate === 'number' ||
     typeof scoreLead === 'number';
+  const [boardToolOffsetY, setBoardToolOffsetY] = useState(12);
+
+  useLayoutEffect(() => {
+    if (!showAnalysisCommandBar) {
+      setBoardToolOffsetY(12);
+      return;
+    }
+
+    const shell = boardShellRef.current;
+    const commandContainer = analysisCommandBarRef.current;
+    if (!shell || !commandContainer) return;
+
+    let frame: AnimationFrameHandle | null = null;
+    const updateOffset = () => {
+      cancelAnimationFrameSafe(frame);
+      frame = requestAnimationFrameSafe(() => {
+        frame = null;
+        const commandBar = commandContainer.querySelector<HTMLElement>('[data-analysis-command-bar="true"]');
+        if (!commandBar) {
+          setBoardToolOffsetY(12);
+          return;
+        }
+        const shellRect = shell.getBoundingClientRect();
+        const commandRect = commandBar.getBoundingClientRect();
+        const nextOffset = Math.max(12, Math.ceil(commandRect.bottom - shellRect.top + 8));
+        setBoardToolOffsetY((current) => (current === nextOffset ? current : nextOffset));
+      });
+    };
+
+    updateOffset();
+    const ResizeObserverConstructor = getResizeObserverConstructor();
+    const observer = ResizeObserverConstructor ? new ResizeObserverConstructor(updateOffset) : null;
+    observer?.observe(shell);
+    observer?.observe(commandContainer);
+    window.addEventListener('resize', updateOffset);
+
+    return () => {
+      cancelAnimationFrameSafe(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', updateOffset);
+    };
+  }, [showAnalysisCommandBar]);
   const totalMovesInCurrentLine = useMemo(() => {
     void treeVersion;
     return getCurrentLineMoveCount(currentNode, activeBranchChildIds);
@@ -2838,7 +2883,11 @@ export const Layout: React.FC = () => {
           )}
 
           {/* Board */}
-          <div className={['flex-1 flex flex-col justify-center ui-bg overflow-hidden relative', isMobile ? 'p-2 sm:p-3 pb-0' : 'p-4 xl:p-6'].join(' ')}>
+          <div
+            ref={boardShellRef}
+            className={['flex-1 flex flex-col justify-center ui-bg overflow-hidden relative', isMobile ? 'p-2 sm:p-3 pb-0' : 'p-4 xl:p-6'].join(' ')}
+            style={{ '--board-tool-offset-y': `${boardToolOffsetY}px` } as React.CSSProperties}
+          >
             {notification && (
               <NotificationToast
                 notification={notification}
@@ -2851,7 +2900,7 @@ export const Layout: React.FC = () => {
               active={scoringMode}
               disabled={isEditMode || isInsertMode || isSelectingRegionOfInterest}
               isCompact={isMobile}
-              commandBarOffset={isMobile && showAnalysisCommandBar}
+              commandBarOffset={showAnalysisCommandBar}
               score={manualScoreEstimate}
               blackName={blackName}
               whiteName={whiteName}
@@ -2869,31 +2918,33 @@ export const Layout: React.FC = () => {
               onClear={clearManualDeadStones}
               onDone={() => setScoringMode(false)}
             />
-            <AnalysisCommandBar
-              mode={mode}
-              isAnalysisMode={isAnalysisMode}
-              statusText={statusText}
-              engineDot={engineDot}
-              engineStatus={engineStatus}
-              engineError={engineError}
-              engineBackend={engineBackend}
-              engineModelLabel={engineModelLabel}
-              requestedBackend={settings.katagoBackend}
-              modelUrl={settings.katagoModelUrl}
-              winRate={winRate ?? null}
-              scoreLead={scoreLead ?? null}
-              pointsLost={pointsLost}
-              analysisControls={modeControls}
-              updateControls={updateControls}
-              toggleAnalysisMode={toggleAnalysisMode}
-              isGameAnalysisRunning={isGameAnalysisRunning}
-              gameAnalysisType={gameAnalysisType}
-              gameAnalysisDone={gameAnalysisDone}
-              gameAnalysisTotal={gameAnalysisTotal}
-              startFastGameAnalysis={startFastGameAnalysis}
-              stopGameAnalysis={stopGameAnalysis}
-              onOpenGameReport={() => setIsGameReportOpen(true)}
-            />
+            <div ref={analysisCommandBarRef}>
+              <AnalysisCommandBar
+                mode={mode}
+                isAnalysisMode={isAnalysisMode}
+                statusText={statusText}
+                engineDot={engineDot}
+                engineStatus={engineStatus}
+                engineError={engineError}
+                engineBackend={engineBackend}
+                engineModelLabel={engineModelLabel}
+                requestedBackend={settings.katagoBackend}
+                modelUrl={settings.katagoModelUrl}
+                winRate={winRate ?? null}
+                scoreLead={scoreLead ?? null}
+                pointsLost={pointsLost}
+                analysisControls={modeControls}
+                updateControls={updateControls}
+                toggleAnalysisMode={toggleAnalysisMode}
+                isGameAnalysisRunning={isGameAnalysisRunning}
+                gameAnalysisType={gameAnalysisType}
+                gameAnalysisDone={gameAnalysisDone}
+                gameAnalysisTotal={gameAnalysisTotal}
+                startFastGameAnalysis={startFastGameAnalysis}
+                stopGameAnalysis={stopGameAnalysis}
+                onOpenGameReport={() => setIsGameReportOpen(true)}
+              />
+            </div>
             <div
               className={[
                 'flex-1 flex justify-center min-h-0 min-w-0',
