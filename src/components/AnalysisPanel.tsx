@@ -556,7 +556,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               key={preset}
               type="button"
               className={[
-                'rounded-md border px-2 py-1 text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed',
+                'min-h-11 rounded-md border px-2 py-1 text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed',
                 active
                   ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-text)]'
                   : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
