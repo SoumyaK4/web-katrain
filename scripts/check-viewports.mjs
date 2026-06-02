@@ -184,7 +184,7 @@ async function chromeTarget(port) {
 }
 
 async function evaluate(cdp, expression) {
-  const response = await cdp.send('Runtime.evaluate', { expression, returnByValue: true });
+  const response = await cdp.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
   if (response.result.exceptionDetails) {
     throw new Error(response.result.exceptionDetails.text ?? 'Runtime evaluation failed');
   }
@@ -221,6 +221,21 @@ function assertViewport(result) {
     if (result.topToggleOverEditToolbar) failures.push('top toggle overlaps edit toolbar');
   } else {
     if (!result.toolsReachable) failures.push('mobile tools menu not reachable');
+    if (!result.editToolsReachable) failures.push('mobile edit tools not reachable');
+    if (result.smallTouchTargets.length > 0) {
+      const summary = result.smallTouchTargets
+        .slice(0, 8)
+        .map((target) => `${target.label} ${Math.round(target.width)}x${Math.round(target.height)}`)
+        .join(', ');
+      failures.push(`${result.smallTouchTargets.length} mobile touch target(s) below 44px: ${summary}`);
+    }
+    if (result.editModeSmallTouchTargets.length > 0) {
+      const summary = result.editModeSmallTouchTargets
+        .slice(0, 8)
+        .map((target) => `${target.label} ${Math.round(target.width)}x${Math.round(target.height)}`)
+        .join(', ');
+      failures.push(`${result.editModeSmallTouchTargets.length} edit-mode touch target(s) below 44px: ${summary}`);
+    }
   }
   if (failures.length > 0) {
     throw new Error(`${result.viewport}: ${failures.join('; ')}`);
@@ -271,8 +286,21 @@ async function main() {
       });
       await cdp.send('Page.navigate', { url: `http://127.0.0.1:${appPort}/` });
       await waitForBoard(cdp);
+      await evaluate(cdp, `(() => {
+        const continueButton = Array.from(document.querySelectorAll('button')).find((button) => {
+          const label = [
+            button.getAttribute('aria-label') || '',
+            button.getAttribute('title') || '',
+            button.textContent || '',
+          ].join(' ');
+          return label.includes('Continue Board') || label.includes('Open board');
+        });
+        if (!continueButton) return false;
+        continueButton.click();
+        return true;
+      })()`);
       await sleep(300);
-      const result = await evaluate(cdp, `(() => {
+      const result = await evaluate(cdp, `(async () => {
         const rect = (el) => {
           if (!el) return null;
           const r = el.getBoundingClientRect();
@@ -292,6 +320,59 @@ async function main() {
         const board = document.querySelector('[data-board-snapshot="true"]');
         const requiredFileActions = ['New game', 'Save SGF', 'Load SGF, board photo, or model weights', 'Paste SGF / OGS', 'Photo Board'];
         const allButtons = Array.from(document.querySelectorAll('button'));
+        const targetLabel = (el) => {
+          const aria = el.getAttribute('aria-label');
+          if (aria) return aria.trim();
+          const title = el.getAttribute('title');
+          if (title) return title.trim();
+          const text = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+          if (text) return text.slice(0, 48);
+          return el.tagName.toLowerCase();
+        };
+        const isVisibleTarget = (el) => {
+          const style = getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') return false;
+          if (el.matches(':disabled,[aria-disabled="true"]')) return false;
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && r.bottom >= 0 && r.right >= 0 && r.top <= innerHeight && r.left <= innerWidth;
+        };
+        const auditSmallTouchTargets = () => Array.from(document.querySelectorAll('button, input, select, textarea, a[href], [role="button"], [role="tab"]'))
+          .filter((el) => !el.closest('[data-board-snapshot="true"]'))
+          .filter(isVisibleTarget)
+          .map((el) => ({ el, r: el.getBoundingClientRect() }))
+          .filter(({ r }) => r.width < 44 || r.height < 44)
+          .map(({ el, r }) => ({
+            label: targetLabel(el),
+            tag: el.tagName.toLowerCase(),
+            width: r.width,
+            height: r.height,
+          }));
+        const editButton = allButtons.find((button) => {
+          const label = [
+            button.getAttribute('aria-label') || '',
+            button.getAttribute('title') || '',
+            button.textContent || '',
+          ].join(' ');
+          return label.includes('Open SGF edit tools');
+        }) || null;
+        const editToolsReachable = ${viewport.mobile} ? !!editButton : true;
+        const smallTouchTargets = ${viewport.mobile} ? auditSmallTouchTargets() : [];
+        let editModeSmallTouchTargets = [];
+        if (${viewport.mobile} && editButton) {
+          editButton.click();
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          editModeSmallTouchTargets = auditSmallTouchTargets();
+          const closeEditButton = Array.from(document.querySelectorAll('button')).find((button) => {
+            const label = [
+              button.getAttribute('aria-label') || '',
+              button.getAttribute('title') || '',
+              button.textContent || '',
+            ].join(' ');
+            return label.includes('Close edit mode');
+          });
+          closeEditButton?.click();
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        }
         return {
           viewport: '${viewport.width}x${viewport.height}',
           desktop: ${viewport.width >= 1024},
@@ -307,6 +388,9 @@ async function main() {
           viewMenuReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.textContent || '').includes('View')),
           actionsMenuReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.textContent || '').includes('Actions')),
           toolsReachable: !!Array.from(document.querySelectorAll('button')).find((button) => (button.getAttribute('aria-label') || button.getAttribute('title') || '') === 'Tools'),
+          editToolsReachable,
+          smallTouchTargets,
+          editModeSmallTouchTargets,
           topToggleOverTopBar: intersects(rect(topToggle), topBarRect),
           topToggleOverEditToolbar: intersects(rect(topToggle), rect(editToolbar)),
         };

@@ -77,7 +77,7 @@ type EditToolbarShortcutId = (typeof EDIT_TOOLBAR_SHORTCUT_IDS)[number];
 
 const toolButtonClass = (active: boolean) =>
   [
-    'h-9 min-w-9 px-2 rounded-md border inline-flex items-center justify-center gap-1.5 text-xs font-semibold transition-colors touch-manipulation',
+    'min-h-11 min-w-11 px-2 rounded-md border inline-flex items-center justify-center gap-1.5 text-xs font-semibold transition-colors touch-manipulation',
     active
       ? 'bg-[var(--ui-accent-soft)] border-[var(--ui-accent)] text-[var(--ui-accent)] shadow-sm shadow-black/20'
       : 'bg-[var(--ui-surface)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
@@ -171,7 +171,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
         <button
           type="button"
           onClick={toggleEditMode}
-          className="pointer-events-auto h-10 px-3 rounded-lg ui-panel border shadow-xl text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] flex items-center gap-2"
+          className="pointer-events-auto min-h-11 px-3 rounded-lg ui-panel border shadow-xl text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] flex items-center gap-2"
           title={withShortcut('Open SGF edit tools', 'toggle-edit-mode')}
         >
           <FaEdit className="text-[var(--ui-accent)]" />
@@ -206,7 +206,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
             <button
               type="button"
               onClick={toggleEditMode}
-              className="h-7 w-7 rounded-md inline-flex items-center justify-center text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface)]"
+              className="h-11 w-11 rounded-md inline-flex items-center justify-center text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface)]"
               title={withShortcut('Close edit mode', 'toggle-edit-mode')}
               aria-label={withShortcut('Close edit mode', 'toggle-edit-mode')}
             >
@@ -379,7 +379,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
             <button
               type="button"
               onClick={clearCurrentNodeAnnotations}
-              className="h-9 px-2.5 rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] inline-flex items-center gap-1.5 text-xs font-semibold"
+              className="min-h-11 px-2.5 rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] inline-flex items-center gap-1.5 text-xs font-semibold"
               title="Clear all markers and labels on this node"
             >
               <FaEraser />

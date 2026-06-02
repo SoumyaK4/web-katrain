@@ -37,6 +37,7 @@ describe('NotificationToast', () => {
     expect(css).toContain('height: 2.75rem;');
     expect(css).toContain('max-width: min(24rem, calc(100vw - 1.5rem));');
     expect(css).toContain('@media (min-width: 640px)');
+    expect(css).toContain('@media (min-width: 1024px)');
     expect(css).toContain('width: 2rem;');
     expect(css).toContain('height: 2rem;');
   });
