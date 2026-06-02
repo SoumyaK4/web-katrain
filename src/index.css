@@ -337,6 +337,74 @@
     border-color: var(--ui-accent);
   }
 
+  @media (max-width: 1023px) {
+    [aria-labelledby='menu-title'] button,
+    [aria-labelledby='menu-title'] a[href] {
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    [aria-labelledby='menu-title'] a[href] {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .settings-modal button,
+    .settings-modal a[href],
+    .settings-modal input:not([type='hidden']),
+    .settings-modal select,
+    .settings-modal textarea {
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .settings-modal .settings-tab {
+      min-height: 44px;
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+
+    .settings-modal .toggle {
+      appearance: none;
+      position: relative;
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--ui-border);
+      border-radius: 999px;
+      background: var(--ui-surface);
+      cursor: pointer;
+      transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+    }
+
+    .settings-modal .toggle::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--ui-text-muted);
+      transform: translateY(-50%);
+      transition:
+        background-color 0.15s ease,
+        transform 0.15s ease;
+    }
+
+    .settings-modal .toggle:checked {
+      background: var(--ui-accent-soft);
+      border-color: var(--ui-accent);
+    }
+
+    .settings-modal .toggle:checked::after {
+      background: var(--ui-accent);
+      transform: translate(14px, -50%);
+    }
+  }
+
   .ui-panel-pad {
     padding: var(--ui-panel-pad);
   }

@@ -590,6 +590,48 @@ async function main() {
           },
         });
         await smokeModal({
+          name: 'settings',
+          selector: '[aria-labelledby="settings-title"]',
+          closeLabel: 'Close settings',
+          open: async () => {
+            if (${viewport.mobile}) {
+              const menuButton = findButtonByLabel('Menu');
+              if (!menuButton) throw new Error('Menu button missing');
+              menuButton.click();
+              const menuDialog = await waitForSelector('[aria-labelledby="menu-title"]');
+              if (!menuDialog) throw new Error('Menu drawer did not open');
+              modalSmallTouchTargets.push(...auditSmallTouchTargets(menuDialog).map((target) => ({ ...target, modal: 'menu drawer' })));
+              const settingsButton = findButtonByLabel('Open settings', menuDialog) || findButtonByLabel('Settings', menuDialog);
+              if (!settingsButton) throw new Error('Settings action missing in menu');
+              settingsButton.click();
+            } else {
+              await withShortcutOverride('settings-modal', { key: 'F8', ctrl: false, shift: false, alt: false }, async () => {
+                dispatchShortcut('F8');
+                await waitForFrames(2);
+              });
+            }
+            await waitForFrames(2);
+          },
+          afterOpen: async (dialog) => {
+            if (!dialog.querySelector('.settings-tabs')) {
+              modalSmokeFailures.push('settings tabs missing');
+            }
+            const settingsTabs = ['Analysis', 'AI/Engine', 'Shortcuts', 'General'];
+            for (const tabLabel of settingsTabs) {
+              const tabButton = findButtonByLabel(tabLabel, dialog);
+              if (!tabButton) {
+                modalSmokeFailures.push(\`settings \${tabLabel} tab missing\`);
+                continue;
+              }
+              tabButton.click();
+              await waitForFrames(2);
+              if (${viewport.mobile}) {
+                modalSmallTouchTargets.push(...auditSmallTouchTargets(dialog).map((target) => ({ ...target, modal: \`settings \${tabLabel}\` })));
+              }
+            }
+          },
+        });
+        await smokeModal({
           name: 'photo board',
           selector: '[aria-labelledby="photo-board-title"]',
           closeLabel: 'Close photo board',
