@@ -35,4 +35,10 @@ describe('modal accessibility semantics', () => {
       expect(source, modal.path).toContain(modal.escape);
     }
   });
+
+  it('lets nested modal controls own Escape when they already consumed it', () => {
+    const source = readFileSync('src/hooks/useEscapeToClose.ts', 'utf8');
+
+    expect(source).toContain("event.key !== 'Escape' || event.defaultPrevented");
+  });
 });

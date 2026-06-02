@@ -5,7 +5,7 @@ export function useEscapeToClose(onClose: () => void, active = true): void {
     if (!active) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
       event.preventDefault();
       event.stopPropagation();
       onClose();
