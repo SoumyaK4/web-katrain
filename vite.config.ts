@@ -2,8 +2,10 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { configDefaults, defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { createVersionMetadata } from './src/utils/versionMetadata';
 
 // https://vite.dev/config/
 const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1];
@@ -24,10 +26,46 @@ const readGit = (command: string): string => {
 const appVersion = packageJson.version ?? '0.0.0';
 const appCommit = readGit('git rev-parse --short HEAD') || 'dev';
 const appCommitDate = readGit('git log -1 --format=%cs') || '';
+const versionMetadata = createVersionMetadata({
+  version: appVersion,
+  commit: appCommit,
+  commitDate: appCommitDate,
+  buildDate: new Date().toISOString(),
+});
+const serializedVersionMetadata = () => `${JSON.stringify(versionMetadata, null, 2)}\n`;
+
+function versionMetadataPlugin(): Plugin {
+  const serveVersionMetadata: Plugin['configureServer'] = (server) => {
+    server.middlewares.use((req, res, next) => {
+      const requestPath = req.url?.split('?')[0];
+      if (requestPath !== '/version.json' && requestPath !== `${base}version.json`) {
+        next();
+        return;
+      }
+
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
+      res.end(serializedVersionMetadata());
+    });
+  };
+
+  return {
+    name: 'web-katrain-version-metadata',
+    configureServer: serveVersionMetadata,
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: serializedVersionMetadata(),
+      });
+    },
+  };
+}
 
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), versionMetadataPlugin()],
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_COMMIT__: JSON.stringify(appCommit),

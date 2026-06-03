@@ -1,4 +1,6 @@
-export const APP_REPOSITORY_URL = 'https://github.com/Sir-Teo/web-katrain';
+import { APP_REPOSITORY_URL } from './versionMetadata';
+
+export { APP_REPOSITORY_URL };
 
 export const APP_INFO = {
   name: 'web-KaTrain',
