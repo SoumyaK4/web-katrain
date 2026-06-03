@@ -7,7 +7,7 @@ import { AnalysisCommandBar } from './AnalysisCommandBar';
 import { EditToolbar } from './EditToolbar';
 import { ManualScorePanel } from './ManualScorePanel';
 import type { GameInfoValues, AiConfigValues, TimerConfigValues } from './NewGameModal';
-import { downloadSgfFromTree, formatSgfDate, generateSgfFromTree, getSgfDownloadFilenameFromProperties, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
+import { downloadSgfFromTree, formatSgfDate, generateSgfFromTree, getImportedSgfNameFromProperties, parseSgf, type KaTrainSgfExportOptions } from '../utils/sgf';
 import { AUTO_SAVE_MAX_LABEL, clearAutoSavedGame, readAutoSavedGame, writeAutoSavedGame, type AutoSavedGame } from '../utils/autoSave';
 import {
   LIBRARY_CURRENT_FOLDER_STORAGE_KEY,
@@ -119,12 +119,6 @@ type SaveToLibraryDialogState = {
   initialName: string;
   initialFolderId: string | null;
   folderOptions: LibraryFolderOption[];
-};
-
-const getImportedSgfName = (parsed: ReturnType<typeof parseSgf>, fallback: string): string => {
-  const props = parsed.tree?.props ?? {};
-  const hasNamedProps = !!(props.GN?.some((value) => value.trim()) || props.PB?.[0]?.trim() || props.PW?.[0]?.trim());
-  return hasNamedProps ? getSgfDownloadFilenameFromProperties(props) : fallback;
 };
 
 type LayoutShortcutId = (typeof LAYOUT_SHORTCUT_IDS)[number];
@@ -1484,7 +1478,7 @@ export const Layout: React.FC = () => {
     loadGame(parsed);
     const restoredAnalysisCount = useGameStore.getState().analysisCacheSize;
     setLoadedLibraryFile(null);
-    setLoadedExternalFile({ kind: 'file', name: sourceName || getImportedSgfName(parsed, 'Loaded SGF') });
+    setLoadedExternalFile({ kind: 'file', name: sourceName || getImportedSgfNameFromProperties(parsed.tree?.props, 'Loaded SGF') });
     markCurrentGameCleanAndClearAutoSave();
     toast(appendRestoredAnalysisSummary(`Loaded "${sourceName || 'SGF'}".`, restoredAnalysisCount), 'success');
     return true;
@@ -1564,7 +1558,7 @@ export const Layout: React.FC = () => {
       setLoadedExternalFile(
         result.source === 'ogs'
           ? { kind: 'ogs', name: `ogs-${result.gameId ?? 'game'}.sgf` }
-          : { kind: 'pasted', name: getImportedSgfName(parsed, 'Pasted SGF') }
+          : { kind: 'pasted', name: getImportedSgfNameFromProperties(parsed.tree?.props, 'Pasted SGF') }
       );
       markCurrentGameCleanAndClearAutoSave();
       toast(

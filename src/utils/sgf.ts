@@ -344,6 +344,21 @@ export const getSgfDownloadFilenameFromProperties = (
     return `game_${timestamp}.sgf`;
 };
 
+export const getImportedSgfNameFromProperties = (
+    properties: Record<string, string[]> | undefined,
+    fallback: string
+): string => {
+    const props = properties ?? {};
+    const hasNamedMetadata = Boolean(
+        props.GN?.some((value) => value.trim()) ||
+        props.PB?.[0]?.trim() ||
+        props.PW?.[0]?.trim()
+    );
+    if (hasNamedMetadata) return getSgfDownloadFilenameFromProperties(props);
+
+    return fallback.trim() || 'Loaded SGF';
+};
+
 export const getSgfDownloadFilename = (rootNode: GameNode, timestamp = Date.now()): string =>
     getSgfDownloadFilenameFromProperties(rootNode.properties, timestamp);
 

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { GameNode } from '../src/types';
-import { getSgfDownloadFilename, getSgfDownloadFilenameFromProperties, parseSgf } from '../src/utils/sgf';
+import {
+  getImportedSgfNameFromProperties,
+  getSgfDownloadFilename,
+  getSgfDownloadFilenameFromProperties,
+  parseSgf,
+} from '../src/utils/sgf';
 
 describe('SGF Parser', () => {
   it('parses a simple SGF with moves', () => {
@@ -100,5 +105,12 @@ describe('SGF Parser', () => {
       expect(getSgfDownloadFilenameFromProperties({ GN: ['League Round 1'] }, 123)).toBe('League Round 1.sgf');
       expect(getSgfDownloadFilename(nodeWithProps({ PB: ['Black/One'], PW: ['White:Two'] }), 123)).toBe('Black-One vs White-Two.sgf');
       expect(getSgfDownloadFilename(nodeWithProps({}), 123)).toBe('game_123.sgf');
+  });
+
+  it('names imported SGFs from metadata before falling back to source labels', () => {
+      expect(getImportedSgfNameFromProperties({ GN: ['  Alpha/Beta: Final?  '] }, 'Pasted SGF')).toBe('Alpha-Beta- Final.sgf');
+      expect(getImportedSgfNameFromProperties({ PB: ['Black/One'], PW: ['White:Two'] }, 'Pasted SGF')).toBe('Black-One vs White-Two.sgf');
+      expect(getImportedSgfNameFromProperties({ GN: ['  '], PB: [''] }, 'Pasted SGF')).toBe('Pasted SGF');
+      expect(getImportedSgfNameFromProperties({}, '')).toBe('Loaded SGF');
   });
 });
