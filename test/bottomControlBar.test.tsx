@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { BottomControlBar } from '../src/components/layout/BottomControlBar';
@@ -46,6 +47,16 @@ describe('BottomControlBar', () => {
     expect(html).toContain('Branch');
     expect(html).toContain('2/3');
     expect(html).toContain('+1');
+  });
+
+  it('uses strict integer draft parsing for editable move and branch numbers', () => {
+    const componentSource = readFileSync('src/components/layout/BottomControlBar.tsx', 'utf8');
+
+    expect(componentSource).toContain("import { parseIntegerDraft } from '../../utils/numberDraft'");
+    expect(componentSource).toContain('const parsed = parseIntegerDraft(moveNumberDraft)');
+    expect(componentSource).toContain('const parsed = parseIntegerDraft(branchIndexDraft)');
+    expect(componentSource).not.toContain('Number.parseInt(moveNumberDraft.trim()');
+    expect(componentSource).not.toContain('Number.parseInt(branchIndexDraft.trim()');
   });
 
   it('keeps a compact branch chip reachable on mobile', () => {

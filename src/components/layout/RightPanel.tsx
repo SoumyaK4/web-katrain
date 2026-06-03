@@ -29,6 +29,7 @@ import { SectionHeader } from './ui';
 import { formatMoveLabel, formatPositionSummary, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
 import { getBranchInfo, getCurrentLineNodes } from '../../utils/branchNavigation';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
+import { parseIntegerDraft } from '../../utils/numberDraft';
 import { readLocalStorage, writeLocalStorage } from '../../utils/storage';
 
 const RIGHT_PANEL_SHORTCUT_IDS = [
@@ -220,8 +221,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   }, [branchInfo.hasBranches, isBranchIndexEditing]);
 
   const commitBranchIndexEdit = () => {
-    const parsed = Number.parseInt(branchIndexDraft.trim(), 10);
-    if (Number.isFinite(parsed)) {
+    const parsed = parseIntegerDraft(branchIndexDraft);
+    if (parsed != null && parsed >= 1) {
       guardInsertMode(() => switchToBranchIndex(parsed));
     } else {
       setBranchIndexDraft(branchInfo.currentIndex > 0 ? String(branchInfo.currentIndex) : '');

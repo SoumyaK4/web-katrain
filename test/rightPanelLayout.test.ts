@@ -7,4 +7,12 @@ describe('RightPanel layout', () => {
 
     expect(source).toContain('flex-1 min-h-0 overflow-y-auto overscroll-contain pb-3');
   });
+
+  it('uses strict integer draft parsing for branch number edits', () => {
+    const source = readFileSync('src/components/layout/RightPanel.tsx', 'utf8');
+
+    expect(source).toContain("import { parseIntegerDraft } from '../../utils/numberDraft'");
+    expect(source).toContain('const parsed = parseIntegerDraft(branchIndexDraft)');
+    expect(source).not.toContain('Number.parseInt(branchIndexDraft.trim()');
+  });
 });

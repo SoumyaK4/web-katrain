@@ -23,6 +23,7 @@ import { publicUrl } from '../../utils/publicUrl';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import { formatGameInfoPlayer } from '../../utils/gameInfoDisplay';
 import { getResizeObserverConstructor } from '../../utils/resizeObserver';
+import { parseIntegerDraft } from '../../utils/numberDraft';
 import type { BranchInfo } from '../../utils/branchNavigation';
 import { getSaveStatusDisplay, type AutoSaveStatus } from '../../utils/saveStatusDisplay';
 
@@ -214,8 +215,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   };
 
   const commitMoveNumberEdit = () => {
-    const parsed = Number.parseInt(moveNumberDraft.trim(), 10);
-    if (Number.isFinite(parsed)) {
+    const parsed = parseIntegerDraft(moveNumberDraft);
+    if (parsed != null) {
       navigateToMove(parsed);
     } else {
       setMoveNumberDraft(String(moveHistory.length));
@@ -255,8 +256,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
   const commitBranchIndexEdit = () => {
     if (showBranchControl && branchInfo && switchToBranchIndex) {
-      const parsed = Number.parseInt(branchIndexDraft.trim(), 10);
-      if (Number.isFinite(parsed)) {
+      const parsed = parseIntegerDraft(branchIndexDraft);
+      if (parsed != null && parsed >= 1) {
         switchToBranchIndex(parsed);
       } else {
         setBranchIndexDraft(String(branchInfo.currentIndex));
