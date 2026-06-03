@@ -153,6 +153,22 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
     branchCursor = branchCursor.parent;
   }
   const canPruneOtherBranches = branchSiblingCount > 0;
+  const openEditToolsLabel = withShortcut('Open SGF edit tools', 'toggle-edit-mode');
+  const closeEditToolsLabel = withShortcut('Close edit mode', 'toggle-edit-mode');
+  const clearSetupStonesLabel = 'Clear setup stones on this node';
+  const passEditModeLabel = 'Pass turn from edit mode';
+  const moveVariationEarlierLabel = 'Move variation earlier';
+  const moveVariationLaterLabel = 'Move variation later';
+  const makeMainBranchLabel = 'Make current variation the main branch';
+  const copyBranchLabel = 'Copy current branch';
+  const pasteBranchLabel = 'Paste copied branch';
+  const deleteCurrentNodeLabel = 'Delete current node';
+  const pruneOtherBranchesLabel = canPruneOtherBranches
+    ? `Delete ${branchSiblingCount} other branch${branchSiblingCount === 1 ? '' : 'es'} and keep the current line`
+    : 'No other branches on the current line';
+  const undoEditLabel = editUndoCount > 0 ? `Undo last edit (${editUndoCount} available)` : 'No edit to undo';
+  const redoEditLabel = editRedoCount > 0 ? `Redo edit (${editRedoCount} available)` : 'No edit to redo';
+  const clearNodeAnnotationsLabel = 'Clear all markers and labels on this node';
   void treeVersion;
 
   return (
@@ -172,7 +188,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
           type="button"
           onClick={toggleEditMode}
           className="pointer-events-auto min-h-11 px-3 rounded-lg ui-panel border shadow-xl text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] flex items-center gap-2"
-          title={withShortcut('Open SGF edit tools', 'toggle-edit-mode')}
+          title={openEditToolsLabel}
+          aria-label={openEditToolsLabel}
         >
           <FaEdit className="text-[var(--ui-accent)]" />
           Edit
@@ -207,8 +224,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
               type="button"
               onClick={toggleEditMode}
               className="h-11 w-11 rounded-md inline-flex items-center justify-center text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] hover:bg-[var(--ui-surface)]"
-              title={withShortcut('Close edit mode', 'toggle-edit-mode')}
-              aria-label={withShortcut('Close edit mode', 'toggle-edit-mode')}
+              title={closeEditToolsLabel}
+              aria-label={closeEditToolsLabel}
             >
               <FaTimes size={12} />
             </button>
@@ -253,7 +270,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                     className={[toolButtonClass(false), setupCount === 0 ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
                     onClick={clearCurrentNodeSetupStones}
                     disabled={setupCount === 0}
-                    title="Clear setup stones on this node"
+                    title={clearSetupStonesLabel}
+                    aria-label={clearSetupStonesLabel}
                   >
                     <FaTrash />
                     <span className="hidden sm:inline">All</span>
@@ -264,7 +282,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                     type="button"
                     className={toolButtonClass(false)}
                     onClick={passTurn}
-                    title="Pass turn from edit mode"
+                    title={passEditModeLabel}
+                    aria-label={passEditModeLabel}
                   >
                     <FaRegHandPaper />
                     <span className="hidden sm:inline">Pass</span>
@@ -281,7 +300,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={() => shiftCurrentVariation('left')}
                 disabled={!canShiftEarlier}
                 className={[toolButtonClass(false), !canShiftEarlier ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title="Move variation earlier"
+                title={moveVariationEarlierLabel}
+                aria-label={moveVariationEarlierLabel}
               >
                 <FaArrowLeft />
                 <span className="hidden sm:inline">Earlier</span>
@@ -291,7 +311,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={() => shiftCurrentVariation('right')}
                 disabled={!canShiftLater}
                 className={[toolButtonClass(false), !canShiftLater ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title="Move variation later"
+                title={moveVariationLaterLabel}
+                aria-label={moveVariationLaterLabel}
               >
                 <FaArrowRight />
                 <span className="hidden sm:inline">Later</span>
@@ -301,7 +322,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={makeCurrentNodeMainBranch}
                 disabled={!canEditBranch}
                 className={[toolButtonClass(false), !canEditBranch ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title="Make current variation the main branch"
+                title={makeMainBranchLabel}
+                aria-label={makeMainBranchLabel}
               >
                 <FaStar />
                 <span className="hidden sm:inline">Main</span>
@@ -311,7 +333,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={copyCurrentBranch}
                 disabled={!canEditBranch}
                 className={[toolButtonClass(false), !canEditBranch ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title="Copy current branch"
+                title={copyBranchLabel}
+                aria-label={copyBranchLabel}
               >
                 <FaCopy />
                 <span className="hidden sm:inline">Copy</span>
@@ -321,7 +344,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={pasteCopiedBranch}
                 disabled={!copiedBranch}
                 className={[toolButtonClass(false), !copiedBranch ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title="Paste copied branch"
+                title={pasteBranchLabel}
+                aria-label={pasteBranchLabel}
               >
                 <FaPaste />
                 <span className="hidden sm:inline">Paste</span>
@@ -331,7 +355,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={deleteCurrentNode}
                 disabled={!canEditBranch}
                 className={[toolButtonClass(false), !canEditBranch ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title="Delete current node"
+                title={deleteCurrentNodeLabel}
+                aria-label={deleteCurrentNodeLabel}
               >
                 <FaTrash />
                 <span className="hidden sm:inline">Delete</span>
@@ -341,11 +366,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={pruneCurrentBranch}
                 disabled={!canPruneOtherBranches}
                 className={[toolButtonClass(false), !canPruneOtherBranches ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title={
-                  canPruneOtherBranches
-                    ? `Delete ${branchSiblingCount} other branch${branchSiblingCount === 1 ? '' : 'es'} and keep the current line`
-                    : 'No other branches on the current line'
-                }
+                title={pruneOtherBranchesLabel}
+                aria-label={pruneOtherBranchesLabel}
               >
                 <FaCut />
                 <span className="hidden sm:inline">Others</span>
@@ -360,7 +382,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={undoEdit}
                 disabled={editUndoCount === 0}
                 className={[toolButtonClass(false), editUndoCount === 0 ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title={editUndoCount > 0 ? `Undo last edit (${editUndoCount} available)` : 'No edit to undo'}
+                title={undoEditLabel}
+                aria-label={undoEditLabel}
               >
                 <FaUndo />
                 <span className="hidden sm:inline">Undo</span>
@@ -370,7 +393,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 onClick={redoEdit}
                 disabled={editRedoCount === 0}
                 className={[toolButtonClass(false), editRedoCount === 0 ? 'opacity-40 cursor-not-allowed' : ''].join(' ')}
-                title={editRedoCount > 0 ? `Redo edit (${editRedoCount} available)` : 'No edit to redo'}
+                title={redoEditLabel}
+                aria-label={redoEditLabel}
               >
                 <FaRedo />
                 <span className="hidden sm:inline">Redo</span>
@@ -380,7 +404,8 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
               type="button"
               onClick={clearCurrentNodeAnnotations}
               className="min-h-11 px-2.5 rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] inline-flex items-center gap-1.5 text-xs font-semibold"
-              title="Clear all markers and labels on this node"
+              title={clearNodeAnnotationsLabel}
+              aria-label={clearNodeAnnotationsLabel}
             >
               <FaEraser />
               <span>Clear node</span>
