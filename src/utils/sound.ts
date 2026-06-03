@@ -13,6 +13,10 @@ export const setSoundInitErrorHandler = (handler: ((error: SoundInitError) => vo
     onSoundInitError = handler;
 };
 
+export const resetSoundFailureReport = (): void => {
+    soundFailureReported = false;
+};
+
 const formatSoundError = (error: unknown): string => (
     error instanceof Error && error.message ? error.message : 'Unknown audio error'
 );
@@ -203,5 +207,5 @@ export const playNewGameSound = () => {
 export const resetAudioContextForTests = (): void => {
     audioCtx = null;
     onSoundInitError = null;
-    soundFailureReported = false;
+    resetSoundFailureReport();
 };

@@ -5,6 +5,7 @@ import {
   playPassSound,
   playStoneSound,
   resetAudioContextForTests,
+  resetSoundFailureReport,
   setSoundInitErrorHandler,
 } from '../src/utils/sound';
 
@@ -70,6 +71,28 @@ describe('sound helpers', () => {
       message: 'Could not initialize browser audio: audio blocked',
       platform: expect.any(String),
     }));
+  });
+
+  it('can report again after sound is re-enabled for a retry', () => {
+    const handler = vi.fn();
+    setSoundInitErrorHandler(handler);
+
+    class BlockedAudioContext {
+      constructor() {
+        throw new Error('audio blocked');
+      }
+    }
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { AudioContext: BlockedAudioContext },
+    });
+
+    playStoneSound();
+    playPassSound();
+    resetSoundFailureReport();
+    playNewGameSound();
+
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 
   it('swallows blocked AudioContext accessor reads', () => {

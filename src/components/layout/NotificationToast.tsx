@@ -45,7 +45,7 @@ export function NotificationToast({ notification, onClose, commandBarVisible = f
 
   React.useEffect(() => {
     setCopyState('idle');
-  }, [notification.message, notification.type]);
+  }, [notification.copyText, notification.message, notification.type]);
 
   const handleCopy = async () => {
     setCopyState((await copyTextToClipboard(notification.copyText ?? notification.message)) ? 'copied' : 'failed');

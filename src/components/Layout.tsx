@@ -93,7 +93,7 @@ import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } f
 import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 import { appendRestoredAnalysisSummary } from '../utils/importSummary';
 import { getResizeObserverConstructor } from '../utils/resizeObserver';
-import { setSoundInitErrorHandler } from '../utils/sound';
+import { resetSoundFailureReport, setSoundInitErrorHandler } from '../utils/sound';
 
 const SettingsModal = lazy(() => import('./SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const GameAnalysisModal = lazy(() => import('./GameAnalysisModal').then((module) => ({ default: module.GameAnalysisModal })));
@@ -597,6 +597,10 @@ export const Layout: React.FC = () => {
 
     return () => setSoundInitErrorHandler(null);
   }, [toast, updateSettings]);
+
+  useEffect(() => {
+    if (settings.soundEnabled) resetSoundFailureReport();
+  }, [settings.soundEnabled]);
 
   const toggleScoringMode = useCallback(() => {
     if (!scoringMode && (isEditMode || isInsertMode || isSelectingRegionOfInterest)) {

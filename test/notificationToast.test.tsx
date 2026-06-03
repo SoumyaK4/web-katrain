@@ -34,6 +34,7 @@ describe('NotificationToast', () => {
 
     const source = readFileSync('src/components/layout/NotificationToast.tsx', 'utf8');
     expect(source).toContain('notification.copyText ?? notification.message');
+    expect(source).toContain('[notification.copyText, notification.message, notification.type]');
   });
 
   it('keeps success and info notifications lightweight', () => {

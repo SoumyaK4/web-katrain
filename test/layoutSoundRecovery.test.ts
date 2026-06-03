@@ -8,6 +8,7 @@ describe('layout sound recovery', () => {
     expect(source).toContain('setSoundInitErrorHandler((error) => {');
     expect(source).toContain('updateSettings({ soundEnabled: false });');
     expect(source).toContain('Sound disabled because browser audio is unavailable.');
+    expect(source).toContain('if (settings.soundEnabled) resetSoundFailureReport();');
     expect(source).toContain('return () => setSoundInitErrorHandler(null);');
   });
 });
