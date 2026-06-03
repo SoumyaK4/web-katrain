@@ -95,7 +95,7 @@ import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
 import { EDIT_TOOL_SHORTCUT_DEFINITIONS } from '../utils/shortcuts';
 import { dispatchMoveTreeCommand, type MoveTreeCommand } from '../utils/moveTreeCommands';
 import { ANALYSIS_VISIT_PRESETS, formatVisitCount, visitPresetDescription, visitPresetLabel } from '../utils/visitPresets';
-import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } from '../utils/dragImport';
+import { getDroppedSgfOrOgsText, getFirstDraggedFile, hasDraggedFiles, hasPotentialGameImportDrag } from '../utils/dragImport';
 import { BOARD_THEME_OPTIONS } from '../utils/boardThemes';
 import { appendRestoredAnalysisSummary } from '../utils/importSummary';
 import { getResizeObserverConstructor } from '../utils/resizeObserver';
@@ -1772,8 +1772,15 @@ export const Layout: React.FC = () => {
       }
       return;
     }
-    const file = event.dataTransfer.files?.[0];
-    if (!file) return;
+    const file = getFirstDraggedFile<File>(event.dataTransfer);
+    if (!file) {
+      if (droppedText) {
+        await handleOpenSgfFromText(droppedText);
+      } else {
+        toast('Drop SGF text or an Online-Go game URL here.', 'error');
+      }
+      return;
+    }
     if (isKataGoModelWeightsFile(file)) {
       await handleModelWeightsFile(file);
       return;

@@ -1,7 +1,13 @@
 import { getDirectGameImportText } from './pasteSgfInput';
 
-type DragTransferLike = {
-  files?: { length: number } | null;
+type DragFileListLike<TFile = unknown> = {
+  length: number;
+  item?: (index: number) => TFile | null;
+  [index: number]: TFile | undefined;
+};
+
+type DragTransferLike<TFile = unknown> = {
+  files?: DragFileListLike<TFile> | null;
   types?: Iterable<string> | ArrayLike<string> | null;
   getData?: (format: string) => string;
 };
@@ -13,6 +19,17 @@ const getTypes = (dataTransfer: DragTransferLike | null | undefined): string[] =
 
 export const hasDraggedFiles = (dataTransfer: DragTransferLike | null | undefined): boolean =>
   (dataTransfer?.files?.length ?? 0) > 0 || getTypes(dataTransfer).includes('files');
+
+export const getFirstDraggedFile = <TFile>(dataTransfer: DragTransferLike<TFile> | null | undefined): TFile | null => {
+  const files = dataTransfer?.files;
+  if (!files || files.length <= 0) return null;
+  try {
+    if (typeof files.item === 'function') return files.item(0) ?? null;
+  } catch {
+    return null;
+  }
+  return files[0] ?? null;
+};
 
 export const hasPotentialGameImportDrag = (dataTransfer: DragTransferLike | null | undefined): boolean => {
   const types = getTypes(dataTransfer);

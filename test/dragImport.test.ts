@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { getDroppedSgfOrOgsText, hasDraggedFiles, hasPotentialGameImportDrag } from '../src/utils/dragImport';
+import { getDroppedSgfOrOgsText, getFirstDraggedFile, hasDraggedFiles, hasPotentialGameImportDrag } from '../src/utils/dragImport';
 
 const transfer = (
   types: string[],
@@ -18,6 +19,27 @@ describe('drag import helpers', () => {
     expect(hasPotentialGameImportDrag(transfer(['text/uri-list']))).toBe(true);
     expect(hasPotentialGameImportDrag(transfer(['text/plain']))).toBe(true);
     expect(hasPotentialGameImportDrag(transfer(['application/json']))).toBe(false);
+  });
+
+  it('extracts the first real file without mistaking a Files type for a File object', () => {
+    const file = { name: 'game.sgf' };
+
+    expect(getFirstDraggedFile(transfer(['Files'], {}, 0))).toBeNull();
+    expect(getFirstDraggedFile({
+      types: ['Files'],
+      files: {
+        length: 1,
+        0: file,
+      },
+    })).toBe(file);
+    expect(getFirstDraggedFile({
+      types: ['Files'],
+      files: {
+        length: 1,
+        item: () => file,
+      },
+    })).toBe(file);
+    expect(hasDraggedFiles(transfer(['Files'], {}, 0))).toBe(true);
   });
 
   it('extracts OGS URLs from URI lists and Firefox URL drags', () => {
@@ -51,5 +73,17 @@ describe('drag import helpers', () => {
       ['text/plain'],
       { 'text/plain': 'https://example.com/game/123' }
     ))).toBeNull();
+  });
+
+  it('keeps a text fallback for file drags whose FileList is empty', () => {
+    const source = readFileSync('src/components/Layout.tsx', 'utf8');
+    const dropStart = source.indexOf('const handleAppDrop = async');
+    const dropEnd = source.indexOf('useEffect(() => () => {', dropStart);
+    const dropBlock = source.slice(dropStart, dropEnd);
+
+    expect(dropBlock).toContain('const file = getFirstDraggedFile<File>(event.dataTransfer)');
+    expect(dropBlock).toContain('if (!file) {');
+    expect(dropBlock).toContain('if (droppedText) {');
+    expect(dropBlock).toContain('await handleOpenSgfFromText(droppedText)');
   });
 });
