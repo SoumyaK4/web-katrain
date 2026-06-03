@@ -97,7 +97,8 @@ describe('PWA assets', () => {
     expect(sitemap).toContain('<changefreq>weekly</changefreq>');
   });
 
-  it('does not ship starter-template public assets', () => {
+  it('does not keep starter-template assets', () => {
     expect(fs.existsSync(path.join(publicDir, 'vite.svg'))).toBe(false);
+    expect(fs.existsSync(path.join(rootDir, 'src/assets/react.svg'))).toBe(false);
   });
 });
