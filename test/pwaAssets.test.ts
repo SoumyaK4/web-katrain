@@ -82,4 +82,18 @@ describe('PWA assets', () => {
     expect(sw).toContain('./pwa/screenshot-wide.png');
     expect(sw).toContain('./pwa/screenshot-mobile.png');
   });
+
+  it('publishes crawl metadata for the public web deployment', () => {
+    const robots = fs.readFileSync(path.join(publicDir, 'robots.txt'), 'utf8');
+    const sitemap = fs.readFileSync(path.join(publicDir, 'sitemap.xml'), 'utf8');
+
+    expect(robots).toContain('User-agent: *');
+    expect(robots).toContain('Allow: /');
+    expect(robots).toContain('Sitemap: https://sir-teo.github.io/web-katrain/sitemap.xml');
+
+    expect(sitemap).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
+    expect(sitemap).toContain('<loc>https://sir-teo.github.io/web-katrain/</loc>');
+    expect(sitemap).toContain('<lastmod>2026-06-03</lastmod>');
+    expect(sitemap).toContain('<changefreq>weekly</changefreq>');
+  });
 });
