@@ -14,5 +14,6 @@ describe('RightPanel layout', () => {
     expect(source).toContain("import { parseIntegerDraft } from '../../utils/numberDraft'");
     expect(source).toContain('const parsed = parseIntegerDraft(branchIndexDraft)');
     expect(source).not.toContain('Number.parseInt(branchIndexDraft.trim()');
+    expect(source).toMatch(/type="number"[\s\S]{0,420}aria-label="Branch number"/);
   });
 });

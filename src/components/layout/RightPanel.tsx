@@ -510,6 +510,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                           className="flex min-w-[4.75rem] items-center rounded border border-[var(--ui-accent)] bg-[var(--ui-surface)] px-2 py-1 text-[10px] leading-none text-[var(--ui-text-muted)]"
                         >
                           <input
+                            type="number"
                             value={branchIndexDraft}
                             onChange={(event) => setBranchIndexDraft(event.target.value)}
                             onKeyDown={handleBranchIndexKeyDown}

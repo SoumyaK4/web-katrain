@@ -57,6 +57,8 @@ describe('BottomControlBar', () => {
     expect(componentSource).toContain('const parsed = parseIntegerDraft(branchIndexDraft)');
     expect(componentSource).not.toContain('Number.parseInt(moveNumberDraft.trim()');
     expect(componentSource).not.toContain('Number.parseInt(branchIndexDraft.trim()');
+    expect(componentSource).toMatch(/type="number"[\s\S]{0,420}aria-label="Branch number"/);
+    expect(componentSource.match(/type="number"[\s\S]{0,420}aria-label="Move number"/g) ?? []).toHaveLength(2);
   });
 
   it('keeps a compact branch chip reachable on mobile', () => {

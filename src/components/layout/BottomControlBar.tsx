@@ -297,6 +297,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
         <span className={compact ? 'inline-flex items-center gap-0.5' : 'inline-flex items-center gap-1'}>
           <span className="ui-text-faint">{compact ? 'Br' : 'Branch'}</span>
           <input
+            type="number"
             value={branchIndexDraft}
             onChange={(event) => setBranchIndexDraft(event.target.value)}
             onKeyDown={handleBranchIndexKeyDown}
@@ -422,6 +423,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               <span className="inline-flex items-center gap-0.5">
                 <span className="ui-text-faint">#</span>
                 <input
+                  type="number"
                   value={moveNumberDraft}
                   onChange={(event) => setMoveNumberDraft(event.target.value)}
                   onKeyDown={handleMoveNumberKeyDown}
@@ -819,6 +821,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
             <span className="inline-flex items-center gap-1">
               <span className="ui-text-faint">Move</span>
               <input
+                type="number"
                 value={moveNumberDraft}
                 onChange={(event) => setMoveNumberDraft(event.target.value)}
                 onKeyDown={handleMoveNumberKeyDown}
