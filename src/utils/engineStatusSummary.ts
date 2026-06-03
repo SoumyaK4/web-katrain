@@ -54,12 +54,26 @@ export function formatEngineBackendLabel(backend: string | null | undefined): st
   }
 }
 
+function isBundledModelPath(modelUrl: string): boolean {
+  const cleanUrl = modelUrl.split('#')[0]?.split('?')[0] ?? modelUrl;
+  const segments = cleanUrl.split('/').filter(Boolean);
+  const startsWithModels = segments[0] === 'models';
+  const hasSingleBaseBeforeModels = segments.length >= 3 && segments[1] === 'models';
+
+  if (startsWithModels) return true;
+  if (!hasSingleBaseBeforeModels) return false;
+
+  // Avoid misclassifying common filesystem-style paths as app-public assets.
+  return !['Users', 'home', 'Volumes', 'tmp', 'var', 'opt'].includes(segments[0]!);
+}
+
 export function getEngineModelSource(modelUrl: string | null | undefined): string {
   const rawUrl = modelUrl?.trim();
   if (!rawUrl) return 'Unknown';
   if (rawUrl.startsWith('blob:')) return 'Uploaded';
-  if (rawUrl.startsWith('/models/') || rawUrl.startsWith('models/')) return 'Bundled';
   if (/^https?:\/\//i.test(rawUrl)) return 'Remote';
+  if (/^file:/i.test(rawUrl)) return 'Local';
+  if (isBundledModelPath(rawUrl)) return 'Bundled';
   return 'Local';
 }
 

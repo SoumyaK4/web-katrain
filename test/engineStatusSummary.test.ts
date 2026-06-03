@@ -16,9 +16,13 @@ describe('engine status summary', () => {
   it('detects model source labels', () => {
     expect(getEngineModelSource('/models/kata-small.bin.gz')).toBe('Bundled');
     expect(getEngineModelSource('models/kata-small.bin.gz')).toBe('Bundled');
+    expect(getEngineModelSource('/web-katrain/models/katago-small.bin.gz')).toBe('Bundled');
+    expect(getEngineModelSource('/web-katrain/models/katago-small.bin.gz?t=1')).toBe('Bundled');
     expect(getEngineModelSource('https://example.com/model.bin.gz')).toBe('Remote');
+    expect(getEngineModelSource('https://example.com/web-katrain/models/katago-small.bin.gz')).toBe('Remote');
     expect(getEngineModelSource('blob:https://app.local/model')).toBe('Uploaded');
     expect(getEngineModelSource('/Users/me/model.bin.gz')).toBe('Local');
+    expect(getEngineModelSource('/Users/me/models/katago-small.bin.gz')).toBe('Local');
   });
 
   it('builds a compact ready label and diagnostic title', () => {
