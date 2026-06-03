@@ -83,4 +83,14 @@ describe('desktop dashboard layout', () => {
     expect(moveCounterBlock).toContain('Number.isInteger(n)');
     expect(moveCounterBlock).toContain('e.currentTarget.blur()');
   });
+
+  it('renders desktop branch indices with the shared one-based branch model', () => {
+    const dashboardSource = readFileSync('src/components/dashboard/DesktopDashboard.tsx', 'utf8');
+    const gameTreeStart = dashboardSource.indexOf('{/* Game tree */}');
+    const gameTreeEnd = dashboardSource.indexOf('{/* Analysis */}', gameTreeStart);
+    const gameTreeBlock = dashboardSource.slice(gameTreeStart, gameTreeEnd);
+
+    expect(gameTreeBlock).toContain('{branchInfo.currentIndex}/{branchInfo.totalBranches}');
+    expect(gameTreeBlock).not.toContain('branchInfo.currentIndex + 1');
+  });
 });

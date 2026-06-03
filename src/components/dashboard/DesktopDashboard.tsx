@@ -640,7 +640,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                   {branchInfo.hasBranches && (
                     <span className="pbtn" style={{ pointerEvents: 'none' }}>
                       <span style={{ color: 'var(--faint)' }}>Branch</span>{' '}
-                      <span className="mono" style={{ color: 'var(--ink)' }}>{branchInfo.currentIndex + 1}/{branchInfo.totalBranches}</span>
+                      <span className="mono" style={{ color: 'var(--ink)' }}>{branchInfo.currentIndex}/{branchInfo.totalBranches}</span>
                     </span>
                   )}
                   <button type="button" className="pbtn pico" title="Back to branch point" onClick={undoToBranchPoint}><Icon name="levelUp" size={12} /></button>
