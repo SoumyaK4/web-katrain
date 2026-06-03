@@ -83,7 +83,7 @@ import { DESKTOP_LAYOUT_MEDIA, isDesktopLayoutSize, isDesktopLayoutViewport, isM
 import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 import { getMediaQueryList, subscribeMediaQueryList } from '../utils/mediaQuery';
 import { copyTextToClipboard, readClipboardText } from '../utils/clipboard';
-import { getInitialLibraryOpen, LIBRARY_OPEN_STORAGE_KEY } from '../utils/layoutPreferences';
+import { FIRST_RUN_LIBRARY_MIN_WIDTH, getInitialLibraryOpen, LIBRARY_OPEN_STORAGE_KEY } from '../utils/layoutPreferences';
 import { saveSettingsActiveTab } from '../utils/settingsTabs';
 import { nextPolicyHeatmapMetric } from '../utils/topMoveMetric';
 import { EDIT_TOOL_SHORTCUT_DEFINITIONS } from '../utils/shortcuts';
@@ -873,8 +873,9 @@ export const Layout: React.FC = () => {
   }, [uiState]);
 
   useEffect(() => {
+    if (!isDesktop || viewportWidth < FIRST_RUN_LIBRARY_MIN_WIDTH) return;
     writeLocalStorage(LIBRARY_OPEN_STORAGE_KEY, String(libraryOpen));
-  }, [libraryOpen]);
+  }, [isDesktop, libraryOpen, viewportWidth]);
 
   useEffect(() => {
     writeLocalStorage('web-katrain:sidebar_open:v1', String(showSidebar));

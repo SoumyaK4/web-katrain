@@ -2,7 +2,7 @@ import { isDesktopLayoutSize } from './responsiveLayout';
 import { readLocalStorage } from './storage';
 
 export const LIBRARY_OPEN_STORAGE_KEY = 'web-katrain:library_open:v1';
-export const FIRST_RUN_LIBRARY_MIN_WIDTH = 1180;
+export const FIRST_RUN_LIBRARY_MIN_WIDTH = 1200;
 
 export function shouldOpenLibraryByDefault(
   storedValue: string | null,
@@ -11,8 +11,9 @@ export function shouldOpenLibraryByDefault(
   if (storedValue === 'false') return false;
   if (!viewport) return false;
   if (!isDesktopLayoutSize(viewport.width, viewport.height)) return false;
+  if (viewport.width < FIRST_RUN_LIBRARY_MIN_WIDTH) return false;
   if (storedValue === 'true') return true;
-  return viewport.width >= FIRST_RUN_LIBRARY_MIN_WIDTH;
+  return true;
 }
 
 export function getInitialLibraryOpen(): boolean {

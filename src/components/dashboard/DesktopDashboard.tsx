@@ -9,6 +9,7 @@ import { formatMoveLabel } from '../layout/ui-utils';
 import { MoveTree } from '../MoveTree';
 import { ScoreWinrateGraph } from '../ScoreWinrateGraph';
 import { NotesPanel } from '../NotesPanel';
+import { getDashboardLayoutMode, type DashboardLayoutMode } from '../../utils/dashboardLayout';
 
 type EngineState = 'ready' | 'running' | 'loading' | 'error';
 
@@ -121,8 +122,6 @@ export interface DesktopDashboardProps {
   toast: (message: string, type?: 'info' | 'error' | 'success') => void;
 }
 
-type LayoutMode = 'wide' | 'compact' | 'narrow';
-
 function evalColorForPointsLost(pl: number): string {
   if (pl >= 5) return 'var(--eval-blunder)';
   if (pl >= 2) return 'var(--eval-mistake)';
@@ -161,34 +160,28 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
   const [legend, setLegend] = useState({ winrate: true, score: true });
   const [legendOpen, setLegendOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('wide');
-  const lastModeRef = useRef<LayoutMode | null>(null);
+  const [layoutMode, setLayoutMode] = useState<DashboardLayoutMode>(() => {
+    if (typeof window === 'undefined') return 'wide';
+    return getDashboardLayoutMode(window.innerWidth);
+  });
+  const layoutModeRef = useRef<DashboardLayoutMode>(layoutMode);
   const [pop, setPop] = useState<{ id: PopoverId; rect: DOMRect } | null>(null);
-  const [moveInput, setMoveInput] = useState<string>(String(moveCount));
-
-  useEffect(() => setMoveInput(String(moveCount)), [moveCount]);
+  const [moveInputDraft, setMoveInputDraft] = useState<string | null>(null);
+  const moveInputValue = moveInputDraft ?? String(moveCount);
 
   // ---- responsive mode ----
   useEffect(() => {
-    const compute = (): LayoutMode => {
-      const w = window.innerWidth;
-      return w >= 1200 ? 'wide' : w >= 820 ? 'compact' : 'narrow';
-    };
     const apply = () => {
-      const m = compute();
-      setLayoutMode(m);
-      if (m !== lastModeRef.current) {
-        lastModeRef.current = m;
-        if (m === 'wide') { setLibraryOpen(true); setSidebarOpen(true); }
-        else if (m === 'compact') { setLibraryOpen(false); setSidebarOpen(true); }
-        else { setLibraryOpen(false); setSidebarOpen(false); }
-      }
+      const nextMode = getDashboardLayoutMode(window.innerWidth);
+      const previousMode = layoutModeRef.current;
+      layoutModeRef.current = nextMode;
+      setLayoutMode(nextMode);
+      if (nextMode === previousMode || nextMode === 'wide') return;
+      setLibraryOpen(false);
     };
-    apply();
     window.addEventListener('resize', apply);
     return () => window.removeEventListener('resize', apply);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setLibraryOpen]);
 
   const libDrawer = layoutMode !== 'wide';
   const sideDrawer = layoutMode === 'narrow';
@@ -521,17 +514,22 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
             <div className="move-counter">
               <span>Move</span>
               <input
-                value={moveInput}
-                onChange={(e) => setMoveInput(e.target.value)}
+                value={moveInputValue}
+                onChange={(e) => setMoveInputDraft(e.target.value)}
                 onKeyDown={(e) => {
                   e.stopPropagation();
                   if (e.key === 'Enter') {
-                    const n = parseInt(moveInput, 10);
+                    const n = parseInt(moveInputValue, 10);
                     if (!Number.isNaN(n)) navigateToMove(n);
+                    setMoveInputDraft(null);
                     (e.target as HTMLInputElement).blur();
                   }
                 }}
-                onFocus={(e) => e.currentTarget.select()}
+                onBlur={() => setMoveInputDraft(null)}
+                onFocus={(e) => {
+                  setMoveInputDraft(String(moveCount));
+                  e.currentTarget.select();
+                }}
               />
               <span>/ {totalMoves}</span>
             </div>
