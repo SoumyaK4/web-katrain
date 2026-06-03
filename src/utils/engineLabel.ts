@@ -1,8 +1,11 @@
+import { stripUnsafeFilenameControls } from './filename';
+
 export function getEngineModelLabel(
   engineModelName: string | null | undefined,
   modelUrl: string | null | undefined
 ): string | null {
-  if (engineModelName?.trim()) return engineModelName.trim();
+  const cleanEngineName = stripUnsafeFilenameControls(engineModelName ?? '').trim();
+  if (cleanEngineName) return cleanEngineName;
   const rawUrl = modelUrl?.trim();
   if (!rawUrl) return null;
   if (rawUrl.startsWith('blob:')) return 'Uploaded weights';
@@ -10,8 +13,8 @@ export function getEngineModelLabel(
   const base = cleanUrl.split('/').pop();
   if (!base) return null;
   try {
-    return decodeURIComponent(base);
+    return stripUnsafeFilenameControls(decodeURIComponent(base)).trim() || null;
   } catch {
-    return base;
+    return stripUnsafeFilenameControls(base).trim() || null;
   }
 }

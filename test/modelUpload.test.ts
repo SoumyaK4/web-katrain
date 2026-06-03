@@ -3,11 +3,13 @@ import {
   clearUploadedModelUrl,
   createUploadedModelUrl,
   formatUploadedModelSize,
+  getModelFileNameFromUrl,
   getUploadedModelInfo,
   isKataGoModelWeightsFile,
   MAX_BROWSER_MODEL_UPLOAD_BYTES,
   resetModelUploadStateForTests,
   restorePersistedUploadedModelUrl,
+  sanitizeModelDisplayName,
   savePersistedUploadedModel,
   validateModelUploadFile,
 } from '../src/utils/modelUpload';
@@ -90,14 +92,22 @@ describe('model upload helpers', () => {
   it('tracks uploaded file names for the engine settings summary', () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValueOnce('blob:file');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-    const file = new File(['weights'], 'kata1-test.bin.gz', { type: 'application/gzip' });
+    const file = new File(['weights'], 'kata1-test\u202efgs.bin.gz', { type: 'application/gzip' });
 
     expect(createUploadedModelUrl(file, '/models/katago-small.bin.gz')).toBe('blob:file');
     expect(getUploadedModelInfo()).toMatchObject({
-      name: 'kata1-test.bin.gz',
+      name: 'kata1-testfgs.bin.gz',
       size: 7,
       type: 'application/gzip',
     });
+  });
+
+  it('sanitizes model names derived from uploads and URLs', () => {
+    expect(sanitizeModelDisplayName('  kata\u202efgs.bin.gz  ')).toBe('katafgs.bin.gz');
+    expect(sanitizeModelDisplayName('\u200b')).toBe('Uploaded weights');
+    expect(getModelFileNameFromUrl('https://example.test/models/kata%20b18.bin.gz?download=1')).toBe('kata b18.bin.gz');
+    expect(getModelFileNameFromUrl('/models/review%E2%80%AEfgs.bin.gz#hash')).toBe('reviewfgs.bin.gz');
+    expect(getModelFileNameFromUrl('not a url')).toBe('not a url');
   });
 
   it('gracefully skips persistent upload storage when IndexedDB is unavailable', async () => {

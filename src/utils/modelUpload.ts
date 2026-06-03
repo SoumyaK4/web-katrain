@@ -1,4 +1,5 @@
 import { getIndexedDB, readLocalStorage, removeLocalStorage, writeLocalStorage } from './storage';
+import { stripUnsafeFilenameControls } from './filename';
 import { createObjectUrlOrThrow, revokeObjectUrl } from './objectUrl';
 
 export const MAX_BROWSER_MODEL_UPLOAD_BYTES = 128 * 1024 * 1024;
@@ -43,6 +44,34 @@ let uploadedModelUrl: string | null = null;
 let uploadedModelInfo: UploadedModelInfo | null = null;
 let lastManualModelUrl: string | null = null;
 
+export const sanitizeModelDisplayName = (
+  name: string | null | undefined,
+  fallback = 'Uploaded weights'
+): string => {
+  const cleaned = stripUnsafeFilenameControls(name ?? '').replace(/\s+/g, ' ').trim();
+  return cleaned || fallback;
+};
+
+export const getModelFileNameFromUrl = (url: string, fallback = 'downloaded-model.bin.gz'): string => {
+  const decode = (value: string): string => {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  };
+
+  try {
+    const parsed = new URL(url, 'https://web-katrain.invalid');
+    const rawName = parsed.pathname.split('/').filter(Boolean).pop();
+    return sanitizeModelDisplayName(rawName ? decode(rawName) : '', fallback);
+  } catch {
+    const cleanUrl = url.split('#')[0]?.split('?')[0] ?? url;
+    const rawName = cleanUrl.split('/').pop() ?? '';
+    return sanitizeModelDisplayName(decode(rawName), fallback);
+  }
+};
+
 export type RestoredUploadedModel = {
   url: string;
   name: string;
@@ -74,7 +103,7 @@ export const formatUploadedModelSize = (size: number): string => {
 };
 
 const modelInfoFromBlob = (file: Blob & ModelFileLike): UploadedModelInfo => ({
-  name: file.name?.trim() || 'Uploaded weights',
+  name: sanitizeModelDisplayName(file.name),
   size: typeof file.size === 'number' && Number.isFinite(file.size) ? file.size : 0,
   type: file.type || 'application/octet-stream',
   updatedAt: Date.now(),

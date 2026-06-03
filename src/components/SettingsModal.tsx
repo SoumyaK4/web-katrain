@@ -24,6 +24,7 @@ import {
     clearUploadedModelUrl,
     createUploadedModelUrl,
     formatUploadedModelSize,
+    getModelFileNameFromUrl,
     getUploadedModelInfo,
     isUploadedModelUrl,
     MAX_BROWSER_MODEL_UPLOAD_LABEL,
@@ -272,7 +273,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         try {
             revokeUploadedModelUrl();
             const blob = await fetchBlobWithProgress(url, ({ percent }) => setDownloadProgress(percent));
-            const downloadedFile = new File([blob], url.split('/').pop() || 'downloaded-model.bin.gz', { type: blob.type });
+            const downloadedFile = new File([blob], getModelFileNameFromUrl(url), { type: blob.type });
             updateSettings({ katagoModelUrl: createUploadedModelUrl(downloadedFile, settings.katagoModelUrl) });
             const persisted = await savePersistedUploadedModel(downloadedFile);
             setUploadedModelInfo(getUploadedModelInfo());
