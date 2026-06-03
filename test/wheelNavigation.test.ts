@@ -34,4 +34,10 @@ describe('wheel navigation', () => {
     expect(shouldIgnoreWheelNavigationTarget(plainTarget)).toBe(false);
     expect(shouldIgnoreWheelNavigationTarget(null)).toBe(false);
   });
+
+  it('ignores editable content regions that can receive text', () => {
+    expect(WHEEL_NAVIGATION_IGNORE_SELECTOR).toContain('[contenteditable]:not([contenteditable="false"])');
+    expect(WHEEL_NAVIGATION_IGNORE_SELECTOR).toContain('[role="textbox"]');
+    expect(WHEEL_NAVIGATION_IGNORE_SELECTOR).toContain('[role="searchbox"]');
+  });
 });

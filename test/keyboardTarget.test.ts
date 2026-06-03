@@ -3,6 +3,7 @@ import {
   isEditableKeyboardTarget,
   isTextEntryTarget,
   shouldIgnoreKeyboardShortcutTarget,
+  TEXT_ENTRY_TARGET_SELECTOR,
 } from '../src/utils/keyboardTarget';
 
 describe('isTextEntryTarget', () => {
@@ -13,8 +14,11 @@ describe('isTextEntryTarget', () => {
     expect(isTextEntryTarget({ tagName: 'DIV', isContentEditable: true } as unknown as EventTarget)).toBe(true);
     expect(isTextEntryTarget({
       tagName: 'SPAN',
-      closest: (selector: string) => (selector.includes('contenteditable') ? ({} as Element) : null),
+      closest: (selector: string) => (selector === TEXT_ENTRY_TARGET_SELECTOR ? ({} as Element) : null),
     } as unknown as EventTarget)).toBe(true);
+    expect(TEXT_ENTRY_TARGET_SELECTOR).toContain('[contenteditable]:not([contenteditable="false"])');
+    expect(TEXT_ENTRY_TARGET_SELECTOR).toContain('[role="textbox"]');
+    expect(TEXT_ENTRY_TARGET_SELECTOR).toContain('[role="searchbox"]');
   });
 
   it('does not treat ordinary controls as text entry targets', () => {
@@ -30,6 +34,10 @@ describe('isEditableKeyboardTarget', () => {
     expect(isEditableKeyboardTarget({ tagName: 'textarea' } as unknown as EventTarget)).toBe(true);
     expect(isEditableKeyboardTarget({ tagName: 'SELECT' } as unknown as EventTarget)).toBe(true);
     expect(isEditableKeyboardTarget({ tagName: 'DIV', isContentEditable: true } as unknown as EventTarget)).toBe(true);
+    expect(isEditableKeyboardTarget({
+      tagName: 'DIV',
+      getAttribute: (name: string) => (name === 'role' ? 'textbox' : null),
+    } as unknown as EventTarget)).toBe(true);
   });
 
   it('detects focused interactive controls', () => {

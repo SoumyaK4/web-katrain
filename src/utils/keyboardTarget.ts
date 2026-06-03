@@ -1,8 +1,17 @@
+export const TEXT_ENTRY_TARGET_SELECTOR = [
+  'input',
+  'textarea',
+  'select',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[role="textbox"]',
+  '[role="searchbox"]',
+].join(', ');
+
 const INTERACTIVE_SELECTOR = [
   'button',
   'a[href]',
   'summary',
-  '[contenteditable="true"]',
+  TEXT_ENTRY_TARGET_SELECTOR,
   '[role="button"]',
   '[role="checkbox"]',
   '[role="menuitem"]',
@@ -19,6 +28,7 @@ export function isTextEntryTarget(target: EventTarget | null): boolean {
   const element = target as {
     tagName?: string;
     isContentEditable?: boolean;
+    getAttribute?: (name: string) => string | null;
     closest?: (selector: string) => unknown;
   };
   const tagName = element.tagName?.toUpperCase();
@@ -26,7 +36,13 @@ export function isTextEntryTarget(target: EventTarget | null): boolean {
     return true;
   }
 
-  return Boolean(element.closest?.('input, textarea, select, [contenteditable="true"]'));
+  const contentEditable = element.getAttribute?.('contenteditable');
+  if (contentEditable != null && contentEditable.toLowerCase() !== 'false') return true;
+
+  const role = element.getAttribute?.('role')?.toLowerCase();
+  if (role === 'textbox' || role === 'searchbox') return true;
+
+  return Boolean(element.closest?.(TEXT_ENTRY_TARGET_SELECTOR));
 }
 
 export function isEditableKeyboardTarget(target: EventTarget | null): boolean {

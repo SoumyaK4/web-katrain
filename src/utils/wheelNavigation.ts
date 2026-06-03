@@ -1,14 +1,13 @@
+import { TEXT_ENTRY_TARGET_SELECTOR } from './keyboardTarget';
+
 export type WheelNavigationAction = 'back' | 'forward' | 'prevMistake' | 'nextMistake';
 
 export const WHEEL_NAVIGATION_THRESHOLD = 30;
 export const WHEEL_NAVIGATION_THROTTLE_MS = 50;
 export const WHEEL_NAVIGATION_IGNORE_SELECTOR = [
   'button',
-  'input',
-  'select',
-  'textarea',
   'a[href]',
-  '[contenteditable="true"]',
+  TEXT_ENTRY_TARGET_SELECTOR,
   '[role="button"]',
   '[role="slider"]',
   '[role="spinbutton"]',
