@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { getNoteEditorKeyAction } from '../src/utils/noteEditorKeys';
 
@@ -18,5 +19,15 @@ describe('note editor keyboard actions', () => {
   it('leaves alternate enter chords alone for browser and platform text editing', () => {
     expect(getNoteEditorKeyAction({ key: 'Enter', altKey: true })).toBe('none');
     expect(getNoteEditorKeyAction({ key: 's', ctrlKey: true, altKey: true })).toBe('none');
+  });
+
+  it('exposes save and cancel shortcuts on note editor controls', () => {
+    const source = readFileSync('src/components/NotesPanel.tsx', 'utf8');
+
+    expect(source).toContain('title="Save note (Enter, Ctrl+S, Cmd+S)"');
+    expect(source).toContain('aria-label="Save note, keyboard shortcut Enter, Control+S, or Command+S"');
+    expect(source).toContain('title="Cancel note edit (Escape)"');
+    expect(source).toContain('aria-label="Cancel note edit, keyboard shortcut Escape"');
+    expect(source).toContain('aria-keyshortcuts="Enter Control+S Meta+S Escape"');
   });
 });
