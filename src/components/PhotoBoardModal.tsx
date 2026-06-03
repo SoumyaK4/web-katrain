@@ -542,7 +542,15 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               )}
             </div>
             {photoError && (
-              <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-300">
+              <div
+                id="photo-board-photo-error"
+                className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-300"
+                role="alert"
+                aria-live="assertive"
+                aria-atomic="true"
+                data-photo-board-photo-error="true"
+              >
+                <span className="sr-only">Error: </span>
                 {photoError}
               </div>
             )}

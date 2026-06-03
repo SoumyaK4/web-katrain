@@ -75,6 +75,10 @@ describe('PhotoBoardModal', () => {
     expect(source).toContain('setPhotoUrl(null);');
     expect(source).toContain('setPhotoError(PHOTO_BOARD_UNSUPPORTED_IMAGE_MESSAGE);');
     expect(source).toContain('accept={PHOTO_BOARD_IMAGE_ACCEPT}');
+    expect(source).toContain('id="photo-board-photo-error"');
+    expect(source).toContain('role="alert"');
+    expect(source).toContain('aria-live="assertive"');
+    expect(source).toContain('data-photo-board-photo-error="true"');
   });
 
   it('renders a clear empty state before a photo source is selected', () => {
