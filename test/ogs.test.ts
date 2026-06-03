@@ -25,7 +25,18 @@ describe('OGS URL utilities', () => {
 
   it('extracts OGS game ids from surrounding pasted text', () => {
     expect(extractOgsGameId('Review this: https://online-go.com/game/81344851')).toBe('81344851');
+    expect(extractOgsGameId('Review this (https://online-go.com/game/81344851).')).toBe(
+      '81344851'
+    );
     expect(extractOgsGameId('online-go.com/game/12345/white')).toBe('12345');
     expect(extractOgsGameId('https://example.com/game/12345')).toBeNull();
+  });
+
+  it('rejects embedded OGS-looking URLs that are not standalone game links', () => {
+    expect(extractOgsGameId('https://example.com/?next=https://online-go.com/game/81344851')).toBeNull();
+    expect(extractOgsGameId('https://example.com/https://online-go.com/game/81344851')).toBeNull();
+    expect(extractOgsGameId('ftp://online-go.com/game/81344851')).toBeNull();
+    expect(extractOgsGameId('javascript:online-go.com/game/81344851')).toBeNull();
+    expect(extractOgsGameId('https://online-go.com/game/81344851abc')).toBeNull();
   });
 });

@@ -57,6 +57,7 @@ describe('PasteSgfModal', () => {
     expect(getDirectGameImportText('Review this game: https://online-go.com/game/81344851')).toBe(
       'Review this game: https://online-go.com/game/81344851'
     );
+    expect(getDirectGameImportText('https://example.com/?next=https://online-go.com/game/81344851')).toBeNull();
     expect(getDirectGameImportText('https://example.com/game/123')).toBeNull();
     expect(getDirectGameImportText('')).toBeNull();
     expect(getDirectGameImportText(null)).toBeNull();
