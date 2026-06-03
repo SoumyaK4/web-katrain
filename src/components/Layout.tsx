@@ -408,6 +408,7 @@ export const Layout: React.FC = () => {
   const shapeCoachEnabled = uiState.shapeCoachEnabled;
   const modeControls = uiState.analysisControls[mode];
   const modePanels = uiState.panels[mode];
+  const lastAppliedModeControlsRef = useRef<UiMode | null>(null);
   const lockAiDetails = mode === 'play' && settings.trainerLockAi;
   void treeVersion;
 
@@ -985,9 +986,10 @@ export const Layout: React.FC = () => {
 
   // Apply per-mode analysis controls to settings on mode changes
   useEffect(() => {
+    if (lastAppliedModeControlsRef.current === mode) return;
+    lastAppliedModeControlsRef.current = mode;
     updateSettings(modeControls);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, modeControls, updateSettings]);
 
   // Keep mode controls in sync if settings are changed elsewhere
   useEffect(() => {
