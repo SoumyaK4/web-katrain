@@ -10,6 +10,8 @@ import { MoveTree } from '../MoveTree';
 import { ScoreWinrateGraph } from '../ScoreWinrateGraph';
 import { NotesPanel } from '../NotesPanel';
 import { getDashboardLayoutMode, type DashboardLayoutMode } from '../../utils/dashboardLayout';
+import { LIBRARY_OPEN_STORAGE_KEY } from '../../utils/layoutPreferences';
+import { readLocalStorage } from '../../utils/storage';
 
 type EngineState = 'ready' | 'running' | 'loading' | 'error';
 
@@ -164,10 +166,25 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
     if (typeof window === 'undefined') return 'wide';
     return getDashboardLayoutMode(window.innerWidth);
   });
+  const [initialWideLibraryOpen] = useState(() => {
+    const stored = readLocalStorage(LIBRARY_OPEN_STORAGE_KEY);
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+    return libraryOpen;
+  });
   const layoutModeRef = useRef<DashboardLayoutMode>(layoutMode);
+  const libraryOpenRef = useRef(libraryOpen);
+  const wideLibraryOpenRef = useRef(initialWideLibraryOpen);
   const [pop, setPop] = useState<{ id: PopoverId; rect: DOMRect } | null>(null);
   const [moveInputDraft, setMoveInputDraft] = useState<string | null>(null);
   const moveInputValue = moveInputDraft ?? String(moveCount);
+
+  useEffect(() => {
+    libraryOpenRef.current = libraryOpen;
+    if (layoutMode === 'wide') {
+      wideLibraryOpenRef.current = libraryOpen;
+    }
+  }, [layoutMode, libraryOpen]);
 
   // ---- responsive mode ----
   useEffect(() => {
@@ -176,8 +193,11 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
       const previousMode = layoutModeRef.current;
       layoutModeRef.current = nextMode;
       setLayoutMode(nextMode);
-      if (nextMode === previousMode || nextMode === 'wide') return;
-      setLibraryOpen(false);
+      if (nextMode === previousMode) return;
+      if (previousMode === 'wide') {
+        wideLibraryOpenRef.current = libraryOpenRef.current;
+      }
+      setLibraryOpen(nextMode === 'wide' ? wideLibraryOpenRef.current : false);
     };
     window.addEventListener('resize', apply);
     return () => window.removeEventListener('resize', apply);
