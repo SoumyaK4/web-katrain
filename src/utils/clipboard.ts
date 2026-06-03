@@ -1,3 +1,5 @@
+export const CLIPBOARD_OPERATION_TIMEOUT_MS = 1200;
+
 export function getClipboard(target?: Navigator | null): Clipboard | null {
   const source = target ?? (typeof navigator !== 'undefined' ? navigator : null);
   if (!source) return null;
@@ -8,11 +10,31 @@ export function getClipboard(target?: Navigator | null): Clipboard | null {
   }
 }
 
+function withClipboardTimeout<T>(operation: Promise<T>, timeoutMs = CLIPBOARD_OPERATION_TIMEOUT_MS): Promise<T> {
+  let timer: ReturnType<typeof globalThis.setTimeout> | null = null;
+  return new Promise<T>((resolve, reject) => {
+    timer = globalThis.setTimeout(() => {
+      timer = null;
+      reject(new Error('Clipboard operation timed out'));
+    }, timeoutMs);
+    operation.then(
+      (value) => {
+        if (timer) globalThis.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        if (timer) globalThis.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 export async function writeClipboardText(text: string, target?: Navigator | null): Promise<boolean> {
   const clipboard = getClipboard(target);
   if (typeof clipboard?.writeText !== 'function') return false;
   try {
-    await clipboard.writeText(text);
+    await withClipboardTimeout(clipboard.writeText(text));
     return true;
   } catch {
     return false;
@@ -23,7 +45,7 @@ export async function readClipboardText(target?: Navigator | null): Promise<stri
   const clipboard = getClipboard(target);
   if (typeof clipboard?.readText !== 'function') return null;
   try {
-    return await clipboard.readText();
+    return await withClipboardTimeout(clipboard.readText());
   } catch {
     return null;
   }

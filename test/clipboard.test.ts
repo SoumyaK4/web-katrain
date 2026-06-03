@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  CLIPBOARD_OPERATION_TIMEOUT_MS,
   copyTextToClipboard,
   getClipboard,
   readClipboardText,
@@ -94,5 +95,46 @@ describe('clipboard helpers', () => {
 
     await expect(copyTextToClipboard('sgf', {} as Navigator, target)).resolves.toBe(true);
     expect(target.execCommand).toHaveBeenCalledWith('copy');
+  });
+
+  it('times out stalled async clipboard operations', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = {
+        clipboard: {
+          writeText: vi.fn(() => new Promise<void>(() => {})),
+          readText: vi.fn(() => new Promise<string>(() => {})),
+        },
+      } as unknown as Navigator;
+
+      const writePromise = writeClipboardText('sgf', target);
+      const readPromise = readClipboardText(target);
+      await vi.advanceTimersByTimeAsync(CLIPBOARD_OPERATION_TIMEOUT_MS);
+
+      await expect(writePromise).resolves.toBe(false);
+      await expect(readPromise).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('uses legacy copy when async clipboard write stalls', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = {
+        clipboard: {
+          writeText: vi.fn(() => new Promise<void>(() => {})),
+        },
+      } as unknown as Navigator;
+      const { target: legacyTarget } = createLegacyCopyDocument();
+
+      const copyPromise = copyTextToClipboard('sgf', target, legacyTarget);
+      await vi.advanceTimersByTimeAsync(CLIPBOARD_OPERATION_TIMEOUT_MS);
+
+      await expect(copyPromise).resolves.toBe(true);
+      expect(legacyTarget.execCommand).toHaveBeenCalledWith('copy');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
