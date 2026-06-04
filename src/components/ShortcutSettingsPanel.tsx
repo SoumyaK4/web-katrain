@@ -159,14 +159,14 @@ export const ShortcutSettingsPanel: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border ui-surface p-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-xs font-semibold ui-text-muted tracking-[0.12em] uppercase">Shortcut Editor</div>
             <div className="mt-1 text-sm ui-text-faint">Record one binding per command, disable commands you do not use, and resolve collisions before saving.</div>
           </div>
           <button
             type="button"
-            className="px-3 py-2 rounded-lg ui-surface-2 border text-xs font-semibold text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="self-start whitespace-nowrap px-3 py-2 rounded-lg ui-surface-2 border text-xs font-semibold text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] disabled:opacity-40 disabled:cursor-not-allowed sm:self-auto"
             onClick={requestResetAll}
             disabled={!hasCustomizations}
             data-shortcut-reset-all="true"
