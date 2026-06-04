@@ -259,8 +259,8 @@ export function buildPhotoBoardSetupSgf({
     'GN[Photo board position]',
   ];
   if (sourceName?.trim()) props.push(`SO[${escapeSgfValue(sourceName.trim())}]`);
-  if (black.length > 0) props.push(...black.map((point) => `AB[${point}]`));
-  if (white.length > 0) props.push(...white.map((point) => `AW[${point}]`));
+  if (black.length > 0) props.push(`AB${black.map((point) => `[${point}]`).join('')}`);
+  if (white.length > 0) props.push(`AW${white.map((point) => `[${point}]`).join('')}`);
   props.push('C[Manual board import]');
 
   return `(;${props.join('')})`;

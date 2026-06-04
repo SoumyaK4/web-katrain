@@ -41,9 +41,10 @@ describe('photo board SGF import', () => {
     expect(sgf).toContain('KM[7.5]');
     expect(sgf).toContain('PL[W]');
     expect(sgf).toContain('SO[phone\\]photo.sgf]');
-    expect(sgf).toContain('AB[aa]');
+    expect(sgf).toContain('AB[aa][ii]');
     expect(sgf).toContain('AW[ia]');
-    expect(sgf).toContain('AB[ii]');
+    expect(sgf.match(/AB\[/g)).toHaveLength(1);
+    expect(sgf.match(/AW\[/g)).toHaveLength(1);
 
     const parsed = parseSgf(sgf);
     expect(parsed.initialBoard[0]?.[0]).toBe('black');
