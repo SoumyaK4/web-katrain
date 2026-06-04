@@ -25,6 +25,9 @@ describe('CameraCaptureModal', () => {
     const source = readFileSync('src/components/CameraCaptureModal.tsx', 'utf8');
 
     expect(source).toContain('useEscapeToClose(handleClose)');
+    expect(source).toContain('const closedRef = React.useRef(false);');
+    expect(source).toContain('closedRef.current = true;');
+    expect(source).toContain('if (closedRef.current) return;');
     expect(source).toContain('getUserMedia({ video: { facingMode: { ideal:');
     expect(source).toContain('stopCameraStream(streamRef.current)');
     expect(source).toContain("canvas.toBlob(");

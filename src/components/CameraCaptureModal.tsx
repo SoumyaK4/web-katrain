@@ -21,6 +21,7 @@ const makeCameraPhotoFileName = () => `board-photo-${Date.now()}.jpg`;
 export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ onCapture, onClose }) => {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
+  const closedRef = React.useRef(false);
   const [error, setError] = React.useState<string | null>(null);
   const [ready, setReady] = React.useState(false);
   const [capturing, setCapturing] = React.useState(false);
@@ -57,11 +58,13 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ onCaptur
 
     return () => {
       cancelled = true;
+      closedRef.current = true;
       stopCamera();
     };
   }, [stopCamera]);
 
   const handleClose = React.useCallback(() => {
+    closedRef.current = true;
     stopCamera();
     onClose();
   }, [onClose, stopCamera]);
@@ -87,11 +90,13 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({ onCaptur
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
+        if (closedRef.current) return;
         setCapturing(false);
         if (!blob) {
           setError(CAMERA_FRAME_ERROR);
           return;
         }
+        closedRef.current = true;
         stopCamera();
         onCapture(new File([blob], makeCameraPhotoFileName(), { type: 'image/jpeg' }));
       },
