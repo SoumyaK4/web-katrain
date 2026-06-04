@@ -8,6 +8,8 @@ import {
   getBranchInfo,
   getCurrentLineNodes,
   getCurrentLineMoveCount,
+  getCurrentLineMoveNumber,
+  isGameNodeStep,
 } from '../src/utils/branchNavigation';
 
 const makeState = (): GameState => ({
@@ -136,6 +138,21 @@ describe('branch navigation', () => {
     expect(getCurrentLineMoveCount(root, active)).toBe(2);
     expect(findCurrentLineMoveTarget(root, 1, active)?.id).toBe('b');
     expect(findCurrentLineMoveTarget(root, 2, active)?.id).toBe('b1');
+  });
+
+  it('counts non-root setup nodes as current-line navigation steps', () => {
+    const root = makeNode('root', null);
+    const move = makeNode('move', root, { x: 0, y: 0, player: 'black' });
+    const setup = makeNode('setup', move);
+    setup.properties = { AB: ['aa'], PL: ['W'] };
+    const reply = makeNode('reply', setup, { x: 0, y: 0, player: 'white' });
+
+    expect(isGameNodeStep(root)).toBe(false);
+    expect(isGameNodeStep(setup)).toBe(true);
+    expect(getCurrentLineMoveCount(move)).toBe(3);
+    expect(getCurrentLineMoveNumber(setup)).toBe(2);
+    expect(getCurrentLineMoveNumber(reply)).toBe(3);
+    expect(findCurrentLineMoveTarget(root, 2)?.id).toBe('setup');
   });
 
   it('builds a navigable current line from root through the active continuation', () => {

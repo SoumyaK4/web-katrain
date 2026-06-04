@@ -615,6 +615,18 @@ const applySetupPropsToNode = (node: GameNode, props: Record<string, string[]> |
   }
 };
 
+const playerFromSgfPlayerToMove = (props: Record<string, string[]> | undefined): Player | null => {
+  const value = props?.PL?.[0]?.toUpperCase();
+  if (value === 'B') return 'black';
+  if (value === 'W') return 'white';
+  return null;
+};
+
+const applySgfPlayerToMoveToNode = (node: GameNode, props: Record<string, string[]> | undefined): void => {
+  const player = playerFromSgfPlayerToMove(props);
+  if (player) node.gameState = { ...node.gameState, currentPlayer: player };
+};
+
 const countNodes = (node: GameNode): number => {
   let count = 0;
   const stack = [node];
@@ -824,15 +836,22 @@ const rootSetupPropertiesMatchBoard = (
 
 const replayChildMove = (parent: GameNode, child: GameNode): GameState | null => {
   const move = child.move;
-  if (!move) return child.gameState;
   const parentState = parent.gameState;
+  if (!move) {
+    const nextState = cloneGameState(parentState);
+    return {
+      ...nextState,
+      board: applySetupPropsToBoard(nextState.board, child.properties),
+      currentPlayer: playerFromSgfPlayerToMove(child.properties) ?? parentState.currentPlayer,
+    };
+  }
   const nextPlayer: Player = move.player === 'black' ? 'white' : 'black';
 
   if (move.x < 0 || move.y < 0) {
     const passMove: Move = { x: -1, y: -1, player: move.player };
     return {
       board: cloneBoard(parentState.board),
-      currentPlayer: nextPlayer,
+      currentPlayer: playerFromSgfPlayerToMove(child.properties) ?? nextPlayer,
       moveHistory: [...parentState.moveHistory, passMove],
       capturedBlack: parentState.capturedBlack,
       capturedWhite: parentState.capturedWhite,
@@ -856,7 +875,7 @@ const replayChildMove = (parent: GameNode, child: GameNode): GameState | null =>
   const newCapturedWhite = parentState.capturedWhite + (move.player === 'black' ? captured.length : 0);
   return {
     board: applySetupPropsToBoard(tentativeBoard, child.properties),
-    currentPlayer: nextPlayer,
+    currentPlayer: playerFromSgfPlayerToMove(child.properties) ?? nextPlayer,
     moveHistory: [...parentState.moveHistory, { x: move.x, y: move.y, player: move.player }],
     capturedBlack: newCapturedBlack,
     capturedWhite: newCapturedWhite,
@@ -865,8 +884,7 @@ const replayChildMove = (parent: GameNode, child: GameNode): GameState | null =>
 };
 
 const pasteBranchSnapshot = (parent: GameNode, source: BranchClipboardNode): GameNode | null => {
-  if (!source.move) return null;
-  const node = createNode(parent, { ...source.move }, parent.gameState);
+  const node = createNode(parent, cloneMove(source.move), cloneGameState(parent.gameState));
   node.properties = cloneNodeProperties(source.properties);
   node.endState = source.endState;
   node.timeUsedSeconds = source.timeUsedSeconds;
@@ -4281,13 +4299,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return out;
     };
 
-    const mergeProps = (target: Record<string, string[]>, src: Record<string, string[]>) => {
-      for (const [k, v] of Object.entries(src)) {
-        if (!target[k]) target[k] = [...v];
-        else target[k] = target[k]!.concat(v);
-      }
-    };
-
     const sgfCoordToXy = (coord: string): { x: number; y: number } => {
       if (!coord || coord.length < 2) return { x: -1, y: -1 };
       if (coord === 'tt') return { x: -1, y: -1 };
@@ -4386,20 +4397,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const buildFromSgfNode = (parent: GameNode, node: NonNullable<ParsedSgf['tree']>) => {
         const move = extractMove(node.props);
         if (!move) {
-          if (node.props['KT'] && !parent.analysis) {
-            applyKtAnalysis(parent, node.props['KT']);
-          }
-          if (node.props['KA'] && !parent.analysis) {
-            applyKaAnalysis(parent, node.props['KA']);
-          }
           const note = extractKaTrainUserNoteFromSgfComment(node.props['C']);
-          if (note) parent.note = parent.note ? `${parent.note}\n${note}` : note;
-
           const propsNoComments = cloneProps(node.props);
           delete propsNoComments['C'];
-          mergeProps(parent.properties ?? (parent.properties = {}), propsNoComments);
-          applySetupPropsToNode(parent, propsNoComments, boardSize);
-          for (const child of node.children) buildFromSgfNode(parent, child);
+          const hasAnalysis = !!(node.props['KT']?.length || node.props['KA']?.length);
+          const hasContent = Object.keys(propsNoComments).length > 0 || !!note || hasAnalysis;
+          if (!hasContent) {
+            for (const child of node.children) buildFromSgfNode(parent, child);
+            return;
+          }
+
+          const childNode = createNode(parent, null, cloneGameState(parent.gameState));
+          childNode.properties = propsNoComments;
+          if (note) childNode.note = note;
+          const rebuiltState = replayChildMove(parent, childNode);
+          childNode.gameState = rebuiltState ?? childNode.gameState;
+          if (node.props['KT'] && !childNode.analysis) {
+            applyKtAnalysis(childNode, node.props['KT']);
+          }
+          if (node.props['KA'] && !childNode.analysis) {
+            applyKaAnalysis(childNode, node.props['KA']);
+          }
+          parent.children.push(childNode);
+          for (const child of node.children) buildFromSgfNode(childNode, child);
           return;
         }
 
@@ -4407,6 +4427,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (!childNode) return;
         childNode.properties = cloneProps(node.props);
         applySetupPropsToNode(childNode, childNode.properties, boardSize);
+        applySgfPlayerToMoveToNode(childNode, childNode.properties);
         const nodeNote = extractKaTrainUserNoteFromSgfComment(childNode.properties['C']);
         if (nodeNote) childNode.note = nodeNote;
         delete childNode.properties['C'];
@@ -4426,6 +4447,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (first) {
           first.properties = cloneProps(sgf.tree.props);
           applySetupPropsToNode(first, first.properties, boardSize);
+          applySgfPlayerToMoveToNode(first, first.properties);
           const firstNote = extractKaTrainUserNoteFromSgfComment(first.properties['C']);
           if (firstNote) first.note = firstNote;
           delete first.properties['C'];

@@ -577,6 +577,34 @@ describe('GameStore loadGame', () => {
         expect(state.currentNode.move).toEqual({ x: 2, y: 2, player: 'black' });
     });
 
+    it('preserves setup-only SGF nodes as navigable steps', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.loadGame(parseSgf('(;GM[1]SZ[9];B[cc];AB[ee]PL[W];W[dd])'));
+        const root = useGameStore.getState().rootNode;
+        const firstMove = root.children[0];
+        const setupNode = firstMove?.children[0];
+        const reply = setupNode?.children[0];
+
+        expect(firstMove?.move).toEqual({ x: 2, y: 2, player: 'black' });
+        expect(setupNode?.move).toBeNull();
+        expect(setupNode?.properties?.AB).toEqual(['ee']);
+        expect(setupNode?.gameState.board[4]?.[4]).toBe('black');
+        expect(setupNode?.gameState.currentPlayer).toBe('white');
+        expect(reply?.move).toEqual({ x: 3, y: 3, player: 'white' });
+
+        store.navigateToMove(2);
+        expect(useGameStore.getState().currentNode.id).toBe(setupNode?.id);
+
+        store.navigateToMove(3);
+        expect(useGameStore.getState().currentNode.id).toBe(reply?.id);
+
+        const output = generateSgfFromTree(root);
+        expect(output).toContain(';AB[ee]PL[W]');
+        expect(output).toContain(';W[dd]');
+    });
+
     it('round trips edit markers and labels through the game tree writer', () => {
         const store = useGameStore.getState();
         store.resetGame();

@@ -71,7 +71,14 @@ const MARGIN = 12;
 
 export function moveTreeNodeLabel(node: GameNode): string {
   const move = node.move;
-  if (!move) return 'Root';
+  if (!node.parent) return 'Root';
+  if (!move) {
+    const setupCount =
+      (node.properties?.AB?.length ?? 0) +
+      (node.properties?.AW?.length ?? 0) +
+      (node.properties?.AE?.length ?? 0);
+    return setupCount > 0 ? `Setup ${setupCount}` : 'Node';
+  }
   if (move.x < 0 || move.y < 0) return 'Pass';
   const boardSize = node.gameState.board.length;
   const col = String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x));
@@ -91,7 +98,7 @@ export function flattenMoveTree(root: GameNode): MoveTreeLayoutItem[] {
       parentId: node.parent?.id ?? null,
       label: moveTreeNodeLabel(node),
       player: move?.player ?? null,
-      isRoot: !move,
+      isRoot: node.parent === null,
       autoUndo: node.autoUndo === true,
     });
 

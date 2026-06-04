@@ -442,9 +442,10 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
           const isKeyboardFocused = keyboardFocusedNodeId === layoutNode.id;
           const isAutoUndone = layoutNode.autoUndo === true;
           const isRoot = layoutNode.isRoot;
+          const isSetupNode = !isRoot && !layoutNode.player;
           const isBlack = layoutNode.player === 'black';
-          const fill = isRoot ? 'none' : isBlack ? '#0B0B0B' : '#F9FAFB';
-          const stroke = isRoot ? '#9CA3AF' : isBlack ? '#F9FAFB' : '#0B0B0B';
+          const fill = isRoot ? 'none' : isSetupNode ? '#64748B' : isBlack ? '#0B0B0B' : '#F9FAFB';
+          const stroke = isRoot ? '#9CA3AF' : isSetupNode ? '#F9FAFB' : isBlack ? '#F9FAFB' : '#0B0B0B';
           const markers = getMoveTreeNodeMarkers(node, mistakeThreshold);
           const markerRadius = Math.max(2, Math.min(3.25, layout.radius * 0.22));
           const markerGap = markerRadius * 2.35;
@@ -454,7 +455,7 @@ export const MoveTree: React.FC<{ onSelectNode?: (node: GameNode) => void }> = (
 
           const selectableNode = !isInsertMode && node ? node : null;
           const keyboardLabel = [
-            isRoot ? 'Root' : `Move ${layoutNode.label}`,
+            isRoot ? 'Root' : isSetupNode ? layoutNode.label : `Move ${layoutNode.label}`,
             markerTitle,
             isCurrent ? 'current move' : '',
           ].filter(Boolean).join(', ');

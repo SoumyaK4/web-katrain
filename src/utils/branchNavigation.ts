@@ -16,6 +16,14 @@ export type BranchInfo = {
   isAtFork: boolean;
 };
 
+const STEP_SETUP_PROPERTIES = ['AB', 'AW', 'AE'] as const;
+
+export function isGameNodeStep(node: GameNode): boolean {
+  if (node.move) return true;
+  if (!node.parent) return false;
+  return STEP_SETUP_PROPERTIES.some((key) => (node.properties?.[key]?.length ?? 0) > 0);
+}
+
 export function findBranchRoot(currentNode: GameNode): BranchRoot | null {
   let node: GameNode | null = currentNode;
   let depthFromBranchRoot = 0;
@@ -26,7 +34,7 @@ export function findBranchRoot(currentNode: GameNode): BranchRoot | null {
       return { forkNode: parent, branchRootNode: node, depthFromBranchRoot };
     }
 
-    if (node.move) depthFromBranchRoot++;
+    if (isGameNodeStep(node)) depthFromBranchRoot++;
     node = parent;
   }
 
@@ -95,7 +103,7 @@ export function findSiblingBranchTarget(currentNode: GameNode, direction: 1 | -1
     const next = target.children[0] ?? null;
     if (!next) break;
     target = next;
-    if (target.move) depth++;
+    if (isGameNodeStep(target)) depth++;
   }
 
   return target;
@@ -118,7 +126,7 @@ export function findBranchTargetByIndex(currentNode: GameNode, branchIndex: numb
     const next = target.children[0] ?? null;
     if (!next) break;
     target = next;
-    if (target.move) depth++;
+    if (isGameNodeStep(target)) depth++;
   }
 
   return target;
@@ -143,7 +151,22 @@ export function getCurrentLineNodes(currentNode: GameNode, activeBranches: Activ
 }
 
 export function getCurrentLineMoveCount(currentNode: GameNode, activeBranches: ActiveBranchMap = {}): number {
-  return getCurrentLineNodes(currentNode, activeBranches).filter((node) => node.move).length;
+  return getCurrentLineNodes(currentNode, activeBranches).filter(isGameNodeStep).length;
+}
+
+export function getCurrentLineMoveNumber(currentNode: GameNode): number {
+  let count = 0;
+  const path: GameNode[] = [];
+  let node: GameNode | null = currentNode;
+  while (node) {
+    path.push(node);
+    node = node.parent;
+  }
+  path.reverse();
+  for (const pathNode of path) {
+    if (isGameNodeStep(pathNode)) count++;
+  }
+  return count;
 }
 
 export function findCurrentLineMoveTarget(
@@ -158,7 +181,7 @@ export function findCurrentLineMoveTarget(
 
   for (const node of getCurrentLineNodes(currentNode, activeBranches)) {
     lastNode = node;
-    if (node.move) seenMoves++;
+    if (isGameNodeStep(node)) seenMoves++;
     if (seenMoves === targetMoveNumber) return node;
   }
 

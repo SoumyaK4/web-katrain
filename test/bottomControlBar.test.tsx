@@ -26,7 +26,7 @@ const baseProps = {
   findMistake: noop,
   rotateBoard: noop,
   currentPlayer: 'black' as const,
-  moveHistory: [{ x: 3, y: 3, player: 'black' as const }],
+  currentMoveNumber: 1,
   totalMovesInCurrentLine: 12,
   boardSize: 19,
   handicap: 0,

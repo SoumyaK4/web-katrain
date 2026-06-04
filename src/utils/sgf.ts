@@ -438,8 +438,6 @@ function rootPlacementsFromBoard(board: BoardState): { AB?: string[]; AW?: strin
 
 function serializeMoveNode(node: GameNode, trainer: KaTrainSgfExportTrainerConfig): string {
     const move = node.move;
-    if (!move) return '';
-
     const boardSize = normalizeBoardSize(node.gameState.board.length, DEFAULT_BOARD_SIZE);
     const props = cloneProps(node.properties);
     delete props.B;
@@ -456,15 +454,17 @@ function serializeMoveNode(node: GameNode, trainer: KaTrainSgfExportTrainerConfi
         if (ownershipMode !== 'none') props.KT = encodeKaTrainKtFromAnalysis({ analysis: node.analysis, boardSize });
     }
 
-    const key = move.player === 'black' ? 'B' : 'W';
-    const coord = move.x < 0 || move.y < 0 ? '' : coordinateToSgf(move.x, move.y);
-    props[key] = [coord];
+    if (move) {
+        const key = move.player === 'black' ? 'B' : 'W';
+        const coord = move.x < 0 || move.y < 0 ? '' : coordinateToSgf(move.x, move.y);
+        props[key] = [coord];
+    }
 
     const noteTrim = (node.note ?? '').trim();
 
     let internalSegments: string[] | undefined;
     const parent = node.parent;
-    if (parent?.analysis && node.analysis) {
+    if (move && parent?.analysis && node.analysis) {
         const pointsLost = computePointsLost(node);
         const cls = typeof pointsLost === 'number' ? evaluationClass(pointsLost, trainer.evalThresholds) : null;
         const showClass = cls === null ? false : !!trainer.saveFeedback?.[cls];
@@ -492,12 +492,12 @@ function serializeMoveNode(node: GameNode, trainer: KaTrainSgfExportTrainerConfi
     const c = buildKaTrainSgfComment({ note: node.note, internalSegments });
     if (c) props.C = [c];
 
+    if (!move && Object.keys(props).length === 0) return '';
     return `;${serializeProps(props)}`;
 }
 
 function serializeSequence(node: GameNode, trainer: KaTrainSgfExportTrainerConfig): string {
     let out = serializeMoveNode(node, trainer);
-    if (!out) return '';
 
     const children = node.children;
     if (children.length === 0) return out;

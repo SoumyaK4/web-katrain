@@ -16,7 +16,7 @@ import {
   FaRobot,
   FaFlag,
 } from 'react-icons/fa';
-import type { Player, Move } from '../../types';
+import type { Player } from '../../types';
 import { IconButton } from './ui';
 import { STONE_SIZE } from './types';
 import { publicUrl } from '../../utils/publicUrl';
@@ -57,7 +57,7 @@ interface BottomControlBarProps {
   findMistake: (dir: 'undo' | 'redo') => void;
   rotateBoard: () => void;
   currentPlayer: Player;
-  moveHistory: Move[];
+  currentMoveNumber: number;
   totalMovesInCurrentLine: number;
   boardSize: number;
   handicap: number;
@@ -93,7 +93,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   findMistake,
   rotateBoard,
   currentPlayer,
-  moveHistory,
+  currentMoveNumber,
   totalMovesInCurrentLine,
   boardSize,
   handicap,
@@ -210,7 +210,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
   const openMoveNumberEditor = () => {
     if (isInsertMode) return;
-    setMoveNumberDraft(String(moveHistory.length));
+    setMoveNumberDraft(String(currentMoveNumber));
     setIsMoveNumberEditing(true);
   };
 
@@ -219,14 +219,14 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     if (parsed != null) {
       navigateToMove(parsed);
     } else {
-      setMoveNumberDraft(String(moveHistory.length));
+      setMoveNumberDraft(String(currentMoveNumber));
     }
     setIsMoveNumberEditing(false);
   };
 
   const cancelMoveNumberEdit = () => {
     skipMoveNumberBlurCommit.current = true;
-    setMoveNumberDraft(String(moveHistory.length));
+    setMoveNumberDraft(String(currentMoveNumber));
     setIsMoveNumberEditing(false);
   };
 
@@ -445,7 +445,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 onClick={openMoveNumberEditor}
                 disabled={isInsertMode}
               >
-                #{moveHistory.length}/{totalMovesInCurrentLine}
+                #{currentMoveNumber}/{totalMovesInCurrentLine}
               </button>
             )}
             {showBranchControl && (
@@ -845,7 +845,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
               disabled={isInsertMode}
             >
               <span className="ui-text-faint">Move</span>
-              <span className="text-[var(--ui-text)] font-semibold">{moveHistory.length}</span>
+              <span className="text-[var(--ui-text)] font-semibold">{currentMoveNumber}</span>
               <span className="ui-text-faint">/{totalMovesInCurrentLine}</span>
             </button>
           )}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { GameNode, GameState } from '../src/types';
 import {
   computeMoveTreeLayout,
+  flattenMoveTree,
   getMoveTreeMinimapKeyboardScroll,
   getMoveTreeMinimapViewportRect,
   getMoveTreeMinimapTransform,
@@ -17,6 +19,28 @@ const item = (id: string, parentId: string | null, player: 'black' | 'white' | n
   isRoot: parentId === null,
   autoUndo: false,
 });
+
+const makeState = (): GameState => ({
+  board: [[null]],
+  currentPlayer: 'black',
+  moveHistory: [],
+  capturedBlack: 0,
+  capturedWhite: 0,
+  komi: 6.5,
+});
+
+const makeNode = (id: string, parent: GameNode | null): GameNode => {
+  const node: GameNode = {
+    id,
+    parent,
+    children: [],
+    move: null,
+    gameState: makeState(),
+    properties: {},
+  };
+  parent?.children.push(node);
+  return node;
+};
 
 describe('move tree layout', () => {
   it('lays out mainline and branches with stable parent-before-child positions', () => {
@@ -56,6 +80,17 @@ describe('move tree layout', () => {
     expect(vertical.edges.find((edge) => edge.id === 'a->branch')?.points).toBe(
       `${verticalA?.x},${verticalA?.y} ${verticalBranch?.x},${verticalA?.y} ${verticalBranch?.x},${verticalBranch?.y}`
     );
+  });
+
+  it('labels setup-only child nodes without marking them as root', () => {
+    const root = makeNode('root', null);
+    const setup = makeNode('setup', root);
+    setup.properties = { AB: ['aa'], AW: ['bb'] };
+
+    expect(flattenMoveTree(root)).toEqual([
+      expect.objectContaining({ id: 'root', label: 'Root', isRoot: true }),
+      expect.objectContaining({ id: 'setup', label: 'Setup 2', isRoot: false, player: null }),
+    ]);
   });
 
   it('filters nodes and elbow edges to the visible viewport with overscan', () => {

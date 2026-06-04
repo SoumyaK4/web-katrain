@@ -82,7 +82,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { useGamepadNavigation } from '../hooks/useGamepadNavigation';
 import { UnsavedChangesModal, type UnsavedChangesChoice } from './UnsavedChangesModal';
-import { getBranchInfo, getCurrentLineMoveCount } from '../utils/branchNavigation';
+import { getBranchInfo, getCurrentLineMoveCount, getCurrentLineMoveNumber } from '../utils/branchNavigation';
 import { ResignConfirmModal } from './ResignConfirmModal';
 import { AnalysisCacheClearConfirmModal } from './AnalysisCacheClearConfirmModal';
 import { getResignResult } from '../utils/resign';
@@ -1235,6 +1235,10 @@ export const Layout: React.FC = () => {
     void treeVersion;
     return getCurrentLineMoveCount(currentNode, activeBranchChildIds);
   }, [activeBranchChildIds, currentNode, treeVersion]);
+  const currentMoveNumber = useMemo(() => {
+    void treeVersion;
+    return getCurrentLineMoveNumber(currentNode);
+  }, [currentNode, treeVersion]);
   const branchInfo = useMemo(() => {
     void treeVersion;
     return getBranchInfo(currentNode);
@@ -2436,8 +2440,10 @@ export const Layout: React.FC = () => {
   const blackRank = getRootProp('BR');
   const whiteRank = getRootProp('WR');
   const moveName = currentNode.move
-    ? `Move ${moveHistory.length}: ${playerToShort(currentNode.move.player)} ${formatMoveLabel(currentNode.move.x, currentNode.move.y, boardSize)}`
-    : 'Root';
+    ? `Move ${currentMoveNumber}: ${playerToShort(currentNode.move.player)} ${formatMoveLabel(currentNode.move.x, currentNode.move.y, boardSize)}`
+    : currentNode.parent && currentMoveNumber > 0
+      ? `Setup ${currentMoveNumber}`
+      : 'Root';
   const currentMoveInsight = getMoveInsight(currentNode.move, boardSize, currentNode.parent?.gameState.board ?? null);
 
   const handleUndo = () => {
@@ -2753,7 +2759,7 @@ export const Layout: React.FC = () => {
           blackName={blackName}
           whiteName={whiteName}
           boardSize={boardSize}
-          moveCount={moveHistory.length}
+          moveCount={currentMoveNumber}
           engineMeta={engineMeta}
           gamepadName={gamepadStatus.connected ? gamepadStatus.name : null}
           gamepadCount={gamepadStatus.count}
@@ -2884,7 +2890,7 @@ export const Layout: React.FC = () => {
           rules={settings.gameRules}
           result={endResult}
           currentPlayer={currentPlayer}
-          moveCount={moveHistory.length}
+          moveCount={currentMoveNumber}
           totalMoves={totalMovesInCurrentLine}
           loadedFileName={loadedLibraryFileName ?? loadedExternalFile?.name ?? null}
           dirty={currentGameDirty}
@@ -3051,7 +3057,7 @@ export const Layout: React.FC = () => {
                 analysisCacheSize={analysisCacheSize}
                 onOpenGameAnalysis={() => setIsGameAnalysisOpen(true)}
                 onOpenGameReport={() => setIsGameReportOpen(true)}
-                currentMoveNumber={moveHistory.length}
+                currentMoveNumber={currentMoveNumber}
                 winRate={winRate ?? null}
                 scoreLead={scoreLead ?? null}
                 pointsLost={pointsLost}
@@ -3232,7 +3238,7 @@ export const Layout: React.FC = () => {
               findMistake={findMistake}
               rotateBoard={rotateBoard}
               currentPlayer={currentPlayer}
-              moveHistory={moveHistory}
+              currentMoveNumber={currentMoveNumber}
               totalMovesInCurrentLine={totalMovesInCurrentLine}
               boardSize={boardSize}
               handicap={handicap}
@@ -3411,7 +3417,7 @@ export const Layout: React.FC = () => {
                     findMistake={findMistake}
                     rotateBoard={rotateBoard}
                     currentPlayer={currentPlayer}
-                    moveHistory={moveHistory}
+                    currentMoveNumber={currentMoveNumber}
                     totalMovesInCurrentLine={totalMovesInCurrentLine}
                     boardSize={boardSize}
                     handicap={handicap}
@@ -3473,7 +3479,7 @@ export const Layout: React.FC = () => {
           komi={komi}
           boardSize={boardSize}
           handicap={handicap}
-          moveCount={moveHistory.length}
+          moveCount={currentMoveNumber}
           capturedBlack={capturedBlack}
           capturedWhite={capturedWhite}
           endResult={endResult}
