@@ -22,6 +22,7 @@ export type LibraryFileMetadata = {
   komi?: number;
   handicap?: number;
   rules?: string;
+  setupStoneCount?: number;
 };
 
 export type LibraryFile = LibraryBase & {
@@ -137,6 +138,7 @@ const numberProp = (value: string | undefined): number | undefined => {
 
 export const extractLibraryMetadata = (sgf: string): LibraryFileMetadata => {
   const props = readRootSgfProperties(sgf);
+  const setupStoneCount = (props.AB?.length ?? 0) + (props.AW?.length ?? 0);
   return {
     gameName: props.GN?.[0] || undefined,
     black: props.PB?.[0] || undefined,
@@ -148,6 +150,7 @@ export const extractLibraryMetadata = (sgf: string): LibraryFileMetadata => {
     komi: numberProp(props.KM?.[0]),
     handicap: numberProp(props.HA?.[0]),
     rules: props.RU?.[0] || undefined,
+    setupStoneCount: setupStoneCount > 0 ? setupStoneCount : undefined,
   };
 };
 
@@ -262,6 +265,16 @@ export const formatLibrarySize = (bytes: number): string => {
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
 };
 
+export const getLibraryFileMoveSortCount = (item: LibraryFile): number =>
+  item.moveCount > 0 ? item.moveCount : item.metadata.setupStoneCount ?? 0;
+
+export const getLibraryFileMoveSummary = (item: LibraryFile): string => {
+  if (item.moveCount > 0) return `${item.moveCount} move${item.moveCount === 1 ? '' : 's'}`;
+  const setupStoneCount = item.metadata.setupStoneCount ?? 0;
+  if (setupStoneCount > 0) return `${setupStoneCount} setup stone${setupStoneCount === 1 ? '' : 's'}`;
+  return '0 moves';
+};
+
 const librarySearchTokens = (query: string): string[] =>
   query
     .trim()
@@ -284,7 +297,8 @@ export const getLibraryItemSearchText = (item: LibraryItem): string => {
       typeof metadata.boardSize === 'number' ? `${metadata.boardSize}x${metadata.boardSize}` : undefined,
       typeof metadata.komi === 'number' ? `komi ${metadata.komi}` : undefined,
       typeof metadata.handicap === 'number' ? `handicap ${metadata.handicap}` : undefined,
-      `${item.moveCount} moves`,
+      typeof metadata.setupStoneCount === 'number' ? `${metadata.setupStoneCount} setup stones` : undefined,
+      getLibraryFileMoveSummary(item),
     );
   }
   return fields.filter((field): field is string => !!field).join(' ').toLowerCase();

@@ -7,6 +7,8 @@ import {
   duplicateLibraryItem,
   duplicateLibraryItems,
   extractLibraryMetadata,
+  getLibraryFileMoveSortCount,
+  getLibraryFileMoveSummary,
   formatLibrarySize,
   getLibraryFolderOptions,
   getLibrarySaveTargetFolderId,
@@ -54,7 +56,21 @@ describe('library storage helpers', () => {
       event: undefined,
       handicap: undefined,
       rules: undefined,
+      setupStoneCount: undefined,
     });
+  });
+
+  it('extracts setup stone counts for scanned board-position SGFs', () => {
+    const setupSgf = '(;GM[1]FF[4]SZ[9]AB[aa][ii]AW[ia]PL[B])';
+    const item = createLibraryItem('Photo Board', setupSgf, null, 123);
+
+    expect(item.moveCount).toBe(0);
+    expect(item.metadata.setupStoneCount).toBe(3);
+    expect(getLibraryFileMoveSummary(item)).toBe('3 setup stones');
+    expect(getLibraryFileMoveSortCount(item)).toBe(3);
+    expect(getLibraryItemSearchText(item)).toContain('3 setup stones');
+    expect(getLibraryItemSearchText(item)).not.toContain('0 moves');
+    expect(libraryItemMatchesQuery(item, '3 setup')).toBe(true);
   });
 
   it('creates file records with metadata, move count, and size', () => {
@@ -204,6 +220,27 @@ describe('library storage helpers', () => {
       expect(items[0].moveCount).toBe(2);
     }
     expect(items[1]?.type).toBe('folder');
+  });
+
+  it('backfills setup stone metadata when normalizing legacy file records', () => {
+    const items = normalizeLibraryItems([
+      {
+        id: 'setup-file',
+        name: 'Setup',
+        sgf: '(;GM[1]FF[4]SZ[9]AB[aa][ii]AW[ia]PL[B])',
+        createdAt: 1,
+        updatedAt: 2,
+        parentId: null,
+        type: 'file',
+        metadata: {},
+      },
+    ]);
+
+    expect(items[0]?.type).toBe('file');
+    if (items[0]?.type === 'file') {
+      expect(items[0].metadata.setupStoneCount).toBe(3);
+      expect(items[0].moveCount).toBe(0);
+    }
   });
 
   it('round trips the full-library JSON backup format', () => {

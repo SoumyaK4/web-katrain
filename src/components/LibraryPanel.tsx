@@ -28,6 +28,8 @@ import {
   duplicateLibraryItem,
   duplicateLibraryItems,
   formatLibrarySize,
+  getLibraryFileMoveSortCount,
+  getLibraryFileMoveSummary,
   getLibraryFolderOptions,
   getLibraryStats,
   getUniqueLibraryItemName,
@@ -545,7 +547,11 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         arr.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'moves':
-        arr.sort((a, b) => (isFile(b) ? b.moveCount : 0) - (isFile(a) ? a.moveCount : 0));
+        arr.sort(
+          (a, b) =>
+            (isFile(b) ? getLibraryFileMoveSortCount(b) : 0) -
+            (isFile(a) ? getLibraryFileMoveSortCount(a) : 0)
+        );
         break;
       case 'size':
         arr.sort((a, b) => (isFile(b) ? b.size : 0) - (isFile(a) ? a.size : 0));
@@ -641,7 +647,10 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
           case 'name':
             return a.name.localeCompare(b.name);
           case 'moves':
-            return (isFile(b) ? b.moveCount : 0) - (isFile(a) ? a.moveCount : 0);
+            return (
+              (isFile(b) ? getLibraryFileMoveSortCount(b) : 0) -
+              (isFile(a) ? getLibraryFileMoveSortCount(a) : 0)
+            );
           case 'size':
             return (isFile(b) ? b.size : 0) - (isFile(a) ? a.size : 0);
           case 'recent':
@@ -1289,6 +1298,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     const downloadFileLabel = `Download ${item.name} as SGF`;
     const renameFileLabel = `Rename ${item.name}`;
     const deleteFileLabel = `Delete ${item.name}`;
+    const moveSummary = getLibraryFileMoveSummary(item);
     return (
       <div
         key={item.id}
@@ -1303,7 +1313,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
         tabIndex={0}
         aria-selected={isSelected}
         aria-current={isLoaded ? 'true' : undefined}
-        aria-label={`${item.name}, game file, ${item.moveCount} moves${isLoadedDirty ? ', unsaved changes' : ''}`}
+        aria-label={`${item.name}, game file, ${moveSummary}${isLoadedDirty ? ', unsaved changes' : ''}`}
         data-library-row="file"
         data-library-row-name={item.name}
         data-library-loaded-dirty={isLoadedDirty ? 'true' : undefined}
@@ -1338,7 +1348,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
             ? `${item.metadata.black ?? 'Black'} vs ${item.metadata.white ?? 'White'} · `
             : ''}
           {item.metadata.date ? `${item.metadata.date} · ` : ''}
-          {item.moveCount} · {(item.size / 1024).toFixed(1)} KB
+          {moveSummary} · {(item.size / 1024).toFixed(1)} KB
         </div>
         {isLoadedDirty && (
           <span
