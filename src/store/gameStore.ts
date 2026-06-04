@@ -1072,6 +1072,43 @@ const PROGRESS_APPLY_MIN_MS = 500;
 const isAnalysisCanceled = (err: unknown): boolean =>
   isKataGoCanceledError(err) || isAnalysisQueueCanceledError(err) || isAnalysisQueueStaleError(err);
 
+const gameAnalysisTypeLabel = (type: NonNullable<GameStore['gameAnalysisType']>): string => {
+  if (type === 'quick') return 'Quick game analysis';
+  if (type === 'fast') return 'Fast game review';
+  return 'Full game analysis';
+};
+
+const errorMessage = (err: unknown): string => {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.trim() || 'Unknown analysis error';
+};
+
+const gameAnalysisFailureUpdate = (
+  type: NonNullable<GameStore['gameAnalysisType']>,
+  failed: number,
+  total: number,
+  lastError: string | null
+): Partial<Pick<GameStore, 'engineStatus' | 'engineError' | 'notification'>> => {
+  if (failed <= 0) return {};
+  const label = gameAnalysisTypeLabel(type);
+  const totalLabel = `${total} position${total === 1 ? '' : 's'}`;
+  const summary =
+    failed >= total
+      ? `${label} failed for all ${totalLabel}`
+      : `${label} skipped ${failed} of ${totalLabel}`;
+  const detail = lastError ?? 'Unknown analysis error';
+  const message = `${summary}: ${detail}`;
+  return {
+    engineStatus: 'error',
+    engineError: detail,
+    notification: {
+      message,
+      type: 'error',
+      copyText: message,
+    },
+  };
+};
+
 const analysisCacheKey = (...parts: unknown[]): string => JSON.stringify(parts);
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -1922,6 +1959,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     void (async () => {
       let done = 0;
+      let failed = 0;
+      let lastFailure: string | null = null;
       let lastUiUpdate = getAnimationNow();
       let metaSynced = false;
 
@@ -1994,8 +2033,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
               };
               node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, 1);
             }
-          } catch {
-            // Ignore failures for bulk analysis; individual node analysis can still run later.
+          } catch (err) {
+            if (isAnalysisCanceled(err)) return;
+            failed += toEval.length;
+            lastFailure = errorMessage(err);
           }
         }
         if (token !== gameAnalysisToken) return;
@@ -2026,6 +2067,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameAnalysisTotal: total,
         analysisCacheSize: getAnalysisCacheSize(s.rootNode),
         treeVersion: s.treeVersion + 1,
+        ...gameAnalysisFailureUpdate('quick', failed, total, lastFailure),
       }));
     })();
   },
@@ -2062,6 +2104,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const analysisPvLen = Math.max(0, Math.min(get().settings.katagoAnalysisPvLen, 15));
 
       let done = 0;
+      let failed = 0;
+      let lastFailure: string | null = null;
       let lastUiUpdate = getAnimationNow();
       let metaSynced = false;
 
@@ -2150,8 +2194,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
               ownershipMode: 'none',
             };
             node.analysisVisitsRequested = fastVisits;
-          } catch {
-            // Ignore failures for bulk analysis; individual node analysis can still run later.
+          } catch (err) {
+            if (isAnalysisCanceled(err)) return;
+            failed++;
+            lastFailure = errorMessage(err);
           }
         }
         if (token !== gameAnalysisToken) return;
@@ -2182,6 +2228,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameAnalysisTotal: total,
         analysisCacheSize: getAnalysisCacheSize(s.rootNode),
         treeVersion: s.treeVersion + 1,
+        ...gameAnalysisFailureUpdate('fast', failed, total, lastFailure),
       }));
     })();
   },
@@ -2217,6 +2264,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     void (async () => {
       let done = 0;
+      let failed = 0;
+      let lastFailure: string | null = null;
       let lastUiUpdate = getAnimationNow();
       let metaSynced = false;
 
@@ -2315,8 +2364,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
               ownershipMode: s.settings.katagoOwnershipMode,
             };
             node.analysisVisitsRequested = Math.max(node.analysisVisitsRequested ?? 0, visits);
-          } catch {
-            // Ignore failures for bulk analysis; individual node analysis can still run later.
+          } catch (err) {
+            if (isAnalysisCanceled(err)) return;
+            failed++;
+            lastFailure = errorMessage(err);
           }
         }
         if (token !== gameAnalysisToken) return;
@@ -2347,6 +2398,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameAnalysisTotal: total,
         analysisCacheSize: getAnalysisCacheSize(s.rootNode),
         treeVersion: s.treeVersion + 1,
+        ...gameAnalysisFailureUpdate('full', failed, total, lastFailure),
       }));
     })();
   },
