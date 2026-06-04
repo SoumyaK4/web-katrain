@@ -19,6 +19,11 @@ const modalSources = [
   { path: 'src/components/NewGameModal.tsx', titleId: 'new-game-title', escape: 'useEscapeToClose(onClose)' },
   { path: 'src/components/PhotoBoardModal.tsx', titleId: 'photo-board-title', escape: 'useEscapeToClose(onClose, !cameraCaptureOpen)' },
   { path: 'src/components/CameraCaptureModal.tsx', titleId: 'camera-capture-title', escape: 'useEscapeToClose(handleClose)' },
+  {
+    path: 'src/components/ResignConfirmModal.tsx',
+    titleId: 'resign-confirm-title',
+    escape: "window.addEventListener('keydown', handleKeyDown, true)",
+  },
   { path: 'src/components/SaveToLibraryDialog.tsx', titleId: 'save-to-library-title', escape: 'useEscapeToClose(onClose, open && !saving)' },
   { path: 'src/components/SettingsModal.tsx', titleId: 'settings-title', escape: 'useEscapeToClose(onClose)' },
   { path: 'src/components/UnsavedChangesModal.tsx', titleId: 'unsaved-changes-title', escape: "useEscapeToClose(() => onChoice('cancel'))" },

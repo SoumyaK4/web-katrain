@@ -31,7 +31,10 @@ export const ResignConfirmModal: React.FC<ResignConfirmModalProps> = ({
   const result = getResignResult(player);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-3 mobile-safe-inset mobile-safe-area-bottom">
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-3 mobile-safe-inset mobile-safe-area-bottom"
+      onClick={onCancel}
+    >
       <div
         className="ui-panel flex w-full max-w-md flex-col overflow-hidden rounded-lg border shadow-xl"
         role="dialog"
@@ -39,6 +42,7 @@ export const ResignConfirmModal: React.FC<ResignConfirmModalProps> = ({
         aria-labelledby="resign-confirm-title"
         aria-describedby="resign-confirm-description"
         data-resign-confirm="true"
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="ui-bar flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
           <h2 id="resign-confirm-title" className="text-lg font-semibold text-[var(--ui-text)]">
