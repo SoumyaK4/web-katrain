@@ -214,6 +214,41 @@ describe('GameStore loadGame', () => {
         expect(state.rootNode.properties?.CR).toEqual(['dd']);
     });
 
+    it('supports right-click board marking with edit history', () => {
+        const store = useGameStore.getState();
+        store.resetGame();
+
+        store.toggleBoardPointMarkup(3, 3);
+        expect(useGameStore.getState().rootNode.properties?.MA).toEqual(['dd']);
+
+        store.undoEdit();
+        expect(useGameStore.getState().rootNode.properties?.MA).toBeUndefined();
+
+        store.redoEdit();
+        expect(useGameStore.getState().rootNode.properties?.MA).toEqual(['dd']);
+
+        store.toggleBoardPointMarkup(3, 3);
+        expect(useGameStore.getState().rootNode.properties?.MA).toBeUndefined();
+
+        store.setEditTool('marker-triangle');
+        store.applyEditTool(4, 4);
+        expect(useGameStore.getState().rootNode.properties?.TR).toEqual(['ee']);
+        store.toggleBoardPointMarkup(4, 4);
+        expect(useGameStore.getState().rootNode.properties?.TR).toBeUndefined();
+
+        store.setEditTool('setup-black');
+        store.applyEditTool(5, 5);
+        expect(useGameStore.getState().board[5]?.[5]).toBe('black');
+        store.toggleBoardPointMarkup(5, 5);
+        expect(useGameStore.getState().board[5]?.[5]).toBeNull();
+        expect(useGameStore.getState().rootNode.properties?.AB).toBeUndefined();
+        expect(useGameStore.getState().rootNode.properties?.AE).toEqual(['ff']);
+
+        const beforeNoop = useGameStore.getState().editUndoCount;
+        store.toggleBoardPointMarkup(6, 6);
+        expect(useGameStore.getState().editUndoCount).toBe(beforeNoop);
+    });
+
     it('switches to a numbered branch while preserving depth', () => {
         const store = useGameStore.getState();
         store.resetGame();

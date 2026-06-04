@@ -156,6 +156,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     isEditMode,
     editTool,
     applyEditTool,
+    toggleBoardPointMarkup,
     moveHistory,
     analysisData,
     isAnalysisMode,
@@ -181,6 +182,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       isEditMode: state.isEditMode,
       editTool: state.editTool,
       applyEditTool: state.applyEditTool,
+      toggleBoardPointMarkup: state.toggleBoardPointMarkup,
       moveHistory: state.moveHistory,
       analysisData: state.analysisData,
       isAnalysisMode: state.isAnalysisMode,
@@ -1408,6 +1410,16 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     tryPlayPoint(pt);
   };
 
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    const pt = eventToInternal(e);
+    if (!pt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    suppressNextClickRef.current = true;
+    if (scoringMode || isSelectingRegionOfInterest) return;
+    toggleBoardPointMarkup(pt.x, pt.y);
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
 
@@ -2099,6 +2111,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
           touchAction: boardTouchAction,
         }}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

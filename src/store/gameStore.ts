@@ -149,6 +149,7 @@ interface GameStore extends GameState {
   toggleEditMode: () => void;
   setEditTool: (tool: EditTool) => void;
   applyEditTool: (x: number, y: number, options?: ApplyEditToolOptions) => void;
+  toggleBoardPointMarkup: (x: number, y: number) => void;
   clearCurrentNodeSetupStones: () => void;
   applySetupStones: (stones: Array<{ x: number; y: number; player: Player | null }>) => number;
   clearCurrentNodeAnnotations: () => void;
@@ -542,6 +543,9 @@ const removeMarkupCoord = (props: Record<string, string[]>, coord: string): void
 const hasMarkupCoord = (props: Record<string, string[]>, coord: string): boolean =>
   MARKER_PROPERTIES.some((key) => props[key]?.includes(coord)) ||
   (props.LB ?? []).some((value) => value.split(':', 1)[0] === coord);
+
+const hasSetupCoord = (props: Record<string, string[]>, coord: string): boolean =>
+  SETUP_PROPERTIES.some((key) => props[key]?.includes(coord));
 
 const addUniqueValue = (props: Record<string, string[]>, key: string, value: string): void => {
   const values = props[key] ?? [];
@@ -1629,6 +1633,75 @@ export const useGameStore = create<GameStore>((set, get) => ({
         analysisData: null,
         treeVersion: state.treeVersion + 1,
         notification: { message: `Edited ${setupWord}.${summary}`, type: pruned > 0 ? 'success' : 'info' },
+      };
+    }),
+
+  toggleBoardPointMarkup: (x, y) =>
+    set((state) => {
+      const boardSize = state.board.length;
+      if (x < 0 || y < 0 || x >= boardSize || y >= boardSize) return {};
+
+      const node = state.currentNode;
+      const props = ensureNodeProperties(node);
+      const coord = coordinateToSgf(x, y);
+
+      if (state.isEditMode) {
+        if (hasMarkupCoord(props, coord)) {
+          const history = pushEditHistory(state);
+          removeMarkupCoord(props, coord);
+          return {
+            ...history,
+            treeVersion: state.treeVersion + 1,
+            notification: { message: 'Removed marker or label.', type: 'info' },
+          };
+        }
+
+        const nextBoard = cloneBoard(node.gameState.board);
+        const currentStone = nextBoard[y]?.[x] ?? null;
+        if (!currentStone && !hasSetupCoord(props, coord)) return {};
+        const history = pushEditHistory(state);
+        nextBoard[y]![x] = null;
+        removeSetupCoord(props, coord);
+        addUniqueValue(props, 'AE', coord);
+
+        node.gameState = { ...node.gameState, board: nextBoard };
+        node.analysis = null;
+        node.analysisVisitsRequested = 0;
+        clearAnalysisInSubtree(node);
+        const pruned = rebuildDescendants(node);
+        const summary = pruned > 0 ? ` ${pruned} descendant ${pruned === 1 ? 'node was' : 'nodes were'} pruned.` : '';
+        return {
+          ...history,
+          currentNode: node,
+          board: node.gameState.board,
+          currentPlayer: node.gameState.currentPlayer,
+          moveHistory: node.gameState.moveHistory,
+          capturedBlack: node.gameState.capturedBlack,
+          capturedWhite: node.gameState.capturedWhite,
+          analysisData: null,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: `Removed setup stone.${summary}`, type: pruned > 0 ? 'success' : 'info' },
+        };
+      }
+
+      const hasCross = props.MA?.includes(coord) ?? false;
+      if (hasCross) {
+        const history = pushEditHistory(state);
+        removeValue(props, 'MA', (value) => value === coord);
+        return {
+          ...history,
+          treeVersion: state.treeVersion + 1,
+          notification: { message: 'Removed cross marker.', type: 'info' },
+        };
+      }
+
+      const history = pushEditHistory(state);
+      removeMarkupCoord(props, coord);
+      addUniqueValue(props, 'MA', coord);
+      return {
+        ...history,
+        treeVersion: state.treeVersion + 1,
+        notification: { message: 'Added cross marker.', type: 'info' },
       };
     }),
 
