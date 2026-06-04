@@ -12,7 +12,7 @@ import { NotesPanel } from '../NotesPanel';
 import { getDashboardLayoutMode, type DashboardLayoutMode } from '../../utils/dashboardLayout';
 import { LIBRARY_OPEN_STORAGE_KEY } from '../../utils/layoutPreferences';
 import { readLocalStorage } from '../../utils/storage';
-import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
+import { APP_BUILD_LABEL, APP_COMMIT_URL, APP_ISSUE_REPORT_URL } from '../../utils/appInfo';
 
 type EngineState = 'ready' | 'running' | 'loading' | 'error';
 
@@ -364,6 +364,17 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
           <button type="button" className="iconbtn" title="Photo board" aria-label="Photo Board" onClick={onScanBoard}><Icon name="camera" /></button>
           <button type="button" className="iconbtn" title="Settings" aria-label="Settings" onClick={onSettings}><Icon name="settings" /></button>
           <button type="button" className="iconbtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts" onClick={onKeyboardHelp}><Icon name="keyboard" /></button>
+          <a
+            className="iconbtn"
+            href={APP_ISSUE_REPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Report an issue on GitHub"
+            aria-label="Report an issue on GitHub"
+            data-dashboard-report-issue="true"
+          >
+            <Icon name="bug" />
+          </a>
         </div>
 
         <div className="header-spacer" />
