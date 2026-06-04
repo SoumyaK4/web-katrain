@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   bindingToDisplay,
   createShortcutCollisionReplacement,
@@ -11,10 +11,48 @@ import {
   getShortcutGroups,
   isNativePasteShortcutEvent,
   isShortcutRecordingCancelKey,
+  loadShortcutOverrides,
+  saveShortcutOverrides,
+  setShortcutOverride,
   SHORTCUT_DEFINITIONS,
   shortcutDisplay,
   type ShortcutBinding,
 } from '../src/utils/shortcuts';
+
+const originalLocalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+
+function restoreLocalStorage() {
+  if (originalLocalStorage) {
+    Object.defineProperty(globalThis, 'localStorage', originalLocalStorage);
+  } else {
+    Reflect.deleteProperty(globalThis, 'localStorage');
+  }
+}
+
+function installMemoryStorage() {
+  const values = new Map<string, string>();
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => Array.from(values.keys())[index] ?? null,
+      removeItem: (key: string) => {
+        values.delete(key);
+      },
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    } satisfies Storage,
+  });
+}
+
+afterEach(() => {
+  restoreLocalStorage();
+});
 
 const keyboardEvent = (key: string, init: Partial<KeyboardEventInit> = {}) =>
   ({
@@ -174,6 +212,47 @@ describe('shortcut utilities', () => {
 
     expect(getShortcutBindings('open-sgf', next)).toEqual([{ key: 's', ctrl: true, shift: false, alt: false }]);
     expect(getShortcutBindings('save-sgf', next)).toBe(null);
+  });
+
+  it('does not persist shortcut overrides that match command defaults', () => {
+    installMemoryStorage();
+
+    setShortcutOverride('save-sgf', [{ key: 's', ctrl: true }]);
+
+    expect(loadShortcutOverrides()).toEqual({});
+    expect(getShortcutBindings('save-sgf')).toEqual([{ key: 's', ctrl: true, shift: false, alt: false }]);
+  });
+
+  it('canonicalizes shortcut overrides before saving', () => {
+    installMemoryStorage();
+
+    saveShortcutOverrides({
+      'save-sgf': [{ key: 'F9' }, { key: 'f9' }],
+      'open-sgf': [],
+      fullscreen: [{ key: 'F11' }],
+      'toggle-sound': null,
+    });
+
+    expect(loadShortcutOverrides()).toEqual({
+      'save-sgf': [{ key: 'F9', ctrl: false, shift: false, alt: false }],
+      'toggle-sound': null,
+    });
+  });
+
+  it('clears a collision without persisting no-op default overrides', () => {
+    const next = createShortcutCollisionReplacement(
+      {
+        'save-sgf': null,
+        'open-sgf': [{ key: 's', ctrl: true }],
+      },
+      'save-sgf',
+      'open-sgf',
+      { key: 's', ctrl: true }
+    );
+
+    expect(Object.prototype.hasOwnProperty.call(next, 'save-sgf')).toBe(false);
+    expect(getShortcutBindings('save-sgf', next)).toEqual([{ key: 's', ctrl: true, shift: false, alt: false }]);
+    expect(getShortcutBindings('open-sgf', next)).toBe(null);
   });
 
   it('preserves non-conflicting bindings when replacing one binding from a multi-binding shortcut', () => {

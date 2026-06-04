@@ -204,6 +204,53 @@ const bindingKey = (binding: ShortcutBinding): string => {
   return `${b.ctrl ? 'C' : '-'}${b.shift ? 'S' : '-'}${b.alt ? 'A' : '-'}:${b.key}`;
 };
 
+const bindingsEqual = (a: ShortcutBinding[], b: ShortcutBinding[]): boolean => {
+  if (a.length !== b.length) return false;
+  return a.every((binding, index) => {
+    const other = b[index];
+    return !!other && bindingKey(binding) === bindingKey(other);
+  });
+};
+
+const normalizeBindingList = (bindings: ShortcutBinding[]): ShortcutBinding[] => {
+  const seen = new Set<string>();
+  const normalized: ShortcutBinding[] = [];
+  for (const binding of bindings) {
+    const next = normalizeBinding(binding);
+    if (!next.key) continue;
+    const key = bindingKey(next);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(next);
+  }
+  return normalized;
+};
+
+const canonicalizeShortcutOverride = (
+  id: string,
+  bindings: ShortcutBinding[] | null
+): ShortcutBinding[] | null | undefined => {
+  if (!shortcutById.has(id)) return undefined;
+  if (bindings === null) return null;
+
+  const normalized = normalizeBindingList(bindings);
+  if (normalized.length === 0) return undefined;
+
+  const defaults = shortcutById.get(id)?.defaultBindings.map(normalizeBinding) ?? [];
+  if (bindingsEqual(normalized, defaults)) return undefined;
+
+  return normalized;
+};
+
+const canonicalizeShortcutOverrides = (overrides: ShortcutOverrides): ShortcutOverrides => {
+  const next: ShortcutOverrides = {};
+  for (const [id, value] of Object.entries(overrides)) {
+    const canonicalValue = canonicalizeShortcutOverride(id, value);
+    if (canonicalValue !== undefined) next[id] = canonicalValue;
+  }
+  return next;
+};
+
 export const bindingToDisplay = (binding: ShortcutBinding): string => {
   const b = normalizeBinding(binding);
   const parts: string[] = [];
@@ -225,13 +272,15 @@ export const loadShortcutOverrides = (): ShortcutOverrides => {
     if (!parsed || typeof parsed !== 'object') return {};
     const out: ShortcutOverrides = {};
     for (const [id, value] of Object.entries(parsed)) {
-      if (!shortcutById.has(id)) continue;
       if (value === null) {
-        out[id] = null;
+        const canonicalValue = canonicalizeShortcutOverride(id, null);
+        if (canonicalValue !== undefined) out[id] = canonicalValue;
       } else if (Array.isArray(value)) {
-        out[id] = value
-          .filter((v): v is ShortcutBinding => !!v && typeof v === 'object' && typeof v.key === 'string')
-          .map(normalizeBinding);
+        const bindings = value.filter(
+          (v): v is ShortcutBinding => !!v && typeof v === 'object' && typeof v.key === 'string'
+        );
+        const canonicalValue = canonicalizeShortcutOverride(id, bindings);
+        if (canonicalValue !== undefined) out[id] = canonicalValue;
       }
     }
     return out;
@@ -241,7 +290,8 @@ export const loadShortcutOverrides = (): ShortcutOverrides => {
 };
 
 export const saveShortcutOverrides = (overrides: ShortcutOverrides): void => {
-  if (writeLocalStorage(STORAGE_KEY, JSON.stringify(overrides))) {
+  const canonicalOverrides = canonicalizeShortcutOverrides(overrides);
+  if (writeLocalStorage(STORAGE_KEY, JSON.stringify(canonicalOverrides))) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(SHORTCUTS_UPDATED_EVENT));
     }
@@ -373,13 +423,23 @@ export const createShortcutCollisionReplacement = (
     remainingConflictingBindings && remainingConflictingBindings.length > 0
       ? remainingConflictingBindings.map(normalizeBinding)
       : null;
-  next[currentId] = [normalizedBinding];
-  return next;
+  const currentOverride = canonicalizeShortcutOverride(currentId, [normalizedBinding]);
+  if (currentOverride === undefined) {
+    delete next[currentId];
+  } else {
+    next[currentId] = currentOverride;
+  }
+  return canonicalizeShortcutOverrides(next);
 };
 
 export const setShortcutOverride = (id: string, bindings: ShortcutBinding[] | null): void => {
   const overrides = loadShortcutOverrides();
-  overrides[id] = bindings === null ? null : bindings.map(normalizeBinding);
+  const nextValue = canonicalizeShortcutOverride(id, bindings);
+  if (nextValue === undefined) {
+    delete overrides[id];
+  } else {
+    overrides[id] = nextValue;
+  }
   saveShortcutOverrides(overrides);
 };
 
