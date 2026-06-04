@@ -70,6 +70,13 @@ describe('MobileHome', () => {
     expect(html).toContain('Copy SGF');
   });
 
+  it('makes the scan action discoverable as camera or image import', () => {
+    const html = renderToStaticMarkup(<MobileHome {...baseProps} />);
+
+    expect(html).toContain('Photo Board');
+    expect(html).toContain('Camera or image');
+  });
+
   it('explains the quick new game replacement risk on mobile home', () => {
     const html = renderToStaticMarkup(<MobileHome {...baseProps} quickNewGameBoardSize={13} />);
 

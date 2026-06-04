@@ -48,6 +48,25 @@ describe('PhotoBoardModal', () => {
     expect(source).toContain('data-photo-board-source-name="true"');
   });
 
+  it('opens a live camera capture path before falling back to the capture input', () => {
+    const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(source).toContain('CameraCaptureModal');
+    expect(source).toContain('liveCameraSupported');
+    expect(source).toContain('setCameraCaptureOpen(true)');
+    expect(source).toContain('cameraInputRef.current?.click();');
+    expect(source).toContain('data-photo-board-live-camera={liveCameraSupported}');
+    expect(html).not.toContain('data-camera-capture-modal="true"');
+  });
+
   it('marks the camera source unavailable when no camera is detected', () => {
     const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
 

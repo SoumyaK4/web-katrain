@@ -39,6 +39,7 @@ import { createObjectUrl, revokeObjectUrl } from '../utils/objectUrl';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import { isTextEntryTarget } from '../utils/keyboardTarget';
 import { detectCameraAvailability, type CameraAvailability } from '../utils/cameraAvailability';
+import { CameraCaptureModal } from './CameraCaptureModal';
 
 interface PhotoBoardModalProps {
   onClose: () => void;
@@ -110,6 +111,8 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [mobileTab, setMobileTab] = React.useState<MobilePhotoBoardTab>('photo');
   const [showDeltaOverlay, setShowDeltaOverlay] = React.useState(true);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('unknown');
+  const [liveCameraSupported, setLiveCameraSupported] = React.useState(false);
+  const [cameraCaptureOpen, setCameraCaptureOpen] = React.useState(false);
 
   const currentBoardSize = React.useMemo<BoardSize | null>(() => {
     const size = currentBoard?.length;
@@ -195,6 +198,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     };
   }, []);
 
+  React.useEffect(() => {
+    const mediaDevices = typeof navigator === 'undefined' ? undefined : navigator.mediaDevices;
+    setLiveCameraSupported(typeof mediaDevices?.getUserMedia === 'function');
+  }, []);
+
   const counts = React.useMemo(() => {
     let black = 0;
     let white = 0;
@@ -260,6 +268,19 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const handlePhotoInputChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     choosePhoto(event.target.files?.[0]);
     event.currentTarget.value = '';
+  }, [choosePhoto]);
+
+  const openCameraSource = React.useCallback(() => {
+    if (liveCameraSupported) {
+      setCameraCaptureOpen(true);
+      return;
+    }
+    cameraInputRef.current?.click();
+  }, [liveCameraSupported]);
+
+  const handleCameraCapture = React.useCallback((file: File) => {
+    setCameraCaptureOpen(false);
+    choosePhoto(file);
   }, [choosePhoto]);
 
   React.useEffect(() => {
@@ -452,6 +473,12 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-0 mobile-safe-inset mobile-safe-area-bottom md:p-2 lg:p-4">
+      {cameraCaptureOpen && (
+        <CameraCaptureModal
+          onCapture={handleCameraCapture}
+          onClose={() => setCameraCaptureOpen(false)}
+        />
+      )}
       <div
         className="ui-panel flex h-full max-h-none w-full max-w-5xl flex-col overflow-hidden rounded-none border shadow-xl md:max-h-[94vh] md:rounded-lg"
         role="dialog"
@@ -509,11 +536,12 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               <button
                 type="button"
                 className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[var(--ui-surface)]"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={openCameraSource}
                 disabled={cameraUnavailable}
                 aria-label={cameraUnavailable ? 'No camera detected for board photo' : 'Take board photo with camera'}
                 title={cameraButtonTitle}
                 data-photo-board-camera-state={cameraAvailability}
+                data-photo-board-live-camera={liveCameraSupported}
               >
                 <span className="flex items-center justify-center gap-2">
                   <FaCamera /> {cameraUnavailable ? 'No camera' : 'Camera'}

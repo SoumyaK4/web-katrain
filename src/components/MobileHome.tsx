@@ -201,7 +201,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
             <HomeAction label="Save Copy to Library" icon={<FaSave />} onClick={onSaveToLibrary} />
             <HomeAction label="Copy SGF" icon={<FaCopy />} onClick={onCopySgf} />
             <HomeAction label="Open SGF / Photo / Model" icon={<FaFolderOpen />} onClick={onOpenSgf} />
-            <HomeAction label="Photo Board" icon={<FaCamera />} onClick={onScanBoard} />
+            <HomeAction label="Photo Board" icon={<FaCamera />} onClick={onScanBoard} hint="Camera or image" />
             <HomeAction label="Paste SGF / OGS" icon={<FaClipboard />} onClick={onPasteSgf} />
             <HomeAction label="Game Library" icon={<FaBook />} onClick={onOpenLibrary} />
             <HomeAction label="Game Report" icon={<FaChartLine />} onClick={onOpenReport} />
