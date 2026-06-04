@@ -3,6 +3,7 @@ import { coordinateToSgf } from './sgf';
 
 export type PhotoBoardStone = Player | null;
 export type PhotoBoardTraceTool = Player | 'erase';
+export type PhotoBoardTraceTransform = 'rotate-left' | 'rotate-right' | 'flip-horizontal' | 'flip-vertical';
 
 export const PHOTO_BOARD_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'] as const;
 export const PHOTO_BOARD_SUPPORTED_IMAGE_LABEL = 'JPG, PNG, WebP, or BMP';
@@ -99,6 +100,48 @@ export function resizePhotoBoardStones(
     }
   }
   return resized;
+}
+
+export function transformPhotoBoardStones(
+  stones: PhotoBoardStone[],
+  boardSize: BoardSize,
+  transform: PhotoBoardTraceTransform,
+): PhotoBoardStone[] {
+  const transformed: PhotoBoardStone[] = Array.from({ length: boardSize * boardSize }, () => null);
+  if (stones.length !== boardSize * boardSize) return transformed;
+
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const stone = stones[y * boardSize + x] ?? null;
+      if (!stone) continue;
+
+      let nextX = x;
+      let nextY = y;
+      if (transform === 'rotate-left') {
+        nextX = y;
+        nextY = boardSize - 1 - x;
+      } else if (transform === 'rotate-right') {
+        nextX = boardSize - 1 - y;
+        nextY = x;
+      } else if (transform === 'flip-horizontal') {
+        nextX = boardSize - 1 - x;
+      } else {
+        nextY = boardSize - 1 - y;
+      }
+
+      transformed[nextY * boardSize + nextX] = stone;
+    }
+  }
+
+  return transformed;
+}
+
+export function swapPhotoBoardStoneColors(stones: PhotoBoardStone[]): PhotoBoardStone[] {
+  return stones.map((stone) => {
+    if (stone === 'black') return 'white';
+    if (stone === 'white') return 'black';
+    return null;
+  });
 }
 
 export interface PhotoBoardSetup {

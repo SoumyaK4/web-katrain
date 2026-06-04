@@ -129,6 +129,31 @@ describe('PhotoBoardModal', () => {
     expect(html).toContain('aria-keyshortcuts="3 E"');
   });
 
+  it('renders trace board transform controls for orientation correction', () => {
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Trace board transforms"');
+    expect(html).toContain('data-photo-board-transform="rotate-left"');
+    expect(html).toContain('aria-label="Rotate traced board left"');
+    expect(html).toContain('data-photo-board-transform="rotate-right"');
+    expect(html).toContain('aria-label="Rotate traced board right"');
+    expect(html).toContain('data-photo-board-transform="flip-horizontal"');
+    expect(html).toContain('aria-label="Flip traced board horizontally"');
+    expect(html).toContain('data-photo-board-transform="flip-vertical"');
+    expect(html).toContain('aria-label="Flip traced board vertically"');
+    expect(html).toContain('data-photo-board-transform="swap-colors"');
+    expect(html).toContain('aria-label="Swap traced stone colors"');
+    expect(html).toContain('title="Trace stones before transforming the board"');
+    expect(html).toContain('title="Trace stones before swapping colors"');
+  });
+
   it('keeps keyboard trace-tool changes available for the next paint', () => {
     const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
 

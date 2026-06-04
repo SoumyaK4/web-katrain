@@ -1,5 +1,18 @@
 import React from 'react';
-import { FaCamera, FaEraser, FaFolderOpen, FaLayerGroup, FaPlay, FaTimes, FaTrash } from 'react-icons/fa';
+import {
+  FaArrowsAltH,
+  FaArrowsAltV,
+  FaCamera,
+  FaEraser,
+  FaExchangeAlt,
+  FaFolderOpen,
+  FaLayerGroup,
+  FaPlay,
+  FaRedo,
+  FaTimes,
+  FaTrash,
+  FaUndo,
+} from 'react-icons/fa';
 import type { BoardSize, BoardState, Player } from '../types';
 import { BOARD_SIZES } from '../utils/boardSize';
 import {
@@ -15,8 +28,11 @@ import {
   photoBoardStonesFromBoard,
   resizePhotoBoardStones,
   summarizePhotoBoardDelta,
+  swapPhotoBoardStoneColors,
+  transformPhotoBoardStones,
   type PhotoBoardMoveDelta,
   type PhotoBoardStone,
+  type PhotoBoardTraceTransform,
   type PhotoBoardTraceTool,
 } from '../utils/photoBoard';
 import { createObjectUrl, revokeObjectUrl } from '../utils/objectUrl';
@@ -200,9 +216,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
 
   const canAddToCurrent = !!onAddSetupStones && counts.total > 0 && currentBoardSize === boardSize;
   const canClearBoard = counts.total > 0;
+  const canTransformTrace = counts.total > 0;
   const cameraUnavailable = cameraAvailability === 'unavailable';
   const cameraButtonTitle = cameraUnavailable ? 'No camera detected' : 'Take board photo with camera';
   const clearBoardTitle = canClearBoard ? 'Clear all traced stones' : 'No traced stones to clear';
+  const transformTraceTitle = canTransformTrace ? 'Adjust traced board orientation' : 'Trace stones before transforming the board';
   const importBoardTitle = counts.total > 0
     ? 'Import traced stones as a new board position'
     : 'Trace at least one stone to import a board position';
@@ -355,6 +373,16 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setStones(currentBoardStones);
   };
 
+  const transformTrace = (transform: PhotoBoardTraceTransform) => {
+    if (!canTransformTrace) return;
+    setStones((prev) => transformPhotoBoardStones(prev, boardSize, transform));
+  };
+
+  const swapTraceColors = () => {
+    if (!canTransformTrace) return;
+    setStones((prev) => swapPhotoBoardStoneColors(prev));
+  };
+
   const importBoard = () => {
     const sgf = buildPhotoBoardSetupSgf({
       boardSize,
@@ -405,6 +433,9 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     active
       ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-accent)]'
       : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+  ].join(' ');
+  const traceTransformButtonClass = [
+    'min-h-10 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-xs font-semibold text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[var(--ui-surface)] disabled:hover:text-[var(--ui-text-muted)]',
   ].join(' ');
   const deltaMarkerClass = (type: PhotoBoardDeltaStone['type']) => [
     'pointer-events-none absolute z-20 grid h-4 w-4 place-items-center rounded-full border text-[9px] font-black leading-none shadow',
@@ -665,6 +696,64 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                   {currentBoardStoneCount} current stone{currentBoardStoneCount === 1 ? '' : 's'}
                 </span>
               )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Trace board transforms">
+              <button
+                type="button"
+                className={traceTransformButtonClass}
+                disabled={!canTransformTrace}
+                onClick={() => transformTrace('rotate-left')}
+                title={transformTraceTitle}
+                aria-label="Rotate traced board left"
+                data-photo-board-transform="rotate-left"
+              >
+                <span className="inline-flex items-center gap-1.5"><FaUndo aria-hidden="true" /> Rotate L</span>
+              </button>
+              <button
+                type="button"
+                className={traceTransformButtonClass}
+                disabled={!canTransformTrace}
+                onClick={() => transformTrace('rotate-right')}
+                title={transformTraceTitle}
+                aria-label="Rotate traced board right"
+                data-photo-board-transform="rotate-right"
+              >
+                <span className="inline-flex items-center gap-1.5"><FaRedo aria-hidden="true" /> Rotate R</span>
+              </button>
+              <button
+                type="button"
+                className={traceTransformButtonClass}
+                disabled={!canTransformTrace}
+                onClick={() => transformTrace('flip-horizontal')}
+                title={transformTraceTitle}
+                aria-label="Flip traced board horizontally"
+                data-photo-board-transform="flip-horizontal"
+              >
+                <span className="inline-flex items-center gap-1.5"><FaArrowsAltH aria-hidden="true" /> Flip H</span>
+              </button>
+              <button
+                type="button"
+                className={traceTransformButtonClass}
+                disabled={!canTransformTrace}
+                onClick={() => transformTrace('flip-vertical')}
+                title={transformTraceTitle}
+                aria-label="Flip traced board vertically"
+                data-photo-board-transform="flip-vertical"
+              >
+                <span className="inline-flex items-center gap-1.5"><FaArrowsAltV aria-hidden="true" /> Flip V</span>
+              </button>
+              <button
+                type="button"
+                className={traceTransformButtonClass}
+                disabled={!canTransformTrace}
+                onClick={swapTraceColors}
+                title={canTransformTrace ? 'Swap traced black and white stones' : 'Trace stones before swapping colors'}
+                aria-label="Swap traced stone colors"
+                data-photo-board-transform="swap-colors"
+              >
+                <span className="inline-flex items-center gap-1.5"><FaExchangeAlt aria-hidden="true" /> Swap</span>
+              </button>
             </div>
 
             {currentBoard && (

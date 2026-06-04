@@ -14,6 +14,8 @@ import {
   photoBoardStonesFromBoard,
   resizePhotoBoardStones,
   summarizePhotoBoardDelta,
+  swapPhotoBoardStoneColors,
+  transformPhotoBoardStones,
   type PhotoBoardStone,
 } from '../src/utils/photoBoard';
 import { createEmptyBoard } from '../src/utils/boardSize';
@@ -104,6 +106,37 @@ describe('photo board SGF import', () => {
     expect(expanded).toHaveLength(169);
     expect(expanded[8 * 13 + 8]).toBe('black');
     expect(expanded[12 * 13 + 12]).toBeNull();
+  });
+
+  it('transforms traced stones for orientation correction', () => {
+    const stones = emptyStones(9);
+    stones[0] = 'black'; // A9
+    stones[8] = 'white'; // J9
+    stones[8 * 9] = 'black'; // A1
+
+    const rotateRight = transformPhotoBoardStones(stones, 9, 'rotate-right');
+    expect(rotateRight[8]).toBe('black');
+    expect(rotateRight[80]).toBe('white');
+    expect(rotateRight[0]).toBe('black');
+
+    const rotateLeft = transformPhotoBoardStones(stones, 9, 'rotate-left');
+    expect(rotateLeft[72]).toBe('black');
+    expect(rotateLeft[0]).toBe('white');
+    expect(rotateLeft[80]).toBe('black');
+
+    const flipHorizontal = transformPhotoBoardStones(stones, 9, 'flip-horizontal');
+    expect(flipHorizontal[8]).toBe('black');
+    expect(flipHorizontal[0]).toBe('white');
+    expect(flipHorizontal[80]).toBe('black');
+
+    const flipVertical = transformPhotoBoardStones(stones, 9, 'flip-vertical');
+    expect(flipVertical[72]).toBe('black');
+    expect(flipVertical[80]).toBe('white');
+    expect(flipVertical[0]).toBe('black');
+  });
+
+  it('swaps traced stone colors without moving empty points', () => {
+    expect(swapPhotoBoardStoneColors(['black', 'white', null])).toEqual(['white', 'black', null]);
   });
 
   it('detects a single traced stone as the next current-player move', () => {
