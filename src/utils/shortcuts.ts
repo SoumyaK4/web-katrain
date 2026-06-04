@@ -125,6 +125,7 @@ const normalizeKey = (key: string): string => {
   if (key === ' ') return 'Space';
   if (key === 'Spacebar') return 'Space';
   if (key === 'Esc') return 'Escape';
+  if (/^f\d{1,2}$/i.test(key)) return key.toUpperCase();
   return key.length === 1 ? key.toLowerCase() : key;
 };
 

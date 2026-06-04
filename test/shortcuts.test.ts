@@ -32,6 +32,7 @@ describe('shortcut utilities', () => {
     expect(bindingToDisplay({ key: 'Escape' })).toBe('Esc');
     expect(bindingToDisplay({ key: '/', shift: true })).toBe('?');
     expect(bindingToDisplay({ key: '?', shift: true })).toBe('?');
+    expect(bindingToDisplay({ key: 'f11' })).toBe('F11');
     expect(shortcutDisplay([{ key: 'ArrowLeft' }, { key: 'z' }])).toBe('← / Z');
     expect(shortcutDisplay(null)).toBe('Disabled');
   });
@@ -41,6 +42,7 @@ describe('shortcut utilities', () => {
     expect(eventMatchesBinding(keyboardEvent(' ', {}), { key: 'Space' })).toBe(true);
     expect(eventMatchesBinding(keyboardEvent('?', { shiftKey: true }), { key: '?' })).toBe(true);
     expect(eventMatchesBinding(keyboardEvent('?', { shiftKey: true }), { key: '/', shift: true })).toBe(true);
+    expect(eventMatchesBinding(keyboardEvent('F11'), { key: 'f11' })).toBe(true);
     expect(eventMatchesBinding(keyboardEvent('s'), { key: 's', ctrl: true })).toBe(false);
   });
 
@@ -82,6 +84,7 @@ describe('shortcut utilities', () => {
   it('supports disabled and overridden bindings', () => {
     expect(getShortcutBindings('save-sgf', { 'save-sgf': null })).toBe(null);
     expect(getShortcutBindings('save-sgf', { 'save-sgf': [{ key: 'F9' }] })).toEqual([{ key: 'F9', ctrl: false, shift: false, alt: false }]);
+    expect(getShortcutBindings('fullscreen', { fullscreen: [{ key: 'f11' }] })).toEqual([{ key: 'F11', ctrl: false, shift: false, alt: false }]);
   });
 
   it('exposes file save shortcuts for download and library copies', () => {
