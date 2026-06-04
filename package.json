@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:viewport": "node scripts/check-viewports.mjs",
     "test:typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "audit": "npm audit --audit-level=moderate",
     "lint": "eslint .",
     "preview": "vite preview"
   },
