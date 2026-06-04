@@ -16,9 +16,9 @@ import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from './limits';
 import { MctsSearch, type OwnershipMode } from './analyzeMcts';
 import { fillInputsV7Fast, type RecentMove } from './featuresV7Fast';
 import {
+  getKataGoWarmupFallbackBackend,
   normalizeKataGoBackendPreference,
   shouldCacheKataGoFallbackForRequest,
-  shouldRetryKataGoModelLoadOnFallback,
 } from './backendFallback';
 import {
   BLACK,
@@ -402,10 +402,13 @@ function installModel(nextModel: KataGoModelV8Tf, parsed: ParsedKataGoModelV8, m
   searchKey = null;
 }
 
-async function switchToWasmFallbackForRequest(requestedBackend: KataGoBackendPreference): Promise<void> {
+async function switchToFallbackBackendForRequest(
+  requestedBackend: KataGoBackendPreference,
+  fallbackBackend: KataGoBackendPreference
+): Promise<void> {
   backendPromise = null;
   backendPreference = null;
-  await ensureBackend('wasm');
+  await ensureBackend(fallbackBackend);
   if (shouldCacheKataGoFallbackForRequest({ requestedBackend, fallbackBackend: tf.getBackend() })) {
     backendPreference = requestedBackend;
   }
@@ -422,19 +425,24 @@ async function ensureModel(modelUrl: string, backend?: KataGoBackendPreference):
   const data = maybeUngzip(buf);
 
   const parsed = parseKataGoModelV8(data);
-  try {
-    installModel(await createWarmedModel(parsed), parsed, modelUrl);
-  } catch (err) {
-    if (!shouldRetryKataGoModelLoadOnFallback({
-      requestedBackend,
-      activeBackend: tf.getBackend(),
-      stage: 'warmup',
-    })) {
-      throw err;
-    }
+  const attemptedFallbacks = new Set<KataGoBackendPreference>();
+  while (true) {
+    try {
+      installModel(await createWarmedModel(parsed), parsed, modelUrl);
+      return;
+    } catch (err) {
+      const fallbackBackend = getKataGoWarmupFallbackBackend({
+        requestedBackend,
+        activeBackend: tf.getBackend(),
+        stage: 'warmup',
+      });
+      if (!fallbackBackend || attemptedFallbacks.has(fallbackBackend)) {
+        throw err;
+      }
 
-    await switchToWasmFallbackForRequest(requestedBackend);
-    installModel(await createWarmedModel(parsed), parsed, modelUrl);
+      attemptedFallbacks.add(fallbackBackend);
+      await switchToFallbackBackendForRequest(requestedBackend, fallbackBackend);
+    }
   }
 }
 
