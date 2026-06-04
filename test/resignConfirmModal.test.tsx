@@ -27,4 +27,13 @@ describe('ResignConfirmModal', () => {
     expect(source).toContain('onClick={onCancel}');
     expect(source).toContain('onClick={(event) => event.stopPropagation()}');
   });
+
+  it('only intercepts Escape so focused buttons keep normal keyboard behavior', () => {
+    const source = readFileSync('src/components/ResignConfirmModal.tsx', 'utf8');
+
+    expect(source).not.toContain("event.stopPropagation();\n      if (event.key === 'Escape')");
+    expect(source).toContain(
+      "if (event.key === 'Escape') {\n        event.preventDefault();\n        event.stopPropagation();"
+    );
+  });
 });

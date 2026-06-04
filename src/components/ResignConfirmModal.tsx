@@ -16,9 +16,9 @@ export const ResignConfirmModal: React.FC<ResignConfirmModalProps> = ({
 }) => {
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      event.stopPropagation();
       if (event.key === 'Escape') {
         event.preventDefault();
+        event.stopPropagation();
         onCancel();
       }
     };
