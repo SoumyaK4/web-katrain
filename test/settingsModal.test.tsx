@@ -167,6 +167,14 @@ describe('SettingsModal', () => {
     expect(source).toContain('<div className="text-xs text-[var(--ui-text-faint)]">Official KataGo models (download links)</div>');
     expect(source).toContain('data-katago-uploaded-model-summary="true"');
     expect(source).toContain('data-katago-model-download-progress="true"');
+    expect(source).toContain('data-katago-backend-selector="true"');
+    expect(source).toContain('data-katago-backend-option={option.value}');
+    expect(source).toContain('data-katago-backend-status="true"');
+    expect(source).toContain('role="radiogroup"');
+    expect(source).toContain('role="radio"');
+    expect(source).toContain('aria-labelledby="settings-katago-backend-label"');
+    expect(source).toContain('FaCheck aria-hidden="true"');
+    expect(source).toContain('fallback from <span className="font-mono">{requestedBackendLabel}</span>');
     expect(source).toContain('getModelFileNameFromUrl(url)');
     expect(source).toContain('role="progressbar"');
     expect(source).toContain('Active browser upload');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import { FaTimes } from 'react-icons/fa';
+import { FaBolt, FaCheck, FaGlobe, FaMicrochip, FaTimes } from 'react-icons/fa';
 import type { GameSettings } from '../types';
 import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from '../engine/katago/limits';
 import {
@@ -43,6 +43,7 @@ import {
     saveSettingsActiveTab,
     type SettingsTabId,
 } from '../utils/settingsTabs';
+import { formatEngineBackendLabel } from '../utils/engineStatusSummary';
 
 const OFFICIAL_MODELS: Array<{
     label: string;
@@ -191,6 +192,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         'text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)] border border-[var(--ui-border)]';
     const modelActionClass =
         'px-2 py-1 text-xs rounded bg-[var(--ui-surface-2)] border border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-text)]';
+    const backendCardClass = (active: boolean) => [
+        'min-h-20 rounded-lg border px-3 py-3 text-left transition-colors',
+        'flex items-start gap-3',
+        active
+            ? 'border-[var(--ui-accent)] bg-[var(--ui-accent-soft)] text-[var(--ui-text)]'
+            : 'border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
+    ].join(' ');
 
     const UI_DENSITY_OPTIONS: Array<{ value: GameSettings['uiDensity']; label: string; description: string }> = [
         { value: 'compact', label: 'Compact', description: 'Tighter bars and smaller controls.' },
@@ -199,6 +207,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     ];
     const uiThemeMeta = UI_THEME_OPTIONS.find((theme) => theme.value === settings.uiTheme);
     const uiDensityMeta = UI_DENSITY_OPTIONS.find((density) => density.value === settings.uiDensity);
+    const backendOptions: Array<{
+        value: GameSettings['katagoBackend'];
+        label: string;
+        badge?: string;
+        description: string;
+        icon: React.ReactNode;
+    }> = [
+        { value: 'webgpu', label: 'WebGPU', badge: 'Recommended', description: 'Fast GPU path', icon: <FaBolt aria-hidden="true" /> },
+        { value: 'wasm', label: 'WASM', description: 'Reliable CPU path', icon: <FaGlobe aria-hidden="true" /> },
+        { value: 'cpu', label: 'CPU', description: 'Compatibility path', icon: <FaMicrochip aria-hidden="true" /> },
+    ];
+    const activeBackendLabel = formatEngineBackendLabel(engineBackend ?? settings.katagoBackend);
+    const requestedBackendLabel = formatEngineBackendLabel(settings.katagoBackend);
+    const isBackendFallback = !!engineBackend && engineBackend !== settings.katagoBackend;
     const maxHandicap = getMaxHandicap(settings.defaultBoardSize);
     const boardThemeChoices = React.useMemo(
         () => BOARD_THEME_OPTIONS.map((theme) => ({ ...theme, config: getBoardTheme(theme.value) })),
@@ -1853,21 +1875,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 Download only browser-sized weights, then use "Upload Weights" above. Saved browser uploads use IndexedDB; large b28/b40 weights are for native KataGo, not this browser engine.
                                             </p>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label htmlFor="settings-katago-backend" className="text-[var(--ui-text-muted)] block text-sm">Backend</label>
-                                            <select
+                                        <div className="space-y-2">
+                                            <label id="settings-katago-backend-label" htmlFor="settings-katago-backend" className="text-[var(--ui-text-muted)] block text-sm">Backend</label>
+                                            <input
                                                 id="settings-katago-backend"
+                                                className="sr-only"
+                                                tabIndex={-1}
+                                                readOnly
+                                                aria-hidden="true"
                                                 value={settings.katagoBackend}
-                                                onChange={(e) => updateSettings({ katagoBackend: e.target.value as GameSettings['katagoBackend'] })}
-                                                className={selectClass}
+                                            />
+                                            <div
+                                                className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+                                                role="radiogroup"
+                                                aria-labelledby="settings-katago-backend-label"
+                                                data-katago-backend-selector="true"
                                             >
-                                                <option value="webgpu">WebGPU</option>
-                                                <option value="wasm">WASM</option>
-                                                <option value="cpu">CPU</option>
-                                            </select>
+                                                {backendOptions.map((option) => {
+                                                    const active = settings.katagoBackend === option.value;
+                                                    return (
+                                                        <button
+                                                            key={option.value}
+                                                            type="button"
+                                                            className={backendCardClass(active)}
+                                                            role="radio"
+                                                            aria-checked={active}
+                                                            data-katago-backend-option={option.value}
+                                                            onClick={() => updateSettings({ katagoBackend: option.value })}
+                                                        >
+                                                            <span
+                                                                className={[
+                                                                    'grid h-9 w-9 shrink-0 place-items-center rounded-md border',
+                                                                    active
+                                                                        ? 'border-[var(--ui-accent)] bg-[var(--ui-accent)] text-[var(--ui-accent-contrast)]'
+                                                                        : 'border-[var(--ui-border)] bg-[var(--ui-surface-2)] text-[var(--ui-accent)]',
+                                                                ].join(' ')}
+                                                                aria-hidden="true"
+                                                            >
+                                                                {option.icon}
+                                                            </span>
+                                                            <span className="min-w-0 flex-1">
+                                                                <span className="flex min-w-0 items-center gap-2">
+                                                                    <span className="truncate text-sm font-semibold">{option.label}</span>
+                                                                    {option.badge ? (
+                                                                        <span className="rounded-full border border-[var(--ui-accent)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ui-accent)]">
+                                                                            {option.badge}
+                                                                        </span>
+                                                                    ) : null}
+                                                                </span>
+                                                                <span className="mt-1 block text-xs ui-text-muted">{option.description}</span>
+                                                            </span>
+                                                            {active ? (
+                                                                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--ui-accent)] text-[10px] text-[var(--ui-accent-contrast)]">
+                                                                    <FaCheck aria-hidden="true" />
+                                                                </span>
+                                                            ) : null}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                        <p className={subtextClass}>
-                                            Engine: <span className="font-mono">{engineBackend ?? 'not loaded'}</span>
+                                        <p className={subtextClass} data-katago-backend-status="true">
+                                            Engine: <span className="font-mono">{activeBackendLabel}</span>
+                                            {isBackendFallback ? (
+                                                <>
+                                                    {' '}
+                                                    fallback from <span className="font-mono">{requestedBackendLabel}</span>
+                                                </>
+                                            ) : null}
                                             {engineModelLabel ? (
                                                 <>
                                                     {' '}
