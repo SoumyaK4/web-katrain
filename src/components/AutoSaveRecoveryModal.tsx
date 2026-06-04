@@ -24,6 +24,7 @@ export const AutoSaveRecoveryModal: React.FC<AutoSaveRecoveryModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="auto-save-recovery-title"
+        aria-describedby="auto-save-recovery-description"
         className="ui-panel border rounded-lg shadow-xl w-full max-w-md overflow-hidden"
       >
         <div className="ui-bar border-b border-[var(--ui-border)] px-4 py-3 flex items-center justify-between">
@@ -40,11 +41,11 @@ export const AutoSaveRecoveryModal: React.FC<AutoSaveRecoveryModalProps> = ({
           </button>
         </div>
         <div className="p-4 space-y-4">
-          <p className="text-sm text-[var(--ui-text-muted)]">
+          <p id="auto-save-recovery-description" className="text-sm text-[var(--ui-text-muted)]">
             An unsaved game from {savedAtLabel} is available.
           </p>
           <div className="flex justify-end gap-2">
-            <button type="button" className="panel-action-button" onClick={onDismiss}>
+            <button type="button" className="panel-action-button" onClick={onDismiss} autoFocus>
               Keep Current
             </button>
             <button type="button" className="panel-action-button active" onClick={onRestore}>
