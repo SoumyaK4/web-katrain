@@ -16,6 +16,11 @@ import { ENGINE_MAX_TIME_MS, ENGINE_MAX_VISITS } from './limits';
 import { MctsSearch, type OwnershipMode } from './analyzeMcts';
 import { fillInputsV7Fast, type RecentMove } from './featuresV7Fast';
 import {
+  normalizeKataGoBackendPreference,
+  shouldCacheKataGoFallbackForRequest,
+  shouldRetryKataGoModelLoadOnFallback,
+} from './backendFallback';
+import {
   BLACK,
   BOARD_AREA,
   BOARD_SIZE,
@@ -66,6 +71,7 @@ let evalBatchCapacity = 0;
 let evalBatchSpatialV7 = new Float32Array(0);
 let evalBatchGlobalV7 = new Float32Array(0);
 let scratchBoardSize = BOARD_SIZE;
+type ParsedKataGoModelV8 = ReturnType<typeof parseKataGoModelV8>;
 
 function regionKey(roi?: RegionOfInterest | null): string | null {
   if (!roi) return null;
@@ -279,9 +285,6 @@ function ensureBoardSizeForWorker(boardSize: number): void {
   searchKey = null;
 }
 
-const normalizeBackendPreference = (backend?: KataGoBackendPreference): KataGoBackendPreference =>
-  backend === 'wasm' || backend === 'cpu' ? backend : 'webgpu';
-
 async function initWasmBackend(): Promise<void> {
   try {
     // Vite serves `public/` at the site root.
@@ -332,7 +335,7 @@ function maybeUngzip(data: Uint8Array): Uint8Array {
 }
 
 async function ensureBackend(backend?: KataGoBackendPreference): Promise<void> {
-  const preferredBackend = normalizeBackendPreference(backend);
+  const preferredBackend = normalizeKataGoBackendPreference(backend);
   if (backendPromise && backendPreference === preferredBackend) {
     await backendPromise;
     return;
@@ -361,8 +364,56 @@ async function ensureBackend(backend?: KataGoBackendPreference): Promise<void> {
   await backendPromise;
 }
 
+async function warmupModel(candidate: KataGoModelV8Tf): Promise<void> {
+  const spatial = tf.zeros([1, 19, 19, 22], 'float32') as tf.Tensor4D;
+  const global = tf.zeros([1, 19], 'float32') as tf.Tensor2D;
+  let out: ReturnType<KataGoModelV8Tf['forwardValueOnly']> | null = null;
+  try {
+    out = candidate.forwardValueOnly(spatial, global);
+    const results = await Promise.allSettled([out.value.data(), out.scoreValue.data()]);
+    for (const result of results) {
+      if (result.status === 'rejected') throw result.reason;
+    }
+  } finally {
+    spatial.dispose();
+    global.dispose();
+    out?.value.dispose();
+    out?.scoreValue.dispose();
+  }
+}
+
+async function createWarmedModel(parsed: ParsedKataGoModelV8): Promise<KataGoModelV8Tf> {
+  const candidate = new KataGoModelV8Tf(parsed);
+  try {
+    await warmupModel(candidate);
+    return candidate;
+  } catch (err) {
+    candidate.dispose();
+    throw err;
+  }
+}
+
+function installModel(nextModel: KataGoModelV8Tf, parsed: ParsedKataGoModelV8, modelUrl: string): void {
+  model?.dispose();
+  model = nextModel;
+  loadedModelName = parsed.modelName;
+  loadedModelUrl = modelUrl;
+  search = null;
+  searchKey = null;
+}
+
+async function switchToWasmFallbackForRequest(requestedBackend: KataGoBackendPreference): Promise<void> {
+  backendPromise = null;
+  backendPreference = null;
+  await ensureBackend('wasm');
+  if (shouldCacheKataGoFallbackForRequest({ requestedBackend, fallbackBackend: tf.getBackend() })) {
+    backendPreference = requestedBackend;
+  }
+}
+
 async function ensureModel(modelUrl: string, backend?: KataGoBackendPreference): Promise<void> {
-  await ensureBackend(backend);
+  const requestedBackend = normalizeKataGoBackendPreference(backend);
+  await ensureBackend(requestedBackend);
   if (model && loadedModelUrl === modelUrl) return;
 
   const res = await fetch(modelUrl);
@@ -371,22 +422,20 @@ async function ensureModel(modelUrl: string, backend?: KataGoBackendPreference):
   const data = maybeUngzip(buf);
 
   const parsed = parseKataGoModelV8(data);
-  model?.dispose();
-  model = new KataGoModelV8Tf(parsed);
-  loadedModelName = parsed.modelName;
-  loadedModelUrl = modelUrl;
-  search = null;
-  searchKey = null;
+  try {
+    installModel(await createWarmedModel(parsed), parsed, modelUrl);
+  } catch (err) {
+    if (!shouldRetryKataGoModelLoadOnFallback({
+      requestedBackend,
+      activeBackend: tf.getBackend(),
+      stage: 'warmup',
+    })) {
+      throw err;
+    }
 
-  // Warmup compilation.
-  const spatial = tf.zeros([1, 19, 19, 22], 'float32') as tf.Tensor4D;
-  const global = tf.zeros([1, 19], 'float32') as tf.Tensor2D;
-  const out = model.forwardValueOnly(spatial, global);
-  await Promise.all([out.value.data(), out.scoreValue.data()]);
-  spatial.dispose();
-  global.dispose();
-  out.value.dispose();
-  out.scoreValue.dispose();
+    await switchToWasmFallbackForRequest(requestedBackend);
+    installModel(await createWarmedModel(parsed), parsed, modelUrl);
+  }
 }
 
 function post(msg: KataGoWorkerResponse, transfer?: Transferable[]) {
