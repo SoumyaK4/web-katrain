@@ -365,6 +365,8 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   }, [endTracePaint]);
 
   React.useEffect(() => {
+    if (cameraCaptureOpen) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTextEntryTarget(event.target)) return;
       const key = event.key.toLowerCase();
@@ -384,7 +386,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [setTraceTool]);
+  }, [cameraCaptureOpen, setTraceTool]);
 
   const clearBoard = () => setStones(makeEmptyStones(boardSize));
 

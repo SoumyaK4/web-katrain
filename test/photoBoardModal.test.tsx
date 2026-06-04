@@ -177,6 +177,8 @@ describe('PhotoBoardModal', () => {
   it('keeps keyboard trace-tool changes available for the next paint', () => {
     const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
 
+    expect(source).toContain('if (cameraCaptureOpen) return;');
+    expect(source).toContain('}, [cameraCaptureOpen, setTraceTool]);');
     expect(source).toContain('toolRef.current = nextTool');
     expect(source).toContain('getPhotoBoardTracePaintValue(stones[index] ?? null, toolRef.current)');
     expect(source).toContain('activeElement.blur()');
