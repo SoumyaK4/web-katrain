@@ -204,7 +204,6 @@ export const Layout: React.FC = () => {
     setRootProperty,
     rootNode,
     currentPlayer,
-    moveHistory,
     capturedBlack,
     capturedWhite,
     komi,
@@ -277,7 +276,6 @@ export const Layout: React.FC = () => {
       setRootProperty: state.setRootProperty,
       rootNode: state.rootNode,
       currentPlayer: state.currentPlayer,
-      moveHistory: state.moveHistory,
       capturedBlack: state.capturedBlack,
       capturedWhite: state.capturedWhite,
       komi: state.komi,
@@ -3336,7 +3334,6 @@ export const Layout: React.FC = () => {
           statusText={statusText}
           lockAiDetails={lockAiDetails}
           currentNode={currentNode}
-          moveHistory={moveHistory}
           currentMoveInsight={currentMoveInsight}
           shapeCoachEnabled={shapeCoachEnabled}
           onToggleShapeCoach={toggleShapeCoach}

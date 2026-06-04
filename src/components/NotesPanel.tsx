@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { FaEdit, FaSave, FaStickyNote, FaTimes } from 'react-icons/fa';
 import { shallow } from 'zustand/shallow';
 import { useGameStore } from '../store/gameStore';
-import type { CandidateMove, FloatArray, Move, Player } from '../types';
+import type { CandidateMove, FloatArray, GameNode, Move, Player } from '../types';
 import { formatRootInfoText } from '../utils/gameInfoText';
 import { parseNoteBlocks, parseNoteInlinePreview, type NoteInlineSegment, type NoteTableAlignment } from '../utils/notePreview';
 import { getVisualKeyboardInset, getVisualViewport } from '../utils/visualViewport';
@@ -11,6 +11,7 @@ import { getNoteEditorKeyAction } from '../utils/noteEditorKeys';
 import { getNoteEditorSyncDecision } from '../utils/noteEditorState';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { appendShapeCoachNoteBlock, formatShapeCoachNoteBlock } from '../utils/shapeCoachNote';
+import { getCurrentLineMoveNumber, isGameNodeStep } from '../utils/branchNavigation';
 
 const NOTE_SHORTCUT_IDS = ['edit-note'] as const;
 
@@ -20,6 +21,12 @@ function moveToLabel(move: Move | null, boardSize: number): string {
   const col = String.fromCharCode(65 + (move.x >= 8 ? move.x + 1 : move.x));
   const row = boardSize - move.y;
   return `${col}${row}`;
+}
+
+function noMoveNodeLabel(currentNode: GameNode): string {
+  if (!currentNode.parent) return 'Root';
+  if (isGameNodeStep(currentNode)) return `Setup ${getCurrentLineMoveNumber(currentNode)}`;
+  return 'Node';
 }
 
 function playerToShort(player: Player): string {
@@ -255,8 +262,9 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   );
   const parent = currentNode.parent;
   const parentPolicy = parent?.analysis?.policy;
-  const depth = currentNode.gameState.moveHistory.length;
+  const depth = getCurrentLineMoveNumber(currentNode);
   const label = moveToLabel(move, boardSize);
+  const currentNoMoveLabel = noMoveNodeLabel(currentNode);
   const policyStats = useMemo(() => {
     if (!detailed) return null;
     if (!move || !parentPolicy) return null;
@@ -435,8 +443,12 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   const infoText = (() => {
     if (!showInfoBlock) return '';
 
-    if (!move || !parent) {
+    if (!parent) {
       return formatRootInfoText({ rootNode, currentNode, gameRules });
+    }
+
+    if (!move) {
+      return `${currentNoMoveLabel}\n${playerToShort(currentNode.gameState.currentPlayer)} to play`;
     }
 
     if (!currentNode.analysis) return analysisStatusText;

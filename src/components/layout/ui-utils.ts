@@ -19,19 +19,22 @@ export function formatPositionSummary(args: {
   currentPlayer: 'black' | 'white';
   moveNumber: number;
   boardSize?: number;
+  positionLabel?: string;
 }): { playerLabel: string; moveNumberLabel: string; pointLabel: string; title: string } {
   const player = args.move?.player ?? args.currentPlayer;
   const playerLabel = playerToShort(player);
   const pointLabel = args.move
     ? formatMoveLabel(args.move.x, args.move.y, args.boardSize)
-    : 'Root';
+    : args.positionLabel ?? 'Root';
+  const playerName = player === 'black' ? 'Black' : 'White';
+  const nonMoveTitle = pointLabel === 'Root'
+    ? `${playerName} to play at root`
+    : `${playerName} to play at ${pointLabel}`;
   return {
     playerLabel,
     moveNumberLabel: String(args.moveNumber),
     pointLabel,
-    title: args.move
-      ? `${player === 'black' ? 'Black' : 'White'} played ${pointLabel}`
-      : `${player === 'black' ? 'Black' : 'White'} to play at root`,
+    title: args.move ? `${playerName} played ${pointLabel}` : nonMoveTitle,
   };
 }
 

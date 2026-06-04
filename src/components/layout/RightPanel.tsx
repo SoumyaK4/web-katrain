@@ -15,7 +15,7 @@ import {
   FaStickyNote,
   FaChevronLeft,
 } from 'react-icons/fa';
-import type { Player, GameNode, Move } from '../../types';
+import type { Player, GameNode } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { AnalysisPanel } from '../AnalysisPanel';
 import { GameInfoPanel } from '../GameInfoPanel';
@@ -27,7 +27,12 @@ import type { MobileTab } from './MobileTabBar';
 import type { MoveInsight } from '../../utils/moveInsight';
 import { SectionHeader } from './ui';
 import { formatMoveLabel, formatPositionSummary, panelCardBase, panelCardClosed, panelCardOpen, playerToShort } from './ui-utils';
-import { getBranchInfo, getCurrentLineNodes } from '../../utils/branchNavigation';
+import {
+  getBranchInfo,
+  getCurrentLineMoveNumber,
+  getCurrentLineNodes,
+  isGameNodeStep,
+} from '../../utils/branchNavigation';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
 import { parseIntegerDraft } from '../../utils/numberDraft';
 import { readLocalStorage, writeLocalStorage } from '../../utils/storage';
@@ -45,6 +50,18 @@ const RIGHT_PANEL_SHORTCUT_IDS = [
 ] as const;
 
 type RightPanelShortcutId = (typeof RIGHT_PANEL_SHORTCUT_IDS)[number];
+
+function getNoMoveNodeLabel(node: GameNode): string {
+  if (!node.parent) return 'Root';
+  if (isGameNodeStep(node)) return `Setup ${getCurrentLineMoveNumber(node)}`;
+  return 'Node';
+}
+
+function getNodeMoveNumberLabel(node: GameNode): string {
+  if (!node.parent) return 'Root';
+  if (isGameNodeStep(node)) return String(getCurrentLineMoveNumber(node));
+  return '-';
+}
 
 interface RightPanelProps {
   open: boolean;
@@ -109,7 +126,6 @@ interface RightPanelProps {
   lockAiDetails: boolean;
   // Notes
   currentNode: GameNode;
-  moveHistory: Move[];
   currentMoveInsight?: MoveInsight | null;
   shapeCoachEnabled?: boolean;
   onToggleShapeCoach?: () => void;
@@ -171,7 +187,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   statusText,
   lockAiDetails,
   currentNode,
-  moveHistory,
   currentMoveInsight = null,
   shapeCoachEnabled = true,
   onToggleShapeCoach,
@@ -199,6 +214,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     void treeVersion;
     return getCurrentLineNodes(currentNode, activeBranchChildIds);
   }, [activeBranchChildIds, currentNode, treeVersion]);
+  const currentMoveNumber = React.useMemo(() => {
+    void treeVersion;
+    return getCurrentLineMoveNumber(currentNode);
+  }, [currentNode, treeVersion]);
 
   const branchInfo = React.useMemo(() => {
     void treeVersion;
@@ -262,7 +281,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       const node = stack.pop()!;
       if (node.note && node.note.trim()) {
         const move = node.move;
-        const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : 'Root';
+        const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : getNoMoveNodeLabel(node);
         const snippet = node.note.trim().split('\n')[0]!.slice(0, 60);
         out.push({ node, label, snippet });
       }
@@ -274,8 +293,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const currentPositionSummary = formatPositionSummary({
     move: currentNode.move,
     currentPlayer,
-    moveNumber: moveHistory.length,
+    moveNumber: currentMoveNumber,
     boardSize: currentNode.gameState.board.length,
+    positionLabel: getNoMoveNodeLabel(currentNode),
   });
 
   const renderSection = (args: {
@@ -608,9 +628,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         {treeListNodes.map((node) => {
                           const move = node.move;
                           const isCurrent = node.id === currentNode.id;
-                          const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : 'Root';
+                          const label = move ? formatMoveLabel(move.x, move.y, node.gameState.board.length) : getNoMoveNodeLabel(node);
                           const player = move ? playerToShort(move.player) : '—';
-                          const moveNumber = node.gameState.moveHistory.length;
+                          const moveNumberLabel = getNodeMoveNumberLabel(node);
                           const hasNote = !!node.note?.trim();
                           const playerChipClass = !move
                             ? 'border border-[var(--ui-border)] bg-[var(--ui-surface-2)] text-[var(--ui-text-muted)]'
@@ -635,7 +655,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               title={isInsertMode ? 'Finish inserting before navigating.' : 'Jump to move'}
                             >
                               <span className="w-10 text-[10px] font-mono text-[var(--ui-text-faint)]">
-                                {move ? moveNumber : 'Root'}
+                                {moveNumberLabel}
                               </span>
                               <span
                                 className={[
@@ -696,7 +716,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   analysisCacheSize={analysisCacheSize}
                   onOpenGameAnalysis={onOpenGameAnalysis}
                   onOpenGameReport={onOpenGameReport}
-                  currentMoveNumber={moveHistory.length}
+                  currentMoveNumber={currentMoveNumber}
                   winRate={winRate}
                   scoreLead={scoreLead}
                   pointsLost={pointsLost}

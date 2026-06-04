@@ -40,4 +40,21 @@ describe('layout UI utilities', () => {
       title: 'Black to play at root',
     });
   });
+
+  it('summarizes setup-only positions with their step label', () => {
+    expect(
+      formatPositionSummary({
+        move: null,
+        currentPlayer: 'white',
+        moveNumber: 2,
+        boardSize: 19,
+        positionLabel: 'Setup 2',
+      })
+    ).toEqual({
+      playerLabel: 'W',
+      moveNumberLabel: '2',
+      pointLabel: 'Setup 2',
+      title: 'White to play at Setup 2',
+    });
+  });
 });
