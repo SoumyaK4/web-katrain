@@ -174,6 +174,36 @@ describe('PhotoBoardModal', () => {
     expect(html).toContain('title="Trace stones before swapping colors"');
   });
 
+  it('renders photo underlay alignment controls for tracing angled photos', () => {
+    const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(html).toContain('data-photo-board-photo-align="true"');
+    expect(html).toContain('aria-label="Photo underlay zoom"');
+    expect(html).toContain('data-photo-board-photo-zoom="true"');
+    expect(html).toContain('aria-label="Photo underlay horizontal position"');
+    expect(html).toContain('data-photo-board-photo-offset-x="true"');
+    expect(html).toContain('aria-label="Photo underlay vertical position"');
+    expect(html).toContain('data-photo-board-photo-offset-y="true"');
+    expect(html).toContain('data-photo-board-photo-rotate="left"');
+    expect(html).toContain('data-photo-board-photo-rotate="right"');
+    expect(html).toContain('data-photo-board-photo-reset="true"');
+    expect(html).toContain('data-photo-board-photo-rotation="true"');
+    expect(source).toContain('setPhotoZoom(1);');
+    expect(source).toContain('setPhotoOffsetX(0);');
+    expect(source).toContain('setPhotoOffsetY(0);');
+    expect(source).toContain('setPhotoRotation(0);');
+    expect(source).toContain('objectPosition: `${50 + photoOffsetX}% ${50 + photoOffsetY}%`');
+    expect(source).toContain('transform: `scale(${photoZoom}) rotate(${photoRotation}deg)`');
+  });
+
   it('keeps keyboard trace-tool changes available for the next paint', () => {
     const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
 

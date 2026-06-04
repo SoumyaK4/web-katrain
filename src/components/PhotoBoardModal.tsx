@@ -107,6 +107,10 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [photoUnderlay, setPhotoUnderlay] = React.useState(true);
   const [photoOpacity, setPhotoOpacity] = React.useState(0.45);
   const [photoFit, setPhotoFit] = React.useState<PhotoFit>('cover');
+  const [photoZoom, setPhotoZoom] = React.useState(1);
+  const [photoOffsetX, setPhotoOffsetX] = React.useState(0);
+  const [photoOffsetY, setPhotoOffsetY] = React.useState(0);
+  const [photoRotation, setPhotoRotation] = React.useState(0);
   const [mobileTab, setMobileTab] = React.useState<MobilePhotoBoardTab>('photo');
   const [showDeltaOverlay, setShowDeltaOverlay] = React.useState(true);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('unknown');
@@ -225,6 +229,9 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const canAddToCurrent = !!onAddSetupStones && counts.total > 0 && currentBoardSize === boardSize;
   const canClearBoard = counts.total > 0;
   const canTransformTrace = counts.total > 0;
+  const photoAlignmentDisabled = !photoUrl || !photoUnderlay;
+  const hasPhotoAlignmentChanges =
+    photoZoom !== 1 || photoOffsetX !== 0 || photoOffsetY !== 0 || photoRotation !== 0;
   const cameraUnavailable = cameraAvailability === 'unavailable' && !liveCameraSupported;
   const cameraButtonTitle = cameraUnavailable ? 'No camera detected' : 'Take board photo with camera';
   const clearBoardTitle = canClearBoard ? 'Clear all traced stones' : 'No traced stones to clear';
@@ -262,6 +269,10 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setPhotoName(file.name || 'Camera photo');
     setPhotoUrl(objectUrl);
     setPhotoUnderlay(true);
+    setPhotoZoom(1);
+    setPhotoOffsetX(0);
+    setPhotoOffsetY(0);
+    setPhotoRotation(0);
     setMobileTab('trace');
   }, []);
 
@@ -404,6 +415,18 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const swapTraceColors = () => {
     if (!canTransformTrace) return;
     setStones((prev) => swapPhotoBoardStoneColors(prev));
+  };
+
+  const rotatePhoto = (degrees: number) => {
+    if (photoAlignmentDisabled) return;
+    setPhotoRotation((current) => (current + degrees + 360) % 360);
+  };
+
+  const resetPhotoAlignment = () => {
+    setPhotoZoom(1);
+    setPhotoOffsetX(0);
+    setPhotoOffsetY(0);
+    setPhotoRotation(0);
   };
 
   const importBoard = () => {
@@ -926,6 +949,105 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                   {Math.round(photoOpacity * 100)}%
                 </span>
               </label>
+              <div className="mt-3 grid gap-2" data-photo-board-photo-align="true">
+                <label className="grid grid-cols-[auto_minmax(0,1fr)_3.5rem] items-center gap-2 text-xs">
+                  <span className="ui-text-muted">Zoom</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.05}
+                    value={photoZoom}
+                    disabled={photoAlignmentDisabled}
+                    onChange={(event) => setPhotoZoom(Number(event.target.value))}
+                    className="w-full accent-[var(--ui-accent)] disabled:opacity-50"
+                    aria-label="Photo underlay zoom"
+                    data-photo-board-photo-zoom="true"
+                  />
+                  <span className="text-right font-mono text-[var(--ui-text-muted)]">
+                    {photoZoom.toFixed(2)}x
+                  </span>
+                </label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label className="grid grid-cols-[auto_minmax(0,1fr)_3rem] items-center gap-2 text-xs">
+                    <span className="ui-text-muted">X</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      step={1}
+                      value={photoOffsetX}
+                      disabled={photoAlignmentDisabled}
+                      onChange={(event) => setPhotoOffsetX(Number(event.target.value))}
+                      className="w-full accent-[var(--ui-accent)] disabled:opacity-50"
+                      aria-label="Photo underlay horizontal position"
+                      data-photo-board-photo-offset-x="true"
+                    />
+                    <span className="text-right font-mono text-[var(--ui-text-muted)]">
+                      {photoOffsetX}%
+                    </span>
+                  </label>
+                  <label className="grid grid-cols-[auto_minmax(0,1fr)_3rem] items-center gap-2 text-xs">
+                    <span className="ui-text-muted">Y</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      step={1}
+                      value={photoOffsetY}
+                      disabled={photoAlignmentDisabled}
+                      onChange={(event) => setPhotoOffsetY(Number(event.target.value))}
+                      className="w-full accent-[var(--ui-accent)] disabled:opacity-50"
+                      aria-label="Photo underlay vertical position"
+                      data-photo-board-photo-offset-y="true"
+                    />
+                    <span className="text-right font-mono text-[var(--ui-text-muted)]">
+                      {photoOffsetY}%
+                    </span>
+                  </label>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className={traceTransformButtonClass}
+                    disabled={photoAlignmentDisabled}
+                    onClick={() => rotatePhoto(-90)}
+                    title="Rotate photo underlay left"
+                    aria-label="Rotate photo underlay left"
+                    data-photo-board-photo-rotate="left"
+                  >
+                    <span className="inline-flex items-center gap-1.5"><FaUndo aria-hidden="true" /> Rotate L</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={traceTransformButtonClass}
+                    disabled={photoAlignmentDisabled}
+                    onClick={() => rotatePhoto(90)}
+                    title="Rotate photo underlay right"
+                    aria-label="Rotate photo underlay right"
+                    data-photo-board-photo-rotate="right"
+                  >
+                    <span className="inline-flex items-center gap-1.5"><FaRedo aria-hidden="true" /> Rotate R</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={traceTransformButtonClass}
+                    disabled={photoAlignmentDisabled || !hasPhotoAlignmentChanges}
+                    onClick={resetPhotoAlignment}
+                    title="Reset photo underlay alignment"
+                    aria-label="Reset photo underlay alignment"
+                    data-photo-board-photo-reset="true"
+                  >
+                    Reset
+                  </button>
+                  <span
+                    className="ml-auto text-xs font-mono text-[var(--ui-text-muted)]"
+                    data-photo-board-photo-rotation="true"
+                  >
+                    {photoRotation}deg
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="mx-auto w-full max-w-[min(78vh,640px)] rounded-lg border border-[var(--ui-border)] bg-[#c89a55] p-2 shadow-inner">
@@ -939,7 +1061,13 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
                     alt=""
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 h-full w-full"
-                    style={{ opacity: photoOpacity, objectFit: photoFit }}
+                    style={{
+                      opacity: photoOpacity,
+                      objectFit: photoFit,
+                      objectPosition: `${50 + photoOffsetX}% ${50 + photoOffsetY}%`,
+                      transform: `scale(${photoZoom}) rotate(${photoRotation}deg)`,
+                      transformOrigin: 'center',
+                    }}
                   />
                 )}
                 <div
