@@ -75,8 +75,17 @@ const getAudioContext = () => {
     }
 };
 
+const playWithSoundErrorHandling = (play: (ctx: AudioContext) => void, ctx: AudioContext): void => {
+    try {
+        play(ctx);
+    } catch (error) {
+        reportSoundError(`Could not play browser audio: ${formatSoundError(error)}`);
+        // Audio is optional; never let a browser audio failure interrupt play.
+    }
+};
+
 // Ensure context is running (needed for some browsers that suspend it)
-const resumeContext = () => {
+const resumeContext = (): { ctx: AudioContext; resumePromise?: Promise<void> } | null => {
     const ctx = getAudioContext();
     let state: AudioContextState | null = null;
     try {
@@ -87,26 +96,29 @@ const resumeContext = () => {
     }
     if (ctx && state === 'suspended') {
         try {
-            void ctx.resume().catch((error: unknown) => {
+            const resumePromise = ctx.resume();
+            void resumePromise.catch((error: unknown) => {
                 reportSoundError(`Could not resume browser audio: ${formatSoundError(error)}`);
             });
+            return { ctx, resumePromise };
         } catch (error) {
             reportSoundError(`Could not resume browser audio: ${formatSoundError(error)}`);
             return null;
         }
     }
-    return ctx;
+    return ctx ? { ctx } : null;
 };
 
 const runSound = (play: (ctx: AudioContext) => void) => {
-    const ctx = resumeContext();
-    if (!ctx) return;
-    try {
-        play(ctx);
-    } catch (error) {
-        reportSoundError(`Could not play browser audio: ${formatSoundError(error)}`);
-        // Audio is optional; never let a browser audio failure interrupt play.
+    const audio = resumeContext();
+    if (!audio) return;
+    if (audio.resumePromise) {
+        void audio.resumePromise
+            .then(() => playWithSoundErrorHandling(play, audio.ctx))
+            .catch(() => undefined);
+        return;
     }
+    playWithSoundErrorHandling(play, audio.ctx);
 };
 
 export const playStoneSound = () => {

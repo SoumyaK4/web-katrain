@@ -145,6 +145,54 @@ describe('sound helpers', () => {
     expect(() => playStoneSound()).not.toThrow();
   });
 
+  it('waits for a suspended AudioContext to resume before playing', async () => {
+    let resumeContext: (() => void) | null = null;
+    const start = vi.fn();
+
+    class SuspendedAudioContext {
+      currentTime = 0;
+      destination = {};
+      state: AudioContextState = 'suspended';
+      resume = vi.fn(() => new Promise<void>((resolve) => {
+        resumeContext = () => {
+          this.state = 'running';
+          resolve();
+        };
+      }));
+      createOscillator = () => ({
+        connect: () => {},
+        type: 'sine',
+        frequency: {
+          setValueAtTime: () => {},
+          exponentialRampToValueAtTime: () => {},
+        },
+        start,
+        stop: () => {},
+      });
+      createGain = () => ({
+        connect: () => {},
+        gain: {
+          setValueAtTime: () => {},
+          exponentialRampToValueAtTime: () => {},
+        },
+      });
+    }
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: { AudioContext: SuspendedAudioContext },
+    });
+
+    playStoneSound();
+
+    expect(start).not.toHaveBeenCalled();
+    const resume = resumeContext as (() => void) | null;
+    expect(resume).not.toBeNull();
+    resume!();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(start).toHaveBeenCalledTimes(1);
+  });
+
   it('swallows oscillator setup failures after context creation', () => {
     const handler = vi.fn();
     setSoundInitErrorHandler(handler);
