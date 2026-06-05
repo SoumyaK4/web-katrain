@@ -222,6 +222,9 @@ function assertViewport(result) {
   if (result.pwaBannerFailures.length > 0) {
     failures.push(`PWA banner failures: ${result.pwaBannerFailures.join(', ')}`);
   }
+  if (result.photoBoardTraceImportFailures.length > 0) {
+    failures.push(`photo board trace import failures: ${result.photoBoardTraceImportFailures.join(', ')}`);
+  }
   if (result.documentOverflow > 1) failures.push(`document overflows by ${result.documentOverflow}px`);
   if (!result.board) failures.push('board missing');
   if (result.board && result.board.left < -1) failures.push('board overflows left edge');
@@ -1159,12 +1162,132 @@ async function main() {
             modalSmokeFailures.push(\`\${name}: \${error instanceof Error ? error.message : String(error)}\`);
           }
         };
+        const runPhotoBoardTraceImportSmoke = async () => {
+          const failures = [];
+          const waitForToastText = async (text) => {
+            for (let i = 0; i < 30; i++) {
+              const toast = Array.from(document.querySelectorAll('.notification-toast')).find((candidate) =>
+                (candidate.textContent || '').includes(text)
+              );
+              if (toast) return toast;
+              await waitForFrames(1);
+            }
+            return null;
+          };
+          const waitForDialogClose = async () => {
+            for (let i = 0; i < 60; i++) {
+              if (!document.querySelector('[aria-labelledby="photo-board-title"]')) return true;
+              await waitForFrames(1);
+            }
+            return false;
+          };
+          const openPhotoBoard = async () => {
+            if (${viewport.mobile}) {
+              const toolsButton = findButtonByLabel('Tools');
+              if (!toolsButton) throw new Error('Tools button missing');
+              toolsButton.click();
+              const toolsDialog = await waitForSelector('[data-mobile-tools-dialog="true"]');
+              if (!toolsDialog) throw new Error('Tools dialog did not open');
+              const photoBoardButton = findButtonByLabel('Photo Board', toolsDialog);
+              if (!photoBoardButton) throw new Error('Photo Board action missing in tools');
+              photoBoardButton.click();
+              await waitForFrames(2);
+              return;
+            }
+            const photoBoardButton = findButtonByLabel('Photo Board');
+            if (!photoBoardButton) throw new Error('Photo Board action missing');
+            photoBoardButton.click();
+            await waitForFrames(2);
+          };
+
+          try {
+            await openPhotoBoard();
+            const dialog = await waitForSelector('[aria-labelledby="photo-board-title"]');
+            if (!dialog) return ['photo board dialog did not open'];
+            if (${viewport.mobile}) {
+              const traceTab = dialog.querySelector('[data-photo-board-mobile-tab="trace"]');
+              if (!traceTab) {
+                failures.push('mobile trace tab missing');
+              } else {
+                traceTab.click();
+                await waitForFrames(2);
+              }
+            }
+
+            const tracePanel = dialog.querySelector('[data-photo-board-panel="trace"]');
+            tracePanel?.scrollIntoView({ block: 'center', inline: 'nearest' });
+            await waitForFrames(2);
+            const traceToolGroup = tracePanel?.querySelector('[aria-label="Trace tool"]') || null;
+            const grid = tracePanel?.querySelector('[data-photo-board-trace-grid="true"]') || null;
+            if (!tracePanel) failures.push('trace panel missing');
+            if (!traceToolGroup) failures.push('trace tool group missing');
+            if (!grid) failures.push('trace grid missing');
+            const boardSize = Math.sqrt(grid?.querySelectorAll('[data-photo-board-point="true"]').length || 0);
+            if (!Number.isInteger(boardSize) || boardSize < 9) failures.push('trace grid size invalid');
+            if (failures.length > 0) return failures;
+
+            const paintPoint = async (toolLabel, index, expectedLabel) => {
+              const toolButton = findButtonByLabel(toolLabel, traceToolGroup);
+              if (!toolButton) {
+                failures.push(toolLabel + ' trace tool missing');
+                return;
+              }
+              toolButton.click();
+              await waitForFrames(2);
+              const point = grid.querySelector('[data-photo-board-index="' + index + '"]');
+              if (!point) {
+                failures.push('trace point ' + index + ' missing');
+                return;
+              }
+              point.click();
+              await waitForFrames(3);
+              if (!((point.getAttribute('aria-label') || '').includes(expectedLabel))) {
+                failures.push('trace point ' + index + ' did not become ' + expectedLabel);
+              }
+            };
+
+            const whiteIndex = boardSize * boardSize - 1;
+            await paintPoint('Black', 0, 'black');
+            await paintPoint('White', whiteIndex, 'white');
+            const importButton = dialog.querySelector('[data-photo-board-import="true"]');
+            if (!importButton) {
+              failures.push('import control missing');
+              return failures;
+            }
+            if (importButton.disabled || importButton.getAttribute('aria-disabled') === 'true') {
+              failures.push('import control stayed disabled after tracing');
+              return failures;
+            }
+            importButton.click();
+            await waitForFrames(4);
+            if (!(await waitForDialogClose())) failures.push('import did not close photo board dialog');
+
+            const importedBoard = document.querySelector('[data-board-snapshot="true"]');
+            const importedSize = Number(importedBoard?.getAttribute('data-board-size'));
+            const importedMoveCount = Number(importedBoard?.getAttribute('data-board-move-count'));
+            const importedStones = importedBoard?.getAttribute('data-board-stones') || '';
+            if (!importedBoard || importedSize !== boardSize || importedStones.length !== boardSize * boardSize) {
+              failures.push('main board metadata missing after photo board import');
+            } else {
+              if (importedMoveCount !== 0) failures.push('photo board import should load setup at move 0');
+              if (importedStones[0] !== 'B') failures.push('photo board import missing traced black corner');
+              if (importedStones[whiteIndex] !== 'W') failures.push('photo board import missing traced white corner');
+            }
+            const importedToast = await waitForToastText('Imported board position.');
+            importedToast?.querySelector('.notification-toast-close')?.click();
+            await waitForFrames(2);
+          } catch (error) {
+            failures.push('photo board trace import: ' + (error instanceof Error ? error.message : String(error)));
+          }
+          return failures;
+        };
         const scorePanelFailures = [];
         const scorePanelSmallTouchTargets = [];
         let scorePanelReachable = true;
         const fullscreenSmokeFailures = await runFullscreenSmoke();
         const clipboardSmokeFailures = await runClipboardSmoke();
         const pwaBannerSmoke = await runPwaBannerSmoke();
+        let photoBoardTraceImportFailures = [];
         let editToolSmokeFailures = [];
         const analysisDepthFailures = [];
         const analysisDepthSmallTouchTargets = [];
@@ -1223,6 +1346,7 @@ async function main() {
           closeEditButton?.click();
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         }
+        photoBoardTraceImportFailures = await runPhotoBoardTraceImportSmoke();
         await smokeModal({
           name: 'keyboard shortcuts',
           selector: '[aria-labelledby="keyboard-help-title"]',
@@ -1478,6 +1602,7 @@ async function main() {
           fullscreenSmokeFailures,
           pwaBannerFailures: pwaBannerSmoke.failures,
           pwaBannerSmallTouchTargets: pwaBannerSmoke.smallTouchTargets,
+          photoBoardTraceImportFailures,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
