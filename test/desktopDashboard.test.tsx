@@ -23,6 +23,7 @@ describe('DesktopDashboard', () => {
     expect(source).toContain("import { LanguageSwitcher } from '../layout/LanguageSwitcher';");
     expect(source).toContain('className="dashboard-language-switcher"');
     expect(source).toContain('onLocaleChange={(appLocale) => updateSettings({ appLocale })}');
+    expect(readFileSync('src/index.css', 'utf8')).toContain('@media (min-width: 1280px)');
     expect(css).toContain('.wk-dashboard .dashboard-language-switcher');
     expect(css).toContain('.wk-dashboard[data-layout="compact"] .dashboard-language-switcher');
   });

@@ -314,6 +314,16 @@
     padding: var(--ui-bar-pad-y) var(--ui-bar-pad-x);
   }
 
+  .app-language-switcher {
+    display: none;
+  }
+
+  @media (min-width: 1280px) {
+    .app-language-switcher {
+      display: block;
+    }
+  }
+
   .ui-panel {
     background: var(--ui-panel);
     border-color: var(--ui-border);

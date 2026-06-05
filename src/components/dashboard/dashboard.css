@@ -187,6 +187,7 @@
 .wk-dashboard .header-spacer { flex: 1 1 auto; min-width: 8px; }
 .wk-dashboard .dashboard-language-switcher { flex: none; }
 .wk-dashboard .dashboard-language-switcher > button {
+  min-width: 66px;
   background: var(--panel);
   border-color: var(--line-strong);
   color: var(--ink-soft);

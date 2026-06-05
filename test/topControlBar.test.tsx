@@ -87,6 +87,7 @@ describe('TopControlBar', () => {
   it('exposes the desktop language switcher', () => {
     const html = renderToStaticMarkup(<TopControlBar {...baseProps} isMobile={false} />);
 
+    expect(html).toContain('app-language-switcher');
     expect(html).toContain('data-language-switcher="desktop"');
     expect(html).toContain('data-language-switcher-button="true"');
     expect(html).toContain('data-current-locale="en"');
@@ -101,6 +102,7 @@ describe('TopControlBar', () => {
     expect(source).toContain('role="listbox"');
     expect(source).toContain('role="option"');
     expect(source).toContain('onLocaleChange(locale);');
+    expect(readFileSync('src/index.css', 'utf8')).toContain('.app-language-switcher');
   });
 
   it('warns that quick new game replaces the current game immediately', () => {
