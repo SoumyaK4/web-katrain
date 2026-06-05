@@ -29,6 +29,9 @@ describe('SettingsModal', () => {
     const html = renderToStaticMarkup(<SettingsModal onClose={() => undefined} />);
 
     expect(html).toContain('Kaya-style previews');
+    expect(html).toContain('English (English)');
+    expect(html).toContain('Japanese (日本語)');
+    expect(html).toContain('data-settings-locale="true"');
     expect(html).toContain('Traditional clamshell and slate stones');
     expect(html).toContain('id="settings-board-theme-label"');
     expect(html).toContain('aria-labelledby="settings-board-theme-label"');
@@ -52,6 +55,7 @@ describe('SettingsModal', () => {
       ['settings-fuzzy-stone-placement', 'Fuzzy Stone Placement'],
       ['settings-default-board-size', 'Default Board Size'],
       ['settings-default-handicap', 'Default Handicap'],
+      ['settings-app-locale', 'Language'],
       ['settings-ui-theme', 'UI Theme'],
       ['settings-ui-density', 'UI Density'],
       ['settings-gamepad-navigation', 'Gamepad Navigation'],

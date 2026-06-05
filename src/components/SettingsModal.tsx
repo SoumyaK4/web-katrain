@@ -15,6 +15,7 @@ import { publicUrl } from '../utils/publicUrl';
 import { BOARD_THEME_OPTIONS, getBoardTheme } from '../utils/boardThemes';
 import { getEngineModelLabel } from '../utils/engineLabel';
 import { UI_THEME_OPTIONS } from '../utils/uiThemes';
+import { APP_LOCALE_OPTIONS } from '../utils/locales';
 import { BOARD_SIZES, getMaxHandicap } from '../utils/boardSize';
 import { useShortcutLabels } from '../hooks/useShortcutLabels';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
@@ -215,6 +216,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     ];
     const uiThemeMeta = UI_THEME_OPTIONS.find((theme) => theme.value === settings.uiTheme);
     const uiDensityMeta = UI_DENSITY_OPTIONS.find((density) => density.value === settings.uiDensity);
+    const appLocaleMeta = APP_LOCALE_OPTIONS.find((locale) => locale.value === settings.appLocale);
     const backendOptions: Array<{
         value: GameSettings['katagoBackend'];
         label: string;
@@ -710,6 +712,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
                                         </div>
                                         <p className={subtextClass}>Defaults for the New Game dialog.</p>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="settings-app-locale" className="ui-text-muted block">Language</label>
+                                            <select
+                                                id="settings-app-locale"
+                                                value={settings.appLocale}
+                                                onChange={(e) => updateSettings({ appLocale: e.target.value as GameSettings['appLocale'] })}
+                                                className={selectClass}
+                                                data-settings-locale="true"
+                                            >
+                                                {APP_LOCALE_OPTIONS.map((locale) => (
+                                                    <option key={locale.value} value={locale.value} lang={locale.htmlLang}>
+                                                        {locale.label} ({locale.nativeLabel})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {appLocaleMeta ? (
+                                                <p className={subtextClass}>Sets browser language metadata for accessibility and future translations.</p>
+                                            ) : null}
+                                        </div>
 
                                         <div className="space-y-2">
                                             <label htmlFor="settings-ui-theme" className="ui-text-muted block">UI Theme</label>

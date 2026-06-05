@@ -99,8 +99,10 @@ export type BoardThemeId =
 
 export type UiThemeId = 'noir' | 'kaya' | 'studio' | 'light';
 export type UiDensityId = 'compact' | 'comfortable' | 'large';
+export type AppLocaleId = 'en' | 'zh' | 'ko' | 'ja' | 'fr' | 'de' | 'es' | 'it';
 
 export interface GameSettings {
+  appLocale: AppLocaleId;
   soundEnabled: boolean;
   showCoordinates: boolean;
   showMoveNumbers: boolean;

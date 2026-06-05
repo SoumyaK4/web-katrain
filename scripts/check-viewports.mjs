@@ -228,6 +228,9 @@ function assertViewport(result) {
   if (result.boardThemeSmokeFailures.length > 0) {
     failures.push(`board theme smoke failures: ${result.boardThemeSmokeFailures.join(', ')}`);
   }
+  if (result.localeSmokeFailures.length > 0) {
+    failures.push(`locale smoke failures: ${result.localeSmokeFailures.join(', ')}`);
+  }
   if (result.documentOverflow > 1) failures.push(`document overflows by ${result.documentOverflow}px`);
   if (!result.board) failures.push('board missing');
   if (result.board && result.board.left < -1) failures.push('board overflows left edge');
@@ -1167,6 +1170,8 @@ async function main() {
         };
         const boardThemeSmokeFailures = [];
         let boardThemeSmokeRan = false;
+        const localeSmokeFailures = [];
+        let localeSmokeRan = false;
         const runBoardThemePickerSmoke = async (dialog) => {
           if (boardThemeSmokeRan) return;
           boardThemeSmokeRan = true;
@@ -1200,6 +1205,32 @@ async function main() {
           }
           if (nextChoice.getAttribute('aria-checked') !== 'true') {
             boardThemeSmokeFailures.push('selected board theme choice did not become checked');
+          }
+        };
+        const runLocalePickerSmoke = async (dialog) => {
+          if (localeSmokeRan) return;
+          localeSmokeRan = true;
+          const selector = dialog.querySelector('[data-settings-locale="true"]');
+          if (!selector) {
+            localeSmokeFailures.push('locale selector missing');
+            return;
+          }
+          const optionValues = Array.from(selector.querySelectorAll('option')).map((option) => option.value);
+          const requiredLocales = ['en', 'zh', 'ko', 'ja', 'fr', 'de', 'es', 'it'];
+          for (const locale of requiredLocales) {
+            if (!optionValues.includes(locale)) localeSmokeFailures.push('locale option missing: ' + locale);
+          }
+          const valueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
+          if (valueSetter) valueSetter.call(selector, 'ja');
+          else selector.value = 'ja';
+          selector.dispatchEvent(new Event('change', { bubbles: true }));
+          await waitForFrames(4);
+          if (selector.value !== 'ja') localeSmokeFailures.push('locale selector did not keep Japanese value');
+          if (document.documentElement.lang !== 'ja') {
+            localeSmokeFailures.push('html lang did not update to ja');
+          }
+          if (document.documentElement.getAttribute('data-locale') !== 'ja') {
+            localeSmokeFailures.push('root data-locale did not update to ja');
           }
         };
         const runPhotoBoardTraceImportSmoke = async () => {
@@ -1535,6 +1566,7 @@ async function main() {
                 modalSmallTouchTargets.push(...auditSmallTouchTargets(dialog).map((target) => ({ ...target, modal: \`settings \${tabLabel}\` })));
               }
               if (tabLabel === 'General') {
+                await runLocalePickerSmoke(dialog);
                 await runBoardThemePickerSmoke(dialog);
               }
             }
@@ -1707,6 +1739,7 @@ async function main() {
           pwaBannerSmallTouchTargets: pwaBannerSmoke.smallTouchTargets,
           photoBoardTraceImportFailures,
           boardThemeSmokeFailures,
+          localeSmokeFailures,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,

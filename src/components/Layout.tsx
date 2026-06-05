@@ -52,6 +52,7 @@ import {
   validateModelUploadFile,
 } from '../utils/modelUpload';
 import { cancelAnimationFrameSafe, getAnimationNow, requestAnimationFrameSafe, type AnimationFrameHandle } from '../utils/animationFrame';
+import { getAppLocaleHtmlLang } from '../utils/locales';
 
 // Layout components
 import { MenuDrawer } from './layout/MenuDrawer';
@@ -354,7 +355,9 @@ export const Layout: React.FC = () => {
     if (typeof document === 'undefined') return;
     document.documentElement.dataset.uiTheme = settings.uiTheme;
     document.documentElement.dataset.uiDensity = settings.uiDensity;
-  }, [settings.uiDensity, settings.uiTheme]);
+    document.documentElement.dataset.locale = settings.appLocale;
+    document.documentElement.lang = getAppLocaleHtmlLang(settings.appLocale);
+  }, [settings.appLocale, settings.uiDensity, settings.uiTheme]);
   const [isDesktop, setIsDesktop] = useState(() => {
     return isDesktopLayoutViewport();
   });

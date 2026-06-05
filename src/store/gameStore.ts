@@ -11,6 +11,7 @@ import { decodeKaTrainKt, kaTrainAnalysisToAnalysisResult } from '../utils/katra
 import { decodeKayaKa } from '../utils/kayaSgfAnalysis';
 import { publicUrl } from '../utils/publicUrl';
 import { isBoardThemeId } from '../utils/boardThemes';
+import { isAppLocaleId } from '../utils/locales';
 import { createEmptyBoard, getHandicapPoints, getMaxHandicap, normalizeBoardSize } from '../utils/boardSize';
 import { makeGameStateAnalysisPositionKey } from '../utils/analysisPositionKey';
 import {
@@ -276,6 +277,11 @@ const loadStoredSettings = (): Partial<GameSettings> | null => {
     if ('boardTheme' in parsed) {
       if (!isBoardThemeId((parsed as { boardTheme?: unknown }).boardTheme)) {
         delete (parsed as { boardTheme?: unknown }).boardTheme;
+      }
+    }
+    if ('appLocale' in parsed) {
+      if (!isAppLocaleId((parsed as { appLocale?: unknown }).appLocale)) {
+        delete (parsed as { appLocale?: unknown }).appLocale;
       }
     }
     if ('defaultBoardSize' in parsed) {
@@ -939,6 +945,7 @@ const initialRoot = createNode(null, null, initialGameState, createRootNodeId())
 initialRoot.properties = { RU: [rulesToSgfRu('japanese')] };
 
 const defaultSettings: GameSettings = {
+  appLocale: 'en',
   soundEnabled: true,
   showCoordinates: true,
   showMoveNumbers: false,
