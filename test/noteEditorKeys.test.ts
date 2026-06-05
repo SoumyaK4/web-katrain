@@ -29,5 +29,8 @@ describe('note editor keyboard actions', () => {
     expect(source).toContain('title="Cancel note edit (Escape)"');
     expect(source).toContain('aria-label="Cancel note edit, keyboard shortcut Escape"');
     expect(source).toContain('aria-keyshortcuts="Enter Control+S Meta+S Escape"');
+    expect(source).toContain('data-note-save="true"');
+    expect(source).toContain('data-note-cancel="true"');
+    expect(source).toContain('data-note-edit="true"');
   });
 });

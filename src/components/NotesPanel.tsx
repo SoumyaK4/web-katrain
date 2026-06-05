@@ -573,6 +573,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
                   onClick={saveNote}
                   title="Save note (Enter, Ctrl+S, Cmd+S)"
                   aria-label="Save note, keyboard shortcut Enter, Control+S, or Command+S"
+                  data-note-save="true"
                 >
                   <FaSave size={11} aria-hidden="true" />
                   <span>Save</span>
@@ -583,6 +584,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
                   onClick={cancelNoteEdit}
                   title="Cancel note edit (Escape)"
                   aria-label="Cancel note edit, keyboard shortcut Escape"
+                  data-note-cancel="true"
                 >
                   <FaTimes size={11} aria-hidden="true" />
                   <span>Cancel</span>
@@ -599,6 +601,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
                     ? noteActionLabel
                     : `${noteActionLabel}, keyboard shortcut ${noteShortcutLabel}`
                 }
+                data-note-edit="true"
               >
                 <FaEdit size={11} aria-hidden="true" />
                 <span>{noteHasContent ? 'Edit' : 'Add'}</span>

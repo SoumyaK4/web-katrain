@@ -240,6 +240,9 @@ function assertViewport(result) {
     if (!result.editToolsReachable) failures.push('mobile edit tools not reachable');
     if (!result.noteEditorReachable) failures.push('mobile note editor not reachable from Review tab');
     if (!result.noteEditorKeyboardAware) failures.push('mobile note editor is missing keyboard-aware scroll margin');
+    if (result.noteEditorLifecycleFailures.length > 0) {
+      failures.push(`mobile note editor lifecycle failures: ${result.noteEditorLifecycleFailures.join(', ')}`);
+    }
     if (!result.boardTouchAction.includes('pinch-zoom') && result.boardTouchAction !== 'manipulation') {
       failures.push(`play-mode board touch-action does not allow pinch zoom (${result.boardTouchAction})`);
     }
@@ -485,6 +488,15 @@ async function main() {
             await new Promise((resolve) => requestAnimationFrame(resolve));
           }
         };
+        const setTextControlValue = (control, value) => {
+          const setter = Object.getOwnPropertyDescriptor(control.constructor.prototype, 'value')?.set;
+          if (!setter) {
+            control.value = value;
+          } else {
+            setter.call(control, value);
+          }
+          control.dispatchEvent(new Event('input', { bubbles: true }));
+        };
         const runBoardInteractionSmoke = async () => {
           const failures = [];
           const boardEl = document.querySelector('[data-board-snapshot="true"]');
@@ -536,6 +548,93 @@ async function main() {
             await waitForFrames(1);
           }
           return null;
+        };
+        const runNoteEditorLifecycleSmoke = async () => {
+          const failures = [];
+          const openEditor = async () => {
+            const existing = document.querySelector('[data-note-editor="true"]');
+            if (existing) return existing;
+            const editButton = document.querySelector('[data-note-edit="true"]');
+            const preview = document.querySelector('[data-note-preview="true"]');
+            (editButton || preview)?.click();
+            await waitForFrames(2);
+            return document.querySelector('[data-note-editor="true"]');
+          };
+          const saveWithButton = async (text) => {
+            const editor = await openEditor();
+            if (!editor) {
+              failures.push('note editor did not open');
+              return null;
+            }
+            editor.focus();
+            setTextControlValue(editor, text);
+            await waitForFrames(1);
+            const saveButton = document.querySelector('[data-note-save="true"]');
+            if (!saveButton) {
+              failures.push('save control missing');
+              return null;
+            }
+            saveButton.click();
+            await waitForFrames(3);
+            return document.querySelector('[data-note-preview="true"]');
+          };
+          const firstNote = 'Viewport QA note save';
+          const cancelledNote = 'Viewport QA note cancel';
+          const enterNote = 'Viewport QA note enter save';
+
+          let preview = await saveWithButton(firstNote);
+          if (!preview || !(preview.textContent || '').includes(firstNote)) {
+            failures.push('save button did not persist preview text');
+          }
+
+          preview = document.querySelector('[data-note-preview="true"]');
+          preview?.click();
+          await waitForFrames(2);
+          let editor = document.querySelector('[data-note-editor="true"]');
+          if (!editor) {
+            failures.push('note editor did not reopen from preview');
+          } else {
+            editor.focus();
+            setTextControlValue(editor, cancelledNote);
+            await waitForFrames(1);
+            editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+            await waitForFrames(3);
+            preview = document.querySelector('[data-note-preview="true"]');
+            const previewText = preview?.textContent || '';
+            if (!previewText.includes(firstNote)) failures.push('Escape cancel did not restore saved note');
+            if (previewText.includes(cancelledNote)) failures.push('Escape cancel leaked draft text into preview');
+          }
+
+          preview = document.querySelector('[data-note-preview="true"]');
+          preview?.click();
+          await waitForFrames(2);
+          editor = document.querySelector('[data-note-editor="true"]');
+          if (!editor) {
+            failures.push('note editor did not reopen for Enter save');
+          } else {
+            editor.focus();
+            setTextControlValue(editor, enterNote);
+            await waitForFrames(1);
+            editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            await waitForFrames(3);
+            preview = document.querySelector('[data-note-preview="true"]');
+            if (!preview || !(preview.textContent || '').includes(enterNote)) {
+              failures.push('Enter did not save note text');
+            }
+          }
+
+          preview = document.querySelector('[data-note-preview="true"]');
+          preview?.click();
+          await waitForFrames(2);
+          editor = document.querySelector('[data-note-editor="true"]');
+          if (editor) {
+            setTextControlValue(editor, '');
+            await waitForFrames(1);
+            document.querySelector('[data-note-save="true"]')?.click();
+            await waitForFrames(2);
+          }
+
+          return failures;
         };
         const modalSmokeFailures = [];
         const modalSmallTouchTargets = [];
@@ -614,6 +713,7 @@ async function main() {
         const boardTouchAction = board ? getComputedStyle(board).touchAction : '';
         let noteEditorReachable = true;
         let noteEditorKeyboardAware = true;
+        let noteEditorLifecycleFailures = [];
         let reviewSmallTouchTargets = [];
         if (${viewport.mobile}) {
           const reviewTab = Array.from(document.querySelectorAll('button[role="tab"]')).find((button) => button.getAttribute('aria-label') === 'Review');
@@ -627,8 +727,10 @@ async function main() {
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             const margin = getComputedStyle(noteEditor).scrollMarginBlockEnd;
             noteEditorKeyboardAware = noteEditor.getAttribute('data-note-keyboard-aware') === 'true' && margin !== '0px';
+            noteEditorLifecycleFailures = await runNoteEditorLifecycleSmoke();
           } else {
             noteEditorKeyboardAware = false;
+            noteEditorLifecycleFailures = ['note editor missing'];
           }
           const boardTab = Array.from(document.querySelectorAll('button[role="tab"]')).find((button) => button.getAttribute('aria-label') === 'Board');
           boardTab?.click();
@@ -898,6 +1000,7 @@ async function main() {
           editToolsReachable,
           noteEditorReachable,
           noteEditorKeyboardAware,
+          noteEditorLifecycleFailures,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
