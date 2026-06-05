@@ -216,6 +216,9 @@ function assertViewport(result) {
   if (result.captureSmokeFailures.length > 0) {
     failures.push(`capture smoke failures: ${result.captureSmokeFailures.join(', ')}`);
   }
+  if (result.fullscreenSmokeFailures.length > 0) {
+    failures.push(`fullscreen smoke failures: ${result.fullscreenSmokeFailures.join(', ')}`);
+  }
   if (result.documentOverflow > 1) failures.push(`document overflows by ${result.documentOverflow}px`);
   if (!result.board) failures.push('board missing');
   if (result.board && result.board.left < -1) failures.push('board overflows left edge');
@@ -873,7 +876,7 @@ async function main() {
         const modalSmokeFailures = [];
         const modalSmallTouchTargets = [];
         const dispatchShortcut = (key, options = {}) => {
-          window.dispatchEvent(new KeyboardEvent('keydown', {
+          const event = new KeyboardEvent('keydown', {
             key,
             bubbles: true,
             cancelable: true,
@@ -881,7 +884,9 @@ async function main() {
             metaKey: !!options.metaKey,
             shiftKey: !!options.shiftKey,
             altKey: !!options.altKey,
-          }));
+          });
+          window.dispatchEvent(event);
+          return event.defaultPrevented;
         };
         const withShortcutOverride = async (id, binding, action) => {
           const storageKey = 'web-katrain:shortcuts:v1';
@@ -948,8 +953,8 @@ async function main() {
 
             const pasteSgf = '(;FF[4]GM[1]SZ[19]AB[dd]PL[W])';
             window.__webKatrainQaClipboardText = pasteSgf;
-            await withShortcutOverride('paste-sgf', { key: 'F11', ctrl: false, shift: false, alt: false }, async () => {
-              dispatchShortcut('F11');
+            await withShortcutOverride('paste-sgf', { key: 'F12', ctrl: false, shift: false, alt: false }, async () => {
+              dispatchShortcut('F12');
               await waitForFrames(8);
             });
             const boardEl = document.querySelector('[data-board-snapshot="true"]');
@@ -978,6 +983,64 @@ async function main() {
             } catch {
               // Best effort restore for the mocked clipboard.
             }
+          }
+          return failures;
+        };
+        const runFullscreenSmoke = async () => {
+          const failures = [];
+          const root = document.documentElement;
+          const requestDescriptor = Object.getOwnPropertyDescriptor(root, 'requestFullscreen');
+          const exitDescriptor = Object.getOwnPropertyDescriptor(document, 'exitFullscreen');
+          const fullscreenDescriptor = Object.getOwnPropertyDescriptor(document, 'fullscreenElement');
+          let fullscreenActive = false;
+          let requestCount = 0;
+          let exitCount = 0;
+          try {
+            Object.defineProperty(root, 'requestFullscreen', {
+              configurable: true,
+              value: async () => {
+                requestCount += 1;
+                fullscreenActive = true;
+                document.dispatchEvent(new Event('fullscreenchange'));
+              },
+            });
+            Object.defineProperty(document, 'exitFullscreen', {
+              configurable: true,
+              value: async () => {
+                exitCount += 1;
+                fullscreenActive = false;
+                document.dispatchEvent(new Event('fullscreenchange'));
+              },
+            });
+            Object.defineProperty(document, 'fullscreenElement', {
+              configurable: true,
+              get: () => (fullscreenActive ? root : null),
+            });
+          } catch (error) {
+            return ['fullscreen mock failed: ' + (error instanceof Error ? error.message : String(error))];
+          }
+
+          try {
+            if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            const firstPrevented = dispatchShortcut('F11');
+            await waitForFrames(4);
+            if (!firstPrevented) failures.push('F11 fullscreen request did not prevent default');
+            if (requestCount !== 1) failures.push('F11 did not request fullscreen');
+            if (!fullscreenActive) failures.push('F11 did not enter fullscreen');
+
+            if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            const secondPrevented = dispatchShortcut('F11');
+            await waitForFrames(4);
+            if (!secondPrevented) failures.push('F11 fullscreen exit did not prevent default');
+            if (exitCount !== 1) failures.push('F11 did not exit fullscreen');
+            if (fullscreenActive) failures.push('F11 left fullscreen active after second toggle');
+          } finally {
+            if (requestDescriptor) Object.defineProperty(root, 'requestFullscreen', requestDescriptor);
+            else delete root.requestFullscreen;
+            if (exitDescriptor) Object.defineProperty(document, 'exitFullscreen', exitDescriptor);
+            else delete document.exitFullscreen;
+            if (fullscreenDescriptor) Object.defineProperty(document, 'fullscreenElement', fullscreenDescriptor);
+            else delete document.fullscreenElement;
           }
           return failures;
         };
@@ -1014,6 +1077,7 @@ async function main() {
         const scorePanelFailures = [];
         const scorePanelSmallTouchTargets = [];
         let scorePanelReachable = true;
+        const fullscreenSmokeFailures = await runFullscreenSmoke();
         const clipboardSmokeFailures = await runClipboardSmoke();
         let editToolSmokeFailures = [];
         const analysisDepthFailures = [];
@@ -1325,6 +1389,7 @@ async function main() {
           noteEditorLifecycleFailures,
           navigationSmokeFailures,
           captureSmokeFailures,
+          fullscreenSmokeFailures,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
