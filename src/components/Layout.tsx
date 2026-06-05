@@ -1052,7 +1052,8 @@ export const Layout: React.FC = () => {
 
   // PV animation
   const activeHoverMove = reportHoverMove ?? hoveredMove;
-  const pvOverlayEnabled = isAnalysisMode || !!reportHoverMove;
+  const boardAnalysisOverlaysActive = isAnalysisMode && isContinuousAnalysis;
+  const pvOverlayEnabled = boardAnalysisOverlaysActive || !!reportHoverMove;
   const pvKey = useMemo(() => {
     const pv = activeHoverMove?.pv;
     if (!pvOverlayEnabled || !pv || pv.length === 0) return null;
@@ -1245,6 +1246,7 @@ export const Layout: React.FC = () => {
     return getBranchInfo(currentNode);
   }, [currentNode, treeVersion]);
   const passPolicyColor = useMemo(() => {
+    if (!boardAnalysisOverlaysActive) return null;
     if (!settings.analysisShowPolicy) return null;
     const policy = (analysisData ?? currentNode.analysis)?.policy;
     if (!policy) return null;
@@ -1254,7 +1256,7 @@ export const Layout: React.FC = () => {
     if (polOrder < 0) return null;
     const col = evalColors[Math.min(evalColors.length - 1, Math.max(0, polOrder))]!;
     return rgba(col, GHOST_ALPHA);
-  }, [analysisData, boardSize, currentNode.analysis, evalColors, settings.analysisShowPolicy]);
+  }, [analysisData, boardAnalysisOverlaysActive, boardSize, currentNode.analysis, evalColors, settings.analysisShowPolicy]);
 
   const winRateLabel = typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : null;
   const scoreLeadLabel = typeof scoreLead === 'number' ? formatResultScoreLead(scoreLead) : null;
@@ -2815,48 +2817,32 @@ export const Layout: React.FC = () => {
       )}
 
       {isDesktop && (
-        <DesktopDashboard
-          board={
-            <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col">
-              <AnalysisCommandBar
-                mode={mode}
-                isAnalysisMode={isAnalysisMode}
-                statusText={statusText}
-                engineDot={engineDot}
-                engineStatus={engineStatus}
-                engineError={engineError}
-                engineBackend={engineBackend}
-                engineModelLabel={engineModelLabel}
-                requestedBackend={settings.katagoBackend}
-                modelUrl={settings.katagoModelUrl}
-                winRate={winRate ?? null}
-                scoreLead={scoreLead ?? null}
-                pointsLost={pointsLost}
-                analysisControls={modeControls}
-                updateControls={updateControls}
-                toggleAnalysisMode={toggleAnalysisMode}
-                isGameAnalysisRunning={isGameAnalysisRunning}
-                gameAnalysisType={gameAnalysisType}
-                gameAnalysisDone={gameAnalysisDone}
-                gameAnalysisTotal={gameAnalysisTotal}
-                startFastGameAnalysis={startFastGameAnalysis}
-                stopGameAnalysis={stopGameAnalysis}
-                onOpenGameReport={() => setIsGameReportOpen(true)}
-              />
-              {notification && (
-                <NotificationToast
-                  notification={notification}
-                  onClose={clearNotification}
-                  commandBarVisible={showAnalysisCommandBar}
+        <>
+          <DesktopDashboard
+            board={
+              <div className="relative flex h-full min-h-0 w-full min-w-0">
+                <GoBoard
+                  hoveredMove={activeHoverMove}
+                  onHoverMove={setHoveredMove}
+                  pvUpToMove={pvUpToMove}
+                  uiMode={boardUiMode}
+                  forcePvOverlay={!!reportHoverMove}
+                  scoringMode={scoringMode}
+                  scoreTerritory={manualScoreEstimate.territory}
+                  deadStones={manualDeadStones}
+                  onToggleDeadStone={toggleManualDeadStone}
                 />
-              )}
-              <div className="relative flex min-h-0 flex-1 min-w-0">
-                <EditToolbar isMobile={false} analysisCommandBarVisible={false} />
+              </div>
+            }
+            boardControls={
+              <>
+                <EditToolbar isMobile={false} analysisCommandBarVisible={false} docked />
                 <ManualScorePanel
                   active={scoringMode}
                   disabled={isEditMode || isInsertMode || isSelectingRegionOfInterest}
                   isCompact={false}
                   commandBarOffset={false}
+                  docked
                   score={manualScoreEstimate}
                   blackName={blackName}
                   whiteName={whiteName}
@@ -2874,146 +2860,142 @@ export const Layout: React.FC = () => {
                   onClear={clearManualDeadStones}
                   onDone={() => setScoringMode(false)}
                 />
-                <GoBoard
-                  hoveredMove={activeHoverMove}
-                  onHoverMove={setHoveredMove}
-                  pvUpToMove={pvUpToMove}
-                  uiMode={boardUiMode}
-                  forcePvOverlay={!!reportHoverMove}
-                  scoringMode={scoringMode}
-                  scoreTerritory={manualScoreEstimate.territory}
-                  deadStones={manualDeadStones}
-                  onToggleDeadStone={toggleManualDeadStone}
-                />
-              </div>
-            </div>
-          }
-          blackName={blackName}
-          whiteName={whiteName}
-          blackRank={blackRank}
-          whiteRank={whiteRank}
-          capturedBlack={capturedBlack}
-          capturedWhite={capturedWhite}
-          komi={komi}
-          boardSize={boardSize}
-          handicap={handicap}
-          rules={settings.gameRules}
-          result={endResult}
-          currentPlayer={currentPlayer}
-          moveCount={currentMoveNumber}
-          totalMoves={totalMovesInCurrentLine}
-          loadedFileName={loadedLibraryFileName ?? loadedExternalFile?.name ?? null}
-          dirty={currentGameDirty}
-          currentNode={currentNode}
-          branchInfo={branchInfo}
-          showAnalysis={isAnalysisMode || mode === 'analyze'}
-          winRate={winRate ?? null}
-          scoreLead={scoreLead ?? null}
-          pointsLost={pointsLost}
-          pointsLostLabel={pointsLostLabel}
-          engineState={
-            engineError
-              ? 'error'
-              : engineStatus === 'loading'
-                ? 'loading'
-                : isGameAnalysisRunning || isContinuousAnalysis || isAnalysisMode
-                  ? 'running'
-                  : 'ready'
-          }
-          enginePillLabel={
-            engineError
-              ? 'Engine error'
-              : engineStatus === 'loading'
-                ? 'Loading model'
-                : isGameAnalysisRunning || isContinuousAnalysis || isAnalysisMode
-                  ? 'Analyzing…'
-                  : 'KataGo ready'
-          }
-          engineMeta={engineMeta}
-          engineMetaTitle={engineMetaTitle}
-          engineBackend={engineBackend ?? ''}
-          engineModelLabel={engineModelLabel ?? ''}
-          analysisCacheSize={analysisCacheSize}
-          mode={mode}
-          setMode={setMode}
-          isContinuousAnalysis={isContinuousAnalysis}
-          toggleContinuousAnalysis={toggleContinuousAnalysis}
-          settings={settings}
-          updateControls={updateControls}
-          updateSettings={updateSettings}
-          isInsertMode={isInsertMode}
-          toggleInsertMode={toggleInsertMode}
-          isSelectingRegionOfInterest={isSelectingRegionOfInterest}
-          startSelectRegionOfInterest={startSelectRegionOfInterest}
-          libraryOpen={libraryOpen}
-          setLibraryOpen={setLibraryOpen}
-          libraryWidth={leftPanelWidth}
-          libraryPanel={
-            <LibraryPanel
-              open={libraryOpen}
-              onClose={handleCloseLibrary}
-              docked
-              getCurrentSgf={() => generateSgfFromTree(rootNode, sgfExportOptions)}
-              onLoadSgf={handleLoadFromLibrary}
-              onToast={toast}
-              onOpenPhotoBoard={openPhotoBoard}
-              onLibraryUpdated={handleLibraryUpdated}
-              onCurrentSaved={markCurrentGameCleanAndClearAutoSave}
-              loadedFileId={loadedLibraryFileId}
-              loadedFileDirty={currentGameDirty}
-              onLoadedFileChange={setLoadedLibraryFile}
-              externalFileUpdate={externalLibraryFileUpdate}
-              externalItemRename={externalLibraryItemRename}
-              externalItemCreate={externalLibraryItemCreate}
-              isAnalysisRunning={isGameAnalysisRunning}
-              onStopAnalysis={stopGameAnalysis}
-              showCloseButtonOnDesktop
+              </>
+            }
+            blackName={blackName}
+            whiteName={whiteName}
+            blackRank={blackRank}
+            whiteRank={whiteRank}
+            capturedBlack={capturedBlack}
+            capturedWhite={capturedWhite}
+            komi={komi}
+            boardSize={boardSize}
+            handicap={handicap}
+            rules={settings.gameRules}
+            result={endResult}
+            currentPlayer={currentPlayer}
+            moveCount={currentMoveNumber}
+            totalMoves={totalMovesInCurrentLine}
+            loadedFileName={loadedLibraryFileName ?? loadedExternalFile?.name ?? null}
+            dirty={currentGameDirty}
+            currentNode={currentNode}
+            branchInfo={branchInfo}
+            showAnalysis={isAnalysisMode || mode === 'analyze'}
+            winRate={winRate ?? null}
+            scoreLead={scoreLead ?? null}
+            pointsLost={pointsLost}
+            pointsLostLabel={pointsLostLabel}
+            engineState={
+              engineError
+                ? 'error'
+                : engineStatus === 'loading'
+                  ? 'loading'
+                  : isGameAnalysisRunning || isContinuousAnalysis || isAnalysisMode
+                    ? 'running'
+                    : 'ready'
+            }
+            enginePillLabel={
+              engineError
+                ? 'Engine error'
+                : engineStatus === 'loading'
+                  ? 'Loading model'
+                  : isGameAnalysisRunning || isContinuousAnalysis || isAnalysisMode
+                    ? 'Analyzing…'
+                    : 'KataGo ready'
+            }
+            engineMeta={engineMeta}
+            engineMetaTitle={engineMetaTitle}
+            engineBackend={engineBackend ?? ''}
+            engineModelLabel={engineModelLabel ?? ''}
+            analysisCacheSize={analysisCacheSize}
+            mode={mode}
+            setMode={setMode}
+            isContinuousAnalysis={isContinuousAnalysis}
+            toggleContinuousAnalysis={toggleContinuousAnalysis}
+            settings={settings}
+            updateControls={updateControls}
+            updateSettings={updateSettings}
+            isInsertMode={isInsertMode}
+            toggleInsertMode={toggleInsertMode}
+            isSelectingRegionOfInterest={isSelectingRegionOfInterest}
+            startSelectRegionOfInterest={startSelectRegionOfInterest}
+            libraryOpen={libraryOpen}
+            setLibraryOpen={setLibraryOpen}
+            libraryWidth={leftPanelWidth}
+            libraryPanel={
+              <LibraryPanel
+                open={libraryOpen}
+                onClose={handleCloseLibrary}
+                docked
+                getCurrentSgf={() => generateSgfFromTree(rootNode, sgfExportOptions)}
+                onLoadSgf={handleLoadFromLibrary}
+                onToast={toast}
+                onOpenPhotoBoard={openPhotoBoard}
+                onLibraryUpdated={handleLibraryUpdated}
+                onCurrentSaved={markCurrentGameCleanAndClearAutoSave}
+                loadedFileId={loadedLibraryFileId}
+                loadedFileDirty={currentGameDirty}
+                onLoadedFileChange={setLoadedLibraryFile}
+                externalFileUpdate={externalLibraryFileUpdate}
+                externalItemRename={externalLibraryItemRename}
+                externalItemCreate={externalLibraryItemCreate}
+                isAnalysisRunning={isGameAnalysisRunning}
+                onStopAnalysis={stopGameAnalysis}
+                showCloseButtonOnDesktop
+              />
+            }
+            sidebarOpen={showSidebar}
+            setSidebarOpen={setShowSidebar}
+            isGameAnalysisRunning={isGameAnalysisRunning}
+            gameAnalysisType={gameAnalysisType}
+            gameAnalysisDone={gameAnalysisDone}
+            gameAnalysisTotal={gameAnalysisTotal}
+            startQuickGameAnalysis={startQuickGameAnalysis}
+            startFastGameAnalysis={startFastGameAnalysis}
+            stopGameAnalysis={stopGameAnalysis}
+            onClearAnalysisCache={requestClearAnalysisCache}
+            onOpenGameReport={() => setIsGameReportOpen(true)}
+            navigateBack={navigateBack}
+            navigateForward={navigateForward}
+            navigateStart={navigateStart}
+            navigateEnd={navigateEnd}
+            navigateToMove={navigateToMove}
+            jumpBack={() => jumpBack(10)}
+            jumpForward={() => jumpForward(10)}
+            findMistake={(dir) => findMistake(dir > 0 ? 'redo' : 'undo')}
+            rotateBoard={rotateBoard}
+            switchBranch={switchBranch}
+            undoToBranchPoint={undoToBranchPoint}
+            makeCurrentNodeMainBranch={makeCurrentNodeMainBranch}
+            passTurn={passTurn}
+            onUndo={handleUndo}
+            onAiMove={makeAiMove}
+            onResign={handleResign}
+            onPlayBest={makeAiMove}
+            onNewGame={() => void openNewGameWithGuard()}
+            onSaveSgf={handleSaveCurrentSgf}
+            onCopySgf={handleCopySgf}
+            onSaveToLibrary={handleOpenSaveToLibraryDialog}
+            onLoadSgf={handleLoadClick}
+            onPasteSgf={handlePasteSgf}
+            onScanBoard={() => openPhotoBoard()}
+            onSettings={() => setIsSettingsOpen(true)}
+            onCommandPalette={() => setIsCommandPaletteOpen(true)}
+            onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
+            onAbout={() => setIsAboutOpen(true)}
+            recentItems={recentLibraryItems}
+            loadedFileId={loadedLibraryFileId}
+            onOpenRecent={handleOpenRecent}
+            toast={toast}
+          />
+          {notification && (
+            <NotificationToast
+              notification={notification}
+              onClose={clearNotification}
+              commandBarVisible={false}
             />
-          }
-          sidebarOpen={showSidebar}
-          setSidebarOpen={setShowSidebar}
-          isGameAnalysisRunning={isGameAnalysisRunning}
-          gameAnalysisType={gameAnalysisType}
-          gameAnalysisDone={gameAnalysisDone}
-          gameAnalysisTotal={gameAnalysisTotal}
-          startQuickGameAnalysis={startQuickGameAnalysis}
-          startFastGameAnalysis={startFastGameAnalysis}
-          stopGameAnalysis={stopGameAnalysis}
-          onClearAnalysisCache={requestClearAnalysisCache}
-          onOpenGameReport={() => setIsGameReportOpen(true)}
-          navigateBack={navigateBack}
-          navigateForward={navigateForward}
-          navigateStart={navigateStart}
-          navigateEnd={navigateEnd}
-          navigateToMove={navigateToMove}
-          jumpBack={() => jumpBack(10)}
-          jumpForward={() => jumpForward(10)}
-          findMistake={(dir) => findMistake(dir > 0 ? 'redo' : 'undo')}
-          rotateBoard={rotateBoard}
-          switchBranch={switchBranch}
-          undoToBranchPoint={undoToBranchPoint}
-          makeCurrentNodeMainBranch={makeCurrentNodeMainBranch}
-          passTurn={passTurn}
-          onUndo={handleUndo}
-          onAiMove={makeAiMove}
-          onResign={handleResign}
-          onPlayBest={makeAiMove}
-          onNewGame={() => void openNewGameWithGuard()}
-          onSaveSgf={handleSaveCurrentSgf}
-          onCopySgf={handleCopySgf}
-          onSaveToLibrary={handleOpenSaveToLibraryDialog}
-          onLoadSgf={handleLoadClick}
-          onPasteSgf={handlePasteSgf}
-          onScanBoard={() => openPhotoBoard()}
-          onSettings={() => setIsSettingsOpen(true)}
-          onCommandPalette={() => setIsCommandPaletteOpen(true)}
-          onKeyboardHelp={() => setIsKeyboardHelpOpen(true)}
-          onAbout={() => setIsAboutOpen(true)}
-          recentItems={recentLibraryItems}
-          loadedFileId={loadedLibraryFileId}
-          onOpenRecent={handleOpenRecent}
-          toast={toast}
-        />
+          )}
+        </>
       )}
 
       {!isDesktop && (

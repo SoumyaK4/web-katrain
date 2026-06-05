@@ -7,6 +7,7 @@ interface ManualScorePanelProps {
   disabled?: boolean;
   isCompact?: boolean;
   commandBarOffset?: boolean;
+  docked?: boolean;
   scoreMode?: 'manual' | 'estimate';
   score: ManualScoreEstimate;
   blackName: string;
@@ -48,6 +49,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   disabled = false,
   isCompact = false,
   commandBarOffset = false,
+  docked = false,
   scoreMode = 'manual',
   score,
   blackName,
@@ -82,7 +84,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
     return (
       <button
         type="button"
-        className={['manual-score-launch', commandBarOffset ? 'manual-score-offset' : ''].join(' ')}
+        className={['manual-score-launch', commandBarOffset ? 'manual-score-offset' : '', docked ? 'manual-score-docked' : ''].join(' ')}
         onClick={onToggle}
         disabled={disabled}
         title={scoreTitle}
@@ -106,7 +108,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   const markedDeadLabel = `${deadStoneCount} marked dead stone${deadStoneCount === 1 ? '' : 's'}`;
   const resultDetailLabel = formatScoreResultDetail(score.scoreLead, blackName, whiteName);
   return (
-    <section className={['manual-score-panel', commandBarOffset ? 'manual-score-offset' : ''].join(' ')} aria-label="Manual score">
+    <section className={['manual-score-panel', commandBarOffset ? 'manual-score-offset' : '', docked ? 'manual-score-docked' : ''].join(' ')} aria-label="Manual score">
       <div className="manual-score-header">
         <div className="manual-score-title">
           <FaCalculator size={13} />

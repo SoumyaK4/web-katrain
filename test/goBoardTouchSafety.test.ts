@@ -21,4 +21,13 @@ describe('GoBoard touch safety', () => {
     expect(source).toContain('touchAction: boardTouchAction');
     expect(source).not.toContain('select-none touch-none');
   });
+
+  it('requires live continuous analysis before drawing analysis overlays', () => {
+    const source = readFileSync('src/components/GoBoard.tsx', 'utf8');
+
+    expect(source).toContain('isContinuousAnalysis: state.isContinuousAnalysis');
+    expect(source).toContain('const hasAnalysisOverlay = isAnalysisMode && isContinuousAnalysis;');
+    expect(source).not.toContain('const hasAnalysisOverlay = isAnalysisMode || !!visibleAnalysis;');
+    expect(source).toContain('if (!hasAnalysisOverlay || !settings.analysisShowEval || settings.showLastNMistakes === 0) return;');
+  });
 });

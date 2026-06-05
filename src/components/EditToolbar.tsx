@@ -100,9 +100,10 @@ const toolButtonClass = (active: boolean) =>
       : 'bg-[var(--ui-surface)] border-[var(--ui-border)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)]',
   ].join(' ');
 
-export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisible?: boolean }> = ({
+export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisible?: boolean; docked?: boolean }> = ({
   isMobile = false,
   analysisCommandBarVisible = false,
+  docked = false,
 }) => {
   const {
     isEditMode,
@@ -204,14 +205,18 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
   return (
     <div
       data-edit-toolbar
-      className={[
-        'absolute z-40 pointer-events-none max-w-[calc(100%-1rem)]',
-        isMobile
-          ? 'left-2 right-2 bottom-3'
-          : analysisCommandBarVisible
-            ? 'left-3 edit-toolbar--analysis-offset'
-            : 'left-1/2 top-3 -translate-x-1/2',
-      ].join(' ')}
+      className={
+        docked
+          ? 'relative z-40 max-w-full'
+          : [
+            'absolute z-40 pointer-events-none max-w-[calc(100%-1rem)]',
+            isMobile
+              ? 'left-2 right-2 bottom-3'
+              : analysisCommandBarVisible
+                ? 'left-3 edit-toolbar--analysis-offset'
+                : 'left-1/2 top-3 -translate-x-1/2',
+          ].join(' ')
+      }
     >
       {!isEditMode ? (
         <button

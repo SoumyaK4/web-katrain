@@ -20,6 +20,7 @@ type EngineState = 'ready' | 'running' | 'loading' | 'error';
 export interface DesktopDashboardProps {
   // ---- slots (heavy components, read from the store themselves) ----
   board: React.ReactNode;
+  boardControls?: React.ReactNode;
 
   // ---- game meta ----
   blackName: string;
@@ -155,6 +156,7 @@ const DASHBOARD_OVERLAY_NAMES: Record<DashboardOverlayKey, string> = {
 export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
   const {
     board,
+    boardControls,
     blackName, whiteName, blackRank, whiteRank,
     capturedBlack, capturedWhite, komi, boardSize, handicap, rules, result,
     currentPlayer, moveCount, totalMoves, loadedFileName, dirty, currentNode, branchInfo,
@@ -519,10 +521,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
             </span>
           </div>
 
-          <div className="board-stage">
-            {!libraryOpen && (
-              <button type="button" className="edge-toggle left" title="Show library" onClick={toggleLibrary}><Icon name="chevR" size={13} /></button>
-            )}
+          <div className="board-action-strip">
             <div className="board-tools">
               <button
                 type="button"
@@ -539,6 +538,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                 <Icon name="layers" size={13} />Insert
               </button>
             </div>
+            {boardControls ? <div className="board-extra-tools">{boardControls}</div> : null}
+          </div>
+
+          <div className="board-stage">
+            {!libraryOpen && (
+              <button type="button" className="edge-toggle left" title="Show library" onClick={toggleLibrary}><Icon name="chevR" size={13} /></button>
+            )}
             <div className="board-wrap">
               <div className="goban-frame">{board}</div>
             </div>

@@ -161,6 +161,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     moveHistory,
     analysisData,
     isAnalysisMode,
+    isContinuousAnalysis,
     currentPlayer,
     settings,
     currentNode,
@@ -187,6 +188,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
       moveHistory: state.moveHistory,
       analysisData: state.analysisData,
       isAnalysisMode: state.isAnalysisMode,
+      isContinuousAnalysis: state.isContinuousAnalysis,
       currentPlayer: state.currentPlayer,
       settings: state.settings,
       currentNode: state.currentNode,
@@ -267,7 +269,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
   );
 
   const visibleAnalysis = analysisData ?? currentNode.analysis ?? null;
-  const hasAnalysisOverlay = isAnalysisMode || !!visibleAnalysis;
+  const hasAnalysisOverlay = isAnalysisMode && isContinuousAnalysis;
   const pvOverlayEnabled = hasAnalysisOverlay || forcePvOverlay;
   const boardSize = normalizeBoardSize(board.length, DEFAULT_BOARD_SIZE);
   const hoshiPoints = useMemo(() => getHoshiPoints(boardSize), [boardSize]);
@@ -630,7 +632,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
         const deadStoneKey = `${x},${y}`;
         const isDeadScoringStone = scoringMode && !!deadStones?.has(deadStoneKey);
         const ownershipVal =
-          (scoringMode || (isAnalysisMode && settings.analysisShowOwnership)) && territory
+          (scoringMode || showOwnership) && territory
             ? (territory[y]?.[x] ?? 0)
             : null;
         const ownershipAbs = ownershipVal !== null ? Math.min(1, Math.abs(ownershipVal)) : 0;
@@ -738,11 +740,11 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     boardTheme,
     cellSize,
     deadStones,
-    isAnalysisMode,
     moveNumbers,
     originX,
     originY,
     scoringMode,
+    showOwnership,
     settings.analysisShowOwnership,
     settings.fuzzyStonePlacement,
     settings.showMoveNumbers,
@@ -1612,7 +1614,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     if (!canvas) return;
     const ctx = setupOverlayCanvas(canvas);
     if (!ctx) return;
-    if (!isAnalysisMode || !settings.analysisShowEval || settings.showLastNMistakes === 0) return;
+    if (!hasAnalysisOverlay || !settings.analysisShowEval || settings.showLastNMistakes === 0) return;
     void treeVersion;
 
     const dotImg = dotImageRef.current;
@@ -1721,7 +1723,7 @@ export const GoBoard: React.FC<GoBoardProps> = ({
     currentNode,
     evalColors,
     evalThresholds,
-    isAnalysisMode,
+    hasAnalysisOverlay,
     originX,
     originY,
     settings.analysisShowEval,

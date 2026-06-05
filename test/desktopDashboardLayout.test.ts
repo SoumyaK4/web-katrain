@@ -77,6 +77,24 @@ describe('desktop dashboard layout', () => {
     expect(layoutSource).toContain('onCopySgf={handleCopySgf}');
   });
 
+  it('does not mount the analysis button bar inside the desktop goban frame', () => {
+    const layoutSource = readFileSync('src/components/Layout.tsx', 'utf8');
+    const dashboardBoardStart = layoutSource.indexOf('board={');
+    const dashboardBoardEnd = layoutSource.indexOf('boardControls={', dashboardBoardStart);
+    const dashboardBoardSlot = layoutSource.slice(dashboardBoardStart, dashboardBoardEnd);
+    const dashboardControlsEnd = layoutSource.indexOf('blackName={blackName}', dashboardBoardEnd);
+    const dashboardControlsSlot = layoutSource.slice(dashboardBoardEnd, dashboardControlsEnd);
+
+    expect(dashboardBoardSlot).toContain('<GoBoard');
+    expect(dashboardBoardSlot).not.toContain('<AnalysisCommandBar');
+    expect(dashboardBoardSlot).not.toContain('<EditToolbar');
+    expect(dashboardBoardSlot).not.toContain('<ManualScorePanel');
+    expect(dashboardBoardSlot).not.toContain('<NotificationToast');
+    expect(dashboardControlsSlot).toContain('<EditToolbar');
+    expect(dashboardControlsSlot).toContain('<ManualScorePanel');
+    expect(dashboardControlsSlot).toContain('docked');
+  });
+
   it('keeps desktop move-number editing keyboard-local and bounded', () => {
     const dashboardSource = readFileSync('src/components/dashboard/DesktopDashboard.tsx', 'utf8');
     const moveCounterStart = dashboardSource.indexOf('<div className="move-counter">');
