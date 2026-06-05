@@ -2737,7 +2737,8 @@
 
   .pwa-install-primary,
   .pwa-install-secondary {
-    min-height: 36px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 6px;
     padding: 0 12px;
     font-size: 11px;
@@ -2781,7 +2782,7 @@
 
     .pwa-install-primary,
     .pwa-install-secondary {
-      min-height: 40px;
+      min-height: 44px;
     }
 
     .pwa-install-detail {

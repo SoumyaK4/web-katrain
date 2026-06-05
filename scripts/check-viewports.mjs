@@ -219,6 +219,9 @@ function assertViewport(result) {
   if (result.fullscreenSmokeFailures.length > 0) {
     failures.push(`fullscreen smoke failures: ${result.fullscreenSmokeFailures.join(', ')}`);
   }
+  if (result.pwaBannerFailures.length > 0) {
+    failures.push(`PWA banner failures: ${result.pwaBannerFailures.join(', ')}`);
+  }
   if (result.documentOverflow > 1) failures.push(`document overflows by ${result.documentOverflow}px`);
   if (!result.board) failures.push('board missing');
   if (result.board && result.board.left < -1) failures.push('board overflows left edge');
@@ -317,6 +320,13 @@ function assertViewport(result) {
       .map((target) => `${target.label} ${Math.round(target.width)}x${Math.round(target.height)}`)
       .join(', ');
     failures.push(`${result.analysisDepthSmallTouchTargets.length} analysis depth touch target(s) below 44px: ${summary}`);
+  }
+  if (result.pwaBannerSmallTouchTargets.length > 0) {
+    const summary = result.pwaBannerSmallTouchTargets
+      .slice(0, 8)
+      .map((target) => `${target.label} ${Math.round(target.width)}x${Math.round(target.height)}`)
+      .join(', ');
+    failures.push(`${result.pwaBannerSmallTouchTargets.length} PWA banner touch target(s) below 44px: ${summary}`);
   }
   if (result.commandBarOverlaps.length > 0) {
     const summary = result.commandBarOverlaps
@@ -1044,6 +1054,81 @@ async function main() {
           }
           return failures;
         };
+        const runPwaBannerSmoke = async () => {
+          const failures = [];
+          const smallTouchTargets = [];
+          const waitForBanner = async () => {
+            for (let i = 0; i < 30; i++) {
+              const banner = document.querySelector('.pwa-install-banner');
+              if (banner && isVisibleBox(banner)) return banner;
+              await waitForFrames(1);
+            }
+            return null;
+          };
+          const assertBannerFits = (banner, label) => {
+            const bannerRect = rect(banner);
+            if (!bannerRect) {
+              failures.push(label + ' banner rect missing');
+              return;
+            }
+            if (bannerRect.left < -1 || bannerRect.right > innerWidth + 1 || bannerRect.top < -1 || bannerRect.bottom > innerHeight + 1) {
+              failures.push(label + ' banner escapes viewport ' + Math.round(bannerRect.width) + 'x' + Math.round(bannerRect.height) + ' at ' + Math.round(bannerRect.left) + ',' + Math.round(bannerRect.top) + '-' + Math.round(bannerRect.right) + ',' + Math.round(bannerRect.bottom) + ' in ' + innerWidth + 'x' + innerHeight);
+            }
+          };
+
+          window.dispatchEvent(new Event('web-katrain:pwa-offline-ready'));
+          await waitForFrames(4);
+          let banner = await waitForBanner();
+          if (!banner) {
+            failures.push('offline-ready banner missing');
+            return { failures, smallTouchTargets };
+          }
+          if (document.documentElement.getAttribute('data-pwa-banner') !== 'offline-ready') {
+            failures.push('offline-ready root state missing');
+          }
+          if (!(banner.textContent || '').includes('Offline ready')) {
+            failures.push('offline-ready banner text missing');
+          }
+          if (!getComputedStyle(document.documentElement).getPropertyValue('--pwa-banner-height').trim()) {
+            failures.push('offline-ready banner did not reserve root height');
+          }
+          assertBannerFits(banner, 'offline-ready');
+          if (${viewport.mobile}) smallTouchTargets.push(...auditSmallTouchTargets(banner));
+
+          window.dispatchEvent(new Event('web-katrain:pwa-update-ready'));
+          await waitForFrames(4);
+          banner = await waitForBanner();
+          if (!banner) {
+            failures.push('update-ready banner missing');
+            return { failures, smallTouchTargets };
+          }
+          if (document.documentElement.getAttribute('data-pwa-banner') !== 'update-ready') {
+            failures.push('update-ready did not replace offline-ready banner');
+          }
+          if (!(banner.textContent || '').includes('Update ready')) {
+            failures.push('update-ready banner text missing');
+          }
+          assertBannerFits(banner, 'update-ready');
+          if (${viewport.mobile}) smallTouchTargets.push(...auditSmallTouchTargets(banner));
+
+          const dismissButton = findButtonByLabel('Dismiss', banner);
+          if (!dismissButton) {
+            failures.push('dismiss control missing');
+          } else {
+            dismissButton.click();
+            await waitForFrames(4);
+            if (document.querySelector('.pwa-install-banner')) {
+              failures.push('dismiss did not remove banner');
+            }
+            if (document.documentElement.hasAttribute('data-pwa-banner')) {
+              failures.push('dismiss did not clear root banner state');
+            }
+            if (getComputedStyle(document.documentElement).getPropertyValue('--pwa-banner-height').trim()) {
+              failures.push('dismiss did not clear root banner height');
+            }
+          }
+          return { failures, smallTouchTargets };
+        };
         const findButtonByLabel = (label, scope = document) => Array.from(scope.querySelectorAll('button')).find((candidate) => {
           const candidateLabel = targetLabel(candidate);
           return candidateLabel === label || candidateLabel.includes(label) || targetSearchText(candidate).includes(label);
@@ -1079,6 +1164,7 @@ async function main() {
         let scorePanelReachable = true;
         const fullscreenSmokeFailures = await runFullscreenSmoke();
         const clipboardSmokeFailures = await runClipboardSmoke();
+        const pwaBannerSmoke = await runPwaBannerSmoke();
         let editToolSmokeFailures = [];
         const analysisDepthFailures = [];
         const analysisDepthSmallTouchTargets = [];
@@ -1390,6 +1476,8 @@ async function main() {
           navigationSmokeFailures,
           captureSmokeFailures,
           fullscreenSmokeFailures,
+          pwaBannerFailures: pwaBannerSmoke.failures,
+          pwaBannerSmallTouchTargets: pwaBannerSmoke.smallTouchTargets,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
