@@ -213,6 +213,9 @@ function assertViewport(result) {
   if (result.navigationSmokeFailures.length > 0) {
     failures.push(`navigation smoke failures: ${result.navigationSmokeFailures.join(', ')}`);
   }
+  if (result.captureSmokeFailures.length > 0) {
+    failures.push(`capture smoke failures: ${result.captureSmokeFailures.join(', ')}`);
+  }
   if (result.documentOverflow > 1) failures.push(`document overflows by ${result.documentOverflow}px`);
   if (!result.board) failures.push('board missing');
   if (result.board && result.board.left < -1) failures.push('board overflows left edge');
@@ -637,6 +640,60 @@ async function main() {
           }
           if (moveIndexes.some((index) => afterEndStones[index] === '.')) {
             failures.push('End did not restore played move stones');
+          }
+          return failures;
+        };
+        const runCaptureSmoke = async () => {
+          const failures = [];
+          const boardEl = document.querySelector('[data-board-snapshot="true"]');
+          if (!boardEl) return ['capture smoke: board missing'];
+          const size = Number(boardEl.getAttribute('data-board-size'));
+          const cellSize = Number(boardEl.getAttribute('data-board-cell-size'));
+          const originX = Number(boardEl.getAttribute('data-board-origin-x'));
+          const originY = Number(boardEl.getAttribute('data-board-origin-y'));
+          if (!Number.isFinite(size) || size < 16) return ['capture smoke: board size too small'];
+          if (!Number.isFinite(cellSize) || cellSize <= 0 || !Number.isFinite(originX) || !Number.isFinite(originY)) {
+            return ['capture smoke: board geometry metadata invalid'];
+          }
+
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          dispatchShortcut('Home');
+          await waitForFrames(4);
+          const firstPlayer = boardEl.getAttribute('data-board-current-player');
+          const expectedCaptor = firstPlayer === 'black' ? 'B' : firstPlayer === 'white' ? 'W' : null;
+          if (!expectedCaptor) failures.push('capture smoke: current-player metadata invalid');
+
+          const clickPoint = async (x, y) => {
+            const r = boardEl.getBoundingClientRect();
+            boardEl.dispatchEvent(new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              clientX: r.left + originX + x * cellSize,
+              clientY: r.top + originY + y * cellSize,
+            }));
+            await waitForFrames(4);
+          };
+
+          const sequence = [
+            [3, 4],  // Captor D15
+            [4, 4],  // Captured stone E15
+            [5, 4],  // Captor F15
+            [15, 3], // Tenuki Q16
+            [4, 3],  // Captor E16
+            [15, 15], // Tenuki Q4
+            [4, 5],  // Captor E14 captures E15
+          ];
+          for (const [x, y] of sequence) await clickPoint(x, y);
+
+          const moveCount = Number(boardEl.getAttribute('data-board-move-count'));
+          const stones = boardEl.getAttribute('data-board-stones') || '';
+          const capturedIndex = 4 + 4 * size;
+          if (moveCount !== sequence.length) failures.push('capture sequence move count was ' + moveCount + ', expected ' + sequence.length);
+          if (stones[capturedIndex] !== '.') failures.push('captured E15 stone is still present');
+          for (const [x, y] of [[3, 4], [5, 4], [4, 3], [4, 5]]) {
+            if (expectedCaptor && stones[x + y * size] !== expectedCaptor) {
+              failures.push('capturing stone missing at ' + x + ',' + y + ' for ' + firstPlayer);
+            }
           }
           return failures;
         };
@@ -1235,6 +1292,7 @@ async function main() {
         }
         editToolSmokeFailures = await runEditToolSmoke();
         const navigationSmokeFailures = await runNavigationSmoke();
+        const captureSmokeFailures = await runCaptureSmoke();
         const boardInteractionFailures = await runBoardInteractionSmoke();
         const libraryPanel = document.querySelector('[data-layout-panel="library"]') || document.querySelector('.wk-dashboard .library');
         const sidePanel = document.querySelector('[data-layout-panel="side"]') || document.querySelector('.wk-dashboard .sidebar');
@@ -1266,6 +1324,7 @@ async function main() {
           noteEditorKeyboardAware,
           noteEditorLifecycleFailures,
           navigationSmokeFailures,
+          captureSmokeFailures,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
