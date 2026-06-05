@@ -1239,6 +1239,64 @@ async function main() {
             photoBoardButton.click();
             await waitForFrames(2);
           };
+          const createSyntheticBoardPhoto = async (boardSize, blackPoint, whitePoint) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 760;
+            canvas.height = 760;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Synthetic board canvas unavailable');
+            const margin = Math.min(canvas.width, canvas.height) * 0.06;
+            const span = canvas.width - 1 - margin * 2;
+            const cell = span / Math.max(1, boardSize - 1);
+            const pointCenter = (point) => ({
+              x: margin + (point.x / Math.max(1, boardSize - 1)) * span,
+              y: margin + (point.y / Math.max(1, boardSize - 1)) * span,
+            });
+            context.fillStyle = '#d6ad68';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.strokeStyle = 'rgba(53, 37, 24, 0.7)';
+            context.lineWidth = Math.max(1, cell * 0.035);
+            for (let i = 0; i < boardSize; i++) {
+              const position = margin + (i / Math.max(1, boardSize - 1)) * span;
+              context.beginPath();
+              context.moveTo(margin, position);
+              context.lineTo(margin + span, position);
+              context.moveTo(position, margin);
+              context.lineTo(position, margin + span);
+              context.stroke();
+            }
+            const drawStone = (point, color) => {
+              const center = pointCenter(point);
+              context.beginPath();
+              context.arc(center.x, center.y, cell * 0.36, 0, Math.PI * 2);
+              context.fillStyle = color === 'black' ? '#181818' : '#f8f8f8';
+              context.fill();
+            };
+            drawStone(blackPoint, 'black');
+            drawStone(whitePoint, 'white');
+            const blob = await new Promise((resolve) => canvas.toBlob((nextBlob) => resolve(nextBlob), 'image/png'));
+            if (!blob) throw new Error('Synthetic board image export failed');
+            return new File([blob], 'viewport-auto-trace-board.png', { type: 'image/png' });
+          };
+          const chooseSyntheticBoardPhoto = async (dialog, boardSize, blackPoint, whitePoint) => {
+            const input = Array.from(dialog.querySelectorAll('input[type="file"]')).find((candidate) =>
+              (candidate.getAttribute('accept') || '').includes('.png')
+            );
+            if (!input) throw new Error('Photo file input missing');
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(await createSyntheticBoardPhoto(boardSize, blackPoint, whitePoint));
+            Object.defineProperty(input, 'files', { configurable: true, value: dataTransfer.files });
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            await waitForFrames(8);
+          };
+          const waitForAutoTrace = async (dialog) => {
+            for (let i = 0; i < 90; i++) {
+              const status = dialog.querySelector('[data-photo-board-auto-trace-status="true"]');
+              if ((status?.textContent || '').includes('Auto traced')) return status;
+              await waitForFrames(1);
+            }
+            return null;
+          };
 
           try {
             await openPhotoBoard();
@@ -1266,29 +1324,31 @@ async function main() {
             if (!Number.isInteger(boardSize) || boardSize < 9) failures.push('trace grid size invalid');
             if (failures.length > 0) return failures;
 
-            const paintPoint = async (toolLabel, index, expectedLabel) => {
-              const toolButton = findButtonByLabel(toolLabel, traceToolGroup);
-              if (!toolButton) {
-                failures.push(toolLabel + ' trace tool missing');
-                return;
-              }
-              toolButton.click();
-              await waitForFrames(2);
-              const point = grid.querySelector('[data-photo-board-index="' + index + '"]');
-              if (!point) {
-                failures.push('trace point ' + index + ' missing');
-                return;
-              }
-              point.click();
-              await waitForFrames(3);
-              if (!((point.getAttribute('aria-label') || '').includes(expectedLabel))) {
-                failures.push('trace point ' + index + ' did not become ' + expectedLabel);
-              }
-            };
-
-            const whiteIndex = boardSize * boardSize - 1;
-            await paintPoint('Black', 0, 'black');
-            await paintPoint('White', whiteIndex, 'white');
+            const blackPoint = { x: Math.min(10, boardSize - 2), y: Math.min(10, boardSize - 2) };
+            const whitePoint = { x: Math.max(0, boardSize - 2), y: Math.max(0, boardSize - 2) };
+            const blackIndex = blackPoint.y * boardSize + blackPoint.x;
+            const whiteIndex = whitePoint.y * boardSize + whitePoint.x;
+            await chooseSyntheticBoardPhoto(dialog, boardSize, blackPoint, whitePoint);
+            const autoTraceButton = dialog.querySelector('[data-photo-board-auto-trace="true"]');
+            if (!autoTraceButton) {
+              failures.push('auto trace control missing');
+              return failures;
+            }
+            if (autoTraceButton.disabled || autoTraceButton.getAttribute('aria-disabled') === 'true') {
+              failures.push('auto trace control stayed disabled after photo upload');
+              return failures;
+            }
+            autoTraceButton.click();
+            const autoTraceStatus = await waitForAutoTrace(dialog);
+            if (!autoTraceStatus) failures.push('auto trace status missing');
+            const blackTracePoint = grid.querySelector('[data-photo-board-index="' + blackIndex + '"]');
+            const whiteTracePoint = grid.querySelector('[data-photo-board-index="' + whiteIndex + '"]');
+            if (!((blackTracePoint?.getAttribute('aria-label') || '').includes('black'))) {
+              failures.push('auto trace missing black stone at synthetic point');
+            }
+            if (!((whiteTracePoint?.getAttribute('aria-label') || '').includes('white'))) {
+              failures.push('auto trace missing white stone at synthetic point');
+            }
             const importButton = dialog.querySelector('[data-photo-board-import="true"]');
             if (!importButton) {
               failures.push('import control missing');
@@ -1310,8 +1370,8 @@ async function main() {
               failures.push('main board metadata missing after photo board import');
             } else {
               if (importedMoveCount !== 0) failures.push('photo board import should load setup at move 0');
-              if (importedStones[0] !== 'B') failures.push('photo board import missing traced black corner');
-              if (importedStones[whiteIndex] !== 'W') failures.push('photo board import missing traced white corner');
+              if (importedStones[blackIndex] !== 'B') failures.push('photo board import missing traced black stone');
+              if (importedStones[whiteIndex] !== 'W') failures.push('photo board import missing traced white stone');
             }
             const importedToast = await waitForToastText('Imported board position.');
             importedToast?.querySelector('.notification-toast-close')?.click();

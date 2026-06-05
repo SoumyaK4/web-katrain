@@ -19,10 +19,52 @@ import {
   type PhotoBoardStone,
 } from '../src/utils/photoBoard';
 import { createEmptyBoard } from '../src/utils/boardSize';
+import { recognizePhotoBoardFromPixels } from '../src/utils/photoBoardRecognition';
 import { parseSgf } from '../src/utils/sgf';
 
 const emptyStones = (boardSize: number): PhotoBoardStone[] =>
   Array.from({ length: boardSize * boardSize }, () => null);
+
+function makeRecognitionImage(
+  boardSize: 9 | 13 | 19,
+  stones: Array<{ x: number; y: number; stone: Exclude<PhotoBoardStone, null> }>
+) {
+  const width = 360;
+  const height = 360;
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 214;
+    data[i + 1] = 173;
+    data[i + 2] = 104;
+    data[i + 3] = 255;
+  }
+
+  const margin = Math.min(width, height) * 0.06;
+  const span = width - 1 - margin * 2;
+  const cell = span / (boardSize - 1);
+  const radius = cell * 0.36;
+  const paintCircle = (cx: number, cy: number, color: [number, number, number]) => {
+    for (let y = Math.max(0, Math.floor(cy - radius)); y <= Math.min(height - 1, Math.ceil(cy + radius)); y++) {
+      for (let x = Math.max(0, Math.floor(cx - radius)); x <= Math.min(width - 1, Math.ceil(cx + radius)); x++) {
+        if (Math.hypot(x - cx, y - cy) > radius) continue;
+        const offset = (y * width + x) * 4;
+        data[offset] = color[0];
+        data[offset + 1] = color[1];
+        data[offset + 2] = color[2];
+      }
+    }
+  };
+
+  for (const item of stones) {
+    paintCircle(
+      margin + (item.x / (boardSize - 1)) * span,
+      margin + (item.y / (boardSize - 1)) * span,
+      item.stone === 'black' ? [24, 24, 24] : [248, 248, 248]
+    );
+  }
+
+  return { width, height, data };
+}
 
 describe('photo board SGF import', () => {
   it('builds setup stones and next player for a 9x9 position', () => {
@@ -284,5 +326,29 @@ describe('photo board SGF import', () => {
     expect(getPhotoBoardTracePaintValue('white', 'black')).toBe('black');
     expect(getPhotoBoardTracePaintValue('black', 'black')).toBeNull();
     expect(getPhotoBoardTracePaintValue('white', 'erase')).toBeNull();
+  });
+
+  it('auto traces stones from aligned board image pixels', () => {
+    const result = recognizePhotoBoardFromPixels(
+      makeRecognitionImage(9, [
+        { x: 2, y: 3, stone: 'black' },
+        { x: 6, y: 5, stone: 'white' },
+      ]),
+      9
+    );
+
+    expect(result.total).toBe(2);
+    expect(result.black).toBe(1);
+    expect(result.white).toBe(1);
+    expect(result.stones[3 * 9 + 2]).toBe('black');
+    expect(result.stones[5 * 9 + 6]).toBe('white');
+    expect(result.stones[0]).toBeNull();
+  });
+
+  it('leaves empty aligned board image pixels empty', () => {
+    const result = recognizePhotoBoardFromPixels(makeRecognitionImage(13, []), 13);
+
+    expect(result.total).toBe(0);
+    expect(result.stones).toHaveLength(13 * 13);
   });
 });

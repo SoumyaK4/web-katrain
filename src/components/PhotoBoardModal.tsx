@@ -7,6 +7,7 @@ import {
   FaExchangeAlt,
   FaFolderOpen,
   FaLayerGroup,
+  FaMagic,
   FaPlay,
   FaRedo,
   FaTimes,
@@ -35,6 +36,7 @@ import {
   type PhotoBoardTraceTransform,
   type PhotoBoardTraceTool,
 } from '../utils/photoBoard';
+import { recognizePhotoBoardFromImageUrl } from '../utils/photoBoardRecognition';
 import { createObjectUrl, revokeObjectUrl } from '../utils/objectUrl';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import { isTextEntryTarget } from '../utils/keyboardTarget';
@@ -116,6 +118,8 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('unknown');
   const [liveCameraSupported, setLiveCameraSupported] = React.useState(false);
   const [cameraCaptureOpen, setCameraCaptureOpen] = React.useState(false);
+  const [isAutoTracing, setIsAutoTracing] = React.useState(false);
+  const [autoTraceStatus, setAutoTraceStatus] = React.useState<string | null>(null);
   useEscapeToClose(onClose, !cameraCaptureOpen);
 
   const currentBoardSize = React.useMemo<BoardSize | null>(() => {
@@ -273,6 +277,7 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     setPhotoOffsetX(0);
     setPhotoOffsetY(0);
     setPhotoRotation(0);
+    setAutoTraceStatus(null);
     setMobileTab('trace');
   }, []);
 
@@ -416,6 +421,26 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
     if (!canTransformTrace) return;
     setStones((prev) => swapPhotoBoardStoneColors(prev));
   };
+
+  const autoTracePhoto = React.useCallback(async () => {
+    if (!photoUrl) return;
+    setIsAutoTracing(true);
+    setAutoTraceStatus('Reading photo...');
+    try {
+      const result = await recognizePhotoBoardFromImageUrl(photoUrl, boardSize);
+      setStones(result.stones);
+      setMobileTab('trace');
+      setAutoTraceStatus(
+        result.total > 0
+          ? `Auto traced ${result.total} stone${result.total === 1 ? '' : 's'}. Review before importing.`
+          : 'No stones detected. Trace manually or adjust the photo.'
+      );
+    } catch (error) {
+      setAutoTraceStatus(error instanceof Error ? error.message : 'Could not auto trace this photo.');
+    } finally {
+      setIsAutoTracing(false);
+    }
+  }, [boardSize, photoUrl]);
 
   const rotatePhoto = (degrees: number) => {
     if (photoAlignmentDisabled) return;
@@ -732,6 +757,18 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               <button
                 type="button"
                 className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!photoUrl || isAutoTracing}
+                onClick={() => void autoTracePhoto()}
+                title={photoUrl ? 'Auto trace stones from an aligned board photo' : 'Choose a board photo before auto tracing'}
+                data-photo-board-auto-trace="true"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <FaMagic aria-hidden="true" /> {isAutoTracing ? 'Tracing...' : 'Auto trace'}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!canUseCurrentBoard}
                 onClick={useCurrentBoard}
                 title={
@@ -747,6 +784,11 @@ export const PhotoBoardModal: React.FC<PhotoBoardModalProps> = ({
               {currentBoardStoneCount > 0 && (
                 <span className="text-xs font-medium text-[var(--ui-text-muted)]">
                   {currentBoardStoneCount} current stone{currentBoardStoneCount === 1 ? '' : 's'}
+                </span>
+              )}
+              {autoTraceStatus && (
+                <span className="basis-full text-xs font-medium text-[var(--ui-text-muted)]" data-photo-board-auto-trace-status="true">
+                  {autoTraceStatus}
                 </span>
               )}
             </div>

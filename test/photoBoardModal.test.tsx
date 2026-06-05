@@ -174,6 +174,23 @@ describe('PhotoBoardModal', () => {
     expect(html).toContain('title="Trace stones before swapping colors"');
   });
 
+  it('offers auto tracing only after a photo source is available', () => {
+    const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
+    const html = renderToStaticMarkup(
+      <PhotoBoardModal
+        onClose={() => undefined}
+        onImportSgf={() => undefined}
+        defaultBoardSize={9}
+        defaultKomi={6.5}
+      />,
+    );
+
+    expect(source).toContain('recognizePhotoBoardFromImageUrl');
+    expect(html).toContain('data-photo-board-auto-trace="true"');
+    expect(html).toContain('Choose a board photo before auto tracing');
+    expect(html).toContain('disabled=""');
+  });
+
   it('renders photo underlay alignment controls for tracing angled photos', () => {
     const source = readFileSync('src/components/PhotoBoardModal.tsx', 'utf8');
     const html = renderToStaticMarkup(
