@@ -225,6 +225,9 @@ function assertViewport(result) {
   if (result.photoBoardTraceImportFailures.length > 0) {
     failures.push(`photo board trace import failures: ${result.photoBoardTraceImportFailures.join(', ')}`);
   }
+  if (result.boardThemeSmokeFailures.length > 0) {
+    failures.push(`board theme smoke failures: ${result.boardThemeSmokeFailures.join(', ')}`);
+  }
   if (result.documentOverflow > 1) failures.push(`document overflows by ${result.documentOverflow}px`);
   if (!result.board) failures.push('board missing');
   if (result.board && result.board.left < -1) failures.push('board overflows left edge');
@@ -1162,6 +1165,43 @@ async function main() {
             modalSmokeFailures.push(\`\${name}: \${error instanceof Error ? error.message : String(error)}\`);
           }
         };
+        const boardThemeSmokeFailures = [];
+        let boardThemeSmokeRan = false;
+        const runBoardThemePickerSmoke = async (dialog) => {
+          if (boardThemeSmokeRan) return;
+          boardThemeSmokeRan = true;
+          const boardEl = document.querySelector('[data-board-snapshot="true"]');
+          const beforeTheme = boardEl?.getAttribute('data-board-theme') || '';
+          const picker = dialog.querySelector('[data-board-theme-picker="true"]');
+          if (!boardEl) {
+            boardThemeSmokeFailures.push('board missing before theme change');
+            return;
+          }
+          if (!picker) {
+            boardThemeSmokeFailures.push('board theme picker missing');
+            return;
+          }
+          const choices = Array.from(picker.querySelectorAll('[data-board-theme-choice]'));
+          if (choices.length < 2) {
+            boardThemeSmokeFailures.push('board theme choices missing');
+            return;
+          }
+          const nextChoice = choices.find((choice) => choice.getAttribute('data-board-theme-choice') !== beforeTheme) || choices[0];
+          const nextTheme = nextChoice?.getAttribute('data-board-theme-choice') || '';
+          if (!nextChoice || !nextTheme) {
+            boardThemeSmokeFailures.push('alternate board theme choice missing');
+            return;
+          }
+          nextChoice.click();
+          await waitForFrames(4);
+          const afterTheme = document.querySelector('[data-board-snapshot="true"]')?.getAttribute('data-board-theme') || '';
+          if (afterTheme !== nextTheme) {
+            boardThemeSmokeFailures.push('board theme did not update from ' + beforeTheme + ' to ' + nextTheme + ' (saw ' + afterTheme + ')');
+          }
+          if (nextChoice.getAttribute('aria-checked') !== 'true') {
+            boardThemeSmokeFailures.push('selected board theme choice did not become checked');
+          }
+        };
         const runPhotoBoardTraceImportSmoke = async () => {
           const failures = [];
           const waitForToastText = async (text) => {
@@ -1434,6 +1474,9 @@ async function main() {
               if (${viewport.mobile}) {
                 modalSmallTouchTargets.push(...auditSmallTouchTargets(dialog).map((target) => ({ ...target, modal: \`settings \${tabLabel}\` })));
               }
+              if (tabLabel === 'General') {
+                await runBoardThemePickerSmoke(dialog);
+              }
             }
           },
         });
@@ -1603,6 +1646,7 @@ async function main() {
           pwaBannerFailures: pwaBannerSmoke.failures,
           pwaBannerSmallTouchTargets: pwaBannerSmoke.smallTouchTargets,
           photoBoardTraceImportFailures,
+          boardThemeSmokeFailures,
           reviewSmallTouchTargets,
           boardTouchAction,
           smallTouchTargets,
