@@ -108,7 +108,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   const markedDeadLabel = `${deadStoneCount} marked dead stone${deadStoneCount === 1 ? '' : 's'}`;
   const resultDetailLabel = formatScoreResultDetail(score.scoreLead, blackName, whiteName);
   return (
-    <section className={['manual-score-panel', commandBarOffset ? 'manual-score-offset' : '', docked ? 'manual-score-docked' : ''].join(' ')} aria-label="Manual score">
+    <section className={['manual-score-panel', commandBarOffset ? 'manual-score-offset' : '', docked ? 'manual-score-docked' : '', isCompact && !docked ? 'manual-score-compact' : ''].join(' ')} aria-label="Manual score">
       <div className="manual-score-header">
         <div className="manual-score-title">
           <FaCalculator size={13} />

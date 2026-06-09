@@ -202,6 +202,16 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
   const clearNodeAnnotationsLabel = 'Clear all markers and labels on this node';
   void treeVersion;
 
+  // On mobile the panel floats over the board, so a tall stacked layout would hide
+  // most of the board. Use a short horizontal-scrolling strip instead; desktop keeps
+  // the wrapping multi-row layout.
+  const toolAreaClass = isMobile
+    ? 'flex items-stretch gap-2 p-2 overflow-x-auto'
+    : 'flex flex-wrap items-stretch gap-2 p-2 max-h-[40vh] overflow-y-auto';
+  const groupClass = isMobile
+    ? 'flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] shrink-0'
+    : 'flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-2 max-sm:last:border-b-0 max-sm:last:pb-0';
+
   return (
     <div
       data-edit-toolbar
@@ -266,11 +276,11 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
             </button>
           </div>
 
-          <div className="flex flex-wrap items-stretch gap-2 p-2 max-h-[40vh] overflow-y-auto">
+          <div className={toolAreaClass}>
             {TOOL_GROUPS.map((group) => (
               <div
                 key={group.title}
-                className="flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-2 max-sm:last:border-b-0 max-sm:last:pb-0"
+                className={groupClass}
               >
                 <div className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
                   {group.title}
@@ -326,7 +336,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 )}
               </div>
             ))}
-            <div className="flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-2">
+            <div className={groupClass}>
               <div className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
                 Branch
               </div>
@@ -408,7 +418,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
                 <span className="hidden sm:inline">Others</span>
               </button>
             </div>
-            <div className="flex items-center gap-1.5 pr-2 border-r border-[var(--ui-border)] max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pb-2">
+            <div className={groupClass}>
               <div className="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-text-faint)] px-1">
                 History
               </div>
@@ -438,7 +448,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
             <button
               type="button"
               onClick={clearCurrentNodeAnnotations}
-              className="min-h-11 px-2.5 rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] inline-flex items-center gap-1.5 text-xs font-semibold"
+              className="shrink-0 min-h-11 px-2.5 rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text-muted)] hover:bg-[var(--ui-surface-2)] hover:text-[var(--ui-text)] inline-flex items-center gap-1.5 text-xs font-semibold"
               title={clearNodeAnnotationsLabel}
               aria-label={clearNodeAnnotationsLabel}
             >

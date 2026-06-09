@@ -3143,7 +3143,11 @@ export const Layout: React.FC = () => {
                 commandBarVisible={showAnalysisCommandBar}
               />
             )}
-            <EditToolbar isMobile={isMobile} analysisCommandBarVisible={showAnalysisCommandBar} />
+            {/* Edit and scoring are mutually exclusive; on mobile the compact score bar
+                docks at the bottom, so hide the bottom Edit launcher while scoring. */}
+            {!(isMobile && scoringMode) && (
+              <EditToolbar isMobile={isMobile} analysisCommandBarVisible={showAnalysisCommandBar} />
+            )}
             <ManualScorePanel
               active={scoringMode}
               disabled={isEditMode || isInsertMode || isSelectingRegionOfInterest}
@@ -3196,7 +3200,22 @@ export const Layout: React.FC = () => {
             <div
               className={[
                 'flex-1 flex justify-center min-h-0 min-w-0',
-                isMobile && showAnalysisCommandBar ? 'items-start pt-2' : 'items-center',
+                // On mobile the Score (top-left) and Edit (bottom-left) launchers float
+                // over the board shell. Reserve vertical clearance so the board never
+                // grows under them and covers the corner coordinates / play area.
+                // When the Edit toolbar is expanded it becomes a taller bottom strip, and
+                // the active scoring bar docks at the bottom too — reserve extra bottom
+                // space in both cases so the whole board stays visible above them.
+                // Portrait only: in landscape the board is height-limited and centered with
+                // the launchers in the side margins, so vertical padding there would just
+                // squash/clip the board.
+                !isMobile
+                  ? 'items-center'
+                  : isEditMode
+                    ? 'items-center portrait:pt-14 portrait:pb-36'
+                    : scoringMode
+                      ? 'items-center portrait:pt-14 portrait:pb-[20rem]'
+                      : 'items-center portrait:py-14',
               ].join(' ')}
             >
               <GoBoard

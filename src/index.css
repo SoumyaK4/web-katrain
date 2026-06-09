@@ -2447,6 +2447,26 @@
     }
   }
 
+  /* Mobile compact scoring bar: dock full-width at the bottom and keep it slim so the
+     board stays visible/tappable. The per-player totals and territory status move behind
+     the Details expander; the result card + actions stay in view. */
+  .manual-score-panel.manual-score-compact {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 12px;
+    width: auto;
+    /* Cap to the board's reserved bottom zone so expanding Details scrolls inside the
+       bar instead of growing up over the board. */
+    max-height: min(18.5rem, calc(100vh - 7rem));
+  }
+
+  .manual-score-panel.manual-score-compact .manual-score-status,
+  .manual-score-panel.manual-score-compact .manual-score-totals,
+  .manual-score-panel.manual-score-compact .manual-score-help {
+    display: none;
+  }
+
   .status-bar {
     background: var(--ui-panel);
     border-top: 1px solid var(--ui-border);
