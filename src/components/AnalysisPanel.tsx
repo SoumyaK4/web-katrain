@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  FaChartLine,
-  FaChartBar,
   FaRedoAlt,
   FaFileAlt,
   FaTrash,
@@ -13,8 +11,7 @@ import {
   FaMap,
   FaCopy,
 } from 'react-icons/fa';
-import { ScoreWinrateGraph } from './ScoreWinrateGraph';
-import type { AnalysisControlsState, UiMode, UiState } from './layout/types';
+import type { AnalysisControlsState } from './layout/types';
 import { EngineStatusBadge } from './layout/ui';
 import { useGameStore } from '../store/gameStore';
 import { getKaTrainEvalColors } from '../utils/katrainTheme';
@@ -41,12 +38,7 @@ import {
 import { getFastMctsPanelButtonState } from '../utils/fastReviewButtonState';
 
 interface AnalysisPanelProps {
-  mode: UiMode;
-  modePanels: UiState['panels'][UiMode];
   analysisControls: AnalysisControlsState;
-  updatePanels: (
-    partial: Partial<UiState['panels'][UiMode]> | ((current: UiState['panels'][UiMode]) => Partial<UiState['panels'][UiMode]>)
-  ) => void;
   updateControls: (partial: Partial<AnalysisControlsState>) => void;
   statusText: string;
   engineDot: string;
@@ -76,7 +68,6 @@ interface AnalysisPanelProps {
   compact?: boolean;
 }
 
-type GraphMetric = keyof UiState['panels'][UiMode]['graph'];
 type AnalysisOverlayControl = keyof AnalysisControlsState;
 type EvalColor = readonly [number, number, number, number];
 type QualityLegendItem = { label: string; range: string; color: string };
@@ -88,11 +79,6 @@ type AnalysisCoverageReadoutProps = {
   summary: AnalysisCoverageSummary;
   className: string;
   labelClassName?: string;
-};
-
-const GRAPH_METRIC_NAMES: Record<GraphMetric, string> = {
-  score: 'score',
-  winrate: 'win rate',
 };
 
 const ANALYSIS_OVERLAY_NAMES: Record<AnalysisOverlayControl, string> = {
@@ -236,10 +222,7 @@ export const AnalysisCoverageReadout: React.FC<AnalysisCoverageReadoutProps> = (
 );
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
-  mode,
-  modePanels,
   analysisControls,
-  updatePanels,
   updateControls,
   statusText,
   engineDot,
@@ -268,7 +251,6 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   pointsLost,
   compact = false,
 }) => {
-  void mode;
   const trainerTheme = useGameStore((state) => state.settings.trainerTheme);
   const trainerEvalThresholds = useGameStore((state) => state.settings.trainerEvalThresholds);
   const katagoVisits = useGameStore((state) => state.settings.katagoVisits);
@@ -278,9 +260,6 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   const updateSettings = useGameStore((state) => state.updateSettings);
   const [legendOpen, setLegendOpen] = React.useState(false);
   const [engineErrorCopied, setEngineErrorCopied] = React.useState(false);
-  const graphMetrics = modePanels.graph;
-  const activeTab: 'graph' | 'stats' =
-    modePanels.statsOpen && !modePanels.graphOpen ? 'stats' : 'graph';
   const engineSummary = React.useMemo(() => getEngineStatusSummary({
     status: engineStatus,
     error: engineError,
@@ -368,37 +347,6 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     setEngineErrorCopied(ok);
     setTimedNotification(ok ? 'Copied engine error details.' : 'Could not copy engine error details.', ok ? 'success' : 'error', 1800);
   }, [activeBackend, engineError, engineModelLabel, engineStatus, modelUrl, requestedBackend]);
-  const toggleGraphMetric = (metric: GraphMetric) => {
-    updatePanels((current) => {
-      const next = { ...current.graph, [metric]: !current.graph[metric] };
-      return next.score || next.winrate ? { graph: next } : {};
-    });
-  };
-  const metricToggle = (metric: GraphMetric, label: string, colorClass: string) => {
-    const graphMetricLabel = `${graphMetrics[metric] ? 'Hide' : 'Show'} ${GRAPH_METRIC_NAMES[metric]} graph`;
-    return (
-      <button
-        type="button"
-        className={[
-          'panel-action-button',
-          graphMetrics[metric] ? 'active' : '',
-        ].join(' ')}
-        onClick={() => toggleGraphMetric(metric)}
-        aria-pressed={graphMetrics[metric]}
-        aria-label={graphMetricLabel}
-        title={graphMetricLabel}
-      >
-        <span className={['h-2 w-2 rounded-full', colorClass].join(' ')} aria-hidden="true" />
-        {label}
-      </button>
-    );
-  };
-  const graphMetricToggles = (
-    <div className="flex items-center gap-1.5">
-      {metricToggle('winrate', 'Win', 'bg-[var(--ui-success)]')}
-      {metricToggle('score', 'Score', 'bg-[var(--ui-warning)]')}
-    </div>
-  );
   const overlayToggle = (
     control: AnalysisOverlayControl,
     label: string,
@@ -546,34 +494,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       </div>
     );
   };
-  const graphReadout = (
-    <div
-      className="grid gap-1 text-[11px]"
-      data-analysis-graph-readout="true"
-      style={readoutGridStyle}
-    >
-      <div className="min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1">
-        <div className="ui-text-faint">Move</div>
-        <div className="font-mono text-sm text-[var(--ui-text)]">{currentMoveNumber}</div>
-      </div>
-      <AnalysisCoverageReadout
-        summary={analysisCoverage}
-        className="min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1"
-      />
-      {renderBestMoveReadout('min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1')}
-      {renderMoveQualityReadout('min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1')}
-      <div className="min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1">
-        <div className="ui-text-faint">Winrate</div>
-        <div className="font-mono text-sm text-[var(--ui-success)]">
-          {typeof winRate === 'number' ? `${(winRate * 100).toFixed(1)}%` : '-'}
-        </div>
-      </div>
-      <div className="min-w-0 rounded border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 py-1">
-        <div className="ui-text-faint">Score</div>
-        <div className="font-mono text-sm text-[var(--ui-warning)]">
-          {scoreLeadLabel}
-        </div>
-      </div>
+  const renderMoveReadout = (className: string, labelClassName = 'ui-text-faint') => (
+    <div className={className}>
+      <div className={labelClassName}>Move</div>
+      <div className="font-mono text-sm text-[var(--ui-text)]">{currentMoveNumber}</div>
     </div>
   );
   const liveVisitPresetControls = (
@@ -752,7 +676,6 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           >
             Stop
           </button>
-          {graphMetricToggles}
           {analysisCacheControl}
           {overlayToggles}
           <div className="ml-auto flex items-center gap-2 text-xs">
@@ -778,35 +701,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       )}
       {!compact && qualityLegend}
 
-      {!compact && (
-        <div className="panel-tab-strip">
-          <button
-            type="button"
-            className={['panel-tab', activeTab === 'graph' ? 'active' : ''].join(' ')}
-            onClick={() => {
-            updatePanels({ graphOpen: true, statsOpen: false });
-          }}
-        >
-            <FaChartLine size={12} />
-            <span>Graph</span>
-          </button>
-          <button
-            type="button"
-            className={['panel-tab', activeTab === 'stats' ? 'active' : ''].join(' ')}
-            onClick={() => {
-            updatePanels({ graphOpen: false, statsOpen: true });
-          }}
-        >
-            <FaChartBar size={12} />
-            <span>Stats</span>
-          </button>
-        </div>
-      )}
       <div className="panel-section-content">
         {compact ? (
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              {graphMetricToggles}
+            <div className="flex items-center justify-end gap-2">
               <div className="flex items-center gap-1.5">
                 {analysisCacheControl}
                 {legendButton}
@@ -814,10 +712,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             </div>
             {overlayToggles}
             {qualityLegend}
-            <div className="panel-compact-graph">
-              <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
-            </div>
             <div className="grid gap-1" style={readoutGridStyle}>
+              {renderMoveReadout('min-w-0 px-2 py-1', 'text-[11px] ui-text-faint')}
               {renderBestMoveReadout('min-w-0 px-2 py-1', 'text-[11px] ui-text-faint')}
               {renderMoveQualityReadout('min-w-0 px-2 py-1', 'text-[11px] ui-text-faint')}
               <div className="px-2 py-1">
@@ -840,15 +736,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               {statsActions}
             </div>
           </div>
-        ) : activeTab === 'graph' ? (
-          <div className="space-y-1.5">
-            <div className="panel-compact-graph">
-              <ScoreWinrateGraph showScore={graphMetrics.score} showWinrate={graphMetrics.winrate} />
-            </div>
-            {graphReadout}
-          </div>
         ) : (
           <div className="grid gap-1" style={readoutGridStyle}>
+            {renderMoveReadout('min-w-0 px-2 py-1', 'text-[11px] ui-text-faint')}
             {renderBestMoveReadout('min-w-0 px-2 py-1', 'text-[11px] ui-text-faint')}
             {renderMoveQualityReadout('min-w-0 px-2 py-1', 'text-[11px] ui-text-faint')}
             <div className="px-2 py-1">

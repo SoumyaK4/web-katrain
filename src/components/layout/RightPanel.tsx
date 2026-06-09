@@ -690,10 +690,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               contentClassName: 'panel-section-content p-0',
               children: (
                 <AnalysisPanel
-                  mode={mode}
-                  modePanels={modePanels}
                   analysisControls={analysisControls}
-                  updatePanels={updatePanels}
                   updateControls={updateControls}
                   statusText={statusText}
                   engineDot={engineDot}

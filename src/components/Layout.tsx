@@ -3023,10 +3023,7 @@ export const Layout: React.FC = () => {
           analysisContent={
             isDesktop ? (
               <AnalysisPanel
-                mode={mode}
-                modePanels={modePanels}
                 analysisControls={modeControls}
-                updatePanels={updatePanels}
                 updateControls={updateControls}
                 statusText={statusText}
                 engineDot={engineDot}
