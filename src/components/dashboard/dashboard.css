@@ -455,6 +455,79 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* Active scoring docks into the action strip as a slim horizontal bar so the
+   board below keeps its space (a vertical card here crushes the board stage).
+   Status/totals/help duplicate the result card and live behind Details, which
+   opens as a popover instead of growing the strip. */
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  width: auto;
+  max-width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: 6px 10px;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-header {
+  border-bottom: none;
+  min-height: 0;
+  padding: 0;
+  gap: 6px;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-count {
+  margin-left: 0;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-method {
+  width: auto;
+  margin: 0;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-result {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 15px;
+  text-align: left;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-status,
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-totals,
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-help {
+  display: none;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-details {
+  position: relative;
+  border-top: none;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-details-toggle {
+  width: auto;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-breakdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 230px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 8px;
+  background: var(--ui-panel);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 28%);
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-actions {
+  border-top: none;
+  padding: 0;
+}
+.wk-dashboard .board-extra-tools .manual-score-panel.manual-score-docked .manual-score-actions button {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
 .wk-dashboard .board-chip {
   display: inline-flex; align-items: center; gap: 6px;
   height: 28px; padding: 0 10px;

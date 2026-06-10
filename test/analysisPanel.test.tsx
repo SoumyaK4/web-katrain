@@ -6,10 +6,7 @@ import { defaultUiState } from '../src/components/layout/types';
 const noop = () => undefined;
 
 const baseProps = {
-  mode: 'analyze' as const,
-  modePanels: defaultUiState().panels.analyze,
   analysisControls: defaultUiState().analysisControls.analyze,
-  updatePanels: noop,
   updateControls: noop,
   statusText: 'Ready',
   engineDot: 'bg-green-400',
@@ -44,8 +41,6 @@ describe('AnalysisPanel', () => {
 
     expect(html).toContain('aria-label="Run quick graph analysis"');
     expect(html).toContain('aria-label="Stop game analysis"');
-    expect(html).toContain('aria-label="Hide win rate graph"');
-    expect(html).toContain('aria-label="Hide score graph"');
     expect(html).toContain('aria-label="No cached analysis to clear"');
     expect(html).toContain('aria-label="Hide child move markers"');
     expect(html).toContain('aria-label="Hide move evaluation dots"');

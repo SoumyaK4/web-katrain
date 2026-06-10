@@ -2836,8 +2836,10 @@ export const Layout: React.FC = () => {
             }
             boardControls={
               <>
-                <EditToolbar isMobile={false} analysisCommandBarVisible={false} docked />
-                <ManualScorePanel
+                {/* Edit and scoring are mutually exclusive; hide the idle launcher for
+                    whichever mode is inactive so the strip stays a single row. */}
+                {!scoringMode && <EditToolbar isMobile={false} analysisCommandBarVisible={false} docked />}
+                {!isEditMode && <ManualScorePanel
                   active={scoringMode}
                   disabled={isEditMode || isInsertMode || isSelectingRegionOfInterest}
                   isCompact={false}
@@ -2859,7 +2861,7 @@ export const Layout: React.FC = () => {
                   estimateSource={scoreEstimateSource}
                   onClear={clearManualDeadStones}
                   onDone={() => setScoringMode(false)}
-                />
+                />}
               </>
             }
             blackName={blackName}

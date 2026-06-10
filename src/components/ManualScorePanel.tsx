@@ -68,7 +68,10 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
   onDone,
 }) => {
   const detailsId = React.useId();
-  const [showDetails, setShowDetails] = React.useState(!isCompact);
+  // Docked (dashboard strip) and compact (mobile bottom bar) variants keep the
+  // breakdown behind the Details toggle so the bar stays slim and the board keeps
+  // its space; only the floating desktop panel opens expanded.
+  const [showDetails, setShowDetails] = React.useState(!isCompact && !docked);
   const showShortcutLabel = !!shortcutLabel && shortcutLabel !== 'Disabled';
   const scoreTitle = disabled
     ? 'Finish editing before scoring.'
@@ -77,8 +80,8 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
       : 'Score position';
 
   React.useEffect(() => {
-    if (active) setShowDetails(!isCompact);
-  }, [active, isCompact]);
+    if (active) setShowDetails(!isCompact && !docked);
+  }, [active, isCompact, docked]);
 
   if (!active) {
     return (
