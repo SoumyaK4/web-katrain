@@ -437,97 +437,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 aria-labelledby="tab-general"
                                 tabIndex={0}
                             >  
-                                {/* Timer Section */}  
-                                <div className={sectionClass}>  
-                                    <div className="flex items-center justify-between">  
-                                        <h3 className={sectionTitleClass}>Timer</h3>  
-                                    </div>  
-                                    <div className="mt-4 space-y-4">
-                                        <div className={rowClass}>
-                                            <label htmlFor="settings-sound-enabled" className={labelClass}>Sound Effects</label>
-                                            <input
-                                                id="settings-sound-enabled"
-                                                type="checkbox"
-                                                checked={settings.soundEnabled}
-                                                onChange={(e) => updateSettings({ soundEnabled: e.target.checked })}
-                                                className="toggle"
-                                            />
-                                        </div>
-
-                                        <div className={rowClass}>
-                                            <label htmlFor="settings-timer-sound" className={labelClass}>Timer Sound</label>
-                                            <input
-                                                id="settings-timer-sound"
-                                                type="checkbox"
-                                                checked={settings.timerSound}
-                                                onChange={(e) => updateSettings({ timerSound: e.target.checked })}
-                                                className="toggle"
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <label htmlFor="settings-main-time" className="text-[var(--ui-text-muted)] block text-sm">Main Time (min)</label>
-                                                <input
-                                                    id="settings-main-time"
-                                                    type="number"
-                                                    min={0}
-                                                    step={1}
-                                                    value={settings.timerMainTimeMinutes}
-                                                    onChange={(e) => updateSettings({ timerMainTimeMinutes: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                                    className={inputClass}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label htmlFor="settings-byo-length" className="text-[var(--ui-text-muted)] block text-sm">Byo Length (sec)</label>
-                                                <input
-                                                    id="settings-byo-length"
-                                                    type="number"
-                                                    min={1}
-                                                    step={1}
-                                                    value={settings.timerByoLengthSeconds}
-                                                    onChange={(e) => updateSettings({ timerByoLengthSeconds: Math.max(1, parseInt(e.target.value || '1', 10)) })}
-                                                    className={inputClass}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label htmlFor="settings-byo-periods" className="text-[var(--ui-text-muted)] block text-sm">Byo Periods</label>
-                                                <input
-                                                    id="settings-byo-periods"
-                                                    type="number"
-                                                    min={1}
-                                                    step={1}
-                                                    value={settings.timerByoPeriods}
-                                                    onChange={(e) => updateSettings({ timerByoPeriods: Math.max(1, parseInt(e.target.value || '1', 10)) })}
-                                                    className={inputClass}
-                                                />
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <label htmlFor="settings-minimal-use" className="text-[var(--ui-text-muted)] block text-sm">Minimal Use (sec)</label>
-                                                <input
-                                                    id="settings-minimal-use"
-                                                    type="number"
-                                                    min={0}
-                                                    step={1}
-                                                    value={settings.timerMinimalUseSeconds}
-                                                    onChange={(e) => updateSettings({ timerMinimalUseSeconds: Math.max(0, parseInt(e.target.value || '0', 10)) })}
-                                                    className={inputClass}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <p className={subtextClass}>
-                                            KaTrain-style clock (main time, then byo-yomi periods). Timer runs only in Play mode and only for human turns.
-                                        </p>
-                                    </div>
-                                </div>  
-                
-                                {/* Board Theme Section */}  
-                                <div className={sectionClass}>  
-                                    <h3 className={sectionTitleClass}>Board Theme</h3>  
+                                {/* Appearance Section */}
+                                <div className={sectionClass}>
+                                    <h3 className={sectionTitleClass}>Appearance</h3>
                                     <div className="mt-4 space-y-4">
                                         <div className={rowClass}>
                                             <label htmlFor="settings-show-coordinates" className={labelClass}>Show Coordinates</label>
@@ -768,6 +680,94 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         </div>
                                     </div>  
                                 </div>
+
+                                {/* Timer Section */}  
+                                <div className={sectionClass}>  
+                                    <div className="flex items-center justify-between">  
+                                        <h3 className={sectionTitleClass}>Timer</h3>  
+                                    </div>  
+                                    <div className="mt-4 space-y-4">
+                                        <div className={rowClass}>
+                                            <label htmlFor="settings-sound-enabled" className={labelClass}>Sound Effects</label>
+                                            <input
+                                                id="settings-sound-enabled"
+                                                type="checkbox"
+                                                checked={settings.soundEnabled}
+                                                onChange={(e) => updateSettings({ soundEnabled: e.target.checked })}
+                                                className="toggle"
+                                            />
+                                        </div>
+
+                                        <div className={rowClass}>
+                                            <label htmlFor="settings-timer-sound" className={labelClass}>Timer Sound</label>
+                                            <input
+                                                id="settings-timer-sound"
+                                                type="checkbox"
+                                                checked={settings.timerSound}
+                                                onChange={(e) => updateSettings({ timerSound: e.target.checked })}
+                                                className="toggle"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label htmlFor="settings-main-time" className="text-[var(--ui-text-muted)] block text-sm">Main Time (min)</label>
+                                                <input
+                                                    id="settings-main-time"
+                                                    type="number"
+                                                    min={0}
+                                                    step={1}
+                                                    value={settings.timerMainTimeMinutes}
+                                                    onChange={(e) => updateSettings({ timerMainTimeMinutes: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-1">
+                                                <label htmlFor="settings-byo-length" className="text-[var(--ui-text-muted)] block text-sm">Byo Length (sec)</label>
+                                                <input
+                                                    id="settings-byo-length"
+                                                    type="number"
+                                                    min={1}
+                                                    step={1}
+                                                    value={settings.timerByoLengthSeconds}
+                                                    onChange={(e) => updateSettings({ timerByoLengthSeconds: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-1">
+                                                <label htmlFor="settings-byo-periods" className="text-[var(--ui-text-muted)] block text-sm">Byo Periods</label>
+                                                <input
+                                                    id="settings-byo-periods"
+                                                    type="number"
+                                                    min={1}
+                                                    step={1}
+                                                    value={settings.timerByoPeriods}
+                                                    onChange={(e) => updateSettings({ timerByoPeriods: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-1">
+                                                <label htmlFor="settings-minimal-use" className="text-[var(--ui-text-muted)] block text-sm">Minimal Use (sec)</label>
+                                                <input
+                                                    id="settings-minimal-use"
+                                                    type="number"
+                                                    min={0}
+                                                    step={1}
+                                                    value={settings.timerMinimalUseSeconds}
+                                                    onChange={(e) => updateSettings({ timerMinimalUseSeconds: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <p className={subtextClass}>
+                                            KaTrain-style clock (main time, then byo-yomi periods). Timer runs only in Play mode and only for human turns.
+                                        </p>
+                                    </div>
+                                </div>  
 
                                 <div className={sectionClass}>
                                     <h3 className={sectionTitleClass}>Input</h3>

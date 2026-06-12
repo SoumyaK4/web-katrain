@@ -14,6 +14,7 @@ import { getDashboardLayoutMode, type DashboardLayoutMode } from '../../utils/da
 import { LIBRARY_OPEN_STORAGE_KEY } from '../../utils/layoutPreferences';
 import { readLocalStorage, writeLocalStorage } from '../../utils/storage';
 import { APP_BUILD_LABEL, APP_COMMIT_URL, APP_INFO, APP_ISSUE_REPORT_URL } from '../../utils/appInfo';
+import { formatEngineBackendLabel } from '../../utils/engineStatusSummary';
 
 type EngineState = 'ready' | 'running' | 'loading' | 'error';
 
@@ -139,6 +140,13 @@ function evalColorForPointsLost(pl: number): string {
   return 'var(--eval-best)';
 }
 
+function formatVisitCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 100_000) return `${(n / 1000).toFixed(1)}k`;
+  if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
+  return `${Math.round(n / 1_000_000)}M`;
+}
+
 type PopoverId = 'engine' | 'view' | 'file' | 'help' | null;
 
 const HERO_DISMISSED_KEY = 'wk-getting-started-dismissed';
@@ -163,7 +171,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
     capturedBlack, capturedWhite, komi, boardSize, handicap, rules, result,
     currentPlayer, moveCount, totalMoves, loadedFileName, dirty, currentNode, branchInfo,
     showAnalysis, winRate, scoreLead, pointsLost, pointsLostLabel,
-    engineState, enginePillLabel, engineMeta, engineMetaTitle, engineBackend, engineModelLabel, analysisCacheSize,
+    engineState, enginePillLabel, engineMetaTitle, engineBackend, engineModelLabel, analysisCacheSize,
     mode, setMode, isContinuousAnalysis, toggleContinuousAnalysis,
     settings, updateControls, updateSettings,
     isInsertMode, toggleInsertMode, isSelectingRegionOfInterest, startSelectRegionOfInterest,
@@ -297,12 +305,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
   }, [pop, closePop]);
 
   // ---- command bar metrics ----
-  const moveSub = (() => {
-    const m = currentNode.move;
-    if (!m) return 'Start';
-    const who = m.player === 'black' ? 'Black' : 'White';
-    return `${who} ${m.x < 0 || m.y < 0 ? 'pass' : formatMoveLabel(m.x, m.y, boardSize)}`;
-  })();
   const bestMove = currentNode.analysis?.moves?.[0] ?? null;
   // "Fast review" matches the command bar's name for the same operation;
   // avoid exposing MCTS jargon in one surface and not the other.
@@ -463,11 +465,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
         >
           <span className="dot" />
           <span id="wk-engine-pill-label">{enginePillLabel}</span>
-          {/* The label already states readiness, so the meta sticks to backend
-              and model instead of repeating it ("KataGo ready · Ready · …"). */}
-          <span className="meta" id="wk-engine-pill-meta">
-            {[engineBackend, engineModelLabel].filter(Boolean).join(' · ') || engineMeta}
-          </span>
+          {/* Model name and hash are developer detail; the pill stays at
+              "status · backend" and the popover carries the full identity. */}
+          {engineBackend ? (
+            <span className="meta" id="wk-engine-pill-meta">
+              {formatEngineBackendLabel(engineBackend)}
+            </span>
+          ) : null}
         </button>
         <button
           type="button"
@@ -558,7 +562,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
               </div>
             </div>
             <span className="gs-sep" />
-            <span className="gs-fact">{boardSize}×{boardSize}</span>
+            <span className="gs-fact gs-fact-primary">{boardSize}×{boardSize}</span>
             <span className="gs-fact">komi <b>{komi}</b></span>
             {handicap > 0 ? <span className="gs-fact">H{handicap}</span> : null}
             <span className="gs-fact">{rules}</span>
@@ -582,26 +586,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
             </button>
           </div>
           )}
-
-          <div className="board-action-strip">
-            <div className="board-tools">
-              <button
-                type="button"
-                className={`board-chip${isSelectingRegionOfInterest ? ' on' : ''}`}
-                onClick={startSelectRegionOfInterest}
-              >
-                <Icon name="target" size={13} />Region
-              </button>
-              <button
-                type="button"
-                className={`board-chip${isInsertMode ? ' on' : ''}`}
-                onClick={toggleInsertMode}
-              >
-                <Icon name="layers" size={13} />Insert
-              </button>
-            </div>
-            {boardControls ? <div className="board-extra-tools">{boardControls}</div> : null}
-          </div>
 
           <div className="board-stage">
             {!libraryOpen && (
@@ -654,11 +638,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
           {commandbarOpen && (
           <div className="commandbar">
             <div className="cb-metrics">
-              <div className="cb-metric">
-                <div className="k">Move</div>
-                <div className="v">{moveCount} / {totalMoves}</div>
-                <div className="sub">{moveSub}</div>
-              </div>
               {showAnalysis ? (
                 <>
                   <div className="cb-metric">
@@ -674,7 +653,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                   <div className="cb-metric">
                     <div className="k">Best move</div>
                     <div className="v best">{bestMove ? formatMoveLabel(bestMove.x, bestMove.y, boardSize) : '—'}</div>
-                    <div className="sub">{bestMove ? `${(bestMove.winRate * 100).toFixed(0)}% · ${bestMove.visits} visits` : ''}</div>
+                    <div className="sub" title={bestMove ? `${(bestMove.winRate * 100).toFixed(1)}% win rate · ${bestMove.visits} visits` : undefined}>
+                      {bestMove ? `${(bestMove.winRate * 100).toFixed(0)}% · ${formatVisitCount(bestMove.visits)} visits` : ''}
+                    </div>
                   </div>
                   <div className="cb-metric">
                     <div className="k">Played</div>
@@ -712,7 +693,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
           <div className="navbar">
             <button type="button" className="pass-btn" title="Pass (P)" onClick={passTurn}>Pass</button>
             <div className="navgroup">
-              <button type="button" className="navbtn danger navbtn-pair" title="Previous mistake" onClick={() => findMistake(-1)}><Icon name="chevL" size={11} /><Icon name="alert" size={14} /></button>
+              <button type="button" className="navbtn navbtn-pair" title="Previous mistake" aria-label="Previous mistake" onClick={() => findMistake(-1)}><Icon name="chevL" size={11} /><span className="mistake-dot" /></button>
             </div>
             <span className="nav-divider" />
             <div className="navgroup">
@@ -760,8 +741,28 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
             </div>
             <span className="nav-divider" />
             <div className="navgroup">
-              <button type="button" className="navbtn danger navbtn-pair" title="Next mistake" onClick={() => findMistake(1)}><Icon name="alert" size={14} /><Icon name="chevR" size={11} /></button>
+              <button type="button" className="navbtn navbtn-pair" title="Next mistake" aria-label="Next mistake" onClick={() => findMistake(1)}><span className="mistake-dot" /><Icon name="chevR" size={11} /></button>
               <button type="button" className="navbtn" title="Rotate board" onClick={rotateBoard}><Icon name="rotate" size={15} /></button>
+            </div>
+            <span className="nav-divider" />
+            <div className="board-tools">
+              <button
+                type="button"
+                className={`board-chip${isSelectingRegionOfInterest ? ' on' : ''}`}
+                title="Select a board region to analyze"
+                onClick={startSelectRegionOfInterest}
+              >
+                <Icon name="target" size={13} /><span className="bc-label">Region</span>
+              </button>
+              <button
+                type="button"
+                className={`board-chip${isInsertMode ? ' on' : ''}`}
+                title="Insert moves into the game record"
+                onClick={toggleInsertMode}
+              >
+                <Icon name="layers" size={13} /><span className="bc-label">Insert</span>
+              </button>
+              {boardControls ? <div className="board-extra-tools">{boardControls}</div> : null}
             </div>
             <span className="navbar-spacer" />
             <div className="playactions">
@@ -810,17 +811,23 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
             <div className={`section${sections.tree ? ' open' : ''}`}>
               {sectionHead('tree', 'Game tree', 'sitemap')}
               <div className="section-body flush">
+                {/* Branch switching only appears once the position actually has
+                    sibling branches; permanent disabled chevrons read as broken. */}
                 <div className="panel-toolbar">
-                  <button type="button" className="pbtn pico" title="Previous branch" aria-label="Previous branch" disabled={!branchInfo.hasBranches} onClick={() => switchBranch(-1)}><Icon name="chevD" size={12} /></button>
-                  <button type="button" className="pbtn pico" title="Next branch" aria-label="Next branch" disabled={!branchInfo.hasBranches} onClick={() => switchBranch(1)}><Icon name="chevR" size={12} /></button>
                   {branchInfo.hasBranches && (
-                    <span className="pbtn" style={{ pointerEvents: 'none' }}>
-                      <span style={{ color: 'var(--faint)' }}>Branch</span>{' '}
-                      <span className="mono" style={{ color: 'var(--ink)' }}>{branchInfo.currentIndex}/{branchInfo.totalBranches}</span>
-                    </span>
+                    <>
+                      <button type="button" className="pbtn pico" title="Previous branch" aria-label="Previous branch" onClick={() => switchBranch(-1)}><Icon name="chevD" size={12} /></button>
+                      <button type="button" className="pbtn pico" title="Next branch" aria-label="Next branch" onClick={() => switchBranch(1)}><Icon name="chevR" size={12} /></button>
+                      <span className="pbtn" style={{ pointerEvents: 'none' }}>
+                        <span style={{ color: 'var(--faint)' }}>Branch</span>{' '}
+                        <span className="mono" style={{ color: 'var(--ink)' }}>{branchInfo.currentIndex}/{branchInfo.totalBranches}</span>
+                      </span>
+                    </>
                   )}
                   <button type="button" className="pbtn pico" title="Back to branch point" aria-label="Back to branch point" onClick={undoToBranchPoint}><Icon name="levelUp" size={12} /></button>
-                  <button type="button" className="pbtn pico" title="Make main branch" aria-label="Make current move the main branch" disabled={!currentNode.parent} onClick={() => { makeCurrentNodeMainBranch(); toast('Set as main branch', 'success'); }}><Icon name="star" size={12} /></button>
+                  {currentNode.parent ? (
+                    <button type="button" className="pbtn pico" title="Make main branch" aria-label="Make current move the main branch" onClick={() => { makeCurrentNodeMainBranch(); toast('Set as main branch', 'success'); }}><Icon name="star" size={12} /></button>
+                  ) : null}
                 </div>
                 <div className="tree-region">
                   <MoveTree />
@@ -877,6 +884,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                     <span className="sw" style={{ background: 'var(--amber)' }} />Score
                   </button>
                 </div>
+                {/* Overlay toggles and review actions are analyst tooling; the
+                    Play tab stays focused on the game itself. */}
+                {mode === 'analyze' && (
                 <div className="overlay-row">
                   {overlayBtn('analysisShowChildren', 'Children', 'sitemap')}
                   {overlayBtn('analysisShowEval', 'Dots', 'circle')}
@@ -884,6 +894,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                   {overlayBtn('analysisShowPolicy', 'Heatmap', 'grid')}
                   {overlayBtn('analysisShowOwnership', 'Territory', 'map')}
                 </div>
+                )}
                 {legendOpen && (
                   <div id="dashboard-analysis-quality-legend" className="qlegend">
                     <div className="eyebrow">Move quality · points lost</div>
@@ -905,6 +916,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                     </div>
                   </div>
                 )}
+                {mode === 'analyze' && (
                 <div className="overlay-row" style={{ paddingTop: 8 }}>
                   <button
                     type="button"
@@ -934,10 +946,23 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                     <Icon name="file" size={12} />Report
                   </button>
                 </div>
+                )}
                 {!showAnalysis && (
                   <div className="coach-card">
                     <div className="cc-title">Analysis is off</div>
-                    Turn on <b>Analyze</b> in the header (or switch to the Analysis tab) to evaluate the live position. Overlays and the win-rate graph populate once the engine runs.
+                    Engine evaluation, board overlays and the win-rate graph are paused.
+                    <div style={{ paddingTop: 8 }}>
+                      <button
+                        type="button"
+                        className="pbtn"
+                        onClick={() => {
+                          setMode('analyze');
+                          if (!isContinuousAnalysis) toggleContinuousAnalysis();
+                        }}
+                      >
+                        <Icon name="chart" size={12} />Turn on analysis
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

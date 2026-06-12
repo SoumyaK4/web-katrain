@@ -16,7 +16,7 @@ describe('note editor state sync', () => {
     });
   });
 
-  it('opens the editor automatically for a new empty move note', () => {
+  it('stays in read view for a new empty move note', () => {
     expect(
       getNoteEditorSyncDecision({
         previousNodeId: 'n1',
@@ -26,7 +26,7 @@ describe('note editor state sync', () => {
       })
     ).toEqual({
       draft: '   ',
-      editing: true,
+      editing: false,
     });
   });
 

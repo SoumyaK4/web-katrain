@@ -8,6 +8,7 @@ import { computeNodePointsLost, DEFAULT_EVAL_THRESHOLDS, getEvaluationClass } fr
 import { isGraphKeyboardNavigationKey, nextGraphKeyboardIndex } from '../utils/graphKeyboard';
 import { hasVisibleGraphData } from '../utils/graphDataAvailability';
 import { getScoreWinrateGraphTheme } from '../utils/scoreWinrateGraphTheme';
+import { useResolvedUiTheme } from '../hooks/useResolvedUiTheme';
 
 const SCORE_GRANULARITY = 5;
 const WINRATE_GRANULARITY = 10;
@@ -173,7 +174,8 @@ export const ScoreWinrateGraph: React.FC<{
   );
 
   const evalColors = useMemo(() => getKaTrainEvalColors(trainerTheme), [trainerTheme]);
-  const graphTheme = useMemo(() => getScoreWinrateGraphTheme(uiTheme), [uiTheme]);
+  const resolvedUiTheme = useResolvedUiTheme(uiTheme);
+  const graphTheme = useMemo(() => getScoreWinrateGraphTheme(resolvedUiTheme), [resolvedUiTheme]);
   const evalThresholds = trainerEvalThresholds?.length ? trainerEvalThresholds : DEFAULT_EVAL_THRESHOLDS;
   const qualityMarkers = useMemo(() => {
     void treeVersion;
@@ -399,8 +401,8 @@ export const ScoreWinrateGraph: React.FC<{
         </div>
       )}
 
-      {/* Score ticks (KaTrain-like) */}
-      {showScore && (
+      {/* Score ticks (KaTrain-like) — meaningless without data, so they wait for it */}
+      {showScore && hasGraphData && (
         <>
           <div
             className="absolute top-1 right-1 text-[9px] pointer-events-none"
@@ -420,7 +422,7 @@ export const ScoreWinrateGraph: React.FC<{
       )}
 
       {/* Winrate ticks (KaTrain-like) */}
-      {showWinrate && (
+      {showWinrate && hasGraphData && (
         <>
           <div
             className="absolute top-1 left-1 text-[9px] pointer-events-none"

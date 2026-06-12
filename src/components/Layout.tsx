@@ -89,6 +89,7 @@ import { getResignResult } from '../utils/resign';
 import { DESKTOP_LAYOUT_MEDIA, isDesktopLayoutSize, isDesktopLayoutViewport, isMobileLayoutViewport } from '../utils/responsiveLayout';
 import { readLocalStorage, writeLocalStorage } from '../utils/storage';
 import { getMediaQueryList, subscribeMediaQueryList } from '../utils/mediaQuery';
+import { PREFERS_DARK_MEDIA_QUERY, getResolvedUiTheme } from '../utils/uiThemes';
 import { copyTextToClipboard, readClipboardText } from '../utils/clipboard';
 import { FIRST_RUN_LIBRARY_MIN_WIDTH, getInitialLibraryOpen, LIBRARY_OPEN_STORAGE_KEY } from '../utils/layoutPreferences';
 import { saveSettingsActiveTab } from '../utils/settingsTabs';
@@ -352,10 +353,16 @@ export const Layout: React.FC = () => {
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    document.documentElement.dataset.uiTheme = settings.uiTheme;
+    document.documentElement.dataset.uiTheme = getResolvedUiTheme(settings.uiTheme);
     document.documentElement.dataset.uiDensity = settings.uiDensity;
     document.documentElement.dataset.locale = settings.appLocale;
     document.documentElement.lang = getAppLocaleHtmlLang(settings.appLocale);
+    if (settings.uiTheme !== 'system') return;
+    const mediaQueryList = getMediaQueryList(PREFERS_DARK_MEDIA_QUERY);
+    if (!mediaQueryList) return;
+    return subscribeMediaQueryList(mediaQueryList, () => {
+      document.documentElement.dataset.uiTheme = getResolvedUiTheme('system');
+    });
   }, [settings.appLocale, settings.uiDensity, settings.uiTheme]);
   const [isDesktop, setIsDesktop] = useState(() => {
     return isDesktopLayoutViewport();

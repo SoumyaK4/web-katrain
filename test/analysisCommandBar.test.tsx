@@ -49,9 +49,9 @@ describe('AnalysisCommandBar', () => {
     const html = renderToStaticMarkup(<AnalysisCommandBar {...baseProps} />);
 
     expect(html).toContain('data-analysis-engine-status="ready"');
-    expect(html).toContain('Engine status: Ready · WebGPU · kata1-b18');
+    expect(html).toContain('Engine status: Ready · WebGPU');
     expect(html).toContain('analysis-command-bar__status--ready');
-    expect(html).toContain('Ready · WebGPU · kata1-b18');
+    expect(html).toContain('Ready · WebGPU');
     expect(html).toContain('Source: Bundled');
     expect(html).toContain('data-analysis-live-depth="true"');
     expect(html).toContain('aria-haspopup="dialog"');
@@ -80,7 +80,7 @@ describe('AnalysisCommandBar', () => {
     expect(html).toContain('data-analysis-engine-status="error"');
     expect(html).toContain('analysis-command-bar__status--error');
     expect(html).toContain('analysis-command-bar__status--fallback');
-    expect(html).toContain('Error fallback · CPU (WASM) · kata1-b18');
+    expect(html).toContain('Error fallback · CPU (WASM)');
     expect(html).toContain('Copy engine error details');
   });
 

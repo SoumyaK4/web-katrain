@@ -1,6 +1,12 @@
-import type { UiThemeId } from '../types';
+import type { ResolvedUiThemeId, UiThemeId } from '../types';
+import { mediaQueryMatches } from './mediaQuery';
 
 export const UI_THEME_OPTIONS: Array<{ value: UiThemeId; label: string; description: string }> = [
+  {
+    value: 'system',
+    label: 'System',
+    description: 'Follows your device light/dark preference.',
+  },
   {
     value: 'noir',
     label: 'Dark',
@@ -22,3 +28,16 @@ export const UI_THEME_OPTIONS: Array<{ value: UiThemeId; label: string; descript
     description: 'Clean paper tones with ocean accents.',
   },
 ];
+
+export const PREFERS_DARK_MEDIA_QUERY = '(prefers-color-scheme: dark)';
+
+export function resolveUiTheme(theme: UiThemeId, prefersDark: boolean): ResolvedUiThemeId {
+  if (theme !== 'system') return theme;
+  return prefersDark ? 'noir' : 'light';
+}
+
+/** Resolve 'system' against the current media query state (dark when unknown,
+    matching the app's default theme). */
+export function getResolvedUiTheme(theme: UiThemeId): ResolvedUiThemeId {
+  return resolveUiTheme(theme, mediaQueryMatches(PREFERS_DARK_MEDIA_QUERY, true));
+}

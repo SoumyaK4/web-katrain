@@ -221,7 +221,10 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
           : [
             'absolute z-40 pointer-events-none max-w-[calc(100%-1rem)]',
             isMobile
-              ? 'left-2 right-2 bottom-3'
+              // Idle launcher sits bottom-right so it shares the bottom edge
+              // with the Score launcher (bottom-left) instead of floating in
+              // a corner on its own; the expanded strip keeps full width.
+              ? `left-2 right-2 bottom-3${isEditMode ? '' : ' flex justify-end'}`
               : analysisCommandBarVisible
                 ? 'left-3 edit-toolbar--analysis-offset'
                 : 'left-1/2 top-3 -translate-x-1/2',
@@ -240,7 +243,7 @@ export const EditToolbar: React.FC<{ isMobile?: boolean; analysisCommandBarVisib
             aria-label={openEditToolsLabel}
           >
             <FaEdit />
-            Edit
+            <span className="bc-label">Edit</span>
           </button>
         ) : (
           <button

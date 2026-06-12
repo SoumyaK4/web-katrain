@@ -678,29 +678,35 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                   <div className="h-px bg-[var(--ui-border)] mx-2 my-1" />
 
                   <button type="button"
-                    className="w-full px-4 py-3.5 text-left hover:bg-amber-950/30 active:bg-amber-950/30 rounded-lg flex items-center gap-3 transition-colors text-amber-500"
+                    className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       findMistake('undo');
                       setMoreOpen(false);
                     }}
                     disabled={isInsertMode}
                   >
-                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-                      <FaExclamationTriangle size={14} />
+                    <div className="w-8 h-8 rounded-full bg-[var(--ui-surface)] flex items-center justify-center">
+                      <span className="inline-flex items-center gap-1" aria-hidden="true">
+                        <FaChevronLeft size={9} />
+                        <span className="h-2 w-2 rounded-full bg-[var(--eval-mistake)]" />
+                      </span>
                     </div>
                     <div className="flex-1 font-medium">Previous mistake</div>
                   </button>
 
                   <button type="button"
-                    className="w-full px-4 py-3.5 text-left hover:bg-amber-950/30 active:bg-amber-950/30 rounded-lg flex items-center gap-3 transition-colors text-amber-500"
+                    className="w-full px-4 py-3.5 text-left hover:bg-[var(--ui-surface-2)] active:bg-[var(--ui-surface-2)] rounded-lg flex items-center gap-3 transition-colors"
                     onClick={() => {
                       findMistake('redo');
                       setMoreOpen(false);
                     }}
                     disabled={isInsertMode}
                   >
-                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-                      <FaExclamationTriangle size={14} />
+                    <div className="w-8 h-8 rounded-full bg-[var(--ui-surface)] flex items-center justify-center">
+                      <span className="inline-flex items-center gap-1" aria-hidden="true">
+                        <span className="h-2 w-2 rounded-full bg-[var(--eval-mistake)]" />
+                        <FaChevronRight size={9} />
+                      </span>
                     </div>
                     <div className="flex-1 font-medium">Next mistake</div>
                   </button>
@@ -790,11 +796,10 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           title={withShortcut('Previous mistake', 'prev-mistake')}
           onClick={() => findMistake('undo')}
           disabled={isInsertMode}
-          className="text-[var(--ui-danger)] hover:text-[var(--ui-danger)]"
         >
-          <span className="inline-flex items-center gap-px" aria-hidden="true">
+          <span className="inline-flex items-center gap-1" aria-hidden="true">
             <FaChevronLeft size={9} />
-            <FaExclamationTriangle />
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--eval-mistake)]" />
           </span>
         </IconButton>
 
@@ -899,10 +904,9 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           title={withShortcut('Next mistake', 'next-mistake')}
           onClick={() => findMistake('redo')}
           disabled={isInsertMode}
-          className="text-[var(--ui-danger)] hover:text-[var(--ui-danger)]"
         >
-          <span className="inline-flex items-center gap-px" aria-hidden="true">
-            <FaExclamationTriangle />
+          <span className="inline-flex items-center gap-1" aria-hidden="true">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--eval-mistake)]" />
             <FaChevronRight size={9} />
           </span>
         </IconButton>

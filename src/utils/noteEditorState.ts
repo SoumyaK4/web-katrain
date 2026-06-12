@@ -19,7 +19,7 @@ export function getNoteEditorSyncDecision({
   if (previousNodeId !== currentNodeId) {
     return {
       draft: currentNote,
-      editing: currentNote.trim().length === 0,
+      editing: false,
     };
   }
 

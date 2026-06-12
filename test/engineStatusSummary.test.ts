@@ -34,7 +34,7 @@ describe('engine status summary', () => {
       modelUrl: '/models/kata1-b18.bin.gz',
     });
 
-    expect(summary.compactLabel).toBe('Ready · WebGPU · kata1-b18');
+    expect(summary.compactLabel).toBe('Ready · WebGPU');
     expect(summary.title).toContain('State: Ready');
     expect(summary.title).toContain('Source: Bundled');
     expect(summary.title).toContain('Reason: Browser GPU acceleration is active.');
@@ -52,7 +52,7 @@ describe('engine status summary', () => {
       modelUrl: '/models/kata1-b18.bin.gz',
     });
 
-    expect(summary.compactLabel).toBe('Ready · WebGPU · kata1-b18');
+    expect(summary.compactLabel).toBe('Ready · WebGPU');
     expect(summary.title).toContain('State: Ready');
     expect(summary.title).toContain('Activity: Idle');
     expect(summary.dotClass).toBe('bg-green-400');
@@ -66,7 +66,7 @@ describe('engine status summary', () => {
       modelUrl: '/models/kata1-b18.bin.gz',
     });
 
-    expect(summary.compactLabel).toBe('Ready · WebGPU · kata1-b18');
+    expect(summary.compactLabel).toBe('Ready · WebGPU');
     expect(summary.title).toContain('State: Ready');
     expect(summary.title).toContain('Activity: Idle');
     expect(summary.dotClass).toBe('bg-green-400');
@@ -95,7 +95,7 @@ describe('engine status summary', () => {
       modelUrl: 'blob:https://app.local/model',
     });
 
-    expect(summary.compactLabel).toBe('Error fallback · CPU (WASM) · Uploaded weights');
+    expect(summary.compactLabel).toBe('Error fallback · CPU (WASM)');
     expect(summary.isFallback).toBe(true);
     expect(summary.title).toContain('Requested: WebGPU');
     expect(summary.reasonLabel).toBe('WebGPU failed; CPU (WASM) is the active fallback.');

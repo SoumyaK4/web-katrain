@@ -954,7 +954,8 @@ const defaultSettings: GameSettings = {
   fuzzyStonePlacement: true,
   showNextMovePreview: true,
   boardTheme: 'hikaru',
-  uiTheme: 'noir',
+  // 'system' resolves to noir/light per the device's color-scheme preference.
+  uiTheme: 'system',
   uiDensity: 'comfortable',
   gamepadNavigation: true,
   hapticFeedback: true,

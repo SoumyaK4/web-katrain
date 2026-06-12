@@ -132,8 +132,9 @@ export function getEngineStatusSummary(args: EngineStatusSummaryArgs): EngineSta
   const requestedBackendLabel = formatEngineBackendLabel(args.requestedBackend);
   const isFallback = !!args.activeBackend && args.activeBackend !== args.requestedBackend;
   const stateDisplay = isFallback ? `${stateLabel} fallback` : stateLabel;
+  // Model names are long developer detail (often a training-run hash); the
+  // compact label stays at state · backend and the title carries the model.
   const parts = [stateDisplay, activeBackendLabel];
-  if (args.modelLabel) parts.push(args.modelLabel);
   const modelSource = getEngineModelSource(args.modelUrl);
   const isReady = stateLabel === 'Ready';
   const reasonLabel = getEngineBackendReason({

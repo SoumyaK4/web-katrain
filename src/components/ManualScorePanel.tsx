@@ -97,7 +97,7 @@ export const ManualScorePanel: React.FC<ManualScorePanelProps> = ({
           aria-label={showShortcutLabel ? `Score position, keyboard shortcut ${shortcutLabel}` : 'Score position'}
         >
           <FaCalculator size={13} />
-          <span>Score</span>
+          <span className="bc-label">Score</span>
         </button>
       );
     }

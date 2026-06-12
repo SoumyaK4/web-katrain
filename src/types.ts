@@ -97,7 +97,8 @@ export type BoardThemeId =
   | 'kifu'
   | 'baduktv';
 
-export type UiThemeId = 'noir' | 'kaya' | 'studio' | 'light';
+export type ResolvedUiThemeId = 'noir' | 'kaya' | 'studio' | 'light';
+export type UiThemeId = ResolvedUiThemeId | 'system';
 export type UiDensityId = 'compact' | 'comfortable' | 'large';
 export type AppLocaleId = 'en' | 'zh' | 'ko' | 'ja' | 'fr' | 'de' | 'es' | 'it';
 

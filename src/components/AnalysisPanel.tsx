@@ -215,7 +215,7 @@ export const AnalysisCoverageReadout: React.FC<AnalysisCoverageReadoutProps> = (
     <div className={['font-mono text-sm', analysisCoverageValueClass(summary.tone)].join(' ')}>
       {summary.valueLabel}
     </div>
-    <div className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide ui-text-faint">
+    <div className="mt-0.5 text-[10px] font-semibold uppercase leading-tight tracking-wide ui-text-faint">
       {summary.stateLabel}
     </div>
   </div>

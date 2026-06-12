@@ -84,7 +84,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
             >
               <span className="relative">
                 {tab.icon}
-                {tab.id === 'info' && commentBadge && commentBadge > 0 && (
+                {tab.id === 'info' && commentBadge != null && commentBadge > 0 && (
                   <span className="absolute -top-1.5 -right-2 min-w-[16px] px-1 h-4 rounded-full text-[10px] flex items-center justify-center bg-rose-500 text-white font-semibold shadow-sm">
                     {commentBadge > 9 ? '9+' : commentBadge}
                   </span>

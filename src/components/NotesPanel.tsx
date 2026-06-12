@@ -301,7 +301,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
   const noteActionLabel = noteHasContent ? 'Edit note' : 'Add note';
   const noteShortcutLabel = shortcutLabels['edit-note'];
   const noteActionTitle = noteShortcutLabel === 'Disabled' ? noteActionLabel : `${noteActionLabel} (${noteShortcutLabel})`;
-  const [isEditingNote, setIsEditingNote] = React.useState(() => !noteHasContent);
+  const [isEditingNote, setIsEditingNote] = React.useState(false);
   const [noteDraft, setNoteDraft] = React.useState(currentNote);
   const noteTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const shouldFocusNoteRef = React.useRef(false);
@@ -365,8 +365,9 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
     const visualViewport = getVisualViewport();
     if (!visualViewport) return;
     const updateForKeyboard = () => {
-      setKeyboardInset(getVisualKeyboardInset());
-      scrollNoteEditorIntoView();
+      const inset = getVisualKeyboardInset();
+      setKeyboardInset(inset);
+      if (inset > 0) scrollNoteEditorIntoView();
     };
     updateForKeyboard();
     visualViewport.addEventListener('resize', updateForKeyboard);
@@ -562,8 +563,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ showInfo, detailed, show
         >
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-xs font-semibold ui-text-faint">Note</div>
-              <div className="text-[10px] font-mono ui-text-faint">SGF C</div>
+              <div className="text-xs font-semibold ui-text-faint" title="Saved as an SGF comment (C property) with the game">Note</div>
             </div>
             {isEditingNote ? (
               <div className="flex items-center gap-1.5">

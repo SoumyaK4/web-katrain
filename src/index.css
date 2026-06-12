@@ -35,6 +35,14 @@
     --ui-warning-soft: #3a2a12;
     --ui-success: #22c55e;
     --ui-success-soft: #17351f;
+    /* KaTrain move-quality eval scale (theme independent, shared with the
+       dashboard scale in dashboard.css). */
+    --eval-blunder:    rgb(114, 33, 107);
+    --eval-mistake:    rgb(204, 0, 0);
+    --eval-inaccuracy: rgb(230, 102, 26);
+    --eval-slight:     rgb(216, 216, 0);
+    --eval-good:       rgb(171, 230, 46);
+    --eval-best:       rgb(30, 150, 0);
     color-scheme: dark;
   }
 
@@ -349,6 +357,48 @@
     border-color: var(--ui-accent);
   }
 
+  /* Themed switch for boolean settings on every viewport; the mobile media
+     query below only enlarges it to touch-target size. */
+  .settings-modal .toggle {
+    appearance: none;
+    position: relative;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 24px;
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    background: var(--ui-surface);
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .settings-modal .toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--ui-text-muted);
+    transform: translateY(-50%);
+    transition:
+      background-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .settings-modal .toggle:checked {
+    background: var(--ui-accent-soft);
+    border-color: var(--ui-accent);
+  }
+
+  .settings-modal .toggle:checked::after {
+    background: var(--ui-accent);
+    transform: translate(14px, -50%);
+  }
+
   @media (max-width: 1023px) {
     [aria-labelledby='menu-title'] button,
     [aria-labelledby='menu-title'] a[href] {
@@ -376,45 +426,8 @@
       padding-bottom: 0.625rem;
     }
 
-    .settings-modal .toggle {
-      appearance: none;
-      position: relative;
-      flex: 0 0 44px;
-      width: 44px;
-      height: 44px;
-      border: 1px solid var(--ui-border);
-      border-radius: 999px;
-      background: var(--ui-surface);
-      cursor: pointer;
-      transition:
-        background-color 0.15s ease,
-        border-color 0.15s ease;
-    }
-
-    .settings-modal .toggle::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 6px;
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: var(--ui-text-muted);
-      transform: translateY(-50%);
-      transition:
-        background-color 0.15s ease,
-        transform 0.15s ease;
-    }
-
-    .settings-modal .toggle:checked {
-      background: var(--ui-accent-soft);
-      border-color: var(--ui-accent);
-    }
-
-    .settings-modal .toggle:checked::after {
-      background: var(--ui-accent);
-      transform: translate(14px, -50%);
-    }
+    /* The base .toggle styles above apply; the generic 44px touch-target
+       minimums in this media query enlarge the hit area. */
   }
 
   .ui-panel-pad {
@@ -1872,15 +1885,20 @@
     line-height: 1.3;
   }
 
+  /* Collapsed to zero width (not display:none) so the row name gets the space
+     while the buttons stay tabbable; focus-within re-expands them. */
   .library-tree-node-actions {
     display: inline-flex;
     gap: 2px;
+    width: 0;
+    overflow: hidden;
     opacity: 0;
     transition: opacity 0.1s ease;
   }
 
   .library-tree-node:hover .library-tree-node-actions,
   .library-tree-node:focus-within .library-tree-node-actions {
+    width: auto;
     opacity: 1;
   }
 
@@ -2054,7 +2072,14 @@
   }
 
   @media (max-width: 1023px) {
-    .manual-score-launch {
+    /* Launchers share the bottom edge with the Edit button on mobile (compact
+       bottom bars; the board stays fully visible), matching where the active
+       score bar docks. Bottom anchoring also makes the command-bar top offset
+       irrelevant, hence the .manual-score-offset override. */
+    .manual-score-launch,
+    .manual-score-launch.manual-score-offset {
+      top: auto;
+      bottom: 12px;
       min-height: 44px;
       padding: 9px 12px;
     }
@@ -2535,12 +2560,8 @@
     min-height: var(--mobile-tabbar-height);
   }
 
-  @media (max-width: 420px) {
-    .mobile-tabbar-label {
-      display: none;
-    }
-  }
-
+  /* Four short labels fit even at 320px; only short landscape viewports
+     (below) drop them to save height. */
   @media (max-height: 520px) and (orientation: landscape) {
     :root,
     :root[data-ui-density='compact'],
