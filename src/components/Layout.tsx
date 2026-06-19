@@ -119,6 +119,7 @@ const ScoreQuizModal = lazy(() => import('./ScoreQuizModal').then((module) => ({
 const TournamentModal = lazy(() => import('./TournamentModal').then((module) => ({ default: module.TournamentModal })));
 const ProGamesModal = lazy(() => import('./ProGamesModal').then((module) => ({ default: module.ProGamesModal })));
 const LessonsModal = lazy(() => import('./LessonsModal').then((module) => ({ default: module.LessonsModal })));
+const VideoBoardModal = lazy(() => import('./VideoBoardModal').then((module) => ({ default: module.VideoBoardModal })));
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 const mainFileInputAccept = ['.sgf', PHOTO_BOARD_IMAGE_ACCEPT, MODEL_UPLOAD_ACCEPT].join(',');
@@ -329,6 +330,7 @@ export const Layout: React.FC = () => {
   const [isTournamentOpen, setIsTournamentOpen] = useState(false);
   const [isProGamesOpen, setIsProGamesOpen] = useState(false);
   const [isLessonsOpen, setIsLessonsOpen] = useState(false);
+  const [isVideoBoardOpen, setIsVideoBoardOpen] = useState(false);
   const [noteFocusRequest, setNoteFocusRequest] = useState(0);
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isPhotoBoardOpen, setIsPhotoBoardOpen] = useState(false);
@@ -2015,6 +2017,13 @@ export const Layout: React.FC = () => {
         keywords: ['scan', 'camera', 'image'],
       },
       {
+        id: 'video-board',
+        label: 'Import game from video',
+        category: 'File',
+        run: () => openSimpleModal(() => setIsVideoBoardOpen(true)),
+        keywords: ['video', 'record', 'capture', 'movie', 'clip', 'sgf'],
+      },
+      {
         id: 'paste-sgf',
         label: 'Paste SGF or OGS URL',
         category: 'File',
@@ -2599,6 +2608,7 @@ export const Layout: React.FC = () => {
       !isTournamentOpen &&
       !isProGamesOpen &&
       !isLessonsOpen &&
+      !isVideoBoardOpen &&
       !pendingResignPlayer,
     handlers: {
       back: mode === 'play' ? handleUndo : navigateBack,
@@ -2690,6 +2700,13 @@ export const Layout: React.FC = () => {
         )}
         {isLessonsOpen && (
           <LessonsModal onClose={() => setIsLessonsOpen(false)} />
+        )}
+        {isVideoBoardOpen && (
+          <VideoBoardModal
+            onClose={() => setIsVideoBoardOpen(false)}
+            onImportSgf={async (sgf) => { await handlePhotoBoardImport(sgf); setIsVideoBoardOpen(false); }}
+            defaultBoardSize={boardSize}
+          />
         )}
         {isPhotoBoardOpen && (
           <PhotoBoardModal
