@@ -118,6 +118,7 @@ const SaveToLibraryDialog = lazy(() => import('./SaveToLibraryDialog').then((mod
 const ScoreQuizModal = lazy(() => import('./ScoreQuizModal').then((module) => ({ default: module.ScoreQuizModal })));
 const TournamentModal = lazy(() => import('./TournamentModal').then((module) => ({ default: module.TournamentModal })));
 const ProGamesModal = lazy(() => import('./ProGamesModal').then((module) => ({ default: module.ProGamesModal })));
+const LessonsModal = lazy(() => import('./LessonsModal').then((module) => ({ default: module.LessonsModal })));
 
 const MOBILE_HOME_DISMISSED_KEY = 'web-katrain:mobile_home_dismissed:v1';
 const mainFileInputAccept = ['.sgf', PHOTO_BOARD_IMAGE_ACCEPT, MODEL_UPLOAD_ACCEPT].join(',');
@@ -327,6 +328,7 @@ export const Layout: React.FC = () => {
   const [isScoreQuizOpen, setIsScoreQuizOpen] = useState(false);
   const [isTournamentOpen, setIsTournamentOpen] = useState(false);
   const [isProGamesOpen, setIsProGamesOpen] = useState(false);
+  const [isLessonsOpen, setIsLessonsOpen] = useState(false);
   const [noteFocusRequest, setNoteFocusRequest] = useState(0);
   const [isNewGameOpen, setIsNewGameOpen] = useState(false);
   const [isPhotoBoardOpen, setIsPhotoBoardOpen] = useState(false);
@@ -2344,6 +2346,13 @@ export const Layout: React.FC = () => {
         keywords: ['professional', 'database', 'famous', 'kifu', 'player', 'event'],
       },
       {
+        id: 'lessons',
+        label: 'Interactive lessons',
+        category: 'Study',
+        run: () => openSimpleModal(() => setIsLessonsOpen(true)),
+        keywords: ['learn', 'tutorial', 'teach', 'beginner', 'fundamentals', 'capture', 'eyes'],
+      },
+      {
         id: 'game-analysis',
         label: 'Open game re-analysis',
         category: 'Analysis',
@@ -2589,6 +2598,7 @@ export const Layout: React.FC = () => {
       !isScoreQuizOpen &&
       !isTournamentOpen &&
       !isProGamesOpen &&
+      !isLessonsOpen &&
       !pendingResignPlayer,
     handlers: {
       back: mode === 'play' ? handleUndo : navigateBack,
@@ -2677,6 +2687,9 @@ export const Layout: React.FC = () => {
             onClose={() => setIsProGamesOpen(false)}
             onLoadGame={handleLoadProGame}
           />
+        )}
+        {isLessonsOpen && (
+          <LessonsModal onClose={() => setIsLessonsOpen(false)} />
         )}
         {isPhotoBoardOpen && (
           <PhotoBoardModal

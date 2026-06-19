@@ -22,6 +22,8 @@ interface StaticBoardProps {
   maxPx?: number;
   className?: string;
   ariaLabel?: string;
+  /** When provided, the board becomes clickable and reports the clicked intersection. */
+  onPointClick?: (x: number, y: number) => void;
 }
 
 const COLUMN_LETTERS = 'ABCDEFGHJKLMNOPQRST';
@@ -39,6 +41,7 @@ export const StaticBoard: React.FC<StaticBoardProps> = ({
   maxPx = 420,
   className,
   ariaLabel = 'Go board position',
+  onPointClick,
 }) => {
   const size = normalizeBoardSize(board.length, 19);
   const hoshi = useMemo(() => getHoshiPoints(size), [size]);
@@ -177,6 +180,22 @@ export const StaticBoard: React.FC<StaticBoardProps> = ({
           </g>
         );
       })}
+
+      {/* Click layer */}
+      {onPointClick &&
+        board.map((row, y) =>
+          row.map((_, x) => (
+            <circle
+              key={`hit-${x}-${y}`}
+              cx={toPx(x)}
+              cy={toPx(y)}
+              r={0.5}
+              fill="transparent"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onPointClick(x, y)}
+            />
+          )),
+        )}
     </svg>
   );
 };
