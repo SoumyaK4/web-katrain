@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera, FaInfoCircle, FaBook, FaBolt, FaSearch } from 'react-icons/fa';
+import { FaTimes, FaPlay, FaSave, FaFolderOpen, FaCog, FaCopy, FaPaste, FaKeyboard, FaHome, FaCamera, FaInfoCircle, FaBook, FaBolt, FaSearch, FaTrophy, FaGraduationCap, FaVideo, FaBalanceScale } from 'react-icons/fa';
 import { APP_BUILD_LABEL, APP_COMMIT_URL } from '../../utils/appInfo';
 import { useEscapeToClose } from '../../hooks/useEscapeToClose';
 import { useShortcutLabels } from '../../hooks/useShortcutLabels';
@@ -31,6 +31,11 @@ interface MenuDrawerProps {
   onSaveToLibrary: () => void;
   onLoad: () => void;
   onScanBoard: () => void;
+  onVideoBoard?: () => void;
+  onScoreQuiz?: () => void;
+  onRankLadder?: () => void;
+  onProGames?: () => void;
+  onLessons?: () => void;
   onCopy: () => void;
   onPaste: () => void;
   onSettings: () => void;
@@ -55,6 +60,11 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onSaveToLibrary,
   onLoad,
   onScanBoard,
+  onVideoBoard,
+  onScoreQuiz,
+  onRankLadder,
+  onProGames,
+  onLessons,
   onCopy,
   onPaste,
   onSettings,
@@ -233,6 +243,51 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               <kbd className="text-xs ui-text-faint">{shortcutLabels['paste-sgf']}</kbd>
             </button>
           </div>
+          {(onLessons || onScoreQuiz || onRankLadder || onProGames || onVideoBoard) && (
+            <div>
+              <div className="px-3 text-xs uppercase tracking-wide ui-text-faint mb-2">Study &amp; Practice</div>
+              {onLessons && (
+                <button type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+                  onClick={() => { onLessons(); onClose(); }}
+                >
+                  <FaGraduationCap aria-hidden="true" /> Lessons
+                </button>
+              )}
+              {onScoreQuiz && (
+                <button type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+                  onClick={() => { onScoreQuiz(); onClose(); }}
+                >
+                  <FaBalanceScale aria-hidden="true" /> Score Quiz
+                </button>
+              )}
+              {onRankLadder && (
+                <button type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+                  onClick={() => { onRankLadder(); onClose(); }}
+                >
+                  <FaTrophy aria-hidden="true" /> Rank Ladder
+                </button>
+              )}
+              {onProGames && (
+                <button type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+                  onClick={() => { onProGames(); onClose(); }}
+                >
+                  <FaBook aria-hidden="true" /> Pro Game Library
+                </button>
+              )}
+              {onVideoBoard && (
+                <button type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-[var(--ui-surface-2)]"
+                  onClick={() => { onVideoBoard(); onClose(); }}
+                >
+                  <FaVideo aria-hidden="true" /> Video to SGF
+                </button>
+              )}
+            </div>
+          )}
           <div>
             <div className="px-3 text-xs uppercase tracking-wide ui-text-faint mb-2">Settings</div>
             <label

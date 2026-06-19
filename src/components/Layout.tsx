@@ -2861,6 +2861,11 @@ export const Layout: React.FC = () => {
         onSaveToLibrary={handleOpenSaveToLibraryDialog}
         onLoad={handleLoadClick}
         onScanBoard={() => openPhotoBoard()}
+        onVideoBoard={() => setIsVideoBoardOpen(true)}
+        onScoreQuiz={() => setIsScoreQuizOpen(true)}
+        onRankLadder={() => setIsTournamentOpen(true)}
+        onProGames={() => setIsProGamesOpen(true)}
+        onLessons={() => setIsLessonsOpen(true)}
         onCopy={handleCopySgf}
         onPaste={handlePasteSgf}
         onSettings={() => setIsSettingsOpen(true)}
