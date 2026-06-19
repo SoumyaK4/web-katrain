@@ -941,24 +941,11 @@
 .wk-dashboard .edge-toggle.top { top: 0; border-top: none; border-radius: 0 0 var(--r-sm) var(--r-sm); }
 .wk-dashboard .edge-toggle.bottom { top: auto; bottom: 0; border-bottom: none; border-radius: var(--r-sm) var(--r-sm) 0 0; }
 
-/* collapse buttons inside the top/bottom strips */
-.wk-dashboard .strip-collapse {
-  flex: none;
-  display: inline-flex; align-items: center; justify-content: center;
-  border: none; background: transparent; color: var(--faint);
-  transition: color .12s ease, background .12s ease;
-}
-.wk-dashboard .strip-collapse:hover { color: var(--ink); background: var(--panel-soft); }
-.wk-dashboard .strip-collapse svg { width: 13px; height: 13px; }
-.wk-dashboard .gs-collapse {
-  margin-left: auto;
-  width: 26px; height: 26px;
-  border-radius: var(--r-sm);
-}
-.wk-dashboard .cb-collapse {
-  width: 26px;
-  border-left: 1px solid var(--line);
-  border-radius: 0;
+/* When the panel is open the same toggle folds it shut: keep it on the seam
+   between the board and the panel, reading as the active (open) handle. */
+.wk-dashboard .edge-toggle.open {
+  color: var(--ink);
+  background: var(--panel-soft);
 }
 
 .wk-dashboard .hidden { display: none !important; }

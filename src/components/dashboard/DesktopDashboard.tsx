@@ -575,25 +575,30 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
             <span className={`gs-save ${dirty ? 'dirty' : 'saved'}`}>
               <Icon name={dirty ? 'alert' : 'check'} size={11} />{dirty ? 'Unsaved' : 'Saved'}
             </span>
-            <button
-              type="button"
-              className="strip-collapse gs-collapse"
-              title="Hide game info"
-              aria-label="Hide game info"
-              onClick={() => setGamestripOpen(false)}
-            >
-              <Icon name="chevU" size={13} />
-            </button>
           </div>
           )}
 
           <div className="board-stage">
-            {!libraryOpen && (
-              <button type="button" className="edge-toggle left" title="Show library" onClick={toggleLibrary}><Icon name="chevR" size={13} /></button>
-            )}
-            {!gamestripOpen && (
-              <button type="button" className="edge-toggle top" title="Show game info" onClick={() => setGamestripOpen(true)}><Icon name="chevD" size={13} /></button>
-            )}
+            <button
+              type="button"
+              className={`edge-toggle left${libraryOpen ? ' open' : ''}`}
+              title={libraryOpen ? 'Hide library' : 'Show library'}
+              aria-label={libraryOpen ? 'Hide library' : 'Show library'}
+              aria-pressed={libraryOpen}
+              onClick={toggleLibrary}
+            >
+              <Icon name={libraryOpen ? 'chevL' : 'chevR'} size={13} />
+            </button>
+            <button
+              type="button"
+              className={`edge-toggle top${gamestripOpen ? ' open' : ''}`}
+              title={gamestripOpen ? 'Hide game info' : 'Show game info'}
+              aria-label={gamestripOpen ? 'Hide game info' : 'Show game info'}
+              aria-pressed={gamestripOpen}
+              onClick={() => setGamestripOpen((v) => !v)}
+            >
+              <Icon name={gamestripOpen ? 'chevU' : 'chevD'} size={13} />
+            </button>
             <div className="board-wrap">
               <div className="goban-frame">{board}</div>
             </div>
@@ -626,12 +631,26 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                 </div>
               </div>
             )}
-            {!sidebarOpen && (
-              <button type="button" className="edge-toggle right" title="Show analysis" onClick={toggleSidebar}><Icon name="chevL" size={13} /></button>
-            )}
-            {!commandbarOpen && (
-              <button type="button" className="edge-toggle bottom" title="Show metrics" onClick={() => setCommandbarOpen(true)}><Icon name="chevU" size={13} /></button>
-            )}
+            <button
+              type="button"
+              className={`edge-toggle right${sidebarOpen ? ' open' : ''}`}
+              title={sidebarOpen ? 'Hide analysis' : 'Show analysis'}
+              aria-label={sidebarOpen ? 'Hide analysis' : 'Show analysis'}
+              aria-pressed={sidebarOpen}
+              onClick={toggleSidebar}
+            >
+              <Icon name={sidebarOpen ? 'chevR' : 'chevL'} size={13} />
+            </button>
+            <button
+              type="button"
+              className={`edge-toggle bottom${commandbarOpen ? ' open' : ''}`}
+              title={commandbarOpen ? 'Hide metrics' : 'Show metrics'}
+              aria-label={commandbarOpen ? 'Hide metrics' : 'Show metrics'}
+              aria-pressed={commandbarOpen}
+              onClick={() => setCommandbarOpen((v) => !v)}
+            >
+              <Icon name={commandbarOpen ? 'chevD' : 'chevU'} size={13} />
+            </button>
           </div>
 
           {/* Command bar */}
@@ -677,15 +696,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                 </>
               )}
             </div>
-            <button
-              type="button"
-              className="strip-collapse cb-collapse"
-              title="Hide metrics"
-              aria-label="Hide metrics"
-              onClick={() => setCommandbarOpen(false)}
-            >
-              <Icon name="chevD" size={13} />
-            </button>
           </div>
           )}
 
