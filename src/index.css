@@ -918,6 +918,51 @@
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
   }
 
+  .analysis-command-bar-slot {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 0;
+  }
+
+  .analysis-command-bar-slot--reserve {
+    min-height: 3.875rem;
+  }
+
+  .analysis-command-bar-slot .analysis-command-bar {
+    grid-template-columns: minmax(7rem, auto) minmax(10rem, 1fr) minmax(10rem, auto);
+    margin-bottom: 0;
+  }
+
+  .analysis-command-bar-slot .analysis-command-bar__actions {
+    grid-column: auto;
+    min-width: 0;
+    max-width: min(28rem, 45vw);
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .analysis-command-bar-slot .analysis-command-bar__actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .analysis-command-bar-slot .analysis-command-bar__metrics {
+    display: flex;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .analysis-command-bar-slot .analysis-command-bar__metrics::-webkit-scrollbar {
+    display: none;
+  }
+
+  .analysis-command-bar-slot .analysis-command-bar__metric {
+    flex: 0 0 auto;
+    min-width: 4.75rem;
+  }
+
   .analysis-command-bar__status {
     display: inline-flex;
     min-width: 0;

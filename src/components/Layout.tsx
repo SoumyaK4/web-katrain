@@ -1211,6 +1211,12 @@ export const Layout: React.FC = () => {
       typeof winRate === 'number' ||
       typeof scoreLead === 'number');
   const [boardToolOffsetY, setBoardToolOffsetY] = useState(12);
+  const analysisCommandBarSlotClass = isGameAnalysisRunning
+    ? undefined
+    : [
+        'analysis-command-bar-slot',
+        settings.showAnalysisBar ? 'analysis-command-bar-slot--reserve' : '',
+      ].filter(Boolean).join(' ');
 
   useLayoutEffect(() => {
     if (!showAnalysisCommandBar) {
@@ -3256,7 +3262,10 @@ export const Layout: React.FC = () => {
               onClear={clearManualDeadStones}
               onDone={() => setScoringMode(false)}
             />
-            <div ref={analysisCommandBarRef}>
+            <div
+              ref={analysisCommandBarRef}
+              className={analysisCommandBarSlotClass}
+            >
               <AnalysisCommandBar
                 mode={mode}
                 isAnalysisMode={isAnalysisMode}
