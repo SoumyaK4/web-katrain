@@ -108,6 +108,8 @@ export default defineConfig({
     },
   },
   server: {
+    // Honor the PORT env var (e.g. when launched by preview tooling); fall back to Vite's default otherwise.
+    port: process.env.PORT ? Number(process.env.PORT) : undefined,
     headers: {
       // Required for SharedArrayBuffer (enables threaded WASM backend when available).
       'Cross-Origin-Opener-Policy': 'same-origin',
