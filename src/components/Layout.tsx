@@ -645,6 +645,10 @@ export const Layout: React.FC = () => {
     setScoringMode((prev) => !prev);
   }, [isEditMode, isInsertMode, isSelectingRegionOfInterest, scoringMode, toast]);
 
+  // On-demand "AI move" / "Play best" buttons: play one engine move for the
+  // side to move, even when not in a game vs AI or when it's the human's turn.
+  const requestAiMove = useCallback(() => makeAiMove({ force: true }), [makeAiMove]);
+
   const clearManualDeadStones = useCallback(() => {
     setManualDeadStones(new Set());
     setManualScoreMode('manual');
@@ -3281,9 +3285,9 @@ export const Layout: React.FC = () => {
             makeCurrentNodeMainBranch={makeCurrentNodeMainBranch}
             passTurn={passTurn}
             onUndo={handleUndo}
-            onAiMove={makeAiMove}
+            onAiMove={requestAiMove}
             onResign={handleResign}
-            onPlayBest={makeAiMove}
+            onPlayBest={requestAiMove}
             onNewGame={() => void openNewGameWithGuard()}
             onSaveSgf={handleSaveCurrentSgf}
             onCopySgf={handleCopySgf}
@@ -3369,7 +3373,7 @@ export const Layout: React.FC = () => {
               toggleInsertMode={toggleInsertMode}
               selfplayToEnd={selfplayToEnd}
               toggleContinuousAnalysis={toggleContinuousAnalysis}
-              makeAiMove={makeAiMove}
+              makeAiMove={requestAiMove}
               rotateBoard={rotateBoard}
               toggleTeachMode={toggleTeachMode}
               isTeachMode={isTeachMode}
@@ -3547,7 +3551,7 @@ export const Layout: React.FC = () => {
               jumpForward={jumpForward}
               isMobile={false}
               onUndo={handleUndo}
-              onAiMove={makeAiMove}
+              onAiMove={requestAiMove}
               onResign={handleResign}
             />
           )}
@@ -3603,7 +3607,7 @@ export const Layout: React.FC = () => {
           currentPlayer={currentPlayer}
           onUndo={handleUndo}
           onResign={handleResign}
-          onAiMove={makeAiMove}
+          onAiMove={requestAiMove}
           navigateStart={navigateStart}
           navigateEnd={navigateEnd}
           switchBranch={switchBranch}
@@ -3725,7 +3729,7 @@ export const Layout: React.FC = () => {
                     jumpForward={jumpForward}
                     isMobile={true}
                     onUndo={handleUndo}
-                    onAiMove={makeAiMove}
+                    onAiMove={requestAiMove}
                     onResign={handleResign}
                     unsavedChanges={currentGameDirty}
                     autoSaveStatus={autoSaveStatus}

@@ -99,7 +99,7 @@ interface GameStore extends GameState {
   clearNotification: () => void;
   toggleTimerPaused: () => void;
   playMove: (x: number, y: number, isLoad?: boolean) => void;
-  makeAiMove: () => void;
+  makeAiMove: (opts?: { force?: boolean }) => void;
   undoMove: () => void; // Go back
   navigateBack: () => void;
   navigateForward: () => void; // Go forward (main branch)
@@ -3067,10 +3067,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
 	    }
 	  },
 
-	  makeAiMove: () => {
+	  makeAiMove: (opts) => {
+	      const force = opts?.force ?? false;
 	      const state = get();
-	      if (!state.isAiPlaying || !state.aiColor) return;
-	      if (state.currentPlayer !== state.aiColor) return;
+	      // `force` lets the on-demand "AI move" buttons play one engine move for
+	      // the side to move even outside an AI game or on the human's turn.
+	      if (!force) {
+	        if (!state.isAiPlaying || !state.aiColor) return;
+	        if (state.currentPlayer !== state.aiColor) return;
+	      }
 
 	      const node = state.currentNode;
 	      const nodeId = node.id;
@@ -3160,7 +3165,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const latest = get();
           if (latest.currentNode.id !== nodeId) return;
           if (latest.currentPlayer !== playerAtStart) return;
-          if (!latest.isAiPlaying || latest.aiColor !== playerAtStart) return;
+          if (!force && (!latest.isAiPlaying || latest.aiColor !== playerAtStart)) return;
           const settings = latest.settings;
           const boardSize = getBoardSizeFromBoard(latest.board);
 
@@ -3772,8 +3777,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const latest = get();
             if (latest.currentNode.id !== nodeId) return;
             if (latest.currentPlayer !== playerAtStart) return;
-            if (!latest.isAiPlaying || latest.aiColor !== playerAtStart) return;
-            setTimeout(() => latest.makeAiMove(), 100);
+            if (!force && (!latest.isAiPlaying || latest.aiColor !== playerAtStart)) return;
+            setTimeout(() => latest.makeAiMove(force ? { force: true } : undefined), 100);
             return;
           }
           makeHeuristicMove(get());
