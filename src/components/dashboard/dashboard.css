@@ -464,6 +464,36 @@
   gap: 6px;
   margin-top: 2px;
 }
+.wk-dashboard .hero-card .hero-tips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  width: 100%;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.wk-dashboard .hero-card .hero-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.wk-dashboard .hero-card .hero-tip kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--panel-2, color-mix(in srgb, var(--ink) 6%, transparent));
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 3px 6px;
+  box-shadow: 0 1px 0 var(--line-strong);
+}
 .wk-dashboard .hero-card .hero-close {
   position: absolute;
   top: 6px;

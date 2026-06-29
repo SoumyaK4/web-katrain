@@ -629,6 +629,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = (props) => {
                     <Icon name="camera" size={14} /> From photo
                   </button>
                 </div>
+                <div className="hero-tips">
+                  <span className="hero-tip">
+                    Press <kbd>Space</kbd> to start live analysis
+                  </span>
+                  <span className="hero-tip"><kbd>Tab</kbd> Analysis mode</span>
+                  <span className="hero-tip"><kbd>?</kbd> all shortcuts</span>
+                </div>
               </div>
             )}
             <button
